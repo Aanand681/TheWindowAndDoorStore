@@ -3,6 +3,17 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+// Suppress known React 19 false-positive warning for next-themes inline script injection
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  const originalError = console.error
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === "string" && args[0].includes("Encountered a script tag")) {
+      return
+    }
+    originalError.apply(console, args)
+  }
+}
+
 function ThemeProvider({
   children,
   ...props
@@ -47,7 +58,7 @@ function ThemeHotkey() {
         return
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      if (!event.key || event.key.toLowerCase() !== "d") {
         return
       }
 
