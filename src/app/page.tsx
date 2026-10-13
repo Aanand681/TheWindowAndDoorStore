@@ -15,8 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, Calculator, Tag, Info, Receipt, Component, FileUp, UserCircle, LogOut } from 'lucide-react';
+import { Plus, Trash2, Calculator, Tag, Info, Receipt, Component, FileUp, UserCircle, LogOut, Eye, Download, RotateCcw, Bold, List } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { readPdfItems, parseManufacturerPdfItems, extractPdfMetadata } from '@/lib/pdf-parser';
 import { useRef } from 'react';
@@ -27,7 +26,9 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TaxCalculatorTab from '@/components/TaxCalculatorTab';
-import QuoteInvoice from '@/components/QuoteInvoice';
+import QuoteInvoice, { QuoteTemplateType } from '@/components/QuoteInvoice';
+import QuotePreviewModal from '@/components/QuotePreviewModal';
+import QuoteNotesEditor from '@/components/QuoteNotesEditor';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
@@ -55,6 +56,7 @@ export default function PromoCalculator() {
   // Dynamic Promos State
   const [availablePromos, setAvailablePromos] = useState<DBPromo[]>([]);
   const [activePromoId, setActivePromoId] = useState<string>('none');
+  const [lockedPromoId, setLockedPromoId] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState('promo');
 
@@ -64,6 +66,22 @@ export default function PromoCalculator() {
   const taxMisc = taxTotals ? Math.round(taxTotals.finalMisc * 100) : 0;
   const taxLabour = taxTotals ? Math.round(taxTotals.finalLabour * 100) : 0;
   
+  // Custom Editable Overrides for Final Prices
+  const [customJC, setCustomJC] = useState<string>('');
+  const [customMisc, setCustomMisc] = useState<string>('');
+  const [customLabour, setCustomLabour] = useState<string>('');
+
+  const effectiveJC = customJC.trim() !== '' ? Math.round(Number(customJC) * 100) : taxJC;
+  const effectiveMisc = customMisc.trim() !== '' ? Math.round(Number(customMisc) * 100) : taxMisc;
+  const effectiveLabour = customLabour.trim() !== '' ? Math.round(Number(customLabour) * 100) : taxLabour;
+
+  // Preview Modal & Customizer State
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
+  const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
+  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
+  const [quoteNotes, setQuoteNotes] = useState<string>('');
+
   const [wantsUpgrade, setWantsUpgrade] = useState<boolean>(false);
   const [includeLabourInPromo, setIncludeLabourInPromo] = useState<boolean>(true);
   const [includeMiscInPromo, setIncludeMiscInPromo] = useState<boolean>(true);
@@ -109,6 +127,7 @@ export default function PromoCalculator() {
   }, []);
 
   const handleAddWindow = () => {
+    setLockedPromoId(null);
     setWindows([...windows, { id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }]);
     setTimeout(() => {
       windowEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -121,6 +140,7 @@ export default function PromoCalculator() {
   };
 
   const handleRemoveWindow = (id: string) => {
+    setLockedPromoId(null);
     setWindows(windows.filter((w) => w.id !== id));
   };
 
@@ -146,6 +166,8 @@ export default function PromoCalculator() {
         h: w.h || ''
       }));
       setWindows(imported.length > 0 ? imported : [{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }]);
+      setLockedPromoId(null);
+      setActivePromoId('none');
       toast.success(`Imported ${imported.length} window(s) from ${file.name}.`);
     } catch (error: any) {
       toast.error(`PDF import failed: ${error.message}`);
@@ -184,11 +206,12 @@ export default function PromoCalculator() {
       ? validOptions.reduce((min, o) => o.final < min.final ? o : min, validOptions[0])
       : options[0]; // fallback to none
     
-    let selectedId = activePromoId;
-    if (!selectedId || selectedId === 'none') {
-      selectedId = lowest.promoId;
-      setActivePromoId(selectedId);
-    }
+    // Automatically follow lowest promo unless explicitly locked by user to another promo
+    const selectedId = (lockedPromoId && options.some(o => o.promoId === lockedPromoId))
+      ? lockedPromoId
+      : lowest.promoId;
+
+    setActivePromoId(selectedId);
 
     const selectedOption = options.find(o => o.promoId === selectedId) || options.find(o => o.promoId === 'none');
     setQuoteResult(selectedOption || null);
@@ -201,13 +224,13 @@ export default function PromoCalculator() {
       setQuoteResult(null);
       setCompareOptions([]);
     }
-  }, [windows, surchargeRate, activePromoId, availablePromos]);
+  }, [windows, surchargeRate, lockedPromoId, availablePromos]);
 
   const beforeTaxDiscount = quoteResult 
     ? quoteResult.base + 
-      (includeJCInPromo ? taxJC : 0) + 
-      (includeMiscInPromo ? taxMisc : 0) + 
-      (includeLabourInPromo ? taxLabour : 0) + 
+      (includeJCInPromo ? effectiveJC : 0) + 
+      (includeMiscInPromo ? effectiveMisc : 0) + 
+      (includeLabourInPromo ? effectiveLabour : 0) + 
       quoteResult.surcharge 
     : 0;
   
@@ -223,7 +246,7 @@ export default function PromoCalculator() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 space-y-8 print:hidden">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="inline-flex items-center gap-2 text-primary">
             <Component className="w-6 h-6" />
@@ -440,10 +463,17 @@ export default function PromoCalculator() {
 
                     return (
                       <motion.div
+                        key={opt.promoId}
                         whileHover={{ y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        key={opt.promoId}
-                        onClick={() => setActivePromoId(opt.promoId)}
+                        onClick={() => {
+                          if (isLowest) {
+                            setLockedPromoId(null);
+                          } else {
+                            setLockedPromoId(opt.promoId);
+                          }
+                          setActivePromoId(opt.promoId);
+                        }}
                         className={`relative cursor-pointer rounded-2xl p-5 border transition-all duration-300 ${
                           isSelected 
                             ? 'bg-primary/10 border-primary shadow-xl shadow-primary/10 ring-1 ring-primary/50' 
@@ -545,32 +575,99 @@ export default function PromoCalculator() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5 flex flex-col justify-end">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Checkbox id="incJc" checked={includeJCInPromo} onCheckedChange={c => setIncludeJCInPromo(!!c)} />
-                        <Label htmlFor="incJc" className="text-xs text-muted-foreground cursor-pointer">Include J & C</Label>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox id="incJc" checked={includeJCInPromo} onCheckedChange={c => setIncludeJCInPromo(!!c)} />
+                          <Label htmlFor="incJc" className="text-xs text-muted-foreground cursor-pointer">Include J & C</Label>
+                        </div>
+                        {customJC !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomJC('')}
+                            title="Reset to calculated"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer select-none no-underline"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5 cursor-pointer" />
+                            <span className="cursor-pointer">Reset</span>
+                          </button>
+                        )}
                       </div>
-                      <div className={`h-9 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm ${!includeJCInPromo ? 'opacity-30 line-through' : 'opacity-70'}`}>
-                        {formatMoney(taxJC)}
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2.5 text-xs text-muted-foreground font-mono pointer-events-none">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder={(taxJC / 100).toFixed(2)}
+                          value={customJC}
+                          onChange={(e) => setCustomJC(e.target.value)}
+                          disabled={!includeJCInPromo}
+                          className={`h-9 pl-6 pr-3 font-mono text-sm bg-background ${!includeJCInPromo ? 'opacity-30 line-through' : ''}`}
+                        />
                       </div>
                     </div>
+                    
                     <div className="space-y-1.5 flex flex-col justify-end">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Checkbox id="incMisc" checked={includeMiscInPromo} onCheckedChange={c => setIncludeMiscInPromo(!!c)} />
-                        <Label htmlFor="incMisc" className="text-xs text-muted-foreground cursor-pointer">Include Misc</Label>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox id="incMisc" checked={includeMiscInPromo} onCheckedChange={c => setIncludeMiscInPromo(!!c)} />
+                          <Label htmlFor="incMisc" className="text-xs text-muted-foreground cursor-pointer">Include Misc</Label>
+                        </div>
+                        {customMisc !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomMisc('')}
+                            title="Reset to calculated"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer select-none no-underline"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5 cursor-pointer" />
+                            <span className="cursor-pointer">Reset</span>
+                          </button>
+                        )}
                       </div>
-                      <div className={`h-9 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm ${!includeMiscInPromo ? 'opacity-30 line-through' : 'opacity-70'}`}>
-                        {formatMoney(taxMisc)}
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2.5 text-xs text-muted-foreground font-mono pointer-events-none">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder={(taxMisc / 100).toFixed(2)}
+                          value={customMisc}
+                          onChange={(e) => setCustomMisc(e.target.value)}
+                          disabled={!includeMiscInPromo}
+                          className={`h-9 pl-6 pr-3 font-mono text-sm bg-background ${!includeMiscInPromo ? 'opacity-30 line-through' : ''}`}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Checkbox id="incLab" checked={includeLabourInPromo} onCheckedChange={c => setIncludeLabourInPromo(!!c)} />
-                      <Label htmlFor="incLab" className="text-xs text-muted-foreground cursor-pointer">Include Labour</Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox id="incLab" checked={includeLabourInPromo} onCheckedChange={c => setIncludeLabourInPromo(!!c)} />
+                        <Label htmlFor="incLab" className="text-xs text-muted-foreground cursor-pointer">Include Labour</Label>
+                      </div>
+                      {customLabour !== '' && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomLabour('')}
+                          title="Reset to calculated"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer select-none no-underline"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5 cursor-pointer" />
+                          <span className="cursor-pointer">Reset</span>
+                        </button>
+                      )}
                     </div>
-                    <div className={`h-9 px-3 py-2 bg-background border border-border rounded-md font-mono text-sm ${!includeLabourInPromo ? 'opacity-30 line-through' : 'opacity-70'}`}>
-                      {formatMoney(taxLabour)}
+                    <div className="relative flex items-center">
+                      <span className="absolute left-2.5 text-xs text-muted-foreground font-mono pointer-events-none">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder={(taxLabour / 100).toFixed(2)}
+                        value={customLabour}
+                        onChange={(e) => setCustomLabour(e.target.value)}
+                        disabled={!includeLabourInPromo}
+                        className={`h-9 pl-6 pr-3 font-mono text-sm bg-background ${!includeLabourInPromo ? 'opacity-30 line-through' : ''}`}
+                      />
                     </div>
                   </div>
 
@@ -675,9 +772,34 @@ export default function PromoCalculator() {
                       <div className="font-mono font-semibold text-primary">{formatMoney(secondPayment)}</div>
                     </div>
                   </div>
-                  <div className="mt-6">
+
+                  {/* Optional Quote Notes Field with Rich Auto-Growing WYSIWYG Editor */}
+                  <div className="pt-3 border-t border-border/50">
+                    <QuoteNotesEditor
+                      id="quoteNotesInput"
+                      value={quoteNotes}
+                      onChange={setQuoteNotes}
+                      placeholder="Enter special site notes, instructions, or employee comments..."
+                    />
+                  </div>
+
+                  {/* Vertically stacked full-width buttons - NO overflow outside the card */}
+                  <div className="mt-4 flex flex-col gap-2.5 w-full">
                     <Button 
-                      className="w-full text-base py-6 shadow-md font-semibold" 
+                      variant="outline"
+                      className="w-full h-11 text-sm shadow-sm font-semibold border-primary/40 hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer" 
+                      onClick={() => {
+                        if (!taxTotals) {
+                          toast.error("Please calculate travel in the Tax Calculator tab first!");
+                          return;
+                        }
+                        setIsPreviewOpen(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2 text-primary cursor-pointer" /> Preview &amp; Customize
+                    </Button>
+                    <Button 
+                      className="w-full h-11 text-sm shadow-md font-semibold cursor-pointer" 
                       onClick={() => {
                         if (!taxTotals) {
                           toast.error("Please calculate travel in the Tax Calculator tab first!");
@@ -686,7 +808,7 @@ export default function PromoCalculator() {
                         window.print();
                       }}
                     >
-                      <Receipt className="w-5 h-5 mr-2" /> Export Quote PDF
+                      <Download className="w-4 h-4 mr-2 cursor-pointer" /> Download PDF
                     </Button>
                   </div>
                 </div>
@@ -706,9 +828,72 @@ export default function PromoCalculator() {
         customerName={customerName} 
         quoteNumber={quoteNumber} 
         windows={windows} 
-        taxTotals={{ ...taxTotals, subtotal: beforeTaxDiscount, hst: hstRate > 0 ? afterDiscount * (hstRate / 100) : 0, total: total }} 
-        activePromo={quoteResult && quoteResult.promoDiscount > 0 ? { name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo', discount: quoteResult.promoDiscount } : null} 
-        regionName={taxTotals?.city} 
+        taxTotals={taxTotals} 
+        quoteResult={quoteResult}
+        activePromo={quoteResult && quoteResult.promoDiscount > 0 ? { 
+          name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo', 
+          discount: quoteResult.promoDiscount 
+        } : null} 
+        basePrice={quoteResult?.base || 0}
+        surcharge={quoteResult?.surcharge || 0}
+        wantsUpgrade={wantsUpgrade}
+        shownUpgrade={shownUpgrade}
+        hstRate={hstRate}
+        total={total}
+        beforeTaxDiscount={beforeTaxDiscount}
+        afterDiscount={afterDiscount}
+        firstPayment={firstPayment}
+        secondPayment={secondPayment}
+        regionName={taxTotals?.regionName || taxTotals?.city} 
+        includeLabourInPromo={includeLabourInPromo}
+        includeMiscInPromo={includeMiscInPromo}
+        includeJCInPromo={includeJCInPromo}
+        effectiveJC={effectiveJC}
+        effectiveMisc={effectiveMisc}
+        effectiveLabour={effectiveLabour}
+        template={quoteTemplate}
+        fontSize={quoteFontSize}
+        spacing={quoteSpacing}
+        quoteNotes={quoteNotes}
+      />
+
+      <QuotePreviewModal 
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        template={quoteTemplate}
+        onTemplateChange={setQuoteTemplate}
+        fontSize={quoteFontSize}
+        onFontSizeChange={setQuoteFontSize}
+        spacing={quoteSpacing}
+        onSpacingChange={setQuoteSpacing}
+        quoteNotes={quoteNotes}
+        onQuoteNotesChange={setQuoteNotes}
+        customerName={customerName}
+        quoteNumber={quoteNumber}
+        windows={windows}
+        taxTotals={taxTotals}
+        quoteResult={quoteResult}
+        activePromo={quoteResult && quoteResult.promoDiscount > 0 ? { 
+          name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo', 
+          discount: quoteResult.promoDiscount 
+        } : null}
+        basePrice={quoteResult?.base || 0}
+        surcharge={quoteResult?.surcharge || 0}
+        wantsUpgrade={wantsUpgrade}
+        shownUpgrade={shownUpgrade}
+        hstRate={hstRate}
+        total={total}
+        beforeTaxDiscount={beforeTaxDiscount}
+        afterDiscount={afterDiscount}
+        firstPayment={firstPayment}
+        secondPayment={secondPayment}
+        regionName={taxTotals?.regionName || taxTotals?.city}
+        includeLabourInPromo={includeLabourInPromo}
+        includeMiscInPromo={includeMiscInPromo}
+        includeJCInPromo={includeJCInPromo}
+        effectiveJC={effectiveJC}
+        effectiveMisc={effectiveMisc}
+        effectiveLabour={effectiveLabour}
       />
     </div>
   );

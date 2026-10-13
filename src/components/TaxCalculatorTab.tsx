@@ -78,12 +78,12 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
   const [crew, setCrew] = useState('2');
   const [setupFee, setSetupFee] = useState('0');
 
-  // Jambs & Casing
-  const [jambId, setJambId] = useState('none');
+  // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 3 1/4 and Vinyl casing charge)
+  const [jambId, setJambId] = useState('j2');
   const [jambName, setJambName] = useState('');
   const [jambRate, setJambRate] = useState('');
   
-  const [casingId, setCasingId] = useState('none');
+  const [casingId, setCasingId] = useState('vinyl');
   const [casingName, setCasingName] = useState('');
   const [casingRate, setCasingRate] = useState('');
 
@@ -95,6 +95,17 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
   const [includeMisc, setIncludeMisc] = useState(true);
   const [includeJC, setIncludeJC] = useState(true);
 
+  const handleRegionSelect = (regId: string, currentRegions = regions) => {
+    setSelectedRegionId(regId);
+    const reg = currentRegions.find(r => r._id === regId);
+    if (reg && (reg.name.toLowerCase().includes('dryden') || reg.name.toLowerCase().includes('sioux'))) {
+      const std = reg.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
+      setSetupFee(std ? String(std.value) : '727.5');
+    } else {
+      setSetupFee('0');
+    }
+  };
+
   useEffect(() => {
     fetch('/api/regions')
       .then(r => r.json())
@@ -103,7 +114,12 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
           setRegions(d);
           if (d.length > 0) {
             const ff = d.find((r: any) => r.name.toLowerCase().includes('fort frances'));
-            setSelectedRegionId(ff ? ff._id : d[0]._id);
+            const initial = ff || d[0];
+            setSelectedRegionId(initial._id);
+            if (initial.name.toLowerCase().includes('dryden') || initial.name.toLowerCase().includes('sioux')) {
+              const std = initial.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
+              setSetupFee(std ? String(std.value) : '727.5');
+            }
           }
         } else {
           console.error("Regions API returned error:", d);
@@ -185,7 +201,54 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
     const hst = hstOn ? subtotal * 0.13 : 0;
     const total = subtotal + hst;
 
-    return { sq, ln, wLab, wMisc, aLab, aMisc, labourWindows, miscTotal, vehicle, crewTravel, extras, jc, labourTotal, finalLabour, finalMisc, finalJC, subtotal, hst, total, lines };
+    const selectedAddonsList = dbAddons
+      .filter(a => Number(addons[a.id]) > 0)
+      .map(a => {
+        const q = Number(addons[a.id]);
+        return {
+          id: a.id,
+          label: a.label.split('@')[0].split('(')[0].trim(),
+          qty: q,
+          lab: q * a.lab,
+          misc: q * a.misc,
+        };
+      });
+
+    const selectedJambObj = jambId !== 'none' ? {
+      id: jambId,
+      name: jambId === 'custom' ? (jambName || 'Custom Jamb') : (dbJambs.find(j => j.id === jambId)?.label || 'Jamb'),
+      rate: jRate,
+      total: jambTot
+    } : null;
+
+    const selectedCasingObj = casingId !== 'none' ? {
+      id: casingId,
+      name: casingId === 'custom' ? (casingName || 'Custom Casing') : (dbCasings.find(c => c.id === casingId)?.label || 'Casing'),
+      rate: cRate,
+      total: casingTot
+    } : null;
+
+    return { 
+      sq, ln, wLab, wMisc, aLab, aMisc, labourWindows, miscTotal, vehicle, crewTravel, extras, jc, labourTotal, finalLabour, finalMisc, finalJC, subtotal, hst, total, lines,
+      km,
+      hrs,
+      crew,
+      crewRate,
+      vehicleRate: dbVehicleRate,
+      setup,
+      fixedSetupFee: region.fixedSetupFee,
+      baseTravelFee: region.baseTravelFee || 0,
+      selectedAddons: selectedAddonsList,
+      selectedJamb: selectedJambObj,
+      selectedCasing: selectedCasingObj,
+      discount: disc,
+      hstOn,
+      includeLabour,
+      includeMisc,
+      includeJC,
+      regionName: region.name,
+      city: travelInfo?.city || region.name
+    };
   };
 
   const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates]);
@@ -230,6 +293,10 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
       const rData = await rt.json();
       
       setTravelInfo({ ...pt, ...rData, isFree });
+
+      if (region?.name?.toLowerCase().includes('dryden') || region?.name?.toLowerCase().includes('sioux')) {
+        setSetupFee('727.5');
+      }
       
       if (isFree) {
         setManualKm('0');
@@ -258,7 +325,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
             <CardTitle>Region Profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={selectedRegionId || undefined} onValueChange={val => setSelectedRegionId(val ?? '')}>
+            <Select value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
               <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder="Select Region">
                   {regions.find(r => r._id === selectedRegionId)?.name}
