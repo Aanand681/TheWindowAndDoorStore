@@ -1391,54 +1391,58 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
       )}
 
       {/* Quote Preview Modal */}
-      {previewQuote && (
-        <QuotePreviewModal
-          isOpen={isPreviewOpen}
-          onClose={() => {
-            setIsPreviewOpen(false);
-            setPreviewQuote(null);
-          }}
-          customerName={previewQuote.customerName}
-          quoteNumber={previewQuote.quoteNumber}
-          windows={previewQuote.windows || []}
-          taxTotals={previewQuote.taxTotals}
-          quoteResult={previewQuote.quoteResult}
-          activePromo={previewQuote.quoteResult?.promoDiscount > 0 ? {
-            name: previewQuote.quoteResult?.promoName || 'Applied Promo',
-            discount: previewQuote.quoteResult.promoDiscount
-          } : null}
-          basePrice={previewQuote.quoteResult?.base || 0}
-          surcharge={previewQuote.quoteResult?.surcharge || 0}
-          wantsUpgrade={false}
-          shownUpgrade={0}
-          hstRate={previewQuote.taxTotals?.hstRate !== undefined ? previewQuote.taxTotals.hstRate : 13}
-          total={previewQuote.quoteSummaryTotal || 0}
-          beforeTaxDiscount={0}
-          afterDiscount={0}
-          firstPayment={Math.floor((previewQuote.quoteSummaryTotal || 0) / 2)}
-          secondPayment={(previewQuote.quoteSummaryTotal || 0) - Math.floor((previewQuote.quoteSummaryTotal || 0) / 2)}
-          regionName={previewQuote.taxTotals?.regionName}
-          includeLabourInPromo={previewQuote.includeLabourInPromo !== false}
-          includeMiscInPromo={previewQuote.includeMiscInPromo !== false}
-          includeJCInPromo={previewQuote.includeJCInPromo !== false}
-          effectiveJC={previewQuote.customJC ? Math.round(Number(previewQuote.customJC) * 100) : undefined}
-          effectiveMisc={previewQuote.customMisc ? Math.round(Number(previewQuote.customMisc) * 100) : undefined}
-          effectiveLabour={previewQuote.customLabour ? Math.round(Number(previewQuote.customLabour) * 100) : undefined}
-          template={previewTemplate}
-          fontSize={previewFontSize}
-          spacing={previewSpacing}
-          quoteNotes={previewNotes}
-          preparedBy={previewQuote.preparedBy}
-          onTemplateChange={setPreviewTemplate}
-          onFontSizeChange={setPreviewFontSize}
-          onSpacingChange={setPreviewSpacing}
-          onQuoteNotesChange={
-            !canReview && previewQuote?.odooAssignedTo?.toLowerCase() === currentUser?.username?.toLowerCase()
-              ? undefined
-              : setPreviewNotes
-          }
-        />
-      )}
+      {previewQuote && (() => {
+        const financials = computeQuotePricing(previewQuote);
+        if (!financials) return null;
+        return (
+          <QuotePreviewModal
+            isOpen={isPreviewOpen}
+            onClose={() => {
+              setIsPreviewOpen(false);
+              setPreviewQuote(null);
+            }}
+            customerName={previewQuote.customerName}
+            quoteNumber={previewQuote.quoteNumber}
+            windows={previewQuote.windows || []}
+            taxTotals={previewQuote.taxTotals}
+            quoteResult={previewQuote.quoteResult}
+            activePromo={financials.promoDiscount > 0 ? {
+              name: previewQuote.quoteResult?.promoName || 'Applied Promo',
+              discount: financials.promoDiscount
+            } : null}
+            basePrice={financials.basePrice}
+            surcharge={financials.surcharge}
+            wantsUpgrade={false}
+            shownUpgrade={0}
+            hstRate={financials.hstRate}
+            total={financials.total}
+            beforeTaxDiscount={financials.beforeTaxDiscount}
+            afterDiscount={financials.afterDiscount}
+            firstPayment={financials.firstPayment}
+            secondPayment={financials.secondPayment}
+            regionName={previewQuote.taxTotals?.regionName || previewQuote.taxTotals?.city}
+            includeLabourInPromo={financials.includeLabourInPromo}
+            includeMiscInPromo={financials.includeMiscInPromo}
+            includeJCInPromo={financials.includeJCInPromo}
+            effectiveJC={financials.effectiveJC}
+            effectiveMisc={financials.effectiveMisc}
+            effectiveLabour={financials.effectiveLabour}
+            template={previewTemplate}
+            fontSize={previewFontSize}
+            spacing={previewSpacing}
+            quoteNotes={previewNotes}
+            preparedBy={previewQuote.preparedBy}
+            onTemplateChange={setPreviewTemplate}
+            onFontSizeChange={setPreviewFontSize}
+            onSpacingChange={setPreviewSpacing}
+            onQuoteNotesChange={
+              !canReview && previewQuote?.odooAssignedTo?.toLowerCase() === currentUser?.username?.toLowerCase()
+                ? undefined
+                : setPreviewNotes
+            }
+          />
+        );
+      })()}
 
       {/* Mark Entered in Odoo Confirmation Modal */}
       {odooModalQuote && (

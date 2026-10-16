@@ -356,50 +356,49 @@ export default function QuoteInvoice({
 
   // Outer container classes
   const containerClass = isInteractivePreview
-    ? `w-full ${isLandscape ? 'max-w-[10.5in]' : 'max-w-[8in]'} mx-auto bg-white text-[#1c2430] p-4 shadow-xl border border-border/40 select-none`
-    : `hidden print:block w-full ${isLandscape ? 'max-w-[10.5in]' : 'max-w-[8in]'} mx-auto bg-white text-[#1c2430] p-4 text-[11.5px] leading-tight select-none`;
+    ? `w-full ${isLandscape ? 'max-w-[10.5in]' : 'max-w-[8in]'} mx-auto bg-white text-[#1c2430] p-4 shadow-xl border border-border/40 select-none print:shadow-none print:border-none print:p-0 print:m-0`
+    : `background-quote-invoice hidden print:block w-full ${isLandscape ? 'max-w-[10.5in]' : 'max-w-[8in]'} mx-auto bg-white text-[#1c2430] p-4 text-[11.5px] leading-tight select-none`;
 
   return (
     <div 
-      id={isInteractivePreview ? undefined : "printable-invoice"} 
+      id="printable-invoice" 
       className={containerClass}
       style={{ fontSize: `${fontSize}px` }}
     >
-      {!isInteractivePreview && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          @media print {
-            @page {
-              size: letter ${isLandscape ? 'landscape' : 'portrait'};
-              margin: 0.25in;
-            }
-            html, body {
-              width: ${isLandscape ? '11in' : '8.5in'} !important;
-              height: ${isLandscape ? '8.5in' : '11in'} !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: hidden !important;
-              background: #fff !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            #printable-invoice {
-              display: block !important;
-              position: static !important;
-              width: ${isLandscape ? '10.5in' : '8in'} !important;
-              max-width: ${isLandscape ? '10.5in' : '8in'} !important;
-              height: auto !important;
-              max-height: ${isLandscape ? '8in' : '10.5in'} !important;
-              margin: 0 auto !important;
-              padding: 0 !important;
-              box-sizing: border-box !important;
-              page-break-after: avoid !important;
-              page-break-inside: avoid !important;
-              break-after: avoid !important;
-              break-inside: avoid !important;
-            }
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: letter ${isLandscape ? 'landscape' : 'portrait'};
+            margin: 0.25in;
           }
-        ` }} />
-      )}
+          html, body {
+            width: ${isLandscape ? '11in' : '8.5in'} !important;
+            height: auto !important;
+            min-height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #printable-invoice {
+            display: block !important;
+            visibility: visible !important;
+            position: static !important;
+            width: ${isLandscape ? '10.5in' : '8in'} !important;
+            max-width: ${isLandscape ? '10.5in' : '8in'} !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          #printable-invoice * {
+            visibility: visible !important;
+          }
+        }
+      ` }} />
 
       {/* ============================================================== */}
       {/* TEMPLATE A: MODERN JOB CARD (STREAMLINED LIST)                 */}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, X, FileText, CheckCircle2, Star } from 'lucide-react';
 import QuoteInvoice, { QuoteInvoiceProps, QuoteTemplateType } from '@/components/QuoteInvoice';
@@ -33,9 +34,23 @@ export default function QuotePreviewModal({
   onQuoteNotesChange,
   ...invoiceProps
 }: QuotePreviewModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showNotesEditor, setShowNotesEditor] = useState(false);
   const [defaultTemplate, setDefaultTemplate] = useState<QuoteTemplateType | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('quote-modal-open');
+      return () => {
+        document.body.classList.remove('quote-modal-open');
+      };
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     // Check localStorage first
@@ -79,10 +94,10 @@ export default function QuotePreviewModal({
 
   const isLandscape = orientation === 'landscape';
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="quote-preview-portal fixed inset-0 z-50 flex flex-col bg-background/80 backdrop-blur-md animate-in fade-in duration-200 print:static print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:w-full print:h-auto print:overflow-visible">
       {/* Top Floating Control Toolbar */}
-      <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2.5 shadow-sm backdrop-blur">
+      <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2.5 shadow-sm backdrop-blur print:hidden">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           
           {/* Left: Branding & Status */}
@@ -263,9 +278,9 @@ export default function QuotePreviewModal({
       </div>
 
       {/* Main Preview Viewport */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-muted/30">
-        <div className={`w-full ${isLandscape ? 'max-w-[10.8in]' : 'max-w-[8.2in]'} transition-all duration-200`}>
-          <div className="bg-white rounded shadow-2xl border border-border/40 overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-muted/30 print:p-0 print:m-0 print:bg-white print:block print:w-full print:overflow-visible">
+        <div className={`w-full ${isLandscape ? 'max-w-[10.8in]' : 'max-w-[8.2in]'} transition-all duration-200 print:max-w-none print:w-full print:m-0 print:p-0`}>
+          <div className="bg-white rounded shadow-2xl border border-border/40 overflow-hidden print:shadow-none print:border-none print:rounded-none print:overflow-visible">
             <QuoteInvoice
               {...invoiceProps}
               quoteNotes={quoteNotes}
@@ -280,4 +295,9 @@ export default function QuotePreviewModal({
       </div>
     </div>
   );
+
+  if (mounted && typeof document !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 }

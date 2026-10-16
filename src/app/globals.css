@@ -185,9 +185,14 @@
     visibility: visible;
   }
   #printable-invoice {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: static !important;
     width: 100%;
+  }
+  body.quote-modal-open > *:not(.quote-preview-portal) {
+    display: none !important;
+  }
+  body.quote-modal-open #printable-invoice.background-quote-invoice {
+    display: none !important;
+    visibility: hidden !important;
   }
 }

@@ -1001,7 +1001,7 @@ export default function PromoCalculator() {
   }, [reviewQuote, isEditMode, canEditCurrentQuote]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+    <div className="min-h-screen print:min-h-0 print:h-auto bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
       
       <div className="max-w-[1650px] w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-10 relative z-10 space-y-6 sm:space-y-8 print:hidden">
@@ -2247,43 +2247,44 @@ export default function PromoCalculator() {
           initialSubTab={quotesSubTab}
         />
       </div>
-
     </Tabs>
       </div>
 
-      <QuoteInvoice 
-        customerName={customerName} 
-        quoteNumber={quoteNumber} 
-        windows={windows} 
-        taxTotals={taxTotals} 
-        quoteResult={quoteResult}
-        activePromo={quoteResult && quoteResult.promoDiscount > 0 ? { 
-          name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo', 
-          discount: quoteResult.promoDiscount 
-        } : null} 
-        basePrice={quoteResult?.base || 0}
-        surcharge={quoteResult?.surcharge || 0}
-        wantsUpgrade={wantsUpgrade}
-        shownUpgrade={shownUpgrade}
-        hstRate={hstRate}
-        total={total}
-        beforeTaxDiscount={beforeTaxDiscount}
-        afterDiscount={afterDiscount}
-        firstPayment={firstPayment}
-        secondPayment={secondPayment}
-        regionName={taxTotals?.regionName || taxTotals?.city} 
-        includeLabourInPromo={includeLabourInPromo}
-        includeMiscInPromo={includeMiscInPromo}
-        includeJCInPromo={includeJCInPromo}
-        effectiveJC={effectiveJC}
-        effectiveMisc={effectiveMisc}
-        effectiveLabour={effectiveLabour}
-        template={quoteTemplate}
-        fontSize={quoteFontSize}
-        spacing={quoteSpacing}
-        quoteNotes={quoteNotes}
-        preparedBy={reviewQuote?.preparedBy || user?.username || ''}
-      />
+      {!isPreviewOpen && (
+        <QuoteInvoice 
+          customerName={customerName} 
+          quoteNumber={quoteNumber} 
+          windows={windows} 
+          taxTotals={taxTotals} 
+          quoteResult={quoteResult}
+          activePromo={quoteResult && quoteResult.promoDiscount > 0 ? { 
+            name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo', 
+            discount: quoteResult.promoDiscount 
+          } : null} 
+          basePrice={quoteResult?.base || 0}
+          surcharge={quoteResult?.surcharge || 0}
+          wantsUpgrade={wantsUpgrade}
+          shownUpgrade={shownUpgrade}
+          hstRate={hstRate}
+          total={total}
+          beforeTaxDiscount={beforeTaxDiscount}
+          afterDiscount={afterDiscount}
+          firstPayment={firstPayment}
+          secondPayment={secondPayment}
+          regionName={taxTotals?.regionName || taxTotals?.city}
+          includeLabourInPromo={includeLabourInPromo}
+          includeMiscInPromo={includeMiscInPromo}
+          includeJCInPromo={includeJCInPromo}
+          effectiveJC={effectiveJC}
+          effectiveMisc={effectiveMisc}
+          effectiveLabour={effectiveLabour}
+          template={quoteTemplate}
+          fontSize={quoteFontSize}
+          spacing={quoteSpacing}
+          quoteNotes={quoteNotes}
+          preparedBy={reviewQuote?.preparedBy || user?.username || ''}
+        />
+      )}
 
       <QuotePreviewModal 
         isOpen={isPreviewOpen}
