@@ -18,6 +18,8 @@ export interface IPromo extends Document {
   // Control math order for COMBO
   applyPercentageAfterFreeParts?: boolean;
 
+  order?: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,8 +60,16 @@ const PromoSchema = new Schema<IPromo>(
       type: Boolean,
       default: false,
     },
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
+
+if (mongoose.models.Promo && !mongoose.models.Promo.schema.path('order')) {
+  delete (mongoose.models as any).Promo;
+}
 
 export default mongoose.models.Promo || mongoose.model<IPromo>('Promo', PromoSchema);

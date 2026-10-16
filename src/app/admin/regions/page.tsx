@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Map, Save, Maximize2, Minimize2, RotateCcw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
+import NotificationBell from '@/components/NotificationBell';
 import dynamic from 'next/dynamic';
 
 const AdminGeofenceMap = dynamic(() => import('@/components/AdminGeofenceMap'), { ssr: false });
@@ -69,7 +70,7 @@ export default function RegionsDashboard() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
       
-      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 space-y-8">
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <Link href="/admin">
@@ -82,8 +83,12 @@ export default function RegionsDashboard() {
               <span className="text-xl font-semibold tracking-wider uppercase">Region Pricing & Defaults</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
+
 
         {message.text && (
           <div className={`px-4 py-3 rounded-lg text-sm font-medium ${message.type === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-500'}`}>

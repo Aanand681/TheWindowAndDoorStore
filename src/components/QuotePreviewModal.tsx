@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, X, FileText, CheckCircle2 } from 'lucide-react';
+import { Printer, X, FileText, CheckCircle2, Star } from 'lucide-react';
 import QuoteInvoice, { QuoteInvoiceProps, QuoteTemplateType } from '@/components/QuoteInvoice';
 import QuoteNotesEditor from '@/components/QuoteNotesEditor';
+import { toast } from 'sonner';
 
 interface QuotePreviewModalProps extends QuoteInvoiceProps {
   isOpen: boolean;
@@ -34,6 +35,41 @@ export default function QuotePreviewModal({
 }: QuotePreviewModalProps) {
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [showNotesEditor, setShowNotesEditor] = useState(false);
+  const [defaultTemplate, setDefaultTemplate] = useState<QuoteTemplateType | null>(null);
+
+  useEffect(() => {
+    // Check localStorage first
+    const saved = localStorage.getItem('defaultQuoteTemplate') as QuoteTemplateType | null;
+    if (saved && ['modern', 'executive', 'cards'].includes(saved)) {
+      setDefaultTemplate(saved);
+    }
+    // Fetch profile favorite template
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(d => {
+        if (d?.favoriteTemplate && ['modern', 'executive', 'cards'].includes(d.favoriteTemplate)) {
+          setDefaultTemplate(d.favoriteTemplate);
+          localStorage.setItem('defaultQuoteTemplate', d.favoriteTemplate);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSetDefaultTemplate = async () => {
+    try {
+      localStorage.setItem('defaultQuoteTemplate', template);
+      setDefaultTemplate(template);
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favoriteTemplate: template }),
+      });
+      const name = template === 'modern' ? 'Modern List' : template === 'executive' ? 'Executive Invoice' : 'Window Cards';
+      toast.success(`${name} set as your default template!`);
+    } catch (e) {
+      toast.success('Template saved as default!');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -63,41 +99,61 @@ export default function QuotePreviewModal({
 
           {/* Center: Template Switcher, Orientation & Sliders */}
           <div className="flex flex-wrap items-center gap-3 text-xs">
-            {/* Template Switcher */}
-            <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-              <button
+            {/* Template Switcher & Default Setter */}
+            <div className="flex items-center gap-1.5">
+              <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => onTemplateChange('modern')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    template === 'modern'
+                      ? 'bg-background text-primary shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Modern List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onTemplateChange('executive')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    template === 'executive'
+                      ? 'bg-background text-primary shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Executive Invoice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onTemplateChange('cards')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    template === 'cards'
+                      ? 'bg-background text-primary shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Window Cards
+                </button>
+              </div>
+
+              <Button
                 type="button"
-                onClick={() => onTemplateChange('modern')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'modern'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                variant="ghost"
+                size="sm"
+                onClick={handleSetDefaultTemplate}
+                title={template === defaultTemplate ? "Current default template" : "Set this as your default invoice template"}
+                className={`h-7 px-2 text-[11px] gap-1 cursor-pointer transition-all ${
+                  template === defaultTemplate 
+                    ? 'text-amber-500 font-bold bg-amber-500/10 hover:bg-amber-500/20' 
+                    : 'text-muted-foreground hover:text-amber-400'
                 }`}
               >
-                Modern List
-              </button>
-              <button
-                type="button"
-                onClick={() => onTemplateChange('executive')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'executive'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Executive Invoice
-              </button>
-              <button
-                type="button"
-                onClick={() => onTemplateChange('cards')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'cards'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Window Cards
-              </button>
+                <Star className={`w-3.5 h-3.5 ${template === defaultTemplate ? 'fill-amber-400 text-amber-400' : ''}`} />
+                <span className="hidden sm:inline">
+                  {template === defaultTemplate ? 'Default' : 'Set Default'}
+                </span>
+              </Button>
             </div>
 
             {/* Orientation Switcher */}

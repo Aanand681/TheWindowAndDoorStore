@@ -5,21 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Plus, ArrowLeft, Trash2, Power, Edit } from 'lucide-react';
+import { Users, Plus, ArrowLeft, Trash2, Power, Edit, ShieldCheck, Briefcase, Settings2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
+import NotificationBell from '@/components/NotificationBell';
+import { toast } from 'sonner';
 
 type UserType = {
   _id: string;
   username: string;
   email?: string;
   role: string;
+  department?: string;
   isActive: boolean;
   createdAt: string;
 };
 
+type DepartmentType = {
+  _id?: string;
+  name: string;
+  code: string;
+  description?: string;
+  isSystem?: boolean;
+  permissions?: Record<string, boolean>;
+};
+
 export default function StaffDirectory() {
   const [users, setUsers] = useState<UserType[]>([]);
+  const [departments, setDepartments] = useState<DepartmentType[]>([]);
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
   // New User Form State
@@ -27,32 +41,85 @@ export default function StaffDirectory() {
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('EMPLOYEE');
+  const [department, setDepartment] = useState('SALES');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
 
   // Delete Modal State
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  // Departments Modal State (For Superadmin)
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptCode, setNewDeptCode] = useState('');
+  const [newDeptDesc, setNewDeptDesc] = useState('');
+  const [newDeptPerms, setNewDeptPerms] = useState<Record<string, boolean>>({
+    canCreateQuote: true,
+    canReviewQuote: false,
+    canApproveQuote: false,
+    canEditApprovedQuote: false,
+    canAccessOdooQueue: false,
+    canMarkOdooEntry: false,
+    canAccessAdmin: false,
+  });
+  const [creatingDept, setCreatingDept] = useState(false);
+  const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
+  const [editingDeptPerms, setEditingDeptPerms] = useState<Record<string, boolean>>({});
+  const [savingDept, setSavingDept] = useState(false);
+
+  const handleSaveDeptPermissions = async (deptId: string) => {
+    setSavingDept(true);
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/departments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: deptId,
+          permissions: editingDeptPerms,
+        }),
+      });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setUsers(data);
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to update department');
+      toast.success('Department permissions updated successfully!');
+      setEditingDeptId(null);
+      fetchUsersAndDepts();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update department');
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  const fetchUsersAndDepts = async () => {
+    try {
+      const [uRes, dRes, pRes] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/departments'),
+        fetch('/api/profile'),
+      ]);
+      const [uData, dData, pData] = await Promise.all([
+        uRes.json(),
+        dRes.json(),
+        pRes.ok ? pRes.json() : null,
+      ]);
+
+      if (Array.isArray(uData)) setUsers(uData);
+      if (Array.isArray(dData)) setDepartments(dData);
+      if (pData) setCurrentProfile(pData);
     } catch (err) {
-      console.error('Failed to fetch users', err);
+      console.error('Failed to fetch data', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsersAndDepts();
   }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -64,7 +131,7 @@ export default function StaffDirectory() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, role, email }),
+        body: JSON.stringify({ username, password, role, email, department }),
       });
 
       const data = await res.json();
@@ -74,13 +141,16 @@ export default function StaffDirectory() {
       }
 
       setSuccess('User created successfully!');
+      toast.success(`Account for ${username} created!`);
       setUsername('');
       setPassword('');
       setEmail('');
       setRole('EMPLOYEE');
-      fetchUsers();
+      setDepartment('SALES');
+      fetchUsersAndDepts();
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -91,7 +161,7 @@ export default function StaffDirectory() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentStatus }),
       });
-      fetchUsers();
+      fetchUsersAndDepts();
     } catch (err) {
       console.error(err);
     }
@@ -102,7 +172,8 @@ export default function StaffDirectory() {
     try {
       await fetch(`/api/users/${userToDelete}`, { method: 'DELETE' });
       setUserToDelete(null);
-      fetchUsers();
+      toast.success('User deleted permanently.');
+      fetchUsersAndDepts();
     } catch (err) {
       console.error(err);
     }
@@ -113,13 +184,66 @@ export default function StaffDirectory() {
       await fetch(`/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: editRole }),
+        body: JSON.stringify({ role: editRole, department: editDepartment }),
       });
       setEditingId(null);
-      fetchUsers();
+      toast.success('User updated successfully.');
+      fetchUsersAndDepts();
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptName.trim() || !newDeptCode.trim()) {
+      toast.error('Department name and code are required');
+      return;
+    }
+    setCreatingDept(true);
+    try {
+      const res = await fetch('/api/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newDeptName.trim(),
+          code: newDeptCode.trim().toUpperCase(),
+          description: newDeptDesc.trim(),
+          permissions: newDeptPerms,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create department');
+      toast.success(`Department "${newDeptName}" created!`);
+      setNewDeptName('');
+      setNewDeptCode('');
+      setNewDeptDesc('');
+      fetchUsersAndDepts();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setCreatingDept(false);
+    }
+  };
+
+  const isSuperAdmin = currentProfile?.role === 'SUPERADMIN';
+
+  const getDeptBadgeClass = (deptCode?: string) => {
+    switch (deptCode) {
+      case 'MANAGER':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25';
+      case 'CLERK':
+        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/25';
+      case 'SALES':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25';
+      default:
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/25';
+    }
+  };
+
+  const getDeptDisplayName = (deptCode?: string) => {
+    const match = departments.find(d => d.code === deptCode);
+    return match ? match.name : deptCode || 'Sales Associate';
   };
 
   return (
@@ -142,7 +266,191 @@ export default function StaffDirectory() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 space-y-8">
+      {/* Departments & Permissions Modal (Superadmin) */}
+      {showDeptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="bg-card p-6 rounded-2xl shadow-2xl max-w-2xl w-full border border-border animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] space-y-6">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2 text-foreground">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  Departments &amp; Roles Management
+                </h3>
+                <p className="text-xs text-muted-foreground">Manage employee categories and feature permissions.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowDeptModal(false)} className="rounded-full">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* List Existing Departments */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Existing Departments</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {departments.map(d => (
+                  <div key={d.code} className="p-3.5 bg-background/60 rounded-xl border border-border/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm text-foreground">{d.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getDeptBadgeClass(d.code)}`}>
+                          {d.code}
+                        </span>
+                        {isSuperAdmin && editingDeptId !== d._id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingDeptId(d._id || null);
+                              setEditingDeptPerms({ ...(d.permissions || {}) });
+                            }}
+                            className="text-[10px] text-primary hover:underline font-semibold cursor-pointer ml-1"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {d.description && <p className="text-xs text-muted-foreground leading-relaxed">{d.description}</p>}
+                    
+                    {editingDeptId === d._id ? (
+                      <div className="space-y-2 pt-2 border-t border-border/60">
+                        <span className="text-[11px] font-bold text-primary block">Assign Permissions:</span>
+                        <div className="grid grid-cols-1 gap-1.5 text-[11px]">
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canCreateQuote)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canCreateQuote: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span>Can Create &amp; Import Quotes</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canReviewQuote)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canReviewQuote: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span className="font-semibold text-emerald-600">Can Review &amp; Approve Quotes (Like Admin)</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canEditApprovedQuote)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canEditApprovedQuote: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span className="font-semibold text-amber-600">Can Modify Approved Quotes (Like Admin)</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canAccessOdooQueue)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canAccessOdooQueue: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span>Can Access Odoo Queue</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canMarkOdooEntry)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canMarkOdooEntry: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span>Can Mark Orders in Odoo</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={Boolean(editingDeptPerms.canAccessAdmin)} 
+                              onChange={e => setEditingDeptPerms({ ...editingDeptPerms, canAccessAdmin: e.target.checked })} 
+                              className="rounded accent-primary" 
+                            />
+                            <span>Can Access Admin Area</span>
+                          </label>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingDeptId(null)}>Cancel</Button>
+                          <Button size="sm" className="h-7 text-xs font-bold" disabled={savingDept || !d._id} onClick={() => d._id && handleSaveDeptPermissions(d._id)}>
+                            {savingDept ? 'Saving...' : 'Save Permissions'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {d.permissions?.canCreateQuote && <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded">Create Quotes</span>}
+                        {d.permissions?.canReviewQuote && <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">Review &amp; Approve</span>}
+                        {d.permissions?.canEditApprovedQuote && <span className="text-[9px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded">Modify Approved</span>}
+                        {d.permissions?.canAccessOdooQueue && <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded">Odoo Queue</span>}
+                        {d.permissions?.canMarkOdooEntry && <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded">Mark in Odoo</span>}
+                        {d.permissions?.canAccessAdmin && <span className="text-[9px] bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">Admin Access</span>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Create Custom Department Form (Superadmin) */}
+            {isSuperAdmin && (
+              <form onSubmit={handleCreateDepartment} className="p-4 bg-muted/30 border border-border/80 rounded-xl space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                  <Plus className="w-4 h-4" /> Add Custom Department
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="deptName" className="text-xs">Department Name</Label>
+                    <Input id="deptName" placeholder="e.g. Senior Estimator" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} className="h-9 bg-background" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="deptCode" className="text-xs">Short Code</Label>
+                    <Input id="deptCode" placeholder="e.g. ESTIMATOR" value={newDeptCode} onChange={e => setNewDeptCode(e.target.value)} className="h-9 bg-background uppercase" required />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="deptDesc" className="text-xs">Description</Label>
+                  <Input id="deptDesc" placeholder="Responsibilities and scope" value={newDeptDesc} onChange={e => setNewDeptDesc(e.target.value)} className="h-9 bg-background" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Authorized Feature Access</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-background/50 border border-border/60">
+                      <input type="checkbox" checked={newDeptPerms.canCreateQuote} onChange={e => setNewDeptPerms({ ...newDeptPerms, canCreateQuote: e.target.checked })} className="rounded accent-primary" />
+                      <span>Can Create &amp; Import Quotes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-background/50 border border-border/60">
+                      <input type="checkbox" checked={newDeptPerms.canReviewQuote} onChange={e => setNewDeptPerms({ ...newDeptPerms, canReviewQuote: e.target.checked })} className="rounded accent-primary" />
+                      <span>Can Review &amp; Approve Quotes</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-background/50 border border-border/60">
+                      <input type="checkbox" checked={newDeptPerms.canAccessOdooQueue} onChange={e => setNewDeptPerms({ ...newDeptPerms, canAccessOdooQueue: e.target.checked })} className="rounded accent-primary" />
+                      <span>Can Access Odoo Queue</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-background/50 border border-border/60">
+                      <input type="checkbox" checked={newDeptPerms.canMarkOdooEntry} onChange={e => setNewDeptPerms({ ...newDeptPerms, canMarkOdooEntry: e.target.checked })} className="rounded accent-primary" />
+                      <span>Can Mark Orders in Odoo</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button type="submit" size="sm" disabled={creatingDept} className="font-bold">
+                    {creatingDept ? 'Creating...' : 'Create Department'}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-border/60">
+              <Button variant="outline" size="sm" onClick={() => setShowDeptModal(false)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <Link href="/admin">
@@ -155,7 +463,19 @@ export default function StaffDirectory() {
               <span className="text-xl font-semibold tracking-wider uppercase">Staff Directory</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDeptModal(true)}
+              className="gap-2 border-primary/40 text-primary hover:bg-primary/10 text-xs font-semibold cursor-pointer"
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Departments &amp; Permissions</span>
+            </Button>
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -167,20 +487,36 @@ export default function StaffDirectory() {
                   <Plus className="w-5 h-5 text-primary" />
                   Add New Staff
                 </CardTitle>
-                <CardDescription>Create a new employee or admin account.</CardDescription>
+                <CardDescription>Assign department, role, and credentials.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateUser} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
+                    <Label htmlFor="dept">Department / Category</Label>
+                    <select
+                      id="dept"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                    >
+                      {departments.map(d => (
+                        <option key={d.code} value={d.code}>
+                          {d.name} ({d.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">System Role</Label>
                     <select
                       id="role"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                     >
                       <option value="EMPLOYEE">Employee (Standard Access)</option>
-                      <option value="ADMIN">Admin (Prices & Staff)</option>
+                      <option value="ADMIN">Admin (Prices, Staff &amp; Reviews)</option>
                     </select>
                   </div>
 
@@ -195,19 +531,17 @@ export default function StaffDirectory() {
                     />
                   </div>
 
-                  {role === 'ADMIN' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Recovery Email (Optional)</Label>
-                      <Input 
-                        id="email" 
-                        type="email"
-                        className="bg-background"
-                        value={email}
-                        placeholder="admin@company.com"
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input 
+                      id="email" 
+                      type="email"
+                      className="bg-background"
+                      value={email}
+                      placeholder="employee@company.com"
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="password">Temporary Password</Label>
@@ -224,7 +558,7 @@ export default function StaffDirectory() {
                   {error && <div className="text-sm text-destructive font-medium">{error}</div>}
                   {success && <div className="text-sm text-emerald-500 font-medium">{success}</div>}
                   
-                  <Button type="submit" className="w-full mt-2">Create Account</Button>
+                  <Button type="submit" className="w-full mt-2 font-bold cursor-pointer">Create Account</Button>
                 </form>
               </CardContent>
             </Card>
@@ -235,6 +569,7 @@ export default function StaffDirectory() {
             <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
               <CardHeader>
                 <CardTitle className="text-xl">Active Staff Members</CardTitle>
+                <CardDescription>View assigned department roles and edit employee access.</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -258,9 +593,18 @@ export default function StaffDirectory() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {editingId === user._id ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <select
+                                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                                value={editDepartment}
+                                onChange={(e) => setEditDepartment(e.target.value)}
+                              >
+                                {departments.map(d => (
+                                  <option key={d.code} value={d.code}>{d.name}</option>
+                                ))}
+                              </select>
                               <select
                                 className="h-8 rounded-md border border-input bg-background px-2 text-xs"
                                 value={editRole}
@@ -274,13 +618,16 @@ export default function StaffDirectory() {
                             </div>
                           ) : (
                             <>
+                              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${getDeptBadgeClass(user.department)}`}>
+                                {getDeptDisplayName(user.department)}
+                              </span>
                               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
                                 user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
                                 'bg-muted text-muted-foreground border border-border'
                               }`}>
                                 {user.role}
                               </span>
-                              <Button variant="ghost" size="icon" onClick={() => { setEditingId(user._id); setEditRole(user.role); }} className="h-8 w-8 ml-2 hover:bg-primary/10 hover:text-primary">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingId(user._id); setEditRole(user.role); setEditDepartment(user.department || 'SALES'); }} className="h-8 w-8 ml-1 hover:bg-primary/10 hover:text-primary">
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => handleToggleActive(user._id, user.isActive !== undefined ? user.isActive : true)} className="h-8 w-8 hover:bg-amber-500/10 hover:text-amber-500">

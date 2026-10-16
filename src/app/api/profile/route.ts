@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Department from '@/models/Department';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
@@ -14,7 +15,15 @@ export async function GET() {
     const user = await User.findById((session.user as any).id, '-password');
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    return NextResponse.json(user);
+    const userObj = user.toObject();
+    if (user.department) {
+      const dept = await Department.findOne({ code: user.department });
+      if (dept) {
+        userObj.departmentPermissions = dept.permissions;
+      }
+    }
+
+    return NextResponse.json(userObj);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -52,9 +61,25 @@ export async function PUT(request: Request) {
       user.email = email || undefined;
     }
 
+    if (body.landingPage && ['calculator', 'quotes', 'admin'].includes(body.landingPage)) {
+      user.landingPage = body.landingPage;
+    }
+
+    if (body.muteNotifications !== undefined) {
+      user.muteNotifications = Boolean(body.muteNotifications);
+    }
+
+    if (body.favoriteTemplate && ['modern', 'executive', 'compact', 'breakdown'].includes(body.favoriteTemplate)) {
+      user.favoriteTemplate = body.favoriteTemplate;
+    }
+
     await user.save();
 
-    return NextResponse.json({ message: 'Profile updated successfully' });
+    return NextResponse.json({ 
+      message: 'Profile updated successfully', 
+      landingPage: user.landingPage,
+      favoriteTemplate: user.favoriteTemplate 
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -36,8 +36,30 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    landingPage: {
+      type: String,
+      enum: ['calculator', 'quotes', 'admin'],
+      default: 'calculator',
+    },
+    muteNotifications: {
+      type: Boolean,
+      default: false,
+    },
+    favoriteTemplate: {
+      type: String,
+      enum: ['modern', 'executive', 'cards', 'compact', 'breakdown'],
+      default: 'modern',
+    },
+    department: {
+      type: String,
+      default: 'SALES',
+    },
   },
   { timestamps: true, strict: false }
 );
+
+if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('favoriteTemplate'))) {
+  delete (mongoose.models as any).User;
+}
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);

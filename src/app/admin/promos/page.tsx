@@ -5,15 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tag, Plus, ArrowLeft, Trash2, Power, Settings2, Percent } from 'lucide-react';
+import { Tag, Plus, ArrowLeft, Trash2, Power, Settings2, Percent, ChevronUp, ChevronDown, GripVertical, Save, RotateCcw, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
+import NotificationBell from '@/components/NotificationBell';
+import { toast } from 'sonner';
 
 type PromoType = {
   _id: string;
   name: string;
   type: string;
   isActive: boolean;
+  order?: number;
   buyQty?: number;
   getQty?: number;
   freeComponents?: string[];
@@ -23,8 +26,11 @@ type PromoType = {
 
 export default function PromosDashboard() {
   const [promos, setPromos] = useState<PromoType[]>([]);
+  const [savedPromos, setSavedPromos] = useState<PromoType[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
   const [role, setRole] = useState('ADMIN');
   const [loading, setLoading] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
   // Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,13 +56,80 @@ export default function PromosDashboard() {
       const promoData = await promoRes.json();
       const profileData = await profileRes.json();
       
-      if (Array.isArray(promoData)) setPromos(promoData);
+      if (Array.isArray(promoData)) {
+        setPromos(promoData);
+        setSavedPromos(promoData);
+      }
       if (profileData.role) setRole(profileData.role);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const hasOrderChanges = promos.length > 0 && savedPromos.length === promos.length && 
+    promos.some((p, i) => p._id !== savedPromos[i]?._id);
+
+  const handleSaveOrder = async () => {
+    setSavingOrder(true);
+    try {
+      const res = await fetch('/api/promos/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: promos.map(p => p._id) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update order');
+      setSavedPromos([...promos]);
+      toast.success('Promo order saved! Sequence is now live on the calculator.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update order');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setPromos([...savedPromos]);
+    toast.info('Discarded order changes');
+  };
+
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= promos.length) return;
+
+    const newPromos = [...promos];
+    const [moved] = newPromos.splice(index, 1);
+    newPromos.splice(targetIndex, 0, moved);
+
+    setPromos(newPromos);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const newPromos = [...promos];
+    const [moved] = newPromos.splice(draggedIndex, 1);
+    newPromos.splice(targetIndex, 0, moved);
+
+    setDraggedIndex(null);
+    setPromos(newPromos);
   };
 
   useEffect(() => {
@@ -237,7 +310,7 @@ export default function PromosDashboard() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-12 relative z-10 space-y-8">
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <Link href="/admin">
@@ -250,40 +323,136 @@ export default function PromosDashboard() {
               <span className="text-xl font-semibold tracking-wider uppercase">Promos & Sales</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
 
+
         <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-6">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
             <div>
               <CardTitle className="text-xl">Active & Inactive Promos</CardTitle>
-              <CardDescription>Toggle which promos are currently live on the calculator.</CardDescription>
+              <CardDescription>
+                Toggle which promos are live. Use the arrows or drag cards to rearrange their order on the calculator page.
+              </CardDescription>
             </div>
-            {isSuperAdmin && (
-              <Button onClick={() => setShowCreateModal(true)} className="shadow-lg">
-                <Plus className="w-4 h-4 mr-2" />
-                Create New Promo
-              </Button>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {hasOrderChanges && (
+                <Button 
+                  onClick={handleSaveOrder} 
+                  disabled={savingOrder} 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg font-bold animate-pulse"
+                >
+                  {savingOrder ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving Order...</>
+                  ) : (
+                    <><Save className="w-4 h-4 mr-2" /> Save Order</>
+                  )}
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button onClick={() => setShowCreateModal(true)} className="shadow-lg">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Promo
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="pt-6">
+            {hasOrderChanges && (
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 mb-6 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 shadow-md gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/20 text-amber-500 shrink-0">
+                    <Save className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-foreground">You have rearranged the promo sequence!</div>
+                    <div className="text-xs text-muted-foreground">Click "Save Order" to permanently store this order and update the promo calculator.</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={handleDiscardChanges} disabled={savingOrder}>
+                    <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Discard
+                  </Button>
+                  <Button size="sm" onClick={handleSaveOrder} disabled={savingOrder} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md">
+                    {savingOrder ? (
+                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving...</>
+                    ) : (
+                      <><Check className="w-3.5 h-3.5 mr-1.5" /> Save Order</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
             {loading ? (
               <div className="text-muted-foreground text-sm">Loading promos...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {promos.map(promo => (
-                  <div key={promo._id} className={`p-5 rounded-xl border transition-all duration-300 ${promo.isActive ? 'bg-primary/5 border-primary/30 shadow-lg' : 'bg-card/30 border-border opacity-70 grayscale'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-bold flex items-center gap-2">
-                          {promo.name}
-                          {promo.isActive && <span className="text-[9px] uppercase tracking-wider font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">Live</span>}
-                        </h3>
-                        <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md inline-block mt-2 uppercase tracking-widest">
-                          {promo.type.replace('_', ' ')}
-                        </span>
+                {promos.map((promo, index) => (
+                  <div 
+                    key={promo._id} 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={() => setDraggedIndex(null)}
+                    className={`p-5 rounded-xl border transition-all duration-200 ${
+                      draggedIndex === index ? 'opacity-40 border-primary scale-[0.98]' : ''
+                    } ${
+                      promo.isActive ? 'bg-primary/5 border-primary/30 shadow-lg' : 'bg-card/30 border-border opacity-70 grayscale'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-4 gap-2">
+                      <div className="flex items-start gap-2.5">
+                        {/* Reordering Grip & Arrows */}
+                        <div className="flex items-center gap-1 bg-muted/60 border border-border/80 rounded-lg p-1">
+                          <div 
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5" 
+                            title="Drag to reorder"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background/80 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              disabled={index === 0}
+                              onClick={() => handleMove(index, 'up')}
+                              title="Move up in order"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-background/80 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                              disabled={index === promos.length - 1}
+                              onClick={() => handleMove(index, 'down')}
+                              title="Move down in order"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-mono font-bold bg-background border border-border px-1.5 py-0.5 rounded text-muted-foreground">
+                              #{index + 1}
+                            </span>
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                              {promo.name}
+                              {promo.isActive && <span className="text-[9px] uppercase tracking-wider font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">Live</span>}
+                            </h3>
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md inline-block mt-1.5 uppercase tracking-widest">
+                            {promo.type.replace('_', ' ')}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
+
+                      <div className="flex items-center gap-2 shrink-0">
                         <Button 
                           variant={promo.isActive ? "default" : "secondary"} 
                           size="sm" 

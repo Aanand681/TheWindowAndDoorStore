@@ -9,6 +9,7 @@ interface QuoteNotesEditorProps {
   placeholder?: string;
   id?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 export default function QuoteNotesEditor({
@@ -17,6 +18,7 @@ export default function QuoteNotesEditor({
   placeholder = 'Enter special site notes, instructions, or employee comments...',
   id = 'quoteNotesEditor',
   className = '',
+  readOnly = false,
 }: QuoteNotesEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalUpdateRef = useRef(false);
@@ -254,46 +256,53 @@ export default function QuoteNotesEditor({
         <label htmlFor={id} className="text-xs text-muted-foreground font-medium">
           Quote Notes &amp; Comments
         </label>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onMouseDown={handleBold}
-            title="Make current line or selection bold (No asterisks)"
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
-          >
-            <Bold className="w-3 h-3 cursor-pointer" />
-            <span className="cursor-pointer">Bold</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={handleBullet}
-            title="Add or toggle bullet point (• line)"
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
-          >
-            <List className="w-3 h-3 cursor-pointer" />
-            <span className="cursor-pointer">Bullet</span>
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onMouseDown={handleBold}
+              title="Make current line or selection bold (No asterisks)"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
+            >
+              <Bold className="w-3 h-3 cursor-pointer" />
+              <span className="cursor-pointer">Bold</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={handleBullet}
+              title="Add or toggle bullet point (• line)"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
+            >
+              <List className="w-3 h-3 cursor-pointer" />
+              <span className="cursor-pointer">Bullet</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Auto-growing Rich Editor Container (Max 5-6 lines with vertical scroll & single-spaced enter) */}
+      {/* Auto-growing Rich Editor Container */}
       <div
         id={id}
         ref={editorRef}
-        contentEditable
+        contentEditable={!readOnly}
         suppressContentEditableWarning
         onInput={() => {
+          if (readOnly) return;
           emitChange();
           scrollToBottom();
         }}
-        onKeyDown={handleKeyDown}
-        data-placeholder={placeholder}
-        className={`w-full min-h-[56px] max-h-[135px] overflow-y-auto text-xs p-2.5 rounded-lg border border-border bg-background/50 focus:bg-background focus:ring-1 focus:ring-primary focus:outline-none transition-all outline-none leading-snug text-[#0f172a] dark:text-[#f8fafc] break-words [&_div]:m-0 [&_div]:p-0 [&_div]:min-h-[1.2em] [&_p]:m-0 [&_p]:p-0 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
+        onKeyDown={readOnly ? undefined : handleKeyDown}
+        data-placeholder={readOnly ? 'No notes provided' : placeholder}
+        className={`w-full min-h-[56px] max-h-[135px] overflow-y-auto text-xs p-2.5 rounded-lg border border-border ${
+          readOnly ? 'bg-muted/40 cursor-default opacity-90' : 'bg-background/50 focus:bg-background focus:ring-1 focus:ring-primary focus:outline-none'
+        } transition-all outline-none leading-snug text-[#0f172a] dark:text-[#f8fafc] break-words [&_div]:m-0 [&_div]:p-0 [&_div]:min-h-[1.2em] [&_p]:m-0 [&_p]:p-0 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none ${className}`}
       />
 
-      <div className="text-[10px] text-muted-foreground">
-        Tip: Click <strong className="text-foreground">Bold</strong> to make the line bold (no asterisks). Click <strong className="text-foreground">Bullet</strong> for lists. Scrolls after 5–6 lines.
-      </div>
+      {!readOnly && (
+        <div className="text-[10px] text-muted-foreground">
+          Tip: Click <strong className="text-foreground">Bold</strong> to make the line bold (no asterisks). Click <strong className="text-foreground">Bullet</strong> for lists. Scrolls after 5–6 lines.
+        </div>
+      )}
     </div>
   );
 }

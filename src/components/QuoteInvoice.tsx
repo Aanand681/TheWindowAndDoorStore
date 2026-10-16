@@ -34,6 +34,7 @@ export interface QuoteInvoiceProps {
   spacing?: number; // multiplier, default 1.0
   isInteractivePreview?: boolean;
   quoteNotes?: string;
+  preparedBy?: string;
   orientation?: 'portrait' | 'landscape';
 }
 
@@ -142,6 +143,7 @@ export default function QuoteInvoice({
   quoteNumber,
   windows = [],
   taxTotals,
+  quoteResult,
   activePromo,
   basePrice = 0,
   surcharge = 0,
@@ -165,6 +167,7 @@ export default function QuoteInvoice({
   spacing = 1.0,
   isInteractivePreview = false,
   quoteNotes = '',
+  preparedBy = '',
   orientation = 'portrait',
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -237,6 +240,17 @@ export default function QuoteInvoice({
   const monthlyDiscountCents = Math.round((taxTotals?.discount || 0) * 100);
   const hstAmountCents = hstRate > 0 ? Math.round(afterDiscount * (hstRate / 100)) : 0;
 
+  // Clean promo name to prevent raw MongoDB ObjectIDs from displaying on print/invoices
+  const resolvedPromoName = (() => {
+    const raw = activePromo?.name?.trim();
+    if (!raw) return 'Promotion Discount';
+    // If raw matches a 24-char hex Mongo ObjectId or begins with one, fall back to quoteResult or 'Promotion Discount'
+    if (/^[0-9a-fA-F]{24}$/.test(raw) || /^[0-9a-fA-F]{24}/.test(raw)) {
+      return quoteResult?.promoName || 'Promotion Discount';
+    }
+    return raw;
+  })();
+
   // Proportional Font Scaling System:
   // Scales titles, headings, table cells, and notes in sync with the font slider
   const baseFs = fontSize; // default 11.5px
@@ -252,6 +266,91 @@ export default function QuoteInvoice({
   const cardGap = Math.max(4, Math.round(6 * spacing));
   const sectionMb = Math.max(6, Math.round(10 * spacing));
 
+
+  // Window Pane Breakdown (Dual Pane vs. Triple Pane & White vs. Painted)
+  type WindowGroup = {
+    key: string;
+    pane: 'Dual' | 'Triple';
+    color: 'White' | 'Painted';
+    qty: number;
+    baseCents: number;
+  };
+
+  const windowGroups: WindowGroup[] = [];
+
+  if (Array.isArray(windows) && windows.length > 0) {
+    const groupMap = new Map<string, WindowGroup>();
+
+    windows.forEach(w => {
+      const q = Math.max(1, Number(w.qty) || 1);
+      const itemBase = toCents(w.base);
+      const isTriple = (Number(w.triple) > 0) || (toCents(w.triple) > 0);
+      const pane: 'Dual' | 'Triple' = isTriple ? 'Triple' : 'Dual';
+      const color: 'White' | 'Painted' = (w.color && w.color.toLowerCase() === 'painted') ? 'Painted' : 'White';
+      
+      const key = `${pane}_${color}`;
+      const existing = groupMap.get(key);
+      if (existing) {
+        existing.qty += q;
+        existing.baseCents += itemBase;
+      } else {
+        groupMap.set(key, {
+          key,
+          pane,
+          color,
+          qty: q,
+          baseCents: itemBase,
+        });
+      }
+    });
+
+    const order = ['Dual_White', 'Dual_Painted', 'Triple_White', 'Triple_Painted'];
+    order.forEach(k => {
+      const g = groupMap.get(k);
+      if (g && g.qty > 0) {
+        windowGroups.push(g);
+      }
+    });
+  }
+
+  // Fallback if windows array had no item prices but basePrice prop was supplied
+  if (windowGroups.length === 0 && basePrice > 0) {
+    windowGroups.push({
+      key: 'Dual_White',
+      pane: 'Dual',
+      color: 'White',
+      qty: 1,
+      baseCents: basePrice,
+    });
+  }
+
+  const renderWindowBasePriceRows = (textColor: string = 'text-[#0f172a]') => {
+    if (windowGroups.length === 0) {
+      return (
+        <tr className="border-b border-[#e2e8f0]">
+          <td className={`py-1 ${textColor} font-medium`}>Base price of windows</td>
+          <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
+            {formatMoney(basePrice)}
+          </td>
+        </tr>
+      );
+    }
+
+    return (
+      <>
+        {windowGroups.map((g) => (
+          <tr key={g.key} className="border-b border-[#e2e8f0]">
+            <td className={`py-1 ${textColor} font-medium`}>
+              {g.qty} {g.pane} pane {g.color} window{g.qty > 1 ? 's' : ''}
+            </td>
+            <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
+              {formatMoney(g.baseCents || (windowGroups.length === 1 ? basePrice : 0))}
+            </td>
+          </tr>
+        ))}
+      </>
+    );
+  };
 
   const isLandscape = orientation === 'landscape';
 
@@ -316,11 +415,17 @@ export default function QuoteInvoice({
               <div style={{ fontSize: `${smallFs}px` }} className="uppercase tracking-wider text-[#334155] font-semibold mt-0.5">
                 Official Window &amp; Labour Quote
               </div>
-              {(customerName || regionName) && (
-                <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 font-medium text-[#0f172a]">
+              {(customerName || regionName || preparedBy) && (
+                <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 font-medium text-[#0f172a] flex flex-wrap items-center gap-x-2">
                   {customerName && <span className="font-bold">{customerName}</span>}
-                  {customerName && regionName && <span> · </span>}
+                  {customerName && (regionName || preparedBy) && <span className="text-[#94a3b8]">·</span>}
                   {regionName && <span className="text-[#334155]">{regionName}</span>}
+                  {regionName && preparedBy && <span className="text-[#94a3b8]">·</span>}
+                  {preparedBy && (
+                    <span className="text-[#334155]">
+                      Prepared by: <strong className="text-[#0f172a] font-bold">{preparedBy}</strong>
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -332,10 +437,6 @@ export default function QuoteInvoice({
 
           {/* Windows Table (Single-line per window) */}
           <div style={{ marginBottom: `${sectionMb}px` }}>
-            <h2 style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] m-0 mb-1 pb-0.5 border-b-[1.5px] border-[#0f172a] flex justify-between items-center">
-              <span>Windows ({windows.length} items)</span>
-            </h2>
-            
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-[#0f172a] uppercase tracking-wider text-[#0f172a] bg-white font-bold" style={{ fontSize: `${thFs}px` }}>
@@ -476,10 +577,7 @@ export default function QuoteInvoice({
 
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  <tr className="border-b border-[#e2e8f0]">
-                    <td className="py-1 text-[#0f172a] font-medium">Base price of windows</td>
-                    <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(basePrice)}</td>
-                  </tr>
+                  {renderWindowBasePriceRows('text-[#0f172a]')}
 
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
@@ -515,7 +613,7 @@ export default function QuoteInvoice({
                     <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
                       <td className="py-1 pl-1">
                         <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold tracking-wider text-emerald-700 block">Promo Applied:</span>
-                        {activePromo?.name || 'Promo Discount'}
+                        {resolvedPromoName}
                       </td>
                       <td className="py-1 text-right font-mono text-emerald-700 font-bold pr-1">
                         −{formatMoney(promoDiscountCents)}
@@ -588,16 +686,28 @@ export default function QuoteInvoice({
             </div>
 
             {/* Compact Inline Customer & Region Bar */}
-            {(customerName || regionName) && (
-              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 pt-1 border-t border-[#cbd5e1] flex justify-between items-center text-[#0f172a]">
-                <div>
-                  <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Client:</span>
-                  <span className="font-black text-[#0f172a]">{customerName || 'Valued Client'}</span>
+            {(customerName || regionName || preparedBy) && (
+              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 pt-1 border-t border-[#cbd5e1] flex justify-between items-center text-[#0f172a] flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  {customerName && (
+                    <div>
+                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Client:</span>
+                      <span className="font-black text-[#0f172a]">{customerName}</span>
+                    </div>
+                  )}
+                  {regionName && (
+                    <div>
+                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Region:</span>
+                      <span className="font-bold text-[#0f172a]">{regionName}</span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Region:</span>
-                  <span className="font-bold text-[#0f172a]">{regionName || 'Standard Region'}</span>
-                </div>
+                {preparedBy && (
+                  <div>
+                    <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Prepared By:</span>
+                    <span className="font-bold text-[#0f172a]">{preparedBy}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -608,10 +718,9 @@ export default function QuoteInvoice({
               <thead>
                 <tr className="bg-white border-b-2 border-[#0f172a] text-[#0f172a] font-bold uppercase tracking-wider" style={{ fontSize: `${thFs}px` }}>
                   <th className="py-1 px-2 text-left border-r border-[#cbd5e1] w-8">#</th>
-                  <th className="py-1 px-2 text-left border-r border-[#cbd5e1]">Window Unit Specification</th>
+                  <th className="py-1 px-2 text-left border-r border-[#cbd5e1]">Window Size (W × H)</th>
                   <th className="py-1 px-2 text-center border-r border-[#cbd5e1] w-12">Qty</th>
-                  <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono">Unit Base</th>
-                  <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono">Total Base</th>
+                  <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono">Base Price</th>
                   <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono">Labour</th>
                   <th className="py-1 px-2 text-right font-mono">Misc</th>
                 </tr>
@@ -621,23 +730,19 @@ export default function QuoteInvoice({
                   const line = taxTotals?.lines?.[i];
                   const qty = Number(w.qty) || 1;
                   const totalItemBaseCents = toCents(w.base);
-                  const unitBaseCents = qty > 0 ? Math.round(totalItemBaseCents / qty) : totalItemBaseCents;
                   const itemLabDollars = line?.lab ?? 0;
                   const itemMiscDollars = line?.misc ?? 0;
 
                   return (
                     <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
                       <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-[#334155] font-mono font-bold border-r border-[#cbd5e1]">
-                        #{i + 1}
+                        {i + 1}
                       </td>
                       <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        {w.w && w.h ? `${w.w}" × ${w.h}" Custom Window` : 'Custom Window Specification'}
+                        {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Standard'}
                       </td>
                       <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
                         {qty}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono font-medium text-[#334155] border-r border-[#cbd5e1]">
-                        {formatMoney(unitBaseCents)}
                       </td>
                       <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono font-bold text-[#0f172a] border-r border-[#cbd5e1]">
                         {formatMoney(totalItemBaseCents)}
@@ -742,10 +847,7 @@ export default function QuoteInvoice({
               </div>
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  <tr className="border-b border-[#e2e8f0]">
-                    <td className="py-1 text-[#0f172a] font-medium">Base price of windows</td>
-                    <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(basePrice)}</td>
-                  </tr>
+                  {renderWindowBasePriceRows('text-[#0f172a]')}
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
                       <td className="py-1 text-[#0f172a] font-medium">Jambs and casings</td>
@@ -774,7 +876,7 @@ export default function QuoteInvoice({
                     <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
                       <td className="py-1 pl-1">
                         <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold text-emerald-700 block">Promo Applied:</span>
-                        {activePromo?.name || 'Discount'}
+                        {resolvedPromoName}
                       </td>
                       <td className="py-1 text-right font-mono text-emerald-700 font-bold pr-1">−{formatMoney(promoDiscountCents)}</td>
                     </tr>
@@ -961,10 +1063,7 @@ export default function QuoteInvoice({
               </div>
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  <tr className="border-b border-[#e2e8f0]">
-                    <td className="py-1 text-[#1e293b] font-medium">Base price of windows</td>
-                    <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(basePrice)}</td>
-                  </tr>
+                  {renderWindowBasePriceRows('text-[#1e293b]')}
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
                       <td className="py-1 text-[#1e293b] font-medium">Jambs and casings</td>
@@ -993,7 +1092,7 @@ export default function QuoteInvoice({
                     <tr className="border-b border-[#cbd5e1] bg-white text-emerald-950 font-semibold">
                       <td className="py-1 pl-1">
                         <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold text-emerald-700 block">Promo Applied:</span>
-                        {activePromo?.name || 'Discount'}
+                        {resolvedPromoName}
                       </td>
                       <td className="py-1 text-right font-mono text-emerald-700 pr-1">−{formatMoney(promoDiscountCents)}</td>
                     </tr>

@@ -139,6 +139,44 @@
   }
 }
 
+/* Container Query Utilities for Multi-Dimension Adaptive Layouts */
+.adaptive-card-container {
+  container-type: inline-size;
+}
+
+@container (max-width: 540px) {
+  .cq-stack-compact {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .cq-price-compact {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background-color: var(--muted) !important;
+    padding: 0.625rem 0.875rem !important;
+    border-radius: 0.75rem !important;
+    margin-top: 0.5rem !important;
+  }
+  .cq-actions-compact {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@container (min-width: 541px) and (max-width: 900px) {
+  .cq-header-medium {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+  }
+}
+
+
 @media print {
   body * {
     visibility: hidden;

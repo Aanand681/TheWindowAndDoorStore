@@ -9,6 +9,7 @@ import { UserCircle, ArrowLeft, ShieldCheck, Mail, KeyRound } from 'lucide-react
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('');
+  const [landingPage, setLandingPage] = useState('calculator');
+  const [muteNotifications, setMuteNotifications] = useState(false);
   
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -36,6 +39,8 @@ export default function ProfilePage() {
           setUsername(data.username || '');
           setEmail(data.email || '');
           setRole(data.role || '');
+          setLandingPage(data.landingPage || 'calculator');
+          setMuteNotifications(Boolean(data.muteNotifications));
         }
       } catch (err) {
         console.error(err);
@@ -63,6 +68,8 @@ export default function ProfilePage() {
         body: JSON.stringify({ 
           username, 
           email, 
+          landingPage,
+          muteNotifications,
           currentPassword: currentPassword || undefined, 
           newPassword: newPassword || undefined 
         }),
@@ -104,8 +111,12 @@ export default function ProfilePage() {
               <span className="text-xl font-semibold tracking-wider uppercase">My Profile</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
         </header>
+
 
         <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl max-w-2xl mx-auto">
           <CardHeader className="border-b border-border pb-6">
@@ -154,6 +165,42 @@ export default function ProfilePage() {
                         onChange={(e) => setEmail(e.target.value)} 
                         placeholder="you@example.com"
                         className="bg-background pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 col-span-full">
+                    <Label htmlFor="landingPage">Default Landing Page Upon Login</Label>
+                    <select
+                      id="landingPage"
+                      value={landingPage}
+                      onChange={(e) => setLandingPage(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="calculator">Promo Calculator (/)</option>
+                      <option value="quotes">Quote Review & Bin (/quotes)</option>
+                      {(role === 'ADMIN' || role === 'SUPERADMIN') && (
+                        <option value="admin">Admin Dashboard (/admin)</option>
+                      )}
+                    </select>
+                    <p className="text-xs text-muted-foreground">Choose where you automatically land right after logging in.</p>
+                  </div>
+
+                  <div className="space-y-2 col-span-full pt-2">
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border">
+                      <div className="space-y-0.5 pr-4">
+                        <Label htmlFor="muteNotif" className="text-sm font-semibold cursor-pointer">
+                          Mute Quote Review Notifications
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Turn this on if you don't want to receive email alerts or popups when a reviewer approves or modifies your quotes.
+                        </p>
+                      </div>
+                      <input
+                        id="muteNotif"
+                        type="checkbox"
+                        checked={muteNotifications}
+                        onChange={(e) => setMuteNotifications(e.target.checked)}
+                        className="w-5 h-5 accent-primary cursor-pointer rounded"
                       />
                     </div>
                   </div>

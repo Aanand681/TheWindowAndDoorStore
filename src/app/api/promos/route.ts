@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     
     await dbConnect();
     const query = activeOnly ? { isActive: true } : {};
-    const promos = await Promo.find(query).sort({ createdAt: -1 });
+    const promos = await Promo.find(query).sort({ order: 1, createdAt: -1 });
     
     return NextResponse.json(promos);
   } catch (error: any) {
@@ -29,7 +29,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     await dbConnect();
 
-    const newPromo = await Promo.create(body);
+    const count = await Promo.countDocuments();
+    const newPromo = await Promo.create({
+      ...body,
+      order: body.order !== undefined ? body.order : count,
+    });
 
     return NextResponse.json({ message: 'Promo created successfully', promo: newPromo }, { status: 201 });
   } catch (error: any) {

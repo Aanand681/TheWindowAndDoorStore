@@ -19,12 +19,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     
     await dbConnect();
 
-    // If they are just an ADMIN, completely strip out everything except isActive
+    // If they are just an ADMIN, allow updating isActive and order
     let updateData = { ...body };
     if (role === 'ADMIN') {
       updateData = {};
       if (body.isActive !== undefined) {
         updateData.isActive = body.isActive;
+      }
+      if (body.order !== undefined) {
+        updateData.order = body.order;
       }
     }
 

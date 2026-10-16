@@ -4,6 +4,9 @@ import bcrypt from 'bcryptjs';
 import dbConnect from './mongodb';
 import User from '@/models/User';
 
+// Enable multi-host and LAN IP support (e.g. 192.168.x.x, localhost, custom domains)
+process.env.AUTH_TRUST_HOST = 'true';
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -45,6 +48,9 @@ export const authOptions: NextAuthOptions = {
           name: user.username || user.email,
           email: user.email,
           role: user.role,
+          department: user.department || (user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'kyle' ? 'MANAGER' : 'SALES'),
+          landingPage: user.landingPage || 'calculator',
+          muteNotifications: user.muteNotifications || false,
         };
       },
     }),
@@ -53,14 +59,20 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;
+        token.department = (user as any).department;
         token.id = (user as any).id;
+        token.landingPage = (user as any).landingPage || 'calculator';
+        token.muteNotifications = (user as any).muteNotifications || false;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).role = token.role;
+        (session.user as any).department = token.department;
         (session.user as any).id = token.id;
+        (session.user as any).landingPage = token.landingPage || 'calculator';
+        (session.user as any).muteNotifications = token.muteNotifications || false;
       }
       return session;
     },

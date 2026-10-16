@@ -8,7 +8,12 @@ import { cn } from '@/lib/utils';
 export function LogoutButton({ className }: { className?: string }) {
   return (
     <button
-      onClick={() => signOut({ callbackUrl: '/login' })}
+      onClick={() => {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('greeting_shown_session');
+        }
+        signOut({ callbackUrl: '/login' });
+      }}
       className={
         className ??
         cn(

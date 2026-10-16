@@ -7,6 +7,7 @@ export type WindowItem = {
   triple: number;
   w?: string;
   h?: string;
+  color?: string; // 'White' | 'Painted'
 };
 
 export type DBPromo = {
@@ -19,6 +20,7 @@ export type DBPromo = {
   freeComponents?: string[];
   discountPercentage?: number;
   applyPercentageAfterFreeParts?: boolean;
+  order?: number;
 };
 
 export const formatMoney = (cents: number) => {

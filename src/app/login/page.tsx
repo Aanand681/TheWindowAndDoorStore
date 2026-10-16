@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -19,6 +19,18 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // If already authenticated, redirect to app automatically
+  useEffect(() => {
+    fetch('/api/profile')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          router.replace('/');
+        }
+      })
+      .catch(() => {});
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,6 +46,23 @@ export default function LoginPage() {
       setError('Invalid username or password. Please try again.');
       setLoading(false);
     } else {
+      try {
+        const profRes = await fetch('/api/profile');
+        if (profRes.ok) {
+          const prof = await profRes.json();
+          if (prof.landingPage === 'admin' && (prof.role === 'ADMIN' || prof.role === 'SUPERADMIN')) {
+            router.push('/admin');
+            router.refresh();
+            return;
+          } else if (prof.landingPage === 'quotes') {
+            router.push('/quotes');
+            router.refresh();
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching landing page preference:', err);
+      }
       router.push('/');
       router.refresh();
     }

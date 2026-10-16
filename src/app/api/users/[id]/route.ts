@@ -28,6 +28,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (body.role !== undefined) {
       updateData.role = body.role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE';
     }
+    if (body.department !== undefined) {
+      updateData.department = String(body.department).toUpperCase().trim();
+    }
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
 
     const updatedUser = await User.findByIdAndUpdate(

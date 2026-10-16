@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
-import { MapPin, Calculator, Plus, Trash2 } from 'lucide-react';
+import { MapPin, Calculator, Plus, Trash2, Lock } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
+import { toast } from 'sonner';
 
 import dynamic from 'next/dynamic';
 
@@ -54,7 +54,19 @@ function parseInches(v: string | undefined | null) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculated }: { windows: any[], onWindowsChange: (w: any[]) => void, onCalculated?: (totals: any) => void }) {
+export default function TaxCalculatorTab({ 
+  windows, 
+  onWindowsChange, 
+  onCalculated,
+  savedTaxTotals,
+  readOnly = false,
+}: { 
+  windows: any[], 
+  onWindowsChange: (w: any[]) => void, 
+  onCalculated?: (totals: any) => void,
+  savedTaxTotals?: any,
+  readOnly?: boolean,
+}) {
   const [regions, setRegions] = useState<any[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   
@@ -78,8 +90,8 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
   const [crew, setCrew] = useState('2');
   const [setupFee, setSetupFee] = useState('0');
 
-  // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 3 1/4 and Vinyl casing charge)
-  const [jambId, setJambId] = useState('j2');
+  // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 4 1/2 and Vinyl casing charge)
+  const [jambId, setJambId] = useState('j3');
   const [jambName, setJambName] = useState('');
   const [jambRate, setJambRate] = useState('');
   
@@ -133,14 +145,174 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
           console.error("Settings API returned error:", d);
           return;
         }
-        if (d.addons?.length) setDbAddons(d.addons);
-        if (d.jambs?.length) setDbJambs(d.jambs);
+        if (d.addons?.length) {
+          setDbAddons(prev => {
+            const defaultIds = new Set((d.addons || []).map((x: any) => x.id));
+            const customs = prev.filter(p => p.isCustom || !defaultIds.has(p.id));
+            return [...(d.addons || []), ...customs];
+          });
+        }
+        if (d.jambs?.length) {
+          setDbJambs(d.jambs);
+          const targetJamb = d.jambs.find((j: any) => j.id === 'j3' || j.label?.includes('3/4 x 4 1/2'));
+          if (targetJamb && !savedTaxTotals) setJambId(targetJamb.id);
+        }
         if (d.casings?.length) setDbCasings(d.casings);
         if (d.vehicleRate !== undefined) setDbVehicleRate(d.vehicleRate);
         if (d.crewRates?.length) setDbCrewRates(d.crewRates);
       })
       .catch(console.error);
   }, []);
+
+  // Keep track of quote restoration so we don't clobber in-progress user edits
+  const restoredQuoteKeyRef = React.useRef<string | null>(null);
+
+  // Restore saved tax & labour state when reviewing a quote
+  useEffect(() => {
+    if (!savedTaxTotals) {
+      if (restoredQuoteKeyRef.current !== null) {
+        // Review mode was exited or reset! Clear all custom extras and restore defaults
+        restoredQuoteKeyRef.current = null;
+        setAddons({});
+        setCoords('');
+        setManualKm('0');
+        setManualHours('0');
+        setCrew('2');
+        setSetupFee('0');
+        setDiscount('');
+        setHstOn(true);
+        setIncludeLabour(true);
+        setIncludeMisc(true);
+        setIncludeJC(true);
+        setJambId('j3');
+        setCasingId('vinyl');
+      }
+      return;
+    }
+
+    const quoteKey = savedTaxTotals._quoteId || savedTaxTotals._quoteNumber || JSON.stringify({
+      reg: savedTaxTotals.selectedRegionId,
+      addons: savedTaxTotals.addonsMap,
+      selAddonsCount: savedTaxTotals.selectedAddons?.length,
+      disc: savedTaxTotals.discount,
+      labour: savedTaxTotals.finalLabour,
+      jamb: savedTaxTotals.jambId ?? savedTaxTotals.selectedJamb?.id ?? (savedTaxTotals.selectedJamb === null ? 'none' : 'default'),
+      casing: savedTaxTotals.casingId ?? savedTaxTotals.selectedCasing?.id ?? (savedTaxTotals.selectedCasing === null ? 'none' : 'default'),
+    });
+
+    if (restoredQuoteKeyRef.current === quoteKey) {
+      // If region wasn't resolved previously because regions was empty, try matching it now
+      if ((!selectedRegionId || selectedRegionId === '') && regions.length > 0) {
+        if (savedTaxTotals.selectedRegionId) {
+          setSelectedRegionId(savedTaxTotals.selectedRegionId);
+        } else if (savedTaxTotals.regionName) {
+          const match = regions.find(r => r.name.toLowerCase() === savedTaxTotals.regionName.toLowerCase());
+          if (match) setSelectedRegionId(match._id);
+        }
+      }
+      return;
+    }
+    restoredQuoteKeyRef.current = quoteKey;
+
+    // Restore addonsMap or extract from selectedAddons
+    let restoredMap: Record<string, string> = {};
+    if (savedTaxTotals.addonsMap && Object.keys(savedTaxTotals.addonsMap).length > 0) {
+      restoredMap = { ...savedTaxTotals.addonsMap };
+    } else if (savedTaxTotals.selectedAddons && Array.isArray(savedTaxTotals.selectedAddons) && savedTaxTotals.selectedAddons.length > 0) {
+      savedTaxTotals.selectedAddons.forEach((sa: any) => {
+        if (sa.id) restoredMap[sa.id] = String(sa.qty || '1');
+      });
+    }
+    if (Object.keys(restoredMap).length > 0) {
+      setAddons(restoredMap);
+    }
+
+    // Restore custom / dbAddons
+    if (savedTaxTotals.dbAddons && Array.isArray(savedTaxTotals.dbAddons) && savedTaxTotals.dbAddons.length > 0) {
+      setDbAddons(savedTaxTotals.dbAddons);
+    } else if (savedTaxTotals.selectedAddons && Array.isArray(savedTaxTotals.selectedAddons)) {
+      setDbAddons(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const missing = savedTaxTotals.selectedAddons.filter((sa: any) => !existingIds.has(sa.id));
+        if (missing.length === 0) return prev;
+        return [
+          ...prev,
+          ...missing.map((m: any) => ({
+            id: m.id,
+            label: m.label,
+            lab: (m.lab || 0) / (m.qty || 1),
+            misc: (m.misc || 0) / (m.qty || 1),
+            isCustom: true,
+          })),
+        ];
+      });
+    }
+
+    // Restore region
+    if (savedTaxTotals.selectedRegionId) {
+      setSelectedRegionId(savedTaxTotals.selectedRegionId);
+    } else if (savedTaxTotals.regionName && regions.length > 0) {
+      const match = regions.find(r => r.name.toLowerCase() === savedTaxTotals.regionName.toLowerCase());
+      if (match) setSelectedRegionId(match._id);
+    }
+
+    // Restore jambs and casings (including None and custom overrides)
+    if (savedTaxTotals.jambId !== undefined) {
+      setJambId(savedTaxTotals.jambId);
+    } else if (savedTaxTotals.selectedJamb === null) {
+      setJambId('none');
+    } else if (savedTaxTotals.selectedJamb?.id) {
+      setJambId(savedTaxTotals.selectedJamb.id);
+    } else if (savedTaxTotals.jambName || savedTaxTotals.selectedJamb?.name) {
+      const targetName = (savedTaxTotals.jambName || savedTaxTotals.selectedJamb?.name || '').toLowerCase();
+      const matchJ = dbJambs.find(j => j.label?.toLowerCase() === targetName || j.name?.toLowerCase() === targetName);
+      if (matchJ) {
+        setJambId(matchJ.id);
+      } else {
+        setJambId('custom');
+        setJambName(savedTaxTotals.jambName || savedTaxTotals.selectedJamb?.name);
+      }
+    }
+    if (savedTaxTotals.jambRate !== undefined) setJambRate(String(savedTaxTotals.jambRate));
+    else if (savedTaxTotals.selectedJamb?.rate !== undefined) setJambRate(String(savedTaxTotals.selectedJamb.rate));
+    if (savedTaxTotals.jambName) setJambName(savedTaxTotals.jambName);
+    else if (savedTaxTotals.selectedJamb?.name) setJambName(savedTaxTotals.selectedJamb.name);
+
+    if (savedTaxTotals.casingId !== undefined) {
+      setCasingId(savedTaxTotals.casingId);
+    } else if (savedTaxTotals.selectedCasing === null) {
+      setCasingId('none');
+    } else if (savedTaxTotals.selectedCasing?.id) {
+      setCasingId(savedTaxTotals.selectedCasing.id);
+    } else if (savedTaxTotals.casingName || savedTaxTotals.selectedCasing?.name) {
+      const targetName = (savedTaxTotals.casingName || savedTaxTotals.selectedCasing?.name || '').toLowerCase();
+      const matchC = dbCasings.find(c => c.label?.toLowerCase() === targetName || c.name?.toLowerCase() === targetName);
+      if (matchC) {
+        setCasingId(matchC.id);
+      } else {
+        setCasingId('custom');
+        setCasingName(savedTaxTotals.casingName || savedTaxTotals.selectedCasing?.name);
+      }
+    }
+    if (savedTaxTotals.casingRate !== undefined) setCasingRate(String(savedTaxTotals.casingRate));
+    else if (savedTaxTotals.selectedCasing?.rate !== undefined) setCasingRate(String(savedTaxTotals.selectedCasing.rate));
+    if (savedTaxTotals.casingName) setCasingName(savedTaxTotals.casingName);
+    else if (savedTaxTotals.selectedCasing?.name) setCasingName(savedTaxTotals.selectedCasing.name);
+
+    // Restore travel & extras
+    if (savedTaxTotals.coords) setCoords(savedTaxTotals.coords);
+    if (savedTaxTotals.manualKm !== undefined) setManualKm(String(savedTaxTotals.manualKm));
+    if (savedTaxTotals.manualHours !== undefined) setManualHours(String(savedTaxTotals.manualHours));
+    if (savedTaxTotals.crew !== undefined) setCrew(String(savedTaxTotals.crew));
+    if (savedTaxTotals.setup !== undefined || savedTaxTotals.setupFee !== undefined) {
+      setSetupFee(String(savedTaxTotals.setup ?? savedTaxTotals.setupFee));
+    }
+    if (savedTaxTotals.discount !== undefined) setDiscount(String(savedTaxTotals.discount));
+    if (savedTaxTotals.hstOn !== undefined) setHstOn(Boolean(savedTaxTotals.hstOn));
+    if (savedTaxTotals.includeLabour !== undefined) setIncludeLabour(Boolean(savedTaxTotals.includeLabour));
+    if (savedTaxTotals.includeMisc !== undefined) setIncludeMisc(Boolean(savedTaxTotals.includeMisc));
+    if (savedTaxTotals.includeJC !== undefined) setIncludeJC(Boolean(savedTaxTotals.includeJC));
+  }, [savedTaxTotals, regions]);
 
   const region = regions.find(r => r._id === selectedRegionId);
 
@@ -236,9 +408,20 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
       crewRate,
       vehicleRate: dbVehicleRate,
       setup,
+      setupFee,
       fixedSetupFee: region.fixedSetupFee,
       baseTravelFee: region.baseTravelFee || 0,
       selectedAddons: selectedAddonsList,
+      addonsMap: addons,
+      dbAddons,
+      selectedRegionId,
+      coords,
+      jambId,
+      jambRate: jRate,
+      jambName: selectedJambObj?.name || jambName,
+      casingId,
+      casingRate: cRate,
+      casingName: selectedCasingObj?.name || casingName,
       selectedJamb: selectedJambObj,
       selectedCasing: selectedCasingObj,
       discount: disc,
@@ -318,6 +501,12 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {readOnly && (
+        <div className="lg:col-span-12 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-3.5 flex items-center gap-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 animate-in fade-in">
+          <Lock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>Tax &amp; Labour Calculator is in Read-Only Mode. Values and extras are locked and cannot be edited.</span>
+        </div>
+      )}
       <div className="lg:col-span-8 space-y-8">
         
         <Card>
@@ -325,7 +514,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
             <CardTitle>Region Profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
+            <Select disabled={readOnly} value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
               <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder="Select Region">
                   {regions.find(r => r._id === selectedRegionId)?.name}
@@ -349,6 +538,9 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="w-full max-h-[500px] overflow-auto border rounded-xl bg-background/50">
+              <div className="text-[11px] text-muted-foreground/80 md:hidden px-4 py-2 bg-muted/30 border-b border-border/40 font-medium">
+                ← Swipe horizontally to edit sizes &amp; view labour →
+              </div>
               <div className="space-y-3 p-4 min-w-[700px]">
                 {windows.map((w, i) => {
                   const line = c?.lines[i];
@@ -357,19 +549,19 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                       <div className="col-span-1 text-center font-mono text-muted-foreground">{i + 1}</div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">Width"</Label>
-                        <Input className="h-9" value={w.w || ''} onChange={e => {
+                        <Input disabled={readOnly} className="h-9" value={w.w || ''} onChange={e => {
                           const nw = [...windows]; nw[i].w = e.target.value.replace(/[^0-9\s./]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">Height"</Label>
-                        <Input className="h-9" value={w.h || ''} onChange={e => {
+                        <Input disabled={readOnly} className="h-9" value={w.h || ''} onChange={e => {
                           const nw = [...windows]; nw[i].h = e.target.value.replace(/[^0-9\s./]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">Qty</Label>
-                        <Input type="number" min="1" className="h-9" value={w.qty} onChange={e => {
+                        <Input disabled={readOnly} type="number" min="1" className="h-9" value={w.qty} onChange={e => {
                           const nw = [...windows]; nw[i].qty = e.target.value; onWindowsChange(nw);
                         }} />
                       </div>
@@ -384,7 +576,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                         )}
                       </div>
                       <div className="col-span-1">
-                        <Button variant="ghost" size="icon" className="text-destructive mt-4 hover:bg-destructive/10" onClick={() => {
+                        <Button disabled={readOnly} variant="ghost" size="icon" className="text-destructive mt-4 hover:bg-destructive/10" onClick={() => {
                           const nw = windows.filter((_, idx) => idx !== i);
                           onWindowsChange(nw.length ? nw : [{ id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }]);
                         }}><Trash2 className="w-4 h-4" /></Button>
@@ -394,7 +586,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                 })}
               </div>
             </div>
-            <Button variant="secondary" onClick={() => onWindowsChange([...windows, { id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }])}>
+            <Button disabled={readOnly} variant="secondary" onClick={() => onWindowsChange([...windows, { id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }])}>
               <Plus className="w-4 h-4 mr-2" /> Add Window Manually
             </Button>
           </CardContent>
@@ -410,8 +602,8 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
               <div className="flex-1 space-y-2">
                 <Label>Paste Coordinates / Google Maps link</Label>
                 <div className="flex gap-2">
-                  <Input value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
-                  <Button variant="secondary" onClick={() => {
+                  <Input disabled={readOnly} value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
+                  <Button disabled={readOnly} variant="secondary" onClick={() => {
                     const cMatch = coords.match(/(-?\d+\.\d+)[\s,]+(-?\d+\.\d+)/);
                     if (cMatch) {
                        calculateTravelFromCoords(Number(cMatch[1]), Number(cMatch[2])); 
@@ -452,11 +644,11 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Round-trip km</Label>
-                <Input type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
+                <Input disabled={readOnly} type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
               </div>
               <div className="space-y-2 col-span-1 md:col-span-2">
                 <Label>Crew</Label>
-                <Select value={crew} onValueChange={val => setCrew(val ?? '')}>
+                <Select disabled={readOnly} value={crew} onValueChange={val => setCrew(val ?? '')}>
                   <SelectTrigger className="w-full text-base py-6 font-medium border-2 border-primary/20 hover:border-primary/50 transition-colors bg-primary/5">
                     <SelectValue placeholder="Select crew size" />
                   </SelectTrigger>
@@ -470,13 +662,13 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
               </div>
               <div className="space-y-2">
                 <Label>Round-trip hours</Label>
-                <Input type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} disabled={crew === 'none'} />
+                <Input disabled={readOnly || crew === 'none'} type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Per-job set-up fee (Region Specific)</Label>
-              <Select value={setupFee} onValueChange={val => setSetupFee(val ?? '')}>
+              <Select disabled={readOnly} value={setupFee} onValueChange={val => setSetupFee(val ?? '')}>
                 <SelectTrigger className="w-full sm:w-[350px]">
                   <SelectValue>
                     {region.setupFeeOptions.find((o: any) => String(o.value) === setupFee)?.label || "Select Setup Fee"}
@@ -502,21 +694,27 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                 <div key={a.id} className="flex justify-between items-center gap-4">
                   {a.isCustom ? (
                     <div className="flex-1 space-y-2">
-                      <Input placeholder="Description" className="h-8" value={a.label} onChange={e => {
+                      <Input disabled={readOnly} placeholder="Description" className="h-8" value={a.label} onChange={e => {
                         const newDb = [...dbAddons];
                         newDb[index].label = e.target.value;
                         setDbAddons(newDb);
                       }} />
                       <div className="flex gap-2">
-                        <Input type="number" placeholder="Lab $" className="h-8 w-24" value={a.lab || ''} onChange={e => {
+                        <Input disabled={readOnly} type="number" placeholder="Lab $" className="h-8 w-24" value={a.lab || ''} onChange={e => {
                           const newDb = [...dbAddons];
                           newDb[index].lab = Number(e.target.value);
                           setDbAddons(newDb);
+                          if (!addons[a.id] || addons[a.id] === '0') {
+                            setAddons(prev => ({ ...prev, [a.id]: '1' }));
+                          }
                         }} />
-                        <Input type="number" placeholder="Misc $" className="h-8 w-24" value={a.misc || ''} onChange={e => {
+                        <Input disabled={readOnly} type="number" placeholder="Misc $" className="h-8 w-24" value={a.misc || ''} onChange={e => {
                           const newDb = [...dbAddons];
                           newDb[index].misc = Number(e.target.value);
                           setDbAddons(newDb);
+                          if (!addons[a.id] || addons[a.id] === '0') {
+                            setAddons(prev => ({ ...prev, [a.id]: '1' }));
+                          }
                         }} />
                       </div>
                     </div>
@@ -524,8 +722,16 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                     <Label className="text-xs flex-1">{a.label}</Label>
                   )}
                   <div className="flex items-center gap-2">
-                    <Input type="number" className="w-20" placeholder="Qty" min="0" value={addons[a.id] || ''} onChange={e => setAddons({...addons, [a.id]: e.target.value})} />
-                    {a.isCustom && (
+                    <Input 
+                      disabled={readOnly}
+                      type="number" 
+                      className="w-20" 
+                      placeholder={a.isCustom ? "1" : "Qty"} 
+                      min="0" 
+                      value={addons[a.id] || ''} 
+                      onChange={e => setAddons({...addons, [a.id]: e.target.value})} 
+                    />
+                    {!readOnly && a.isCustom && (
                       <Button variant="ghost" size="icon" className="text-destructive h-9" onClick={() => {
                         setDbAddons(dbAddons.filter(item => item.id !== a.id));
                         const newAddonsMap = {...addons};
@@ -538,11 +744,15 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                   </div>
                 </div>
               ))}
-              <Button variant="outline" size="sm" className="w-full mt-2 border-dashed" onClick={() => {
-                setDbAddons([...dbAddons, { id: 'temp_' + Date.now(), label: '', lab: 0, misc: 0, isCustom: true }]);
-              }}>
-                <Plus className="w-4 h-4 mr-2" /> Add Custom Extra (This Session Only)
-              </Button>
+              {!readOnly && (
+                <Button variant="outline" size="sm" className="w-full mt-2 border-dashed" onClick={() => {
+                  const newId = 'custom_' + Date.now();
+                  setDbAddons([...dbAddons, { id: newId, label: '', lab: 0, misc: 0, isCustom: true }]);
+                  setAddons(prev => ({ ...prev, [newId]: '1' }));
+                }}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Custom Extra (This Session Only)
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -554,7 +764,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Jamb</Label>
-                <Select value={jambId} onValueChange={val => setJambId(val ?? '')}>
+                <Select disabled={readOnly} value={jambId} onValueChange={val => setJambId(val ?? '')}>
                   <SelectTrigger className="w-full">
                     <SelectValue>
                       {jambId === 'none' ? 'None' : jambId === 'custom' ? 'Custom...' : dbJambs.find(j => j.id === jambId)?.label}
@@ -568,14 +778,14 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                 </Select>
                 {jambId === 'custom' && (
                   <div className="flex gap-2 mt-2">
-                    <Input placeholder="Name" value={jambName} onChange={e => setJambName(e.target.value)} />
-                    <Input placeholder="Rate/ft" type="number" value={jambRate} onChange={e => setJambRate(e.target.value)} />
+                    <Input disabled={readOnly} placeholder="Name" value={jambName} onChange={e => setJambName(e.target.value)} />
+                    <Input disabled={readOnly} placeholder="Rate/ft" type="number" value={jambRate} onChange={e => setJambRate(e.target.value)} />
                   </div>
                 )}
               </div>
               <div className="space-y-2">
                 <Label>Casing</Label>
-                <Select value={casingId} onValueChange={val => setCasingId(val ?? '')}>
+                <Select disabled={readOnly} value={casingId} onValueChange={val => setCasingId(val ?? '')}>
                   <SelectTrigger className="w-full">
                     <SelectValue>
                       {casingId === 'none' ? 'None' : casingId === 'custom' ? 'Custom...' : dbCasings.find(c => c.id === casingId)?.label}
@@ -589,8 +799,8 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                 </Select>
                 {casingId === 'custom' && (
                   <div className="flex gap-2 mt-2">
-                    <Input placeholder="Name" value={casingName} onChange={e => setCasingName(e.target.value)} />
-                    <Input placeholder="Rate/ft" type="number" value={casingRate} onChange={e => setCasingRate(e.target.value)} />
+                    <Input disabled={readOnly} placeholder="Name" value={casingName} onChange={e => setCasingName(e.target.value)} />
+                    <Input disabled={readOnly} placeholder="Rate/ft" type="number" value={casingRate} onChange={e => setCasingRate(e.target.value)} />
                   </div>
                 )}
               </div>
@@ -615,7 +825,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <Checkbox id="incLab" checked={includeLabour} onCheckedChange={(ch) => setIncludeLabour(!!ch)} />
+                      <Checkbox disabled={readOnly} id="incLab" checked={includeLabour} onCheckedChange={(ch) => setIncludeLabour(!!ch)} />
                       <Label htmlFor="incLab" className="cursor-pointer font-normal">Labour (windows + extras)</Label>
                     </div>
                     <span className={`font-mono ${!includeLabour ? 'line-through opacity-50' : 'text-foreground'}`}>
@@ -625,7 +835,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                   
                   <div className="flex justify-between items-center text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <Checkbox id="incMisc" checked={includeMisc} onCheckedChange={(ch) => setIncludeMisc(!!ch)} />
+                      <Checkbox disabled={readOnly} id="incMisc" checked={includeMisc} onCheckedChange={(ch) => setIncludeMisc(!!ch)} />
                       <Label htmlFor="incMisc" className="cursor-pointer font-normal">Miscellaneous</Label>
                     </div>
                     <span className={`font-mono ${!includeMisc ? 'line-through opacity-50' : 'text-foreground'}`}>
@@ -635,7 +845,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                   
                   <div className="flex justify-between items-center text-muted-foreground">
                     <div className="flex items-center gap-2">
-                      <Checkbox id="incJC" checked={includeJC} onCheckedChange={(ch) => setIncludeJC(!!ch)} />
+                      <Checkbox disabled={readOnly} id="incJC" checked={includeJC} onCheckedChange={(ch) => setIncludeJC(!!ch)} />
                       <Label htmlFor="incJC" className="cursor-pointer font-normal">Jambs + casings</Label>
                     </div>
                     <span className={`font-mono ${!includeJC ? 'line-through opacity-50' : 'text-foreground'}`}>
@@ -647,7 +857,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                     <Label>Monthly discount</Label>
                     <div className="relative w-24">
                       <span className="absolute left-2 top-2 text-muted-foreground text-xs">$</span>
-                      <Input type="number" className="h-8 pl-5" value={discount} onChange={e => setDiscount(e.target.value)} />
+                      <Input disabled={readOnly} type="number" className="h-8 pl-5" value={discount} onChange={e => setDiscount(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -659,7 +869,7 @@ export default function TaxCalculatorTab({ windows, onWindowsChange, onCalculate
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Checkbox id="hston" checked={hstOn} onCheckedChange={(ch) => setHstOn(!!ch)} />
+                      <Checkbox disabled={readOnly} id="hston" checked={hstOn} onCheckedChange={(ch) => setHstOn(!!ch)} />
                       <Label htmlFor="hston" className="cursor-pointer">HST (13%)</Label>
                     </div>
                     <span className="font-mono text-muted-foreground">{formatMoney(c.hst * 100)}</span>
