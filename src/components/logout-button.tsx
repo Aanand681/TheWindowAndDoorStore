@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils';
 export function LogoutButton({ className }: { className?: string }) {
   return (
     <button
-      onClick={() => {
+      onClick={async () => {
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('greeting_shown_session');
         }
-        signOut({ callbackUrl: '/login' });
+        await signOut({ redirect: false });
+        window.location.href = '/login';
       }}
       className={
         className ??

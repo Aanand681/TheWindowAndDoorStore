@@ -60,11 +60,12 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('greeting_shown_session');
     }
-    signOut({ callbackUrl: '/login' });
+    await signOut({ redirect: false });
+    window.location.href = '/login';
   };
 
   if (!user && !propUser) {

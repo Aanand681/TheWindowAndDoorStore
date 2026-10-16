@@ -7,6 +7,19 @@ import User from '@/models/User';
 // Enable multi-host and LAN IP support (e.g. 192.168.x.x, localhost, custom domains)
 process.env.AUTH_TRUST_HOST = 'true';
 
+// Safeguard: On Vercel / Production, if NEXTAUTH_URL was mistakenly set to localhost,
+// auto-correct it to the live VERCEL_URL or delete it so NextAuth auto-detects the request origin
+if (
+  (process.env.VERCEL || process.env.NODE_ENV === 'production') &&
+  process.env.NEXTAUTH_URL?.includes('localhost')
+) {
+  if (process.env.VERCEL_URL) {
+    process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+  } else {
+    delete process.env.NEXTAUTH_URL;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -56,6 +69,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith('/')) return url;
+      // Allows callback URLs on the same origin
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch (_) {}
+      return baseUrl;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;
