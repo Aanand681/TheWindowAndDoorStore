@@ -19,8 +19,9 @@ export default async function AdminDashboard() {
   }
 
   const role = (session.user as any).role;
+  const canAccessAdmin = (session.user as any).canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
 
-  if (role !== 'SUPERADMIN' && role !== 'ADMIN') {
+  if (!canAccessAdmin) {
     redirect('/login');
   }
 

@@ -26,10 +26,12 @@ export interface NotificationItem {
 export default function NotificationBell() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'unread' | 'history'>('unread');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const unreadList = notifications.filter(n => !n.isRead);
+  const unreadCount = unreadList.length;
 
   const fetchNotifications = async () => {
     if (typeof document !== 'undefined' && document.hidden) return;
@@ -37,8 +39,8 @@ export default function NotificationBell() {
       const res = await fetch(`/api/notifications?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
+        const notifs = data.notifications || [];
+        setNotifications(notifs);
       }
     } catch (err) {
       // Quiet fail
@@ -46,88 +48,67 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
+    let isCancelled = false;
+    let boundUserChannel: any = null;
+    let boundGlobalChannel: any = null;
+
+    const handleNewNotification = (data: any) => {
+      const newNotif = data.notification || data;
+      if (newNotif && newNotif._id) {
+        setNotifications(prev => {
+          if (prev.some(n => n._id === newNotif._id)) return prev;
+          return [newNotif, ...prev];
+        });
+        window.dispatchEvent(new CustomEvent('quote-count-updated'));
+      }
+    };
+
+    const handleCountUpdated = () => {
+      window.dispatchEvent(new CustomEvent('quote-count-updated'));
+    };
+
+    const handleQuoteDeleted = (data: any) => {
+      window.dispatchEvent(new CustomEvent('quote-deleted', { detail: data }));
+      window.dispatchEvent(new CustomEvent('quote-count-updated'));
+    };
+
     fetchNotifications();
 
-    // ⚡ 1. Pusher WebSockets (Sub-second instant push on Vercel & Production)
-    let pusher = getPusherClient();
-    let userChannel: any = null;
-    let globalChannel: any = null;
+    const pusher = getPusherClient();
+    if (pusher) {
+      // ⚡ Pusher WebSockets (Primary real-time engine)
+      fetch('/api/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(user => {
+          if (isCancelled) return;
+          if (user && user.username && pusher) {
+            const userChannelName = `user-${user.username.toLowerCase().trim()}`;
+            boundUserChannel = pusher.subscribe(userChannelName);
+            boundUserChannel.unbind('notification', handleNewNotification);
+            boundUserChannel.bind('notification', handleNewNotification);
 
-    fetch('/api/profile')
-      .then(res => res.ok ? res.json() : null)
-      .then(user => {
-        if (user && user.username && pusher) {
-          const userChannelName = `user-${user.username.toLowerCase().trim()}`;
-          userChannel = pusher.subscribe(userChannelName);
-
-          userChannel.bind('notification', (data: any) => {
-            const newNotif = data.notification || data;
-            if (newNotif && newNotif._id) {
-              setNotifications(prev => {
-                const exists = prev.some(n => n._id === newNotif._id);
-                if (exists) return prev;
-                return [newNotif, ...prev];
-              });
-              setUnreadCount(prev => prev + 1);
-              window.dispatchEvent(new CustomEvent('quote-count-updated'));
-            }
-          });
-
-          globalChannel = pusher.subscribe('global-quotes');
-          globalChannel.bind('QUOTE_COUNT_UPDATED', () => {
-            window.dispatchEvent(new CustomEvent('quote-count-updated'));
-          });
-          globalChannel.bind('QUOTE_DELETED', (data: any) => {
-            window.dispatchEvent(new CustomEvent('quote-deleted', { detail: data }));
-            window.dispatchEvent(new CustomEvent('quote-count-updated'));
-          });
-        }
-      })
-      .catch(() => {});
-
-    // ⚡ 2. Native Server-Sent Events (SSE) Stream: Local Dev companion
-    let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource('/api/notifications/stream');
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'NOTIFICATION' && data.notification) {
-            setNotifications(prev => {
-              const exists = prev.some(n => n._id === data.notification._id);
-              if (exists) return prev;
-              return [data.notification, ...prev];
-            });
-            setUnreadCount(prev => prev + 1);
-            window.dispatchEvent(new CustomEvent('quote-count-updated'));
-          } else if (data.type === 'QUOTE_COUNT_UPDATED') {
-            window.dispatchEvent(new CustomEvent('quote-count-updated'));
-          } else if (data.type === 'QUOTE_DELETED') {
-            window.dispatchEvent(new CustomEvent('quote-deleted', { detail: data }));
-            window.dispatchEvent(new CustomEvent('quote-count-updated'));
+            boundGlobalChannel = pusher.subscribe('global-quotes');
+            boundGlobalChannel.unbind('QUOTE_COUNT_UPDATED', handleCountUpdated);
+            boundGlobalChannel.unbind('QUOTE_DELETED', handleQuoteDeleted);
+            boundGlobalChannel.bind('QUOTE_COUNT_UPDATED', handleCountUpdated);
+            boundGlobalChannel.bind('QUOTE_DELETED', handleQuoteDeleted);
           }
-        } catch (err) {}
-      };
-
-      eventSource.onerror = () => {
-        // Quiet fail, Pusher is active
-      };
-    } catch (e) {
-      // Quiet fail
+        })
+        .catch(() => {});
     }
 
-    // Gentle 5-minute safety sync (Pusher handles instant real-time events)
+    // Gentle 5-minute safety sync
     const interval = setInterval(fetchNotifications, 300000);
 
     return () => {
-      if (userChannel) {
-        userChannel.unbind_all();
+      isCancelled = true;
+      if (boundUserChannel) {
+        boundUserChannel.unbind('notification', handleNewNotification);
       }
-      if (globalChannel) {
-        globalChannel.unbind_all();
+      if (boundGlobalChannel) {
+        boundGlobalChannel.unbind('QUOTE_COUNT_UPDATED', handleCountUpdated);
+        boundGlobalChannel.unbind('QUOTE_DELETED', handleQuoteDeleted);
       }
-      if (eventSource) eventSource.close();
       clearInterval(interval);
     };
   }, []);
@@ -153,7 +134,6 @@ export default function NotificationBell() {
         body: JSON.stringify({ isRead: true }),
       });
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error(err);
     }
@@ -167,7 +147,6 @@ export default function NotificationBell() {
         body: JSON.stringify({ markAllAsRead: true }),
       });
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
     } catch (err) {
       console.error(err);
     }
@@ -211,7 +190,6 @@ export default function NotificationBell() {
     return `${days}d ago`;
   };
 
-  const unreadList = notifications.filter(n => !n.isRead);
   const displayedList = activeTab === 'unread' ? unreadList : notifications;
 
   return (

@@ -16,12 +16,42 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const userObj = user.toObject();
+    let deptPermissions: Record<string, boolean> = {};
     if (user.department) {
       const dept = await Department.findOne({ code: user.department });
-      if (dept) {
-        userObj.departmentPermissions = dept.permissions;
+      if (dept && dept.permissions) {
+        deptPermissions = dept.permissions instanceof Map ? Object.fromEntries(dept.permissions) : dept.permissions;
       }
+    } else if (user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'kyle') {
+      deptPermissions = {
+        canCreateQuote: true,
+        canReviewQuote: true,
+        canEditApprovedQuote: true,
+        canAccessOdooQueue: true,
+        canMarkOdooEntry: true,
+        canAccessAdmin: true,
+      };
     }
+
+    const customPerms = user.customPermissions
+      ? (user.customPermissions instanceof Map ? Object.fromEntries(user.customPermissions) : user.customPermissions)
+      : {};
+
+    const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
+
+    userObj.departmentPermissions = deptPermissions;
+    userObj.customPermissions = customPerms;
+    userObj.permissions = isSuper ? {
+      canCreateQuote: true,
+      canReviewQuote: true,
+      canEditApprovedQuote: true,
+      canAccessOdooQueue: true,
+      canMarkOdooEntry: true,
+      canAccessAdmin: true,
+    } : {
+      ...deptPermissions,
+      ...customPerms,
+    };
 
     return NextResponse.json(userObj);
   } catch (error: any) {

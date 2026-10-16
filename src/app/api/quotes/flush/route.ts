@@ -5,7 +5,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
 import { triggerPusherEvent } from '@/lib/pusher-server';
-import { broadcastSSE } from '@/lib/sse-broker';
 
 export async function GET() {
   try {
@@ -64,7 +63,6 @@ export async function POST(request: Request) {
 
     if (result.deletedCount > 0) {
       await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', {});
-      broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
     }
 
     return NextResponse.json({

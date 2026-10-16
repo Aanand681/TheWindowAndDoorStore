@@ -51,7 +51,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const session = await getServerSession(authOptions);
     if (!session || (session.user as any).role !== 'SUPERADMIN') {
-      return NextResponse.json({ error: 'SuperAdmin access required' }, { status: 403 });
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { id } = await params;

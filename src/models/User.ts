@@ -54,11 +54,19 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: 'SALES',
     },
+    customPermissions: {
+      canCreateQuote: { type: Boolean },
+      canReviewQuote: { type: Boolean },
+      canEditApprovedQuote: { type: Boolean },
+      canAccessOdooQueue: { type: Boolean },
+      canMarkOdooEntry: { type: Boolean },
+      canAccessAdmin: { type: Boolean },
+    },
   },
   { timestamps: true, strict: false }
 );
 
-if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('favoriteTemplate'))) {
+if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('favoriteTemplate') || !mongoose.models.User.schema.path('customPermissions'))) {
   delete (mongoose.models as any).User;
 }
 

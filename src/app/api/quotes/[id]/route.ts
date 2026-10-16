@@ -8,7 +8,6 @@ import { authOptions } from '@/lib/auth';
 import { sendQuoteApprovedEmail } from '@/lib/email';
 import Notification from '@/models/Notification';
 import { detectQuoteChanges } from '@/lib/quote-diff';
-import { pushToUser, broadcastSSE } from '@/lib/sse-broker';
 import { triggerPusherEvent } from '@/lib/pusher-server';
 
 export const dynamic = 'force-dynamic';
@@ -237,11 +236,6 @@ export async function PUT(
 
         await triggerPusherEvent(`user-${updatedQuote.assignedTo.toLowerCase()}`, 'notification', assignNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-        pushToUser(updatedQuote.assignedTo, {
-          type: 'NOTIFICATION',
-          notification: assignNotif,
-        });
-        broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
       } catch (assignErr) {
         console.error('Failed to create reassignment notification:', assignErr);
       }
@@ -264,11 +258,6 @@ export async function PUT(
 
         await triggerPusherEvent(`user-${updatedQuote.assignedTo.toLowerCase()}`, 'notification', resubmitNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-        pushToUser(updatedQuote.assignedTo, {
-          type: 'NOTIFICATION',
-          notification: resubmitNotif,
-        });
-        broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
       } catch (resubmitErr) {
         console.error('Failed to create resubmit notification:', resubmitErr);
       }
@@ -311,11 +300,6 @@ export async function PUT(
 
           await triggerPusherEvent(`user-${updatedQuote.preparedBy.toLowerCase()}`, 'notification', actionNotif);
           await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-          pushToUser(updatedQuote.preparedBy, {
-            type: 'NOTIFICATION',
-            notification: actionNotif,
-          });
-          broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
         } catch (notifErr) {
           console.error('Failed to create in-app notification:', notifErr);
         }
@@ -343,11 +327,6 @@ export async function PUT(
 
           await triggerPusherEvent(`user-${body.odooAssignedTo.toLowerCase()}`, 'notification', odooClerkNotif);
           await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-          pushToUser(body.odooAssignedTo, {
-            type: 'NOTIFICATION',
-            notification: odooClerkNotif,
-          });
-          broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
         } catch (odooErr) {
           console.error('Failed to create Odoo assignment notification:', odooErr);
         }
@@ -392,11 +371,6 @@ export async function PUT(
 
         await triggerPusherEvent(`user-${targetRecipient.toLowerCase()}`, 'notification', odooDoneNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-        pushToUser(targetRecipient, {
-          type: 'NOTIFICATION',
-          notification: odooDoneNotif,
-        });
-        broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
       } catch (odooDoneErr) {
         console.error('Failed to create Odoo done notification:', odooDoneErr);
       }
@@ -445,15 +419,6 @@ export async function DELETE(
     });
     await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', {
       quoteNumber: quote.quoteNumber,
-    });
-    broadcastSSE({
-      type: 'QUOTE_DELETED',
-      quoteId: id,
-      quoteNumber: quote.quoteNumber,
-      deletedBy: currentUser,
-    });
-    broadcastSSE({
-      type: 'QUOTE_COUNT_UPDATED',
     });
 
     return NextResponse.json({ message: 'Quote deleted successfully' }, { headers: NO_CACHE_HEADERS });

@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import dbConnect from './mongodb';
 import User from '@/models/User';
+import Department from '@/models/Department';
 
 // Enable multi-host and LAN IP support (e.g. 192.168.x.x, localhost, custom domains)
 process.env.AUTH_TRUST_HOST = 'true';
@@ -56,6 +57,19 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid password');
         }
 
+        const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
+        let canAccessAdmin = isSuper || user.role === 'ADMIN';
+        if (!canAccessAdmin) {
+          if (user.customPermissions?.canAccessAdmin === true) {
+            canAccessAdmin = true;
+          } else if (user.department) {
+            const dept = await Department.findOne({ code: user.department });
+            if (dept?.permissions?.canAccessAdmin) {
+              canAccessAdmin = true;
+            }
+          }
+        }
+
         return {
           id: user._id.toString(),
           name: user.username || user.email,
@@ -64,6 +78,7 @@ export const authOptions: NextAuthOptions = {
           department: user.department || (user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'kyle' ? 'MANAGER' : 'SALES'),
           landingPage: user.landingPage || 'calculator',
           muteNotifications: user.muteNotifications || false,
+          canAccessAdmin,
         };
       },
     }),
@@ -85,6 +100,7 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as any).id;
         token.landingPage = (user as any).landingPage || 'calculator';
         token.muteNotifications = (user as any).muteNotifications || false;
+        token.canAccessAdmin = Boolean((user as any).canAccessAdmin);
       }
       return token;
     },
@@ -95,6 +111,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).landingPage = token.landingPage || 'calculator';
         (session.user as any).muteNotifications = token.muteNotifications || false;
+        (session.user as any).canAccessAdmin = Boolean(token.canAccessAdmin);
       }
       return session;
     },

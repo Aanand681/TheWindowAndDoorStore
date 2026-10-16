@@ -3,10 +3,13 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   function middleware(req) {
-    // If the user tries to access /admin but their role isn't SUPERADMIN or ADMIN, redirect them to home
+    // If the user tries to access /admin but lacks admin access, redirect them to home
+    const role = req.nextauth.token?.role as string;
+    const canAccessAdmin = Boolean(req.nextauth.token?.canAccessAdmin);
     if (
       req.nextUrl.pathname.startsWith('/admin') &&
-      !['SUPERADMIN', 'ADMIN'].includes(req.nextauth.token?.role as string)
+      !['SUPERADMIN', 'ADMIN'].includes(role) &&
+      !canAccessAdmin
     ) {
       return NextResponse.redirect(new URL('/', req.url));
     }

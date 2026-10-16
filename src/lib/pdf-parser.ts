@@ -248,17 +248,23 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
     const width = m ? m[1].trim() : '';
     const height = m ? m[2].trim() : '';
     // User instruction: "if its white show white other wise replace it as painted"
-    let groupText = '';
+    // Filter out insect screen mesh, locks/hardware, and glazing specs so "BLACK MESH" is never mistaken for frame paint
+    const frameLines: string[] = [];
     for (let r = start; r < end; r++) {
-      if (R[r].label) groupText += ' ' + R[r].label;
-      if (R[r].size) groupText += ' ' + R[r].size;
+      const lbl = (R[r].label || '').toUpperCase();
+      if (/\b(MESH|SCREEN|SCR\b|LATCH|LOCK|CRANK|OPERATOR|GLAZED|ARGON|SOLAR)\b/i.test(lbl)) {
+        continue;
+      }
+      if (R[r].label) frameLines.push(R[r].label);
+      if (R[r].size) frameLines.push(R[r].size);
     }
+    const frameText = frameLines.join(' ');
     
-    // Check if painted or non-white color is present
+    // Check if painted or non-white color is present on the window frame
     let color: 'White' | 'Painted' = 'White';
-    const hasPaint = /\b(PAINT|PAINTED|PAINTING|EXTERIOR PAINT|CUSTOM COLOR)\b/i.test(groupText);
-    const nonWhiteColors = /\b(BLACK|BRONZE|COMMERCIAL BROWN|BROWN|CHARCOAL|PEBBLE|IRON ORE|SLATE|GREY|GRAY|SANDALWOOD|WICKER|ALMOND|BURGUNDY|FOREST GREEN|GREEN|RED|BLUE)\b/i.test(groupText);
-    const isExplicitWhite = /\b(STANDARD WHITE|WHITE \(137\)|WHITE EXTRACRON|ALL WHITE)\b/i.test(groupText);
+    const hasPaint = /\b(PAINT|PAINTED|PAINTING|EXTERIOR PAINT|CUSTOM COLOR)\b/i.test(frameText);
+    const nonWhiteColors = /\b(BLACK|BRONZE|COMMERCIAL BROWN|BROWN|CHARCOAL|PEBBLE|IRON ORE|SLATE|GREY|GRAY|SANDALWOOD|WICKER|ALMOND|BURGUNDY|FOREST GREEN|GREEN|RED|BLUE)\b/i.test(frameText);
+    const isExplicitWhite = /(?:STANDARD WHITE|WHITE \(137\)|WHITE\s*\(137\)\s*IN\s*&\s*OUT|WHITE EXTRACRON|ALL WHITE|\bWHITE\b)/i.test(frameText);
     
     if (hasPaint || (nonWhiteColors && !isExplicitWhite)) {
       color = 'Painted';

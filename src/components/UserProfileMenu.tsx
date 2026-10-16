@@ -21,12 +21,14 @@ export interface UserProfileMenuProps {
     username?: string;
     role?: string;
     email?: string;
+    permissions?: any;
+    canAccessAdmin?: boolean;
   } | null;
   className?: string;
 }
 
 export default function UserProfileMenu({ user: propUser, className }: UserProfileMenuProps) {
-  const [user, setUser] = useState<{ username?: string; role?: string; email?: string } | null>(
+  const [user, setUser] = useState<{ username?: string; role?: string; email?: string; permissions?: any; canAccessAdmin?: boolean } | null>(
     propUser || getCachedData('/api/profile') || null
   );
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +42,17 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
       return;
     }
 
-    cachedFetch<any>('/api/profile')
+    fetch('/api/profile')
+      .then(res => {
+        if (res.status === 404) {
+          // Account was deleted while session was active! Auto-clear session & redirect to login
+          signOut({ redirect: false }).then(() => {
+            window.location.href = '/login';
+          });
+          return null;
+        }
+        return res.ok ? res.json() : null;
+      })
       .then(data => {
         if (data) setUser(data);
       })
@@ -75,7 +87,7 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
   const username = user?.username || propUser?.username || 'User';
   const role = user?.role || propUser?.role || 'Staff';
   const initials = username.slice(0, 2).toUpperCase();
-  const isAdmin = role === 'ADMIN' || role === 'SUPERADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'SUPERADMIN' || Boolean(user?.permissions?.canAccessAdmin || propUser?.permissions?.canAccessAdmin || (user as any)?.canAccessAdmin || (propUser as any)?.canAccessAdmin);
 
   return (
     <div className={cn("relative inline-block text-left", className)} ref={menuRef}>
@@ -111,7 +123,7 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
                 <p className="text-xs font-bold text-foreground truncate">{username}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-primary/15 text-primary font-bold uppercase tracking-wider">
-                    {role}
+                    {role === 'SUPERADMIN' ? 'ADMIN' : role}
                   </span>
                   {user?.email && (
                     <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">

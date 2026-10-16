@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Department from '@/models/Department';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
@@ -20,12 +21,42 @@ export async function GET(request: Request) {
     const assignees = searchParams.get('assignees') === 'true';
     const roleParam = searchParams.get('role');
 
-    if (reviewersOnly || assignees) {
-      // Return all staff members eligible for assignment (Employees + Admins, strictly excluding SUPERADMIN)
+    if (assignees) {
+      // Find departments that have Odoo permissions
+      const odooDepts = await Department.find({
+        $or: [
+          { 'permissions.canAccessOdooQueue': true },
+          { 'permissions.canMarkOdooEntry': true },
+          { code: 'CLERK' },
+        ],
+      });
+      const odooDeptCodes = odooDepts.map(d => d.code);
+
+      // Return staff who have Odoo permissions (department or custom individual override) or are Admin
       const staff = await User.find(
         {
           role: { $nin: ['SUPERADMIN', 'superadmin'] },
           username: { $not: /^cheeku$/i },
+          isActive: { $ne: false },
+          $or: [
+            { department: { $in: odooDeptCodes } },
+            { department: 'CLERK' },
+            { role: 'ADMIN' },
+            { 'customPermissions.canAccessOdooQueue': true },
+            { 'customPermissions.canMarkOdooEntry': true },
+          ],
+        },
+        'username role email department customPermissions'
+      ).sort({ username: 1 });
+      return NextResponse.json(staff, { headers: NO_CACHE_HEADERS });
+    }
+
+    if (reviewersOnly) {
+      const staff = await User.find(
+        {
+          role: { $nin: ['SUPERADMIN', 'superadmin'] },
+          username: { $not: /^cheeku$/i },
+          isActive: { $ne: false },
         },
         'username role email department'
       ).sort({ username: 1 });
@@ -64,7 +95,7 @@ export async function POST(request: Request) {
 
     // Strictly disallow creating a SUPERADMIN account
     if (role === 'SUPERADMIN') {
-      return NextResponse.json({ error: 'Creating superadmin accounts is not allowed' }, { status: 403 });
+      return NextResponse.json({ error: 'Invalid role' }, { status: 403 });
     }
 
     // Only allow valid staff roles

@@ -121,7 +121,10 @@ export default function PromoCalculator() {
     role: string;
     department?: string;
     departmentPermissions?: any;
+    customPermissions?: any;
+    permissions?: any;
     favoriteTemplate?: string;
+    canAccessAdmin?: boolean;
   } | null>(
     () => getCachedData<any>('/api/profile') || null
   );
@@ -379,14 +382,14 @@ export default function PromoCalculator() {
       .then(r => r.json())
       .then(q => {
         if (q && q._id) {
-          const deptPerms = user?.departmentPermissions || {};
+          const effectivePerms = user?.permissions || user?.departmentPermissions || {};
           const isSuperAdmin = Boolean(user && user.role === 'SUPERADMIN');
           const isAdmin = Boolean(user && (user.role === 'ADMIN' || isSuperAdmin));
-          const canReview = Boolean(isAdmin || deptPerms.canReviewQuote || deptPerms.canApproveQuote);
-          const canEditApproved = Boolean(isAdmin || deptPerms.canEditApprovedQuote);
+          const canReview = Boolean(isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote);
+          const canEditApproved = Boolean(isAdmin || effectivePerms.canEditApprovedQuote);
 
           const isClerk = Boolean(
-            !canReview && (user?.department === 'CLERK' || deptPerms.canMarkOdooEntry)
+            !canReview && (user?.department === 'CLERK' || effectivePerms.canMarkOdooEntry || effectivePerms.canAccessOdooQueue)
           );
           const isApproved = q.status === 'APPROVED' || q.status === 'MODIFIED';
           // Only Admin or users with canEditApprovedQuote permission can edit approved quotes; Odoo clerks can strictly NEVER edit
@@ -694,10 +697,10 @@ export default function PromoCalculator() {
     setSurchargeRate(8);
     setLockedPromoId(null);
     setTaxTotals(null);
-    const deptPerms = user?.departmentPermissions || {};
+    const effectivePerms = user?.permissions || user?.departmentPermissions || {};
     const isAdminUser = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
-    const canReview = Boolean(isAdminUser || deptPerms.canReviewQuote || deptPerms.canApproveQuote);
-    const isClerk = Boolean(user?.department === 'CLERK' || (deptPerms.canMarkOdooEntry && !canReview));
+    const canReview = Boolean(isAdminUser || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote);
+    const isClerk = Boolean(user?.department === 'CLERK' || ((effectivePerms.canMarkOdooEntry || effectivePerms.canAccessOdooQueue) && !canReview));
     
     let defaultTab: string = 'my';
     if (canReview) defaultTab = 'review';
@@ -947,11 +950,11 @@ export default function PromoCalculator() {
   const total = afterDiscount + hst;
   const firstPayment = Math.floor(total / 2);
   const secondPayment = total - firstPayment;
-  const deptPerms = user?.departmentPermissions || {};
+  const effectivePerms = user?.permissions || user?.departmentPermissions || {};
   const isSuperAdmin = Boolean(user && user.role === 'SUPERADMIN');
   const isAdmin = Boolean(user && (user.role === 'ADMIN' || isSuperAdmin));
-  const canReview = Boolean(isAdmin || deptPerms.canReviewQuote || deptPerms.canApproveQuote);
-  const canEditApprovedQuote = Boolean(isAdmin || deptPerms.canEditApprovedQuote);
+  const canReview = Boolean(isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote);
+  const canEditApprovedQuote = Boolean(isAdmin || effectivePerms.canEditApprovedQuote);
 
   const isReviewerOrAdmin = Boolean(
     user && (
@@ -963,7 +966,8 @@ export default function PromoCalculator() {
   const isOdooClerk = Boolean(
     !canReview && (
       user?.department === 'CLERK' ||
-      deptPerms.canMarkOdooEntry ||
+      effectivePerms.canMarkOdooEntry ||
+      effectivePerms.canAccessOdooQueue ||
       (reviewQuote?.odooAssignedTo && user?.username && reviewQuote.odooAssignedTo.toLowerCase() === user.username.toLowerCase())
     )
   );
@@ -1047,7 +1051,7 @@ export default function PromoCalculator() {
               </div>
             )}
 
-            {user && (user.role === 'SUPERADMIN' || user.role === 'ADMIN') && (
+            {user && (user.role === 'SUPERADMIN' || user.role === 'ADMIN' || user.permissions?.canAccessAdmin || (user as any).canAccessAdmin) && (
               <Link 
                 href="/admin" 
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full gap-1.5 text-xs font-semibold shadow-sm")}

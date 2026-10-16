@@ -6,7 +6,6 @@ import Department from '@/models/Department';
 import Notification from '@/models/Notification';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { pushToUser, broadcastSSE } from '@/lib/sse-broker';
 import { triggerPusherEvent } from '@/lib/pusher-server';
 
 export const dynamic = 'force-dynamic';
@@ -212,14 +211,9 @@ export async function POST(request: Request) {
           isRead: false,
         });
 
-        // Instant Real-Time Push via Pusher (Serverless WebSockets) & SSE (Local fallback)
+        // Instant Real-Time Push via Pusher (Serverless WebSockets)
         await triggerPusherEvent(`user-${reviewerUsername.toLowerCase()}`, 'notification', createdNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber });
-        pushToUser(reviewerUsername, {
-          type: 'NOTIFICATION',
-          notification: createdNotif,
-        });
-        broadcastSSE({ type: 'QUOTE_COUNT_UPDATED' });
       } catch (notifErr) {
         console.error('Failed to create reviewer notification:', notifErr);
       }

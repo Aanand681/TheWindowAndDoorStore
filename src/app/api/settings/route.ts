@@ -58,7 +58,8 @@ export async function PUT(request: Request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const role = (session.user as any).role;
-    if (role !== 'SUPERADMIN' && role !== 'ADMIN') {
+    const canAccessAdmin = (session.user as any).canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
+    if (!canAccessAdmin) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 

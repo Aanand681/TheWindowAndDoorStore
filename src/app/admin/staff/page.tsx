@@ -19,6 +19,7 @@ type UserType = {
   department?: string;
   isActive: boolean;
   createdAt: string;
+  customPermissions?: Record<string, boolean>;
 };
 
 type DepartmentType = {
@@ -29,6 +30,63 @@ type DepartmentType = {
   isSystem?: boolean;
   permissions?: Record<string, boolean>;
 };
+
+const PERMISSION_CONFIG = [
+  {
+    key: 'canCreateQuote',
+    label: 'Create & Import Quotes',
+    desc: 'Allows access to calculator, PDF upload & quote submission',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(dept?.permissions?.canCreateQuote);
+    },
+  },
+  {
+    key: 'canReviewQuote',
+    label: 'Review & Approve Quotes',
+    desc: 'Approve incoming sales quotes and assign Odoo clerks',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(dept?.permissions?.canReviewQuote);
+    },
+  },
+  {
+    key: 'canEditApprovedQuote',
+    label: 'Modify Approved Quotes',
+    desc: 'Unlock and edit quotes after they have already been approved',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(dept?.permissions?.canEditApprovedQuote);
+    },
+  },
+  {
+    key: 'canAccessOdooQueue',
+    label: 'Access Odoo Entry Queue',
+    desc: 'View approved quotes waiting for Odoo ERP entry',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(deptCode === 'CLERK' || dept?.permissions?.canAccessOdooQueue);
+    },
+  },
+  {
+    key: 'canMarkOdooEntry',
+    label: 'Mark Quotes as Done in Odoo',
+    desc: 'Submit official Odoo SO# and finish assignment',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(deptCode === 'CLERK' || dept?.permissions?.canMarkOdooEntry);
+    },
+  },
+  {
+    key: 'canAccessAdmin',
+    label: 'Admin Portal Access',
+    desc: 'Allows access to backend admin navigation & settings',
+    isDeptDefault: (deptCode?: string, role?: string, dept?: DepartmentType) => {
+      if (role === 'ADMIN') return true;
+      return Boolean(dept?.permissions?.canAccessAdmin);
+    },
+  },
+];
 
 export default function StaffDirectory() {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -52,6 +110,11 @@ export default function StaffDirectory() {
 
   // Delete Modal State
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+
+  // Custom User Permissions Modal State (Superadmin)
+  const [userForCustomPerms, setUserForCustomPerms] = useState<UserType | null>(null);
+  const [userCustomPerms, setUserCustomPerms] = useState<Record<string, boolean>>({});
+  const [savingUserPerms, setSavingUserPerms] = useState(false);
 
   // Departments Modal State (For Superadmin)
   const [showDeptModal, setShowDeptModal] = useState(false);
@@ -170,12 +233,53 @@ export default function StaffDirectory() {
   const confirmDelete = async () => {
     if (!userToDelete) return;
     try {
-      await fetch(`/api/users/${userToDelete}`, { method: 'DELETE' });
+      const res = await fetch(`/api/users/${userToDelete}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete user');
       setUserToDelete(null);
       toast.success('User deleted permanently.');
       fetchUsersAndDepts();
-    } catch (err) {
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user');
       console.error(err);
+    }
+  };
+
+  const handleOpenCustomPerms = (u: UserType) => {
+    setUserForCustomPerms(u);
+    const userDept = departments.find(d => d.code === u.department);
+    
+    // Initialize permissions with current effective values (department defaults + custom overrides)
+    const initialPerms: Record<string, boolean> = {};
+    PERMISSION_CONFIG.forEach(p => {
+      if (u.customPermissions && u.customPermissions[p.key] !== undefined) {
+        initialPerms[p.key] = Boolean(u.customPermissions[p.key]);
+      } else {
+        initialPerms[p.key] = p.isDeptDefault(u.department, u.role, userDept);
+      }
+    });
+
+    setUserCustomPerms(initialPerms);
+  };
+
+  const handleSaveUserCustomPerms = async () => {
+    if (!userForCustomPerms) return;
+    setSavingUserPerms(true);
+    try {
+      const res = await fetch(`/api/users/${userForCustomPerms._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customPermissions: userCustomPerms }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update custom permissions');
+      toast.success(`Custom permissions updated for ${userForCustomPerms.username}!`);
+      setUserForCustomPerms(null);
+      fetchUsersAndDepts();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update custom permissions');
+    } finally {
+      setSavingUserPerms(false);
     }
   };
 
@@ -261,6 +365,99 @@ export default function StaffDirectory() {
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setUserToDelete(null)}>Cancel</Button>
               <Button variant="destructive" onClick={confirmDelete}>Delete Permanently</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Custom Permissions Modal (Superadmin) */}
+      {userForCustomPerms && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="bg-card p-6 rounded-2xl shadow-2xl max-w-lg w-full border border-border animate-in fade-in zoom-in-95 duration-200 space-y-5">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                  <ShieldCheck className="w-5 h-5 text-purple-500" />
+                  Staff Feature Permissions
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure feature access and department overrides for <strong className="text-foreground">{userForCustomPerms.username}</strong> ({getDeptDisplayName(userForCustomPerms.department)})
+                </p>
+              </div>
+              <button 
+                onClick={() => setUserForCustomPerms(null)} 
+                className="text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs max-h-[60vh] overflow-y-auto pr-1">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                <span>Feature Permissions</span>
+                <span className="normal-case text-[11px] text-muted-foreground font-normal">Check or uncheck to customize</span>
+              </div>
+
+              {PERMISSION_CONFIG.map(item => {
+                const userDept = departments.find(d => d.code === userForCustomPerms.department);
+                const isDept = item.isDeptDefault(userForCustomPerms.department, userForCustomPerms.role, userDept);
+                const isChecked = Boolean(userCustomPerms[item.key]);
+
+                return (
+                  <label 
+                    key={item.key}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      isChecked
+                        ? isDept
+                          ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/50'
+                          : 'bg-purple-500/5 border-purple-500/30 hover:border-purple-500/50'
+                        : 'bg-background/40 border-border/60 hover:border-border opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={isChecked} 
+                      onChange={e => setUserCustomPerms(prev => ({ ...prev, [item.key]: e.target.checked }))} 
+                      className="rounded accent-purple-600 w-4 h-4 mt-0.5" 
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground text-xs">{item.label}</span>
+                        {isChecked && isDept && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                            Default ({getDeptDisplayName(userForCustomPerms.department)})
+                          </span>
+                        )}
+                        {isChecked && !isDept && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 whitespace-nowrap">
+                            Custom Granted
+                          </span>
+                        )}
+                        {!isChecked && (
+                          <span className="text-[10px] text-muted-foreground font-medium px-2 py-0.5 rounded-full bg-muted/60 border border-border/50 whitespace-nowrap">
+                            Disabled
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{item.desc}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
+              <Button variant="ghost" size="sm" onClick={() => setUserForCustomPerms(null)}>
+                Cancel
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleSaveUserCustomPerms} 
+                disabled={savingUserPerms}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-semibold cursor-pointer"
+              >
+                {savingUserPerms ? 'Saving...' : 'Save Permissions'}
+              </Button>
             </div>
           </div>
         </div>
@@ -576,71 +773,88 @@ export default function StaffDirectory() {
                   <div className="text-muted-foreground text-sm">Loading staff...</div>
                 ) : (
                   <div className="space-y-3">
-                    {users.map(user => (
-                      <div key={user._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-background/50 rounded-lg border border-border gap-4 transition-colors hover:border-primary/30">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold ${user.isActive ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                            {user.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold flex items-center gap-2">
-                              {user.username}
-                              {!user.isActive && <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Deactivated</span>}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {user.email ? user.email : 'No email'} • Joined {new Date(user.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
+                    {users.map(user => {
+                      const currentUserId = currentProfile?._id || currentProfile?.id;
+                      const isSelf = user._id === currentUserId || user.username?.toLowerCase() === currentProfile?.username?.toLowerCase();
+                      const hasCustomPerms = user.customPermissions && Object.values(user.customPermissions).some(Boolean);
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {editingId === user._id ? (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <select
-                                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                                value={editDepartment}
-                                onChange={(e) => setEditDepartment(e.target.value)}
-                              >
-                                {departments.map(d => (
-                                  <option key={d.code} value={d.code}>{d.name}</option>
-                                ))}
-                              </select>
-                              <select
-                                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                                value={editRole}
-                                onChange={(e) => setEditRole(e.target.value)}
-                              >
-                                <option value="EMPLOYEE">EMPLOYEE</option>
-                                <option value="ADMIN">ADMIN</option>
-                              </select>
-                              <Button size="sm" onClick={() => handleSaveRole(user._id)}>Save</Button>
-                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                      return (
+                        <div key={user._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-background/50 rounded-lg border border-border gap-4 transition-colors hover:border-primary/30">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold ${user.isActive ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                              {user.username.charAt(0).toUpperCase()}
                             </div>
-                          ) : (
-                            <>
-                              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${getDeptBadgeClass(user.department)}`}>
-                                {getDeptDisplayName(user.department)}
-                              </span>
-                              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                                user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
-                                'bg-muted text-muted-foreground border border-border'
-                              }`}>
-                                {user.role}
-                              </span>
-                              <Button variant="ghost" size="icon" onClick={() => { setEditingId(user._id); setEditRole(user.role); setEditDepartment(user.department || 'SALES'); }} className="h-8 w-8 ml-1 hover:bg-primary/10 hover:text-primary">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleToggleActive(user._id, user.isActive !== undefined ? user.isActive : true)} className="h-8 w-8 hover:bg-amber-500/10 hover:text-amber-500">
-                                <Power className={`w-4 h-4 ${user.isActive !== false ? 'text-amber-500' : 'text-emerald-500'}`} />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user._id)} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
+                            <div>
+                              <div className="font-semibold flex items-center gap-2">
+                                {user.username}
+                                {isSelf && <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-bold">You</span>}
+                                {!user.isActive && <span className="text-[10px] bg-destructive/10 text-destructive border border-destructive/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Deactivated</span>}
+                                {hasCustomPerms && <span className="text-[9px] bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-1.5 py-0.5 rounded-md font-semibold">Custom Access</span>}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {user.email ? user.email : 'No email'} • Joined {new Date(user.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {editingId === user._id ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <select
+                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                                  value={editDepartment}
+                                  onChange={(e) => setEditDepartment(e.target.value)}
+                                >
+                                  {departments.map(d => (
+                                    <option key={d.code} value={d.code}>{d.name}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                                  value={editRole}
+                                  onChange={(e) => setEditRole(e.target.value)}
+                                >
+                                  <option value="EMPLOYEE">EMPLOYEE</option>
+                                  <option value="ADMIN">ADMIN</option>
+                                </select>
+                                <Button size="sm" onClick={() => handleSaveRole(user._id)}>Save</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${getDeptBadgeClass(user.department)}`}>
+                                  {getDeptDisplayName(user.department)}
+                                </span>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                                  user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                                  'bg-muted text-muted-foreground border border-border'
+                                }`}>
+                                  {user.role}
+                                </span>
+                                <Button variant="ghost" size="icon" onClick={() => { setEditingId(user._id); setEditRole(user.role); setEditDepartment(user.department || 'SALES'); }} className="h-8 w-8 ml-1 hover:bg-primary/10 hover:text-primary" title="Edit Role & Department">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                {isSuperAdmin && (
+                                  <Button variant="ghost" size="icon" onClick={() => handleOpenCustomPerms(user)} className="h-8 w-8 hover:bg-purple-500/10 hover:text-purple-500" title="Custom Permissions">
+                                    <ShieldCheck className="w-4 h-4 text-purple-500" />
+                                  </Button>
+                                )}
+                                {!isSelf && (
+                                  <>
+                                    <Button variant="ghost" size="icon" onClick={() => handleToggleActive(user._id, user.isActive !== undefined ? user.isActive : true)} className="h-8 w-8 hover:bg-amber-500/10 hover:text-amber-500" title={user.isActive !== false ? "Deactivate User" : "Activate User"}>
+                                      <Power className={`w-4 h-4 ${user.isActive !== false ? 'text-amber-500' : 'text-emerald-500'}`} />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user._id)} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" title="Delete User">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {users.length === 0 && (
                       <div className="text-muted-foreground text-sm text-center py-8 border border-dashed border-border rounded-xl">No staff members found.</div>
                     )}
