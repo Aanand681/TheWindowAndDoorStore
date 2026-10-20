@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MapPin, Calculator, Plus, Trash2, Lock } from 'lucide-react';
+import { MapPin, Calculator, Plus, Trash2, Lock, Eye, Printer } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
 import { toast } from 'sonner';
 
@@ -60,12 +60,14 @@ export default function TaxCalculatorTab({
   onCalculated,
   savedTaxTotals,
   readOnly = false,
+  onOpenPreview,
 }: { 
   windows: any[], 
   onWindowsChange: (w: any[]) => void, 
   onCalculated?: (totals: any) => void,
   savedTaxTotals?: any,
   readOnly?: boolean,
+  onOpenPreview?: () => void,
 }) {
   const [regions, setRegions] = useState<any[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
@@ -940,6 +942,29 @@ export default function TaxCalculatorTab({
             )}
           </CardContent>
         </Card>
+
+        {/* Quick Action Preview & Print Bar */}
+        {onOpenPreview && (
+          <div className="space-y-2">
+            <Button 
+              type="button"
+              onClick={onOpenPreview} 
+              className="w-full h-11 text-sm font-semibold shadow-lg flex items-center justify-center gap-2 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Eye className="w-4 h-4" />
+              Preview &amp; Print Quote
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.print()}
+              className="w-full h-9 text-xs font-medium flex items-center justify-center gap-2 border-border/80 text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Quick Print
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

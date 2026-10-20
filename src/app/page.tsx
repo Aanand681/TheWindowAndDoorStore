@@ -2312,6 +2312,7 @@ export default function PromoCalculator() {
           onCalculated={setTaxTotals} 
           savedTaxTotals={reviewQuote?.taxTotals || null}
           readOnly={isReadOnly}
+          onOpenPreview={() => setIsPreviewOpen(true)}
         />
       </div>
 
