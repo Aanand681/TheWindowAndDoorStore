@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Settings, Plus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Settings, Plus, Trash2, Save, Component } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -94,15 +94,24 @@ export default function TaxSettingsDashboard() {
       
       <div className="max-w-6xl mx-auto px-4 py-12 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
             <Link href="/admin">
-              <Button variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur">
+              <Button variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur" title="Back to Admin">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <div className="inline-flex items-center gap-2 text-primary">
-              <Settings className="w-6 h-6" />
-              <span className="text-xl font-semibold tracking-wider uppercase">Tax & Labour Pricing</span>
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
+              title="Window & Door Store - Home / Calculator"
+            >
+              <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
+              <span className="text-xl font-semibold tracking-wider uppercase">Window &amp; Door Store</span>
+            </Link>
+            <span className="text-muted-foreground/40 hidden sm:inline">/</span>
+            <div className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <Settings className="w-5 h-5 text-primary" />
+              <span className="text-base font-semibold tracking-wider uppercase">Tax &amp; Labour Pricing</span>
             </div>
           </div>
           <ThemeToggle />

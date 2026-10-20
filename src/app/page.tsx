@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Calculator, Tag, Info, Receipt, Component, FileUp, UserCircle, LogOut, Eye, Download, RotateCcw, Bold, List, Send, Inbox, CheckCircle2, Clock, AlertCircle, Sparkles, MessageSquare, AlertTriangle, Save, Share2, Printer, Edit3, Check, ShieldCheck, ChevronDown, CheckSquare, ClipboardCheck } from 'lucide-react';
+import { Plus, Trash2, Calculator, Tag, Info, Receipt, Component, FileUp, UserCircle, LogOut, Eye, Download, RotateCcw, Bold, List, Send, Inbox, CheckCircle2, Clock, AlertCircle, Sparkles, MessageSquare, AlertTriangle, Save, Share2, Printer, Edit3, Check, ShieldCheck, ChevronDown, CheckSquare, ClipboardCheck, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import NotificationBell from '@/components/NotificationBell';
 import UserProfileMenu from '@/components/UserProfileMenu';
@@ -354,6 +354,23 @@ export default function PromoCalculator() {
             }
           })
           .catch(console.error);
+      }
+
+      const fromStudio = params.get('from');
+      if (fromStudio === 'pdf-studio') {
+        const stored = sessionStorage.getItem('calculator_import_quote');
+        if (stored) {
+          try {
+            const data = JSON.parse(stored);
+            if (data.windows?.length) setWindows(data.windows);
+            if (data.customerName) setCustomerName(data.customerName);
+            if (data.quoteNumber) setQuoteNumber(data.quoteNumber);
+            sessionStorage.removeItem('calculator_import_quote');
+            toast.success(`Loaded ${data.windows.length} windows from Quote PDF Studio!`);
+          } catch (e) {
+            console.error('Failed to parse calculator_import_quote:', e);
+          }
+        }
       }
     }
 
@@ -1058,10 +1075,24 @@ export default function PromoCalculator() {
       
       <div className="max-w-[1650px] w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-10 relative z-10 space-y-6 sm:space-y-8 print:hidden">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 text-primary">
-            <Component className="w-6 h-6" />
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (reviewQuote) {
+                setReviewQuote(null);
+                setIsEditMode(false);
+              }
+              if (activeTab !== 'promo') {
+                e.preventDefault();
+                switchTab('promo');
+              }
+            }}
+            className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
+            title="Window & Door Store - Home / Calculator"
+          >
+            <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
             <span className="text-xl font-semibold tracking-wider uppercase">Window & Door Store</span>
-          </div>
+          </Link>
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 md:gap-3">
             <Button 
               variant="outline" 
@@ -1094,6 +1125,18 @@ export default function PromoCalculator() {
                 </>
               )}
             </Button>
+
+            <Link
+              href="/quote-studio"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-colors cursor-pointer border-primary/50 text-primary hover:bg-primary/10"
+              )}
+              title="Window Quote PDF Studio"
+            >
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              <span>Quote PDF Studio</span>
+            </Link>
 
             {user && showGreeting && (
               <div className="text-sm border border-primary/30 bg-primary/10 px-3 py-1.5 rounded-full font-medium hidden sm:flex items-center gap-1.5 animate-in fade-in duration-500 shadow-sm">

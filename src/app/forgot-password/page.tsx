@@ -18,7 +18,8 @@ import {
   Eye, 
   EyeOff, 
   RefreshCw,
-  ShieldCheck 
+  ShieldCheck,
+  Component
 } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
@@ -184,7 +185,19 @@ export default function ForgotPasswordPage() {
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+        {/* Brand Logo Link to Home / Calculator */}
+        <div className="text-center">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
+            title="Window & Door Store - Home / Calculator"
+          >
+            <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
+            <span className="text-xl font-semibold tracking-wider uppercase">Window &amp; Door Store</span>
+          </Link>
+        </div>
+
         <Card className="border border-border/80 shadow-2xl backdrop-blur-sm bg-card/95">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-8 ring-primary/5">

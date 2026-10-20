@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserCircle, ArrowLeft, ShieldCheck, Mail, KeyRound } from 'lucide-react';
+import { UserCircle, ArrowLeft, ShieldCheck, Mail, KeyRound, Component, Calculator } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -105,13 +105,22 @@ export default function ProfilePage() {
       
       <div className="max-w-4xl mx-auto px-4 py-12 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <Button onClick={() => router.back()} variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button onClick={() => router.back()} variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur" title="Go Back">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="inline-flex items-center gap-2 text-primary">
-              <UserCircle className="w-6 h-6" />
-              <span className="text-xl font-semibold tracking-wider uppercase">My Profile</span>
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
+              title="Window & Door Store - Home / Calculator"
+            >
+              <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
+              <span className="text-xl font-semibold tracking-wider uppercase">Window &amp; Door Store</span>
+            </Link>
+            <span className="text-muted-foreground/40 hidden sm:inline">/</span>
+            <div className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <UserCircle className="w-5 h-5 text-primary" />
+              <span className="text-base font-semibold tracking-wider uppercase">My Profile</span>
             </div>
           </div>
           <div className="flex items-center gap-3">

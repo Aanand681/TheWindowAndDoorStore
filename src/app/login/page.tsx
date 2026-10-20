@@ -83,12 +83,14 @@ export default function LoginPage() {
 
       {/* Logo / Brand */}
       <div className="relative z-10 mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-8 ring-primary/5">
-          <KeyRound className="h-8 w-8 text-primary" />
-        </div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-          The Window & Door Store
-        </h1>
+        <Link href="/" className="inline-block group cursor-pointer hover:opacity-90 transition-opacity" title="Window & Door Store - Home / Calculator">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 ring-8 ring-primary/5 transition-transform group-hover:scale-105">
+            <KeyRound className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
+            The Window &amp; Door Store
+          </h1>
+        </Link>
         <p className="mt-1.5 text-sm text-muted-foreground">
           Staff Portal — Sign in to continue
         </p>
