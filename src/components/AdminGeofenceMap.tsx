@@ -42,6 +42,16 @@ function MapResizer() {
   return null;
 }
 
+function MapRecenter({ lat, lon }: { lat: number; lon: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+      map.setView([lat, lon], map.getZoom(), { animate: true });
+    }
+  }, [lat, lon, map]);
+  return null;
+}
+
 export default function AdminGeofenceMap({ 
   lat, 
   lon, 
@@ -71,6 +81,7 @@ export default function AdminGeofenceMap({
   return (
     <MapContainer center={[lat, lon]} zoom={12} style={{ height: '100%', width: '100%' }}>
       <MapResizer />
+      <MapRecenter lat={lat} lon={lon} />
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

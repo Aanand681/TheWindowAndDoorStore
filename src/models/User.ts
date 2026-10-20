@@ -45,14 +45,18 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    receiveQuoteEmails: {
+      type: Boolean,
+      default: true,
+    },
     favoriteTemplate: {
       type: String,
       enum: ['modern', 'executive', 'cards', 'compact', 'breakdown'],
       default: 'modern',
     },
     department: {
-      type: String,
       default: 'SALES',
+      type: String,
     },
     customPermissions: {
       canCreateQuote: { type: Boolean },
@@ -66,7 +70,7 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true, strict: false }
 );
 
-if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('favoriteTemplate') || !mongoose.models.User.schema.path('customPermissions'))) {
+if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('receiveQuoteEmails') || !mongoose.models.User.schema.path('favoriteTemplate') || !mongoose.models.User.schema.path('customPermissions'))) {
   delete (mongoose.models as any).User;
 }
 

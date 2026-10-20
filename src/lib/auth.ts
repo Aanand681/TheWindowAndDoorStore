@@ -75,7 +75,7 @@ export const authOptions: NextAuthOptions = {
           name: user.username || user.email,
           email: user.email,
           role: user.role,
-          department: user.department || (user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'kyle' ? 'MANAGER' : 'SALES'),
+          department: user.department || (['SUPERADMIN', 'ADMIN'].includes(user.role) ? 'MANAGER' : 'SALES'),
           landingPage: user.landingPage || 'calculator',
           muteNotifications: user.muteNotifications || false,
           canAccessAdmin,

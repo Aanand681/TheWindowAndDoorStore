@@ -14,3 +14,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await dbConnect();
+    const resolvedParams = await params;
+    const region = await RegionConfig.findByIdAndDelete(resolvedParams.id);
+    if (!region) return NextResponse.json({ error: 'Region not found' }, { status: 404 });
+    return NextResponse.json({ message: 'Region deleted successfully' });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

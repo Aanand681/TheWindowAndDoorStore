@@ -7,6 +7,7 @@ import Notification from '@/models/Notification';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { triggerPusherEvent } from '@/lib/pusher-server';
+import { sendQuoteReviewRequestedEmail, getAppUrl } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -44,13 +45,16 @@ export async function GET(request: Request) {
       const canReview = userRole === 'ADMIN' || userRole === 'SUPERADMIN' || deptDoc?.permissions?.canReviewQuote === true;
       const canAccessOdooQueue = userRole === 'ADMIN' || userRole === 'SUPERADMIN' || deptDoc?.permissions?.canAccessOdooQueue === true;
 
-      // Pending reviews
-      const pendingReviewCount = canReview
-        ? await SavedQuote.countDocuments({ status: 'PENDING_REVIEW' })
-        : await SavedQuote.countDocuments({
-            status: 'PENDING_REVIEW',
-            assignedTo: { $regex: new RegExp(`^${currentUser}$`, 'i') },
-          });
+      // Pending reviews specifically assigned to this user (or unassigned/legacy 'Admin')
+      const pendingReviewCount = await SavedQuote.countDocuments({
+        status: 'PENDING_REVIEW',
+        $or: [
+          { assignedTo: { $regex: new RegExp(`^${currentUser}$`, 'i') } },
+          { assignedTo: 'Admin' },
+          { assignedTo: { $exists: false } },
+          { assignedTo: '' },
+        ],
+      });
 
       // Pending Odoo entries assigned to this user (or all pending if authorized)
       const pendingOdooCount = canAccessOdooQueue
@@ -138,6 +142,8 @@ export async function POST(request: Request) {
       includeMiscInPromo,
       includeLabourInPromo,
       quoteSummaryTotal,
+      directApprove = false,
+      odooAssignedTo = '',
     } = body;
 
     if (!quoteNumber || !customerName) {
@@ -149,20 +155,27 @@ export async function POST(request: Request) {
 
     await dbConnect();
 
-    // Look up emails for preparer and assigned reviewer
-    const [preparerUser, reviewerUser] = await Promise.all([
+    // Look up emails for preparer, assigned reviewer, and odoo clerk
+    const [preparerUser, reviewerUser, clerkUser] = await Promise.all([
       User.findOne({ username: currentUsername }),
-      User.findOne({ username: { $regex: new RegExp(`^${assignedTo}$`, 'i') } }),
+      assignedTo ? User.findOne({ username: { $regex: new RegExp(`^${assignedTo}$`, 'i') } }) : null,
+      odooAssignedTo ? User.findOne({ username: { $regex: new RegExp(`^${odooAssignedTo}$`, 'i') } }) : null,
     ]);
+
+    const isDirectApprove = Boolean(directApprove);
 
     const newQuote = await SavedQuote.create({
       quoteNumber,
       customerName,
-      status: 'PENDING_REVIEW',
+      status: isDirectApprove ? 'APPROVED' : 'PENDING_REVIEW',
+      approvedBy: isDirectApprove ? currentUsername : undefined,
+      approvedAt: isDirectApprove ? new Date() : undefined,
       preparedBy: currentUsername,
       preparedByEmail: preparerUser?.email || (session.user as any).email || '',
-      assignedTo: reviewerUser?.username || assignedTo,
-      assignedToEmail: reviewerUser?.email || '',
+      assignedTo: isDirectApprove ? currentUsername : (reviewerUser?.username || assignedTo),
+      assignedToEmail: isDirectApprove ? (preparerUser?.email || '') : (reviewerUser?.email || ''),
+      odooAssignedTo: isDirectApprove ? (clerkUser?.username || odooAssignedTo || '') : undefined,
+      odooStatus: isDirectApprove && odooAssignedTo ? 'PENDING_ENTRY' : undefined,
       preparerNotes,
       windows,
       taxTotals,
@@ -195,27 +208,59 @@ export async function POST(request: Request) {
       },
     });
 
-    // Notify the assigned reviewer (e.g. Kyle) immediately
-    const reviewerUsername = reviewerUser?.username || assignedTo;
-    if (reviewerUsername) {
+    if (isDirectApprove && odooAssignedTo) {
+      const clerkUsername = clerkUser?.username || odooAssignedTo;
       try {
-        const createdNotif = await Notification.create({
-          recipientUsername: reviewerUsername,
+        const clerkNotif = await Notification.create({
+          recipientUsername: clerkUsername,
           senderUsername: currentUsername,
-          type: 'QUOTE_SUBMITTED',
-          title: `New Quote #${quoteNumber} for Review`,
-          message: `${currentUsername} submitted quote #${quoteNumber} (${customerName}) for your review.`,
+          type: 'QUOTE_ODOO_ASSIGNED',
+          title: `Quote #${quoteNumber} Ready for Odoo`,
+          message: `${currentUsername} approved Quote #${quoteNumber} (${customerName}) and assigned it to you for Odoo entry.`,
           quoteId: newQuote._id.toString(),
           quoteNumber,
           customerName,
           isRead: false,
         });
-
-        // Instant Real-Time Push via Pusher (Serverless WebSockets)
-        await triggerPusherEvent(`user-${reviewerUsername.toLowerCase()}`, 'notification', createdNotif);
+        await triggerPusherEvent(`user-${clerkUsername.toLowerCase()}`, 'notification', clerkNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber });
-      } catch (notifErr) {
-        console.error('Failed to create reviewer notification:', notifErr);
+      } catch (err) {
+        console.error('Failed to notify Odoo clerk on direct approve:', err);
+      }
+    } else if (!isDirectApprove) {
+      const reviewerUsername = reviewerUser?.username || assignedTo;
+      if (reviewerUsername && reviewerUsername.toLowerCase() !== currentUsername.toLowerCase()) {
+        try {
+          const createdNotif = await Notification.create({
+            recipientUsername: reviewerUsername,
+            senderUsername: currentUsername,
+            type: 'QUOTE_SUBMITTED',
+            title: `New Quote #${quoteNumber} for Review`,
+            message: `${currentUsername} submitted quote #${quoteNumber} (${customerName}) for your review.`,
+            quoteId: newQuote._id.toString(),
+            quoteNumber,
+            customerName,
+            isRead: false,
+          });
+
+          await triggerPusherEvent(`user-${reviewerUsername.toLowerCase()}`, 'notification', createdNotif);
+          await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber });
+
+          // Send email notification to reviewer if opted in
+          if (reviewerUser?.email && (reviewerUser as any)?.receiveQuoteEmails !== false && (reviewerUser as any)?.muteNotifications !== true) {
+            sendQuoteReviewRequestedEmail({
+              toEmail: reviewerUser.email,
+              reviewerName: reviewerUsername,
+              preparerName: currentUsername,
+              quoteNumber,
+              customerName,
+              preparerNotes,
+              appUrl: getAppUrl(request),
+            }).catch(emailErr => console.error('Failed to send reviewer email:', emailErr));
+          }
+        } catch (notifErr) {
+          console.error('Failed to create reviewer notification:', notifErr);
+        }
       }
     }
 

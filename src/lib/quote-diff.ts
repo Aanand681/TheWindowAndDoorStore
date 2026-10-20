@@ -43,6 +43,37 @@ export function detectQuoteChanges(original: any, current: any): string[] {
     changes.push(`Custom Jambs & Casing override removed (reverted to calculated ${fmt(curTaxJC)})`);
   }
 
+  // 2b. Jamb Selection & Rate Diff
+  const origJambName = (original.taxTotals?.selectedJamb?.name || original.taxTotals?.jambName || (original.taxTotals?.selectedJamb === null ? 'None' : '')).trim();
+  const curJambName = (current.taxTotals?.selectedJamb?.name || current.taxTotals?.jambName || (current.taxTotals?.selectedJamb === null ? 'None' : '')).trim();
+  if (origJambName && curJambName && origJambName.toLowerCase() !== curJambName.toLowerCase()) {
+    changes.push(`Jamb profile changed from "${origJambName}" to "${curJambName}"`);
+  }
+
+  const origJambRate = original.taxTotals?.selectedJamb?.rate !== undefined ? Number(original.taxTotals.selectedJamb.rate) : (original.taxTotals?.jambRate !== undefined ? Number(original.taxTotals.jambRate) : null);
+  const curJambRate = current.taxTotals?.selectedJamb?.rate !== undefined ? Number(current.taxTotals.selectedJamb.rate) : (current.taxTotals?.jambRate !== undefined ? Number(current.taxTotals.jambRate) : null);
+  if (origJambRate !== null && curJambRate !== null && Math.abs(origJambRate - curJambRate) > 0.01) {
+    changes.push(`Jamb rate adjusted from ${fmt(origJambRate)} to ${fmt(curJambRate)}`);
+  }
+
+  // 2c. Casing Selection & Rate Diff
+  const origCasingName = (original.taxTotals?.selectedCasing?.name || original.taxTotals?.casingName || (original.taxTotals?.selectedCasing === null ? 'None' : '')).trim();
+  const curCasingName = (current.taxTotals?.selectedCasing?.name || current.taxTotals?.casingName || (current.taxTotals?.selectedCasing === null ? 'None' : '')).trim();
+  if (origCasingName && curCasingName && origCasingName.toLowerCase() !== curCasingName.toLowerCase()) {
+    changes.push(`Casing profile changed from "${origCasingName}" to "${curCasingName}"`);
+  }
+
+  const origCasingRate = original.taxTotals?.selectedCasing?.rate !== undefined ? Number(original.taxTotals.selectedCasing.rate) : (original.taxTotals?.casingRate !== undefined ? Number(original.taxTotals.casingRate) : null);
+  const curCasingRate = current.taxTotals?.selectedCasing?.rate !== undefined ? Number(current.taxTotals.selectedCasing.rate) : (current.taxTotals?.casingRate !== undefined ? Number(current.taxTotals.casingRate) : null);
+  if (origCasingRate !== null && curCasingRate !== null && Math.abs(origCasingRate - curCasingRate) > 0.01) {
+    changes.push(`Casing rate adjusted from ${fmt(origCasingRate)} to ${fmt(curCasingRate)}`);
+  }
+
+  // 2d. Calculated J&C Total Diff (when no custom override active)
+  if (curCustomJC === null && origCustomJC === null && Math.abs(curTaxJC - origTaxJC) > 1.0 && (origTaxJC > 0 || curTaxJC > 0)) {
+    changes.push(`Calculated Jambs & Casing total updated from ${fmt(origTaxJC)} to ${fmt(curTaxJC)}`);
+  }
+
   // 3. Custom Labour Override
   const origCustomLabourStr = original.customLabour !== undefined && original.customLabour !== null ? String(original.customLabour).trim() : '';
   const curCustomLabourStr = current.customLabour !== undefined && current.customLabour !== null ? String(current.customLabour).trim() : '';

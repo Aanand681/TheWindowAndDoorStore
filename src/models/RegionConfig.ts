@@ -13,6 +13,7 @@ export interface IRegionConfig extends Document {
   extraLinPerWindow: number;
   fixedSetupFee: number;
   baseTravelFee: number;
+  isSupplyOnly?: boolean;
   polygon: { lat: number, lng: number }[];
 }
 
@@ -35,6 +36,7 @@ const RegionConfigSchema = new Schema<IRegionConfig>(
     extraLinPerWindow: { type: Number, default: 2.17 },
     fixedSetupFee: { type: Number, default: 140 },
     baseTravelFee: { type: Number, default: 0 },
+    isSupplyOnly: { type: Boolean, default: false },
     polygon: [{ lat: Number, lng: Number }],
   },
   { timestamps: true }

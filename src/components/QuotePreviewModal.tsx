@@ -53,22 +53,28 @@ export default function QuotePreviewModal({
   }, [isOpen]);
 
   useEffect(() => {
-    // Check localStorage first
-    const saved = localStorage.getItem('defaultQuoteTemplate') as QuoteTemplateType | null;
-    if (saved && ['modern', 'executive', 'cards'].includes(saved)) {
-      setDefaultTemplate(saved);
+    if (isOpen) {
+      // 1. Sync from localStorage first for instant display
+      const saved = (typeof window !== 'undefined' ? localStorage.getItem('defaultQuoteTemplate') : null) as QuoteTemplateType | null;
+      if (saved && ['modern', 'executive', 'cards'].includes(saved)) {
+        setDefaultTemplate(saved);
+        onTemplateChange(saved);
+      }
+      // 2. Sync from database profile
+      fetch('/api/profile')
+        .then(r => r.json())
+        .then(d => {
+          if (d?.favoriteTemplate && ['modern', 'executive', 'cards'].includes(d.favoriteTemplate)) {
+            setDefaultTemplate(d.favoriteTemplate);
+            localStorage.setItem('defaultQuoteTemplate', d.favoriteTemplate);
+            if (!saved) {
+              onTemplateChange(d.favoriteTemplate);
+            }
+          }
+        })
+        .catch(() => {});
     }
-    // Fetch profile favorite template
-    fetch('/api/profile')
-      .then(r => r.json())
-      .then(d => {
-        if (d?.favoriteTemplate && ['modern', 'executive', 'cards'].includes(d.favoriteTemplate)) {
-          setDefaultTemplate(d.favoriteTemplate);
-          localStorage.setItem('defaultQuoteTemplate', d.favoriteTemplate);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  }, [isOpen]);
 
   const handleSetDefaultTemplate = async () => {
     try {
@@ -79,7 +85,7 @@ export default function QuotePreviewModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favoriteTemplate: template }),
       });
-      const name = template === 'modern' ? 'Modern List' : template === 'executive' ? 'Executive Invoice' : 'Window Cards';
+      const name = template === 'modern' ? 'Modern Detailed' : template === 'executive' ? 'Executive Ledger' : 'Specification Sheet';
       toast.success(`${name} set as your default template!`);
     } catch (e) {
       toast.success('Template saved as default!');
@@ -97,58 +103,69 @@ export default function QuotePreviewModal({
   const modalContent = (
     <div className="quote-preview-portal fixed inset-0 z-50 flex flex-col bg-background/80 backdrop-blur-md animate-in fade-in duration-200 print:static print:inset-auto print:bg-white print:p-0 print:m-0 print:block print:w-full print:h-auto print:overflow-visible">
       {/* Top Floating Control Toolbar */}
-      <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2.5 shadow-sm backdrop-blur print:hidden">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2 shadow-sm backdrop-blur print:hidden">
+        <div className="max-w-7xl mx-auto space-y-2">
           
-          {/* Left: Branding & Status */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              <span className="font-bold text-sm tracking-wide text-foreground">Print Preview</span>
+          {/* Row 1: Preview Status & Primary Actions (Print / Close) */}
+          <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-border/40">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                <span className="font-bold text-sm tracking-wide text-foreground">Print Preview</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>8½" × 11" Letter Standard</span>
+              </div>
             </div>
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>8½" × 11" Letter Fit</span>
+
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handlePrint} className="shadow-sm font-semibold cursor-pointer h-8 px-3.5 gap-1.5">
+                <Printer className="w-3.5 h-3.5" /> Print / Export PDF
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full cursor-pointer h-8 w-8">
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Center: Template Switcher, Orientation & Sliders */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            {/* Template Switcher & Default Setter */}
-            <div className="flex items-center gap-1.5">
+          {/* Row 2: Document Tools (Template Switcher, Default, Orientation, Font & Spacing Sliders, Notes) */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
+            {/* Left: Template Switcher & Set Default */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
                 <button
                   type="button"
                   onClick={() => onTemplateChange('modern')}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     template === 'modern'
                       ? 'bg-background text-primary shadow-sm font-semibold'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Modern List
+                  Modern Detailed
                 </button>
                 <button
                   type="button"
                   onClick={() => onTemplateChange('executive')}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     template === 'executive'
                       ? 'bg-background text-primary shadow-sm font-semibold'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Executive Invoice
+                  Executive Ledger
                 </button>
                 <button
                   type="button"
                   onClick={() => onTemplateChange('cards')}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     template === 'cards'
                       ? 'bg-background text-primary shadow-sm font-semibold'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Window Cards
+                  Specification Sheet
                 </button>
               </div>
 
@@ -165,92 +182,84 @@ export default function QuotePreviewModal({
                 }`}
               >
                 <Star className={`w-3.5 h-3.5 ${template === defaultTemplate ? 'fill-amber-400 text-amber-400' : ''}`} />
-                <span className="hidden sm:inline">
-                  {template === defaultTemplate ? 'Default' : 'Set Default'}
-                </span>
+                <span>{template === defaultTemplate ? 'Default' : 'Set Default'}</span>
               </Button>
             </div>
 
-            {/* Orientation Switcher */}
-            <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-              <button
-                type="button"
-                onClick={() => setOrientation('portrait')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  orientation === 'portrait'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Portrait
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrientation('landscape')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  orientation === 'landscape'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Landscape
-              </button>
+            {/* Right: Orientation, Font Slider, Spacing Slider, Notes */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Orientation Switcher */}
+              <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setOrientation('portrait')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    orientation === 'portrait'
+                      ? 'bg-background text-primary shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Portrait
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrientation('landscape')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    orientation === 'landscape'
+                      ? 'bg-background text-primary shadow-sm font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Landscape
+                </button>
+              </div>
+
+              {/* Font Size Slider */}
+              <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-lg border border-border">
+                <span className="text-[11px] text-muted-foreground font-medium">Font:</span>
+                <input
+                  type="range"
+                  min="9.0"
+                  max="16.5"
+                  step="0.5"
+                  value={fontSize}
+                  onChange={(e) => onFontSizeChange(parseFloat(e.target.value))}
+                  className="w-16 accent-primary cursor-pointer h-1.5 bg-muted rounded"
+                />
+                <span className="font-mono text-[11px] font-bold w-9 text-right">{fontSize.toFixed(1)}px</span>
+              </div>
+
+              {/* Spacing Slider */}
+              <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-lg border border-border">
+                <span className="text-[11px] text-muted-foreground font-medium">Spacing:</span>
+                <input
+                  type="range"
+                  min="0.6"
+                  max="1.8"
+                  step="0.1"
+                  value={spacing}
+                  onChange={(e) => onSpacingChange(parseFloat(e.target.value))}
+                  className="w-16 accent-primary cursor-pointer h-1.5 bg-muted rounded"
+                />
+                <span className="font-mono text-[11px] font-bold w-7 text-right">{spacing.toFixed(1)}x</span>
+              </div>
+
+              {/* Notes Toggle */}
+              {onQuoteNotesChange && (
+                <button
+                  type="button"
+                  onClick={() => setShowNotesEditor(!showNotesEditor)}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                    showNotesEditor || (quoteNotes && quoteNotes.trim())
+                      ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
+                      : 'border-border bg-muted/40 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {quoteNotes && quoteNotes.trim() ? 'Notes (Active)' : '+ Add Notes'}
+                </button>
+              )}
             </div>
 
-            {/* Font Size Slider: Expanded beyond 13.5px up to 16.5px */}
-            <div className="flex items-center gap-2 bg-muted/40 px-2.5 py-1 rounded-lg border border-border">
-              <span className="text-[11px] text-muted-foreground font-medium">Font:</span>
-              <input
-                type="range"
-                min="9.0"
-                max="16.5"
-                step="0.5"
-                value={fontSize}
-                onChange={(e) => onFontSizeChange(parseFloat(e.target.value))}
-                className="w-20 accent-primary cursor-pointer h-1.5 bg-muted rounded"
-              />
-              <span className="font-mono text-[11px] font-bold w-9 text-right">{fontSize.toFixed(1)}px</span>
-            </div>
-
-            {/* Spacing Slider: Expanded from 1.3x up to 1.8x */}
-            <div className="flex items-center gap-2 bg-muted/40 px-2.5 py-1 rounded-lg border border-border">
-              <span className="text-[11px] text-muted-foreground font-medium">Spacing:</span>
-              <input
-                type="range"
-                min="0.6"
-                max="1.8"
-                step="0.1"
-                value={spacing}
-                onChange={(e) => onSpacingChange(parseFloat(e.target.value))}
-                className="w-20 accent-primary cursor-pointer h-1.5 bg-muted rounded"
-              />
-              <span className="font-mono text-[11px] font-bold w-8 text-right">{spacing.toFixed(1)}x</span>
-            </div>
-
-            {/* Notes Toggle */}
-            {onQuoteNotesChange && (
-              <button
-                type="button"
-                onClick={() => setShowNotesEditor(!showNotesEditor)}
-                className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
-                  showNotesEditor || (quoteNotes && quoteNotes.trim())
-                    ? 'border-primary/40 bg-primary/10 text-primary font-semibold'
-                    : 'border-border bg-muted/40 text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {quoteNotes && quoteNotes.trim() ? 'Notes (Active)' : '+ Add Notes'}
-              </button>
-            )}
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handlePrint} className="shadow-sm font-semibold cursor-pointer">
-              <Printer className="w-4 h-4 mr-1.5" /> Print / Export PDF
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full cursor-pointer">
-              <X className="w-4 h-4" />
-            </Button>
           </div>
 
         </div>

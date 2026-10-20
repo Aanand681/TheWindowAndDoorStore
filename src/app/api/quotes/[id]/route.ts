@@ -5,7 +5,7 @@ import User from '@/models/User';
 import Department from '@/models/Department';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { sendQuoteApprovedEmail } from '@/lib/email';
+import { sendQuoteApprovedEmail, sendQuoteReviewRequestedEmail, getAppUrl } from '@/lib/email';
 import Notification from '@/models/Notification';
 import { detectQuoteChanges } from '@/lib/quote-diff';
 import { triggerPusherEvent } from '@/lib/pusher-server';
@@ -131,16 +131,39 @@ export async function PUT(
       }
     }
     if (body.odooStatus !== undefined) updateData.odooStatus = body.odooStatus;
-    if (body.odooOrderNumber !== undefined) updateData.odooOrderNumber = body.odooOrderNumber;
     if (body.odooCompletedAt !== undefined) {
       updateData.odooCompletedAt = body.odooCompletedAt ? new Date(body.odooCompletedAt) : null;
     }
     if (body.odooCompletedBy !== undefined) updateData.odooCompletedBy = body.odooCompletedBy;
 
-    if (body.odooStatus === 'COMPLETED' && existingQuote.odooStatus !== 'COMPLETED') {
+    if (body.odooStatus === 'COMPLETED') {
+      const orderNumber = (body.odooOrderNumber !== undefined ? body.odooOrderNumber : existingQuote.odooOrderNumber || '').trim();
+      if (!orderNumber) {
+        return NextResponse.json(
+          { error: 'Odoo Sales Order # is required to complete order entry.' },
+          { status: 400, headers: NO_CACHE_HEADERS }
+        );
+      }
+
+      const duplicateSo = await SavedQuote.findOne({
+        _id: { $ne: id },
+        odooOrderNumber: { $regex: new RegExp(`^${orderNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      });
+      if (duplicateSo) {
+        return NextResponse.json(
+          { error: `Odoo Sales Order #${orderNumber} is already assigned to Quote #${duplicateSo.quoteNumber} (${duplicateSo.customerName}). Please enter a unique Sales Order #.` },
+          { status: 400, headers: NO_CACHE_HEADERS }
+        );
+      }
+
+      updateData.odooOrderNumber = orderNumber;
       updateData.odooStatus = 'COMPLETED';
-      updateData.odooCompletedAt = new Date();
-      updateData.odooCompletedBy = reviewerUsername;
+      if (existingQuote.odooStatus !== 'COMPLETED') {
+        updateData.odooCompletedAt = new Date();
+        updateData.odooCompletedBy = reviewerUsername || (session.user as any)?.username || 'Clerk';
+      }
+    } else if (body.odooOrderNumber !== undefined) {
+      updateData.odooOrderNumber = body.odooOrderNumber;
     }
 
     // Summary price override fields
@@ -196,8 +219,31 @@ export async function PUT(
       }
     }
 
-    const newStatus = updateData.status || body.status || existingQuote.status;
-    const isReviewAction = ['APPROVED', 'MODIFIED', 'RETURNED'].includes(newStatus);
+    const newStatus = updateData.status || body.status;
+    const isApproval = (newStatus === 'APPROVED' || newStatus === 'MODIFIED') && existingQuote.status === 'PENDING_REVIEW';
+
+    if (isApproval) {
+      const assignedClerk = (body.odooAssignedTo !== undefined ? body.odooAssignedTo : (updateData.odooAssignedTo || existingQuote.odooAssignedTo || '')).trim();
+      if (!assignedClerk) {
+        return NextResponse.json(
+          { error: 'Please select an Odoo clerk before approving the quote.' },
+          { status: 400, headers: NO_CACHE_HEADERS }
+        );
+      }
+      updateData.odooAssignedTo = assignedClerk;
+      if (!existingQuote.odooStatus || existingQuote.odooStatus === '') {
+        updateData.odooStatus = 'PENDING_ENTRY';
+      }
+    }
+
+    // A review action only occurs when body.status is explicitly passed (e.g. approving, modifying, returning from review)
+    // and is NOT an Odoo clerk completing or updating order numbers
+    const isReviewAction = Boolean(
+      body.status &&
+      ['APPROVED', 'MODIFIED', 'RETURNED'].includes(body.status) &&
+      (existingQuote.status === 'PENDING_REVIEW' || body.status === 'RETURNED' || body.status !== existingQuote.status)
+    );
+
     if (isReviewAction) {
       updateData.reviewedAt = new Date();
       updateData.reviewedBy = reviewerUsername || 'Admin';
@@ -236,6 +282,19 @@ export async function PUT(
 
         await triggerPusherEvent(`user-${updatedQuote.assignedTo.toLowerCase()}`, 'notification', assignNotif);
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
+
+        // Dispatch review requested email to new assignee if opted in
+        if (newAssigneeUser?.email && (newAssigneeUser as any)?.receiveQuoteEmails !== false && (newAssigneeUser as any)?.muteNotifications !== true) {
+          sendQuoteReviewRequestedEmail({
+            toEmail: newAssigneeUser.email,
+            reviewerName: updatedQuote.assignedTo,
+            preparerName: reviewerUsername || 'Staff',
+            quoteNumber: updatedQuote.quoteNumber,
+            customerName: updatedQuote.customerName,
+            preparerNotes: updatedQuote.preparerNotes,
+            appUrl: getAppUrl(request),
+          }).catch(err => console.error('Failed to send reassignment review email:', err));
+        }
       } catch (assignErr) {
         console.error('Failed to create reassignment notification:', assignErr);
       }
@@ -305,54 +364,56 @@ export async function PUT(
         }
       }
 
-      // 2. If an Odoo employee is assigned upon approval or reassignment, send instant notification to them
-      const isOdooAssignment = body.odooAssignedTo && (
-        body.odooAssignedTo !== existingQuote.odooAssignedTo ||
-        newStatus === 'APPROVED' || 
-        newStatus === 'MODIFIED'
-      );
-      if (isOdooAssignment) {
+        // 3. Send email notification (if email exists, not muted, and user has opted into quote emails)
         try {
-          const odooClerkNotif = await Notification.create({
-            recipientUsername: body.odooAssignedTo,
-            senderUsername: reviewerDisplay,
-            type: 'QUOTE_ODOO_ASSIGNED',
-            title: `Quote #${updatedQuote.quoteNumber} Assigned for Odoo Entry`,
-            message: `${reviewerDisplay} approved quote #${updatedQuote.quoteNumber} for ${updatedQuote.customerName} and assigned it to you for Odoo entry & physical filing.`,
-            quoteId: updatedQuote._id.toString(),
-            quoteNumber: updatedQuote.quoteNumber,
-            customerName: updatedQuote.customerName,
-            isRead: false,
-          });
-
-          await triggerPusherEvent(`user-${body.odooAssignedTo.toLowerCase()}`, 'notification', odooClerkNotif);
-          await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
-        } catch (odooErr) {
-          console.error('Failed to create Odoo assignment notification:', odooErr);
+          const recipientEmail = updatedQuote.preparedByEmail || preparerUser?.email;
+          if (recipientEmail && preparerUser?.muteNotifications !== true && (preparerUser as any)?.receiveQuoteEmails !== false) {
+            await sendQuoteApprovedEmail({
+              toEmail: recipientEmail,
+              employeeName: updatedQuote.preparedBy,
+              reviewerName: reviewerDisplay,
+              quoteNumber: updatedQuote.quoteNumber,
+              customerName: updatedQuote.customerName,
+              status: newStatus,
+              reviewChanges: updatedQuote.reviewChanges,
+              reviewerNotes: updatedQuote.reviewerNotes,
+              appUrl: getAppUrl(request),
+            });
+          }
+        } catch (emailErr) {
+          console.error('Failed to dispatch quote review email:', emailErr);
         }
       }
 
-      // 3. Send email notification (if email exists and not muted)
+    // 2. If an Odoo employee is assigned upon approval or reassignment, send instant notification to them
+    const isOdooAssignment = body.odooAssignedTo && (
+      body.odooAssignedTo !== existingQuote.odooAssignedTo ||
+      newStatus === 'APPROVED' || 
+      newStatus === 'MODIFIED'
+    );
+    if (isOdooAssignment) {
       try {
-        const recipientEmail = updatedQuote.preparedByEmail || preparerUser?.email;
-        if (recipientEmail && preparerUser?.muteNotifications !== true) {
-          await sendQuoteApprovedEmail({
-            toEmail: recipientEmail,
-            employeeName: updatedQuote.preparedBy,
-            reviewerName: reviewerDisplay,
-            quoteNumber: updatedQuote.quoteNumber,
-            customerName: updatedQuote.customerName,
-            status: newStatus,
-            reviewChanges: updatedQuote.reviewChanges,
-            reviewerNotes: updatedQuote.reviewerNotes,
-          });
-        }
-      } catch (emailErr) {
-        console.error('Failed to dispatch quote review email:', emailErr);
+        const reviewerDisplay = updatedQuote.reviewedBy || reviewerUsername || (session?.user as any)?.username || 'Admin';
+        const odooClerkNotif = await Notification.create({
+          recipientUsername: body.odooAssignedTo,
+          senderUsername: reviewerDisplay,
+          type: 'QUOTE_ODOO_ASSIGNED',
+          title: `Quote #${updatedQuote.quoteNumber} Assigned for Odoo Entry`,
+          message: `${reviewerDisplay} assigned quote #${updatedQuote.quoteNumber} (${updatedQuote.customerName}) to you for Odoo entry & physical filing.`,
+          quoteId: updatedQuote._id.toString(),
+          quoteNumber: updatedQuote.quoteNumber,
+          customerName: updatedQuote.customerName,
+          isRead: false,
+        });
+
+        await triggerPusherEvent(`user-${body.odooAssignedTo.toLowerCase()}`, 'notification', odooClerkNotif);
+        await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
+      } catch (odooErr) {
+        console.error('Failed to create Odoo assignment notification:', odooErr);
       }
     }
 
-    // 4. Handle Odoo entry completed notification to Kyle / Admin
+    // 4. Handle Odoo entry completed notification to Reviewer / Admin
     if (body.odooStatus === 'COMPLETED' && existingQuote.odooStatus !== 'COMPLETED') {
       try {
         const targetRecipient = updatedQuote.reviewedBy || updatedQuote.assignedTo || 'Admin';

@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import QuotePreviewModal from '@/components/QuotePreviewModal';
 import { QuoteTemplateType } from '@/components/QuoteInvoice';
 import { useViewport } from '@/hooks/use-viewport';
+import { cn } from '@/lib/utils';
 
 export type QuotesSubTabType = 'review' | 'odoo' | 'my' | 'all' | 'odoo_completed' | 'all_assigned';
 
@@ -38,9 +39,10 @@ export interface QuotesTabProps {
   onOpenQuote: (quoteId: string, isEdit?: boolean, originSubTab?: QuotesSubTabType) => void;
   onQuotesCountChange?: (count: number) => void;
   initialSubTab?: QuotesSubTabType;
+  initialPreviewQuoteId?: string;
 }
 
-export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChange, initialSubTab }: QuotesTabProps) {
+export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChange, initialSubTab, initialPreviewQuoteId }: QuotesTabProps) {
   const isSuperAdmin = currentUser?.role === 'SUPERADMIN';
   const isAdmin = currentUser?.role === 'ADMIN' || isSuperAdmin;
   const effectivePerms = currentUser?.permissions || currentUser?.departmentPermissions || {};
@@ -113,6 +115,10 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
   const [showFlushModal, setShowFlushModal] = useState(false);
   const [flushing, setFlushing] = useState(false);
 
+  // Delete Confirmation Dialog State
+  const [quoteToDelete, setQuoteToDelete] = useState<{ id: string; quoteNumber: string } | null>(null);
+  const [isDeletingQuote, setIsDeletingQuote] = useState(false);
+
   // Review Dialog State (for Quick Approval from this page)
   const [selectedQuoteForReview, setSelectedQuoteForReview] = useState<any | null>(null);
   const [reviewerNotes, setReviewerNotes] = useState('');
@@ -132,7 +138,10 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
         
         let totalActionable = 0;
         if (canReview) {
-          const pendingReview = list.filter((q: any) => q.status === 'PENDING_REVIEW').length;
+          const pendingReview = list.filter((q: any) => 
+            q.status === 'PENDING_REVIEW' && 
+            (!q.assignedTo || q.assignedTo.toLowerCase() === myUsername || q.assignedTo.toLowerCase() === 'admin')
+          ).length;
           const pendingOdoo = list.filter((q: any) => q.odooStatus === 'PENDING_ENTRY' || (!q.odooStatus && Boolean(q.odooAssignedTo))).length;
           totalActionable = pendingReview + pendingOdoo;
         } else if (isClerk) {
@@ -266,29 +275,98 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
     }
   };
 
-  const handleDeleteQuote = async (id: string, quoteNum: string) => {
-    if (!confirm(`Are you sure you want to delete Quote #${quoteNum}?`)) return;
+  const promptDeleteQuote = (id: string, quoteNum: string) => {
+    setQuoteToDelete({ id, quoteNumber: quoteNum });
+  };
+
+  const confirmDeleteQuote = async () => {
+    if (!quoteToDelete) return;
+    setIsDeletingQuote(true);
     try {
-      const res = await fetch(`/api/quotes/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/quotes/${quoteToDelete.id}`, { method: 'DELETE' });
       if (res.ok) {
-        setQuotes(quotes.filter(q => q._id !== id));
-        toast.success(`Quote #${quoteNum} deleted`);
+        setQuotes(quotes.filter(q => q._id !== quoteToDelete.id));
+        toast.success(`Quote #${quoteToDelete.quoteNumber} deleted`);
+        setQuoteToDelete(null);
       } else {
         const data = await res.json();
         toast.error(data.error || 'Failed to delete');
       }
     } catch (err) {
       toast.error('Failed to delete quote');
+    } finally {
+      setIsDeletingQuote(false);
     }
   };
 
   const handlePreviewQuote = (quote: any) => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('defaultQuoteTemplate') as QuoteTemplateType | null;
+      if (saved && ['modern', 'executive', 'cards'].includes(saved)) {
+        setPreviewTemplate(saved);
+      }
+    }
     setPreviewQuote(quote);
     setPreviewNotes(quote.quoteNotes || '');
     setIsPreviewOpen(true);
   };
 
+  // Handle opening quote in Preview mode (e.g. from Odoo notification or previewQuoteId param)
+  useEffect(() => {
+    const handleClerkPreview = async (e: any) => {
+      const qId = e.detail?.quoteId;
+      if (!qId) return;
+      setActiveTab('odoo');
+      let target = quotes.find(q => q._id === qId);
+      if (!target) {
+        try {
+          const res = await fetch(`/api/quotes/${qId}?t=${Date.now()}`);
+          if (res.ok) {
+            target = await res.json();
+          }
+        } catch (err) {
+          console.error('Failed to fetch quote for preview:', err);
+        }
+      }
+      if (target) {
+        handlePreviewQuote(target);
+      }
+    };
+
+    window.addEventListener('open-clerk-preview', handleClerkPreview);
+    return () => window.removeEventListener('open-clerk-preview', handleClerkPreview);
+  }, [quotes]);
+
+  useEffect(() => {
+    const checkUrlPreview = async () => {
+      let previewId = initialPreviewQuoteId;
+      if (!previewId && typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        previewId = params.get('previewQuoteId') || undefined;
+      }
+      if (previewId) {
+        setActiveTab('odoo');
+        try {
+          const res = await fetch(`/api/quotes/${previewId}?t=${Date.now()}`);
+          if (res.ok) {
+            const q = await res.json();
+            if (q && q._id) {
+              handlePreviewQuote(q);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load quote for preview from URL:', err);
+        }
+      }
+    };
+    checkUrlPreview();
+  }, [initialPreviewQuoteId]);
+
   const handleQuickApprove = async (quote: any, newStatus: 'APPROVED' | 'RETURNED') => {
+    if (newStatus === 'APPROVED' && !selectedOdooClerk) {
+      toast.error('Please select an Odoo clerk before approving the quote.');
+      return;
+    }
     setReviewingAction(true);
     try {
       const payload: any = {
@@ -306,9 +384,7 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
       if (res.ok) {
         toast.success(
           newStatus === 'APPROVED'
-            ? selectedOdooClerk
-              ? `Quote #${quote.quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
-              : `Quote #${quote.quoteNumber} approved!`
+            ? `Quote #${quote.quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
             : `Quote #${quote.quoteNumber} returned with notes`
         );
         setSelectedQuoteForReview(null);
@@ -319,8 +395,8 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
         const data = await res.json();
         toast.error(data.error || 'Failed to review');
       }
-    } catch (err) {
-      toast.error('Failed to update quote review status');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update quote review status');
     } finally {
       setReviewingAction(false);
     }
@@ -328,6 +404,11 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
 
   const handleConfirmOdooEntry = async () => {
     if (!odooModalQuote) return;
+    const orderNumber = odooOrderNum.trim();
+    if (!orderNumber) {
+      toast.error('Please enter the Odoo Sales Order # before confirming.');
+      return;
+    }
     setMarkingOdoo(true);
     try {
       const res = await fetch(`/api/quotes/${odooModalQuote._id}`, {
@@ -335,12 +416,12 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           odooStatus: 'COMPLETED',
-          odooOrderNumber: odooOrderNum.trim(),
+          odooOrderNumber: orderNumber,
           odooCompletedBy: currentUser?.username || 'Clerk',
         }),
       });
       if (res.ok) {
-        toast.success(`Quote #${odooModalQuote.quoteNumber} confirmed entered in Odoo!`);
+        toast.success(`Quote #${odooModalQuote.quoteNumber} confirmed entered in Odoo with Order #${orderNumber}!`);
         setOdooModalQuote(null);
         setOdooOrderNum('');
         fetchQuotes();
@@ -348,8 +429,8 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
         const data = await res.json();
         toast.error(data.error || 'Failed to update Odoo status');
       }
-    } catch (err) {
-      toast.error('Failed to update Odoo status');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update Odoo status');
     } finally {
       setMarkingOdoo(false);
     }
@@ -384,6 +465,11 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
     if (canReview) {
       if (activeTab === 'review') {
         if (quote.status !== 'PENDING_REVIEW') return false;
+        // Review section strictly displays quotes assigned to this reviewer/admin
+        const assigned = quote.assignedTo?.toLowerCase();
+        if (assigned && assigned !== myUsername && assigned !== 'admin') {
+          return false;
+        }
       } else if (activeTab === 'odoo') {
         if (!Boolean(quote.odooAssignedTo || quote.odooStatus === 'PENDING_ENTRY' || quote.odooStatus === 'COMPLETED')) return false;
       }
@@ -979,12 +1065,16 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                   {/* ZONE 1: HEADER ROW (Info 70-75% on Left, Price 25-30% on Right) */}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 cq-stack-compact cq-header-medium">
                     {/* Left: Quote Identification & Metadata */}
-                    <div className="space-y-1.5 flex-1 min-w-0">
+                    <div 
+                      className={cn("space-y-1.5 flex-1 min-w-0", isClerk && "cursor-pointer group")}
+                      onClick={isClerk ? () => handlePreviewQuote(quote) : undefined}
+                      title={isClerk ? "Click to Preview & Print Quote" : undefined}
+                    >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-base font-bold text-foreground">
+                        <span className={cn("font-mono text-base font-bold text-foreground", isClerk && "group-hover:text-primary transition-colors")}>
                           #{quote.quoteNumber}
                         </span>
-                        <span className="font-semibold text-foreground truncate max-w-[220px] sm:max-w-md" title={quote.customerName}>
+                        <span className={cn("font-semibold text-foreground truncate max-w-[220px] sm:max-w-md", isClerk && "group-hover:text-primary transition-colors")} title={quote.customerName}>
                           {quote.customerName}
                         </span>
 
@@ -1135,7 +1225,7 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDeleteQuote(quote._id, quote.quoteNumber)}
+                          onClick={() => promptDeleteQuote(quote._id, quote.quoteNumber)}
                           className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
                           title="Delete quote"
                         >
@@ -1186,15 +1276,17 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                             </Button>
                           )}
 
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => onOpenQuote(quote._id, false, activeTab)}
-                            className="gap-1 text-xs font-semibold bg-background/80 cursor-pointer h-8"
-                          >
-                            <span>View Details</span>
-                            <ArrowRight className="w-3 h-3 ml-0.5" />
-                          </Button>
+                          {!isClerk && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => onOpenQuote(quote._id, false, activeTab)}
+                              className="gap-1 text-xs font-semibold bg-background/80 cursor-pointer h-8"
+                            >
+                              <span>View Details</span>
+                              <ArrowRight className="w-3 h-3 ml-0.5" />
+                            </Button>
+                          )}
                         </>
                       ) : (
                         <>
@@ -1202,7 +1294,12 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                             <Button 
                               variant="secondary" 
                               size="sm" 
-                              onClick={() => { setSelectedQuoteForReview(quote); setReviewerNotes(''); }}
+                              onClick={() => { 
+                                setSelectedQuoteForReview(quote); 
+                                setReviewerNotes(''); 
+                                const defaultClerk = staffList.find((s: any) => s.department === 'CLERK') || staffList[0];
+                                setSelectedOdooClerk(quote.odooAssignedTo || defaultClerk?.username || '');
+                              }}
                               className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 text-xs font-bold cursor-pointer h-8"
                             >
                               Quick Approve
@@ -1218,15 +1315,17 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                             <Printer className="w-3.5 h-3.5 mr-1" />
                             <span>Print</span>
                           </Button>
-                          <Button 
-                            variant="default" 
-                            size="sm" 
-                            onClick={() => onOpenQuote(quote._id, false, activeTab)}
-                            className="gap-1.5 font-bold shadow-sm cursor-pointer text-xs h-8"
-                          >
-                            <span>{isPending ? (canReview ? 'Open & Review' : 'View Quote') : isReturned ? 'Revise & Edit' : 'Open in Calculator'}</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Button>
+                          {!isClerk && (
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={() => onOpenQuote(quote._id, false, activeTab)}
+                              className="gap-1.5 font-bold shadow-sm cursor-pointer text-xs h-8"
+                            >
+                              <span>{isPending ? (canReview ? 'Open & Review' : 'View Quote') : isReturned ? 'Revise & Edit' : 'Open in Calculator'}</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
@@ -1336,9 +1435,12 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="quickOdooAssignee" className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                <ClipboardCheck className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Assign for Odoo Entry &amp; Physical Filing</span>
+              <Label htmlFor="quickOdooAssignee" className="text-xs font-semibold flex items-center justify-between text-foreground">
+                <span className="flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Assign for Odoo Entry &amp; Physical Filing</span>
+                </span>
+                <span className="text-[10px] text-destructive font-semibold">* Required</span>
               </Label>
               <select
                 id="quickOdooAssignee"
@@ -1346,12 +1448,12 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                 onChange={e => setSelectedOdooClerk(e.target.value)}
                 className="w-full text-xs bg-background border border-border rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
-                <option value="">Do not assign yet (Approve only)</option>
+                <option value="">-- Select Odoo Clerk (Required) --</option>
                 {staffList.map((s: any) => {
                   const displayName = s.username ? (s.username.charAt(0).toUpperCase() + s.username.slice(1)) : 'Staff';
                   return (
                     <option key={s._id || s.username} value={s.username}>
-                      {displayName}
+                      {displayName} {s.department ? `(${s.department})` : ''}
                     </option>
                   );
                 })}
@@ -1380,10 +1482,48 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
               <Button 
                 size="sm" 
                 onClick={() => handleQuickApprove(selectedQuoteForReview, 'APPROVED')}
-                disabled={reviewingAction}
+                disabled={reviewingAction || !selectedOdooClerk}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
               >
                 {reviewingAction ? 'Saving...' : 'Approve Quote'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {quoteToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-foreground">Delete Quote #{quoteToDelete.quoteNumber}?</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">This action cannot be undone and will permanently remove this quote.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuoteToDelete(null)}
+                disabled={isDeletingQuote}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={confirmDeleteQuote}
+                disabled={isDeletingQuote}
+                className="font-bold cursor-pointer"
+              >
+                {isDeletingQuote ? 'Deleting...' : 'Delete Quote'}
               </Button>
             </div>
           </div>
@@ -1463,8 +1603,9 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="odooOrderRef" className="text-xs font-semibold">
-                Odoo Sales Order # (Optional Reference)
+              <Label htmlFor="odooOrderRef" className="text-xs font-semibold flex items-center justify-between">
+                <span>Odoo Sales Order #</span>
+                <span className="text-[10px] text-destructive font-semibold">* Required &amp; Unique</span>
               </Label>
               <Input
                 id="odooOrderRef"
@@ -1472,6 +1613,7 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                 value={odooOrderNum}
                 onChange={e => setOdooOrderNum(e.target.value)}
                 className="text-xs font-mono"
+                required
               />
               <p className="text-[11px] text-muted-foreground">
                 Confirm that you have entered all order specifications into the Odoo software and attached the printed quote to the physical shop folder.
@@ -1491,7 +1633,7 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
               <Button
                 size="sm"
                 onClick={handleConfirmOdooEntry}
-                disabled={markingOdoo}
+                disabled={markingOdoo || !odooOrderNum.trim()}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
               >
                 {markingOdoo ? 'Confirming...' : 'Confirm Odoo Entry'}

@@ -22,7 +22,7 @@ export async function GET() {
       if (dept && dept.permissions) {
         deptPermissions = dept.permissions instanceof Map ? Object.fromEntries(dept.permissions) : dept.permissions;
       }
-    } else if (user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'kyle') {
+    } else if (['SUPERADMIN', 'ADMIN'].includes(user.role)) {
       deptPermissions = {
         canCreateQuote: true,
         canReviewQuote: true,
@@ -37,7 +37,7 @@ export async function GET() {
       ? (user.customPermissions instanceof Map ? Object.fromEntries(user.customPermissions) : user.customPermissions)
       : {};
 
-    const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
+    const isSuper = user.role === 'SUPERADMIN';
 
     userObj.departmentPermissions = deptPermissions;
     userObj.customPermissions = customPerms;
@@ -99,7 +99,11 @@ export async function PUT(request: Request) {
       user.muteNotifications = Boolean(body.muteNotifications);
     }
 
-    if (body.favoriteTemplate && ['modern', 'executive', 'compact', 'breakdown'].includes(body.favoriteTemplate)) {
+    if (body.receiveQuoteEmails !== undefined) {
+      user.receiveQuoteEmails = Boolean(body.receiveQuoteEmails);
+    }
+
+    if (body.favoriteTemplate && ['modern', 'executive', 'cards', 'compact', 'breakdown'].includes(body.favoriteTemplate)) {
       user.favoriteTemplate = body.favoriteTemplate;
     }
 
@@ -108,7 +112,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ 
       message: 'Profile updated successfully', 
       landingPage: user.landingPage,
-      favoriteTemplate: user.favoriteTemplate 
+      favoriteTemplate: user.favoriteTemplate,
+      receiveQuoteEmails: user.receiveQuoteEmails,
+      muteNotifications: user.muteNotifications,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

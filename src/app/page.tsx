@@ -206,16 +206,18 @@ export default function PromoCalculator() {
     return groups;
   }, [windows]);
   
-  // Submit for Review Modal State
+  // Submit for Review / Direct Approve Modal State
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [assignedReviewer, setAssignedReviewer] = useState('Admin');
+  const [assignedReviewer, setAssignedReviewer] = useState('');
   const [preparerNotes, setPreparerNotes] = useState('');
   const [submittingQuote, setSubmittingQuote] = useState(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]); // Eligible reviewers (admins/managers)
+  const [clerkList, setClerkList] = useState<any[]>([]); // Eligible Odoo clerks
+  const [adminSubmitMode, setAdminSubmitMode] = useState<'direct_approve' | 'submit_review'>('direct_approve');
 
   // Reassign / Forward Quote Modal State
   const [showReassignModal, setShowReassignModal] = useState(false);
-  const [reassignTo, setReassignTo] = useState('Admin');
+  const [reassignTo, setReassignTo] = useState('');
   const [reassignNotes, setReassignNotes] = useState('');
 
   // Return with Note Custom Modal State
@@ -267,32 +269,49 @@ export default function PromoCalculator() {
       })
       .catch(console.error);
 
-    // Fetch all eligible staff for assignment (excluding SUPERADMIN cheeku)
-    fetch(`/api/users?assignees=true&t=${Date.now()}`, { cache: 'no-store' })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const eligible = data.filter(d => 
+    // Fetch eligible reviewers (admins & managers) and clerks (assignees)
+    Promise.all([
+      fetch(`/api/users?reviewersOnly=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/users?assignees=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([reviewers, assignees]) => {
+        if (Array.isArray(reviewers)) {
+          const eligibleReviewers = reviewers.filter((d: any) => 
             d.role !== 'SUPERADMIN' && 
             d.role !== 'superadmin' &&
             d.username?.toLowerCase() !== 'cheeku' &&
             !d.username?.toLowerCase().includes('superadmin')
           );
-          setStaffList(eligible);
-          if (eligible.length > 0) {
-            setAssignedReviewer(eligible[0].username);
-            setReassignTo(eligible[0].username);
-          } else {
-            setAssignedReviewer('Admin');
-            setReassignTo('Admin');
+          setStaffList(eligibleReviewers);
+          if (eligibleReviewers.length > 0) {
+            setAssignedReviewer(eligibleReviewers[0].username);
+            setReassignTo(eligibleReviewers[0].username);
+          }
+        }
+        if (Array.isArray(assignees)) {
+          const eligibleClerks = assignees.filter((d: any) => 
+            d.role !== 'SUPERADMIN' && 
+            d.role !== 'superadmin' &&
+            d.username?.toLowerCase() !== 'cheeku' &&
+            !d.username?.toLowerCase().includes('superadmin')
+          );
+          setClerkList(eligibleClerks);
+          const defaultClerk = eligibleClerks.find((c: any) => c.department === 'CLERK') || eligibleClerks[0];
+          if (defaultClerk) {
+            setSelectedOdooClerk(defaultClerk.username);
           }
         }
       })
       .catch(console.error);
 
-    // Check if URL has ?reviewQuoteId=... or ?tab=...
+    // Check if URL has ?reviewQuoteId=... or ?tab=... or ?previewQuoteId=...
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
+      const previewQId = params.get('previewQuoteId');
+      if (previewQId) {
+        setActiveTab('quotes');
+        setQuotesSubTab('odoo');
+      }
       const tabParam = params.get('tab');
       if (tabParam === 'quotes' || tabParam === 'tax' || tabParam === 'promo') {
         setActiveTab(tabParam);
@@ -305,7 +324,7 @@ export default function PromoCalculator() {
       if (params.get('edit') === 'true') {
         setIsEditMode(true);
       }
-      if (qId) {
+      if (qId && !previewQId) {
         setReviewQuoteId(qId);
         fetch(`/api/quotes/${qId}?t=${Date.now()}`, { cache: 'no-store' })
           .then(r => r.json())
@@ -347,6 +366,15 @@ export default function PromoCalculator() {
     };
     window.addEventListener('load-review-quote', handleLoadQuoteEvent);
 
+    const handleOpenClerkPreview = (e: any) => {
+      const qId = e.detail?.quoteId;
+      if (qId) {
+        setActiveTab('quotes');
+        setQuotesSubTab('odoo');
+      }
+    };
+    window.addEventListener('open-clerk-preview', handleOpenClerkPreview);
+
     const refreshPendingCount = () => {
       fetch('/api/quotes?countOnly=true')
         .then(res => res.json())
@@ -363,6 +391,7 @@ export default function PromoCalculator() {
 
     return () => {
       window.removeEventListener('load-review-quote', handleLoadQuoteEvent);
+      window.removeEventListener('open-clerk-preview', handleOpenClerkPreview);
       window.removeEventListener('quote-count-updated', refreshPendingCount);
       window.removeEventListener('focus', refreshPendingCount);
     };
@@ -428,6 +457,18 @@ export default function PromoCalculator() {
       toast.error("Please enter a Quote Number and Customer Name");
       return;
     }
+
+    const isDirectApprove = Boolean((user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve');
+
+    if (isDirectApprove && !selectedOdooClerk) {
+      toast.error("Please select an Odoo clerk to assign this quote to");
+      return;
+    }
+    if (!isDirectApprove && !assignedReviewer) {
+      toast.error("Please select a reviewer to submit this quote to");
+      return;
+    }
+
     setSubmittingQuote(true);
     try {
       const res = await fetch('/api/quotes', {
@@ -436,7 +477,9 @@ export default function PromoCalculator() {
         body: JSON.stringify({
           quoteNumber,
           customerName,
-          assignedTo: assignedReviewer,
+          assignedTo: isDirectApprove ? (user?.username || '') : assignedReviewer,
+          directApprove: isDirectApprove,
+          odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
           preparerNotes,
           windows,
           taxTotals,
@@ -455,7 +498,12 @@ export default function PromoCalculator() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to submit quote');
-      toast.success(`Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`);
+
+      if (isDirectApprove) {
+        toast.success(`Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`);
+      } else {
+        toast.success(`Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`);
+      }
       setShowSubmitModal(false);
       setPreparerNotes('');
       window.dispatchEvent(new CustomEvent('quote-count-updated'));
@@ -547,12 +595,17 @@ export default function PromoCalculator() {
 
   const handleApproveReviewQuote = () => {
     if (!reviewQuoteId) return;
-    setSelectedOdooClerk('');
+    const defaultClerk = (clerkList.length > 0 ? clerkList : staffList).find((c: any) => c.department === 'CLERK') || (clerkList[0] || staffList[0]);
+    setSelectedOdooClerk(reviewQuote?.odooAssignedTo || defaultClerk?.username || '');
     setShowApproveOdooModal(true);
   };
 
   const confirmApproveReviewQuote = async () => {
     if (!reviewQuoteId) return;
+    if (!selectedOdooClerk) {
+      toast.error('Please select an Odoo clerk before approving the quote.');
+      return;
+    }
     setReviewActionLoading(true);
 
     const currentQuoteState = {
@@ -592,10 +645,8 @@ export default function PromoCalculator() {
         includeMiscInPromo,
         includeLabourInPromo,
         quoteSummaryTotal: total,
+        odooAssignedTo: selectedOdooClerk,
       };
-      if (selectedOdooClerk) {
-        payload.odooAssignedTo = selectedOdooClerk;
-      }
 
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
         method: 'PUT',
@@ -604,13 +655,7 @@ export default function PromoCalculator() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to approve');
-      toast.success(
-        selectedOdooClerk
-          ? `Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
-          : finalStatus === 'MODIFIED'
-            ? `Quote #${quoteNumber} modified, saved, & approved!`
-            : `Quote #${quoteNumber} approved!`
-      );
+      toast.success(`Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`);
       setShowApproveOdooModal(false);
       handleExitReview();
     } catch (err: any) {
@@ -622,6 +667,11 @@ export default function PromoCalculator() {
 
   const handleCompleteOdooEntry = async () => {
     if (!reviewQuoteId) return;
+    const orderNumber = odooOrderNumberInput.trim();
+    if (!orderNumber) {
+      toast.error('Please enter the Odoo Sales Order # before confirming.');
+      return;
+    }
     setReviewActionLoading(true);
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
@@ -629,18 +679,20 @@ export default function PromoCalculator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           odooStatus: 'COMPLETED',
-          odooOrderNumber: odooOrderNumberInput.trim() || undefined,
+          odooOrderNumber: orderNumber,
         }),
       });
+      const data = await res.json();
       if (res.ok) {
-        toast.success(`Quote #${reviewQuote.quoteNumber} marked as entered in Odoo!`);
+        toast.success(`Quote #${reviewQuote.quoteNumber} marked as entered in Odoo with Order #${orderNumber}!`);
         setShowCompleteOdooModal(false);
+        setOdooOrderNumberInput('');
         handleExitReview();
       } else {
-        toast.error('Failed to update Odoo status');
+        toast.error(data.error || 'Failed to update Odoo status');
       }
-    } catch {
-      toast.error('Failed to update Odoo status');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update Odoo status');
     } finally {
       setReviewActionLoading(false);
     }
@@ -1361,7 +1413,8 @@ export default function PromoCalculator() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setReassignTo(staffList.length > 0 ? staffList[0].username : 'Admin');
+                      const other = staffList.find(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                      setReassignTo(other ? other.username : '');
                       setReassignNotes('');
                       setShowReassignModal(true);
                     }}
@@ -1976,16 +2029,38 @@ export default function PromoCalculator() {
                     {!reviewQuote ? (
                       <Button 
                         variant="default"
-                        className="w-full h-11 text-sm shadow-md font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer transition-colors" 
+                        className={cn(
+                          "w-full h-11 text-sm shadow-md font-bold text-white cursor-pointer transition-colors",
+                          (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')
+                            ? "bg-emerald-600 hover:bg-emerald-700" 
+                            : "bg-amber-600 hover:bg-amber-700"
+                        )}
                         onClick={() => {
                           if (!quoteNumber.trim() || !customerName.trim()) {
                             toast.error("Please enter a Customer Name and Quote Number before submitting!");
                             return;
                           }
+                          // Auto-select first other reviewer (excluding self)
+                          const otherReviewers = staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                          if (otherReviewers.length > 0 && (!assignedReviewer || assignedReviewer.toLowerCase() === user?.username?.toLowerCase() || assignedReviewer === 'Admin')) {
+                            setAssignedReviewer(otherReviewers[0].username);
+                          }
+                          if (!selectedOdooClerk && clerkList.length > 0) {
+                            const defaultClerk = clerkList.find(c => c.department === 'CLERK') || clerkList[0];
+                            if (defaultClerk) setSelectedOdooClerk(defaultClerk.username);
+                          }
                           setShowSubmitModal(true);
                         }}
                       >
-                        <Send className="w-4 h-4 mr-2" /> Submit for Review
+                        {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') ? (
+                          <>
+                            <ShieldCheck className="w-4 h-4 mr-2" /> Approve & Assign / Submit
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" /> Submit for Review
+                          </>
+                        )}
                       </Button>
                     ) : (
                       <>
@@ -2122,7 +2197,8 @@ export default function PromoCalculator() {
                                   variant="outline" 
                                   size="sm" 
                                   onClick={() => {
-                                    setReassignTo(staffList.length > 0 ? staffList[0].username : 'Admin');
+                                    const other = staffList.find(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                                    setReassignTo(other ? other.username : '');
                                     setReassignNotes('');
                                     setShowReassignModal(true);
                                   }}
@@ -2245,6 +2321,7 @@ export default function PromoCalculator() {
           onOpenQuote={handleOpenQuoteFromTab}
           onQuotesCountChange={(count) => setPendingReviewCount(count)}
           initialSubTab={quotesSubTab}
+          initialPreviewQuoteId={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('previewQuoteId') || undefined : undefined}
         />
       </div>
     </Tabs>
@@ -2326,19 +2403,74 @@ export default function PromoCalculator() {
         effectiveLabour={effectiveLabour}
       />
 
-      {/* Submit for Review Modal */}
+      {/* Submit for Review / Direct Approve Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-card p-6 rounded-2xl shadow-2xl max-w-md w-full border border-border space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-500">
-                <Send className="w-5 h-5" />
+              <div className={cn(
+                "p-2.5 rounded-xl",
+                (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve'
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  : "bg-amber-500/20 text-amber-500"
+              )}>
+                {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve' ? (
+                  <ShieldCheck className="w-5 h-5" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </div>
               <div>
-                <h3 className="text-lg font-bold">Send to Review Queue</h3>
-                <p className="text-xs text-muted-foreground">Submit this quote to team reviewer for price check.</p>
+                <h3 className="text-lg font-bold">
+                  {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')
+                    ? 'Admin Quote Processing'
+                    : 'Send to Review Queue'}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')
+                    ? (adminSubmitMode === 'direct_approve'
+                        ? 'Directly approve quote and assign to Odoo clerk for order entry.'
+                        : 'Submit this quote to another admin or manager for price check.')
+                    : 'Submit this quote to team reviewer for price check.'}
+                </p>
               </div>
             </div>
+
+            {/* Admin Workflow Mode Selector */}
+            {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-muted/60 rounded-xl border border-border">
+                <button
+                  type="button"
+                  onClick={() => setAdminSubmitMode('direct_approve')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    adminSubmitMode === 'direct_approve'
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Direct Approve (Odoo)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminSubmitMode('submit_review');
+                    const otherReviewers = staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                    if (otherReviewers.length > 0 && (!assignedReviewer || assignedReviewer.toLowerCase() === user?.username?.toLowerCase())) {
+                      setAssignedReviewer(otherReviewers[0].username);
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    adminSubmitMode === 'submit_review'
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Send className="w-3.5 h-3.5" /> Submit to Other Admin
+                </button>
+              </div>
+            )}
 
             <div className="bg-muted/40 p-3.5 rounded-xl border border-border space-y-2 text-xs">
               <div className="flex justify-between">
@@ -2359,34 +2491,84 @@ export default function PromoCalculator() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="reviewerSelect" className="text-xs">Assign Team Member / Reviewer</Label>
-              <select
-                id="reviewerSelect"
-                value={assignedReviewer}
-                onChange={e => setAssignedReviewer(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
-              >
-                {staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase()).length > 0 ? (
-                  staffList
-                    .filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase())
-                    .map(s => (
-                      <option key={s._id || s.username} value={s.username}>
-                        {s.username}
+            {/* Direct Approve Mode: Select Odoo Clerk */}
+            {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve' ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="odooClerkSelect" className="text-xs font-semibold flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Assign Odoo Clerk (Order Processing)
+                </Label>
+                <select
+                  id="odooClerkSelect"
+                  value={selectedOdooClerk}
+                  onChange={e => setSelectedOdooClerk(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                >
+                  {clerkList.length > 0 ? (
+                    clerkList.map(c => (
+                      <option key={c._id || c.username} value={c.username}>
+                        {c.username} {c.department ? `(${c.department})` : ''}
                       </option>
                     ))
-                ) : (
-                  <option value="Admin">Admin</option>
-                )}
-              </select>
-            </div>
+                  ) : (
+                    <option value="">No clerks available</option>
+                  )}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  The quote will be marked as Approved immediately and forwarded directly to this clerk's Odoo queue.
+                </p>
+              </div>
+            ) : (
+              /* Review Mode: Select Reviewer (Admins/Managers only, excluding self) */
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="reviewerSelect" className="text-xs font-semibold">
+                    {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')
+                      ? 'Select Another Admin / Manager'
+                      : 'Assign Team Member / Reviewer'}
+                  </Label>
+                  {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Self excluded</span>
+                  )}
+                </div>
+                {(() => {
+                  const eligible = staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                  return eligible.length > 0 ? (
+                    <select
+                      id="reviewerSelect"
+                      value={assignedReviewer}
+                      onChange={e => setAssignedReviewer(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                    >
+                      {eligible.map(s => (
+                        <option key={s._id || s.username} value={s.username}>
+                          {s.username} {s.department ? `(${s.department})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                      No other reviewers available in the system.
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="preparerNotes" className="text-xs">Notes for {assignedReviewer} (Optional)</Label>
+              <Label htmlFor="preparerNotes" className="text-xs">
+                {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve'
+                  ? `Notes for ${selectedOdooClerk || 'Clerk'} (Optional)`
+                  : `Notes for ${assignedReviewer || 'Reviewer'} (Optional)`}
+              </Label>
               <textarea
                 id="preparerNotes"
-                rows={3}
-                placeholder="e.g. Please verify travel setup fee or check if scaffolding labour is needed..."
+                rows={2}
+                placeholder={
+                  (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve'
+                    ? "e.g. Please process ASAP, customer confirmed colours and sizes..."
+                    : "e.g. Please verify travel setup fee or check if scaffolding labour is needed..."
+                }
                 value={preparerNotes}
                 onChange={e => setPreparerNotes(e.target.value)}
                 className="w-full text-sm bg-background border border-input rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-primary"
@@ -2402,14 +2584,25 @@ export default function PromoCalculator() {
               >
                 Cancel
               </Button>
-              <Button 
-                size="sm" 
-                onClick={handleSubmitForReview}
-                disabled={submittingQuote}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-              >
-                {submittingQuote ? 'Submitting...' : `Submit to ${assignedReviewer}`}
-              </Button>
+              {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve' ? (
+                <Button 
+                  size="sm" 
+                  onClick={handleSubmitForReview}
+                  disabled={submittingQuote || !selectedOdooClerk}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                >
+                  {submittingQuote ? 'Approving...' : `Approve & Forward to ${selectedOdooClerk || 'Clerk'}`}
+                </Button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  onClick={handleSubmitForReview}
+                  disabled={submittingQuote || !assignedReviewer || staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase()).length === 0}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                  {submittingQuote ? 'Submitting...' : `Submit to ${assignedReviewer || 'Reviewer'}`}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -2432,25 +2625,31 @@ export default function PromoCalculator() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="reassignSelect" className="text-xs">Forward to Staff Member</Label>
-              <select
-                id="reassignSelect"
-                value={reassignTo}
-                onChange={e => setReassignTo(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
-              >
-                {staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase()).length > 0 ? (
-                  staffList
-                    .filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase())
-                    .map(s => (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reassignSelect" className="text-xs font-semibold">Forward to Staff Member</Label>
+                <span className="text-[10px] text-muted-foreground font-medium">Self excluded</span>
+              </div>
+              {(() => {
+                const eligible = staffList.filter(s => s.username?.toLowerCase() !== user?.username?.toLowerCase());
+                return eligible.length > 0 ? (
+                  <select
+                    id="reassignSelect"
+                    value={reassignTo}
+                    onChange={e => setReassignTo(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                  >
+                    {eligible.map(s => (
                       <option key={s._id || s.username} value={s.username}>
-                        {s.username}
+                        {s.username} {s.department ? `(${s.department})` : ''}
                       </option>
-                    ))
+                    ))}
+                  </select>
                 ) : (
-                  <option value="Admin">Admin</option>
-                )}
-              </select>
+                  <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                    No other staff available to reassign.
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="space-y-1.5">
@@ -2604,24 +2803,27 @@ export default function PromoCalculator() {
 
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Approve this quote and optionally assign an employee to enter the order into Odoo software and prepare the physical file.
+                Approve this quote and assign an employee to enter the order into Odoo software and prepare the physical file.
               </p>
 
               <div className="space-y-1.5">
-                <Label htmlFor="odooAssigneeSelect" className="text-xs font-semibold flex items-center gap-1.5">
-                  <ClipboardCheck className="w-3.5 h-3.5 text-indigo-500" />
-                  Assign for Odoo Entry (Optional)
+                <Label htmlFor="odooAssigneeSelect" className="text-xs font-semibold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <ClipboardCheck className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Assign for Odoo Entry (Required)</span>
+                  </span>
+                  <span className="text-[10px] text-destructive font-semibold">* Required</span>
                 </Label>
                 <select
                   id="odooAssigneeSelect"
                   value={selectedOdooClerk}
                   onChange={e => setSelectedOdooClerk(e.target.value)}
-                  className="w-full text-sm bg-background border border-input rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full text-sm bg-background border border-input rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                 >
-                  <option value="">-- No Odoo Assignment (Direct Approval) --</option>
-                  {staffList.map((member: any) => (
+                  <option value="">-- Select Odoo Clerk (Required) --</option>
+                  {(clerkList.length > 0 ? clerkList : staffList).map((member: any) => (
                     <option key={member._id || member.username} value={member.username}>
-                      {member.name ? `${member.name} (${member.username})` : member.username} {member.role ? `• ${member.role}` : ''}
+                      {member.name ? `${member.name} (${member.username})` : member.username} {member.department ? `(${member.department})` : (member.role ? `• ${member.role}` : '')}
                     </option>
                   ))}
                 </select>
@@ -2643,10 +2845,10 @@ export default function PromoCalculator() {
               <Button 
                 size="sm" 
                 onClick={confirmApproveReviewQuote}
-                disabled={reviewActionLoading}
+                disabled={reviewActionLoading || !selectedOdooClerk}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
               >
-                {reviewActionLoading ? 'Approving...' : selectedOdooClerk ? `Approve & Assign to ${selectedOdooClerk}` : 'Confirm Approval'}
+                {reviewActionLoading ? 'Approving...' : `Approve & Assign to ${selectedOdooClerk || 'Clerk'}`}
               </Button>
             </div>
           </div>
@@ -2675,15 +2877,17 @@ export default function PromoCalculator() {
               </p>
 
               <div className="space-y-1.5">
-                <Label htmlFor="odooOrderNumInput" className="text-xs font-semibold">
-                  Odoo Sales Order # (Optional)
+                <Label htmlFor="odooOrderNumInput" className="text-xs font-semibold flex items-center justify-between">
+                  <span>Odoo Sales Order #</span>
+                  <span className="text-[10px] text-destructive font-semibold">* Required &amp; Unique</span>
                 </Label>
                 <Input
                   id="odooOrderNumInput"
-                  placeholder="e.g. SO0482 or PO-9912"
+                  placeholder="e.g. SO-10492 or PO-9912"
                   value={odooOrderNumberInput}
                   onChange={e => setOdooOrderNumberInput(e.target.value)}
-                  className="bg-background"
+                  className="bg-background font-mono text-xs"
+                  required
                 />
               </div>
             </div>
@@ -2700,7 +2904,7 @@ export default function PromoCalculator() {
               <Button 
                 size="sm" 
                 onClick={handleCompleteOdooEntry}
-                disabled={reviewActionLoading}
+                disabled={reviewActionLoading || !odooOrderNumberInput.trim()}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
               >
                 {reviewActionLoading ? 'Saving...' : 'Confirm Odoo Entry'}

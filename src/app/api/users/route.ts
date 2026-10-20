@@ -52,11 +52,26 @@ export async function GET(request: Request) {
     }
 
     if (reviewersOnly) {
+      const reviewerDepts = await Department.find({
+        $or: [
+          { 'permissions.canReviewQuote': true },
+          { 'permissions.canApproveQuote': true },
+          { code: 'MANAGER' },
+        ],
+      });
+      const reviewerDeptCodes = reviewerDepts.map(d => d.code);
+
       const staff = await User.find(
         {
           role: { $nin: ['SUPERADMIN', 'superadmin'] },
           username: { $not: /^cheeku$/i },
           isActive: { $ne: false },
+          $or: [
+            { role: 'ADMIN' },
+            { department: { $in: reviewerDeptCodes } },
+            { department: 'MANAGER' },
+            { 'customPermissions.canReviewQuote': true },
+          ],
         },
         'username role email department'
       ).sort({ username: 1 });

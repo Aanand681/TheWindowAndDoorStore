@@ -158,10 +158,10 @@ export default function NotificationBell() {
 
     if (n.type === 'QUOTE_ODOO_ASSIGNED' && n.quoteId) {
       if (typeof window !== 'undefined' && window.location.pathname === '/') {
-        window.dispatchEvent(new CustomEvent('load-review-quote', { detail: { quoteId: n.quoteId, originSubTab: 'odoo' } }));
-        window.history.pushState({}, '', `/?reviewQuoteId=${n.quoteId}&sub=odoo`);
+        window.dispatchEvent(new CustomEvent('open-clerk-preview', { detail: { quoteId: n.quoteId } }));
+        window.history.pushState({}, '', `/?tab=quotes&sub=odoo&previewQuoteId=${n.quoteId}`);
       } else {
-        router.push(`/?reviewQuoteId=${n.quoteId}&sub=odoo`);
+        router.push(`/?tab=quotes&sub=odoo&previewQuoteId=${n.quoteId}`);
       }
       return;
     }

@@ -110,7 +110,17 @@ export default function TaxCalculatorTab({
   const handleRegionSelect = (regId: string, currentRegions = regions) => {
     setSelectedRegionId(regId);
     const reg = currentRegions.find(r => r._id === regId);
-    if (reg && (reg.name.toLowerCase().includes('dryden') || reg.name.toLowerCase().includes('sioux'))) {
+    if (!reg) return;
+    const isSupply = Boolean(reg.isSupplyOnly || reg.name?.toLowerCase().includes('supply'));
+    if (isSupply) {
+      setSetupFee('0');
+      setManualKm('0');
+      setManualHours('0');
+      setTravelInfo(null);
+      setCrew('none');
+      return;
+    }
+    if (reg.name.toLowerCase().includes('dryden') || reg.name.toLowerCase().includes('sioux')) {
       const std = reg.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
       setSetupFee(std ? String(std.value) : '727.5');
     } else {
@@ -315,6 +325,7 @@ export default function TaxCalculatorTab({
   }, [savedTaxTotals, regions]);
 
   const region = regions.find(r => r._id === selectedRegionId);
+  const isSupplyOnly = Boolean(region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
 
   const calculate = () => {
     if (!region) return null;
@@ -324,36 +335,38 @@ export default function TaxCalculatorTab({
       if (!W || !H || q <= 0) return null;
       const unitSq = (W * H) / 144;
       const sqft = unitSq * q;
-      const lin = ((W * 2 + H * 2) / 12) * q + q * region.extraLinPerWindow;
-      const labRaw = unitSq * region.labourPerSqft;
-      const miscRaw = unitSq * region.miscPerSqft;
-      const lab = Math.max(labRaw, region.labourMin) * q;
-      const misc = Math.max(miscRaw, region.miscMin) * q;
+      const lin = ((W * 2 + H * 2) / 12) * q + (isSupplyOnly ? 0 : q * (region.extraLinPerWindow || 0));
+      const labRaw = isSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
+      const miscRaw = isSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
+      const lab = isSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
+      const misc = isSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
       sq += sqft; ln += lin; wLab += lab; wMisc += misc;
       return { sqft, lin, lab, misc };
     });
 
     let aLab = 0, aMisc = 0;
-    dbAddons.forEach(a => {
-      const q = Number(addons[a.id]) || 0;
-      aLab += q * a.lab;
-      aMisc += q * a.misc;
-    });
+    if (!isSupplyOnly) {
+      dbAddons.forEach(a => {
+        const q = Number(addons[a.id]) || 0;
+        aLab += q * a.lab;
+        aMisc += q * a.misc;
+      });
+    }
 
-    const labourWindows = wLab + aLab;
-    const miscTotal = wMisc + aMisc;
+    const labourWindows = isSupplyOnly ? 0 : (wLab + aLab);
+    const miscTotal = isSupplyOnly ? 0 : (wMisc + aMisc);
 
-    const km = Number(manualKm) || 0;
-    const hrs = Number(manualHours) || 0;
+    const km = isSupplyOnly ? 0 : (Number(manualKm) || 0);
+    const hrs = isSupplyOnly ? 0 : (Number(manualHours) || 0);
     
     // Find dynamic crew rate based on selected crew size
     const crewObj = dbCrewRates.find(c => c.crewSize === crew);
-    const crewRate = crewObj ? crewObj.hourlyRate : 0;
+    const crewRate = isSupplyOnly ? 0 : (crewObj ? crewObj.hourlyRate : 0);
     
-    const vehicle = km * dbVehicleRate;
-    const crewTravel = hrs * crewRate;
-    const setup = Number(setupFee) || 0;
-    const extras = vehicle + crewTravel + setup + region.fixedSetupFee + (region.baseTravelFee || 0);
+    const vehicle = isSupplyOnly ? 0 : (km * dbVehicleRate);
+    const crewTravel = isSupplyOnly ? 0 : (hrs * crewRate);
+    const setup = isSupplyOnly ? 0 : (Number(setupFee) || 0);
+    const extras = isSupplyOnly ? 0 : (vehicle + crewTravel + setup + (region.fixedSetupFee || 0) + (region.baseTravelFee || 0));
 
     const jRate = jambId === 'custom' ? Number(jambRate) || 0 : (dbJambs.find(j => j.id === jambId)?.rate || 0);
     const cRate = casingId === 'custom' ? Number(casingRate) || 0 : (dbCasings.find(c => c.id === casingId)?.rate || 0);
@@ -362,10 +375,10 @@ export default function TaxCalculatorTab({
     const casingTot = ln * cRate;
     const jc = jambTot + casingTot;
 
-    const labourTotal = labourWindows + extras;
+    const labourTotal = isSupplyOnly ? 0 : (labourWindows + extras);
     
-    const finalLabour = includeLabour ? labourTotal : 0;
-    const finalMisc = includeMisc ? miscTotal : 0;
+    const finalLabour = (includeLabour && !isSupplyOnly) ? labourTotal : 0;
+    const finalMisc = (includeMisc && !isSupplyOnly) ? miscTotal : 0;
     const finalJC = includeJC ? jc : 0;
     
     const disc = Number(discount) || 0;
@@ -373,7 +386,7 @@ export default function TaxCalculatorTab({
     const hst = hstOn ? subtotal * 0.13 : 0;
     const total = subtotal + hst;
 
-    const selectedAddonsList = dbAddons
+    const selectedAddonsList = isSupplyOnly ? [] : dbAddons
       .filter(a => Number(addons[a.id]) > 0)
       .map(a => {
         const q = Number(addons[a.id]);
@@ -409,8 +422,9 @@ export default function TaxCalculatorTab({
       vehicleRate: dbVehicleRate,
       setup,
       setupFee,
-      fixedSetupFee: region.fixedSetupFee,
-      baseTravelFee: region.baseTravelFee || 0,
+      fixedSetupFee: isSupplyOnly ? 0 : region.fixedSetupFee,
+      baseTravelFee: isSupplyOnly ? 0 : (region.baseTravelFee || 0),
+      isSupplyOnly,
       selectedAddons: selectedAddonsList,
       addonsMap: addons,
       dbAddons,
@@ -434,7 +448,7 @@ export default function TaxCalculatorTab({
     };
   };
 
-  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates]);
+  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly]);
 
   useEffect(() => {
     if (onCalculated && c) {
@@ -524,16 +538,23 @@ export default function TaxCalculatorTab({
                 {regions.map(r => <SelectItem key={r._id} value={r._id}>{r.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-sm text-muted-foreground mt-2">
-              Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft.
-            </p>
+            {isSupplyOnly ? (
+              <div className="mt-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2.5 text-xs text-amber-500 font-medium">
+                <span className="font-bold text-sm">⚡ Supply Only Order:</span>
+                <span>Installation labour, travel fees, and setup fees are $0.00. Promotional window discounts and optional Jamb &amp; Casing apply normally.</span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">
+                Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {/* Windows List */}
         <Card>
           <CardHeader>
-            <CardTitle>Windows Sizes & Labour</CardTitle>
+            <CardTitle>Windows Sizes &amp; Labour</CardTitle>
             <CardDescription>Sizes accepted in inches (e.g. 61 1/4 or 61.25). You can edit width and height here.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -550,13 +571,13 @@ export default function TaxCalculatorTab({
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">Width"</Label>
                         <Input disabled={readOnly} className="h-9" value={w.w || ''} onChange={e => {
-                          const nw = [...windows]; nw[i].w = e.target.value.replace(/[^0-9\s./]/g, ''); onWindowsChange(nw);
+                          const nw = [...windows]; nw[i].w = e.target.value.replace(/[^0-9\s./-]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-muted-foreground">Height"</Label>
                         <Input disabled={readOnly} className="h-9" value={w.h || ''} onChange={e => {
-                          const nw = [...windows]; nw[i].h = e.target.value.replace(/[^0-9\s./]/g, ''); onWindowsChange(nw);
+                          const nw = [...windows]; nw[i].h = e.target.value.replace(/[^0-9\s./-]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
@@ -569,7 +590,11 @@ export default function TaxCalculatorTab({
                         {line ? (
                           <>
                             <div className="text-muted-foreground font-medium">Sqft: {line.sqft.toFixed(2)} | LinFt: {line.lin.toFixed(2)}</div>
-                            <div className="font-semibold text-primary">Lab: {formatMoney(line.lab * 100)} | Misc: {formatMoney(line.misc * 100)}</div>
+                            {isSupplyOnly ? (
+                              <div className="font-semibold text-amber-500">Supply Only (No Install Labour)</div>
+                            ) : (
+                              <div className="font-semibold text-primary">Lab: {formatMoney(line.lab * 100)} | Misc: {formatMoney(line.misc * 100)}</div>
+                            )}
                           </>
                         ) : (
                           <div className="text-muted-foreground italic">Invalid size</div>
@@ -595,95 +620,111 @@ export default function TaxCalculatorTab({
         {/* Travel and Map */}
         <Card>
           <CardHeader>
-            <CardTitle>Travel & Set-up</CardTitle>
+            <CardTitle>Travel &amp; Set-up</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 space-y-2">
-                <Label>Paste Coordinates / Google Maps link</Label>
-                <div className="flex gap-2">
-                  <Input disabled={readOnly} value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
-                  <Button disabled={readOnly} variant="secondary" onClick={() => {
-                    const cMatch = coords.match(/(-?\d+\.\d+)[\s,]+(-?\d+\.\d+)/);
-                    if (cMatch) {
-                       calculateTravelFromCoords(Number(cMatch[1]), Number(cMatch[2])); 
-                    } else {
-                       toast.error("Invalid coordinates format. Use e.g. 48.6094, -93.4108");
-                    }
-                  }}>Calculate Travel</Button>
+            {isSupplyOnly ? (
+              <div className="p-8 text-center rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 space-y-2">
+                <div className="text-amber-500 font-bold flex items-center justify-center gap-2 text-sm">
+                  <span>⚡ Supply Only Order Active</span>
                 </div>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Customer pickup / contractor supply. Vehicle mileage, crew travel hours, and job setup fees are $0.00 and not charged.
+                </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label>Paste Coordinates / Google Maps link</Label>
+                    <div className="flex gap-2">
+                      <Input disabled={readOnly} value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
+                      <Button disabled={readOnly} variant="secondary" onClick={() => {
+                        const cMatch = coords.match(/(-?\d+\.\d+)[\s,]+(-?\d+\.\d+)/);
+                        if (cMatch) {
+                           calculateTravelFromCoords(Number(cMatch[1]), Number(cMatch[2])); 
+                        } else {
+                           toast.error("Invalid coordinates format. Use e.g. 48.6094, -93.4108");
+                        }
+                      }}>Calculate Travel</Button>
+                    </div>
+                  </div>
+                </div>
 
-            {travelInfo && (
-              <div className={`p-4 rounded-lg border ${travelInfo.isFree ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-primary/10 border-primary/20'}`}>
-                <div className="font-semibold">{travelInfo.label}</div>
-                <div className="text-sm mt-1">
-                  City matched: <b>{travelInfo.city}</b>.
-                  {travelInfo.isFree 
-                    ? ` This is within ${region.name}'s free zone. No travel charged.` 
-                    : ` Outside free zone. One way is ${(travelInfo.km).toFixed(1)} km. Round trip charged.`}
+                {travelInfo && (
+                  <div className={`p-4 rounded-lg border ${travelInfo.isFree ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-primary/10 border-primary/20'}`}>
+                    <div className="font-semibold">{travelInfo.label}</div>
+                    <div className="text-sm mt-1">
+                      City matched: <b>{travelInfo.city}</b>.
+                      {travelInfo.isFree 
+                        ? ` This is within ${region.name}'s free zone. No travel charged.` 
+                        : ` Outside free zone. One way is ${(travelInfo.km).toFixed(1)} km. Round trip charged.`}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border border-border rounded-lg overflow-hidden h-[300px] z-0 relative">
+                  <MapComponent 
+                    lat={travelInfo?.lat || region.officeLat} 
+                    lon={travelInfo?.lon || region.officeLon} 
+                    markerLat={travelInfo?.lat}
+                    markerLon={travelInfo?.lon}
+                    polygon={region.polygon}
+                    onMarkerDragEnd={(lat, lon) => {
+                      setCoords(`${lat}, ${lon}`);
+                      calculateTravelFromCoords(lat, lon);
+                    }}
+                  />
                 </div>
-              </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Round-trip km</Label>
+                    <Input disabled={readOnly} type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
+                  </div>
+                  <div className="space-y-2 col-span-1 md:col-span-2">
+                    <Label>Crew</Label>
+                    <Select disabled={readOnly} value={crew} onValueChange={val => setCrew(val ?? '')}>
+                      <SelectTrigger className="w-full text-base py-6 font-medium border-2 border-primary/20 hover:border-primary/50 transition-colors bg-primary/5">
+                        <SelectValue placeholder="Select crew size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dbCrewRates.map(cr => (
+                          <SelectItem key={cr.crewSize} value={cr.crewSize}>{cr.crewSize} men @ ${cr.hourlyRate}/hr</SelectItem>
+                        ))}
+                        <SelectItem value="none">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Round-trip hours</Label>
+                    <Input disabled={readOnly || crew === 'none'} type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Per-job set-up fee (Region Specific)</Label>
+                  <Select disabled={readOnly} value={setupFee} onValueChange={val => setSetupFee(val ?? '')}>
+                    <SelectTrigger className="w-full sm:w-[350px]">
+                      <SelectValue>
+                        {(region.setupFeeOptions || []).find((o: any) => String(o.value) === setupFee)?.label || "Select Setup Fee"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="min-w-[350px]">
+                      {(region.setupFeeOptions || []).map((opt: any, idx: number) => (
+                        <SelectItem key={`${opt.label}-${opt.value}-${idx}`} value={String(opt.value)}>
+                          {opt.label} (${opt.value})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">An additional fixed "All Job Set Up Fee" of ${region.fixedSetupFee} is always included.</p>
+                </div>
+              </>
             )}
-
-            <div className="border border-border rounded-lg overflow-hidden h-[300px] z-0 relative">
-              <MapComponent 
-                lat={travelInfo?.lat || region.officeLat} 
-                lon={travelInfo?.lon || region.officeLon} 
-                markerLat={travelInfo?.lat}
-                markerLon={travelInfo?.lon}
-                polygon={region.polygon}
-                onMarkerDragEnd={(lat, lon) => {
-                  setCoords(`${lat}, ${lon}`);
-                  calculateTravelFromCoords(lat, lon);
-                }}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Round-trip km</Label>
-                <Input disabled={readOnly} type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
-              </div>
-              <div className="space-y-2 col-span-1 md:col-span-2">
-                <Label>Crew</Label>
-                <Select disabled={readOnly} value={crew} onValueChange={val => setCrew(val ?? '')}>
-                  <SelectTrigger className="w-full text-base py-6 font-medium border-2 border-primary/20 hover:border-primary/50 transition-colors bg-primary/5">
-                    <SelectValue placeholder="Select crew size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dbCrewRates.map(cr => (
-                      <SelectItem key={cr.crewSize} value={cr.crewSize}>{cr.crewSize} men @ ${cr.hourlyRate}/hr</SelectItem>
-                    ))}
-                    <SelectItem value="none">None</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Round-trip hours</Label>
-                <Input disabled={readOnly || crew === 'none'} type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Per-job set-up fee (Region Specific)</Label>
-              <Select disabled={readOnly} value={setupFee} onValueChange={val => setSetupFee(val ?? '')}>
-                <SelectTrigger className="w-full sm:w-[350px]">
-                  <SelectValue>
-                    {region.setupFeeOptions.find((o: any) => String(o.value) === setupFee)?.label || "Select Setup Fee"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="min-w-[350px]">
-                  {region.setupFeeOptions.map((opt: any) => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">An additional fixed "All Job Set Up Fee" of ${region.fixedSetupFee} is always included.</p>
-            </div>
           </CardContent>
         </Card>
+
 
         {/* Extras and J&C */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -814,10 +855,17 @@ export default function TaxCalculatorTab({
       <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
         <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-primary" />
-              Tax & Labour Summary
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-primary" />
+                {isSupplyOnly ? 'Supply Materials & Tax' : 'Tax & Labour Summary'}
+              </CardTitle>
+              {isSupplyOnly && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/30 uppercase tracking-wider">
+                  Supply Only
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {c ? (

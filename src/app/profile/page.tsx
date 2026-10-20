@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [role, setRole] = useState('');
   const [landingPage, setLandingPage] = useState('calculator');
   const [muteNotifications, setMuteNotifications] = useState(false);
+  const [receiveQuoteEmails, setReceiveQuoteEmails] = useState(true);
   
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -41,6 +42,7 @@ export default function ProfilePage() {
           setRole(data.role || '');
           setLandingPage(data.landingPage || 'calculator');
           setMuteNotifications(Boolean(data.muteNotifications));
+          setReceiveQuoteEmails(data.receiveQuoteEmails !== false);
         }
       } catch (err) {
         console.error(err);
@@ -70,6 +72,7 @@ export default function ProfilePage() {
           email, 
           landingPage,
           muteNotifications,
+          receiveQuoteEmails,
           currentPassword: currentPassword || undefined, 
           newPassword: newPassword || undefined 
         }),
@@ -185,14 +188,32 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">Choose where you automatically land right after logging in.</p>
                   </div>
 
-                  <div className="space-y-2 col-span-full pt-2">
+                  <div className="space-y-3 col-span-full pt-2">
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border">
+                      <div className="space-y-0.5 pr-4">
+                        <Label htmlFor="emailNotif" className="text-sm font-semibold cursor-pointer">
+                          Receive Quote Notification Emails
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Receive email alerts when quotes are assigned to you for review, approved, or modified.
+                        </p>
+                      </div>
+                      <input
+                        id="emailNotif"
+                        type="checkbox"
+                        checked={receiveQuoteEmails}
+                        onChange={(e) => setReceiveQuoteEmails(e.target.checked)}
+                        className="w-5 h-5 accent-primary cursor-pointer rounded"
+                      />
+                    </div>
+
                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border">
                       <div className="space-y-0.5 pr-4">
                         <Label htmlFor="muteNotif" className="text-sm font-semibold cursor-pointer">
-                          Mute Quote Review Notifications
+                          Mute In-App Review Notifications
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Turn this on if you don't want to receive email alerts or popups when a reviewer approves or modifies your quotes.
+                          Turn this on if you don't want to receive in-app notification popups when a reviewer approves or modifies your quotes.
                         </p>
                       </div>
                       <input

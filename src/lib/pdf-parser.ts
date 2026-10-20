@@ -237,16 +237,39 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
       
     const totalOption = (name: string) => sections.reduce((s, sec) => s + option(sec[0], sec[1], name), 0);
     
-    // Extract Width and Height exactly like original logic
+    // Extract Width and Height strictly for parent window frame (FR: W X H)
     let txt = R[start].size || '';
     for (let r = start + 1; r < end; r++) {
       if (childRe.test(R[r].no)) break; 
-      if (R[r].size) txt += ' ' + R[r].size;
-      if (/^LOT\/LOCATION/i.test(R[r].label)) break;
+      const lbl = (R[r].label || '').toUpperCase();
+      if (/LINE\s*ITEM\s*TOTAL|AREA\s*:|PERIMETER\s*:|^LOT\/LOCATION/i.test(lbl)) break;
+      if (R[r].size) {
+        if (/AREA\s*:|PERIMETER\s*:/i.test(R[r].size)) break;
+        txt += ' ' + R[r].size;
+      }
     }
-    const m = txt.match(/FR\s*:\s*(.+?)\s+X\s+(.+?)\s*(?:BM\s*:|$)/i);
-    const width = m ? m[1].trim() : '';
-    const height = m ? m[2].trim() : '';
+
+    // Dimension pattern: strictly matches numbers, decimals, or fractions (e.g. 60, 48, 60.5, 60 1/2, 60-1/2, 48 3/8)
+    const dimPattern = '(\\d+(?:\\.\\d+)?(?:\\s*(?:-|\\s)\\s*\\d+\\/\\d+)?|\\d+\\/\\d+)';
+    const frRegex = new RegExp(`FR\\s*:\\s*${dimPattern}\\s*X\\s*${dimPattern}`, 'i');
+    const m = txt.match(frRegex);
+
+    // Fallback: if no "FR:" prefix exists, search for numeric "W X H"
+    const fallbackRegex = new RegExp(`(?:^|\\s)${dimPattern}\\s*X\\s*${dimPattern}(?:\\s|$)`, 'i');
+    const fallbackM = !m ? txt.match(fallbackRegex) : null;
+
+    const rawW = m ? m[1] : (fallbackM ? fallbackM[1] : '');
+    const rawH = m ? m[2] : (fallbackM ? fallbackM[2] : '');
+
+    // Sanitizer: strip any non-dimension characters (only digits, decimals, slashes, dashes, spaces)
+    const cleanDimension = (v: string) => {
+      if (!v) return '';
+      const cleaned = v.replace(/[^0-9\s./-]/g, '').replace(/\s+/g, ' ').trim();
+      return /\d/.test(cleaned) ? cleaned : '';
+    };
+
+    const width = cleanDimension(rawW);
+    const height = cleanDimension(rawH);
     // User instruction: "if its white show white other wise replace it as painted"
     // Filter out insect screen mesh, locks/hardware, and glazing specs so "BLACK MESH" is never mistaken for frame paint
     const frameLines: string[] = [];

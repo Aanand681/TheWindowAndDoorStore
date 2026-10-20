@@ -108,6 +108,31 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<SendOt
   }
 }
 
+export function getAppUrl(req?: Request): string {
+  if (req) {
+    const origin = req.headers.get('origin');
+    if (origin && !origin.includes('localhost')) return origin.replace(/\/$/, '');
+    
+    const forwardedHost = req.headers.get('x-forwarded-host');
+    const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
+    if (forwardedHost && !forwardedHost.includes('localhost')) {
+      return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, '');
+    }
+    
+    const host = req.headers.get('host');
+    if (host && !host.includes('localhost')) {
+      return `https://${host}`.replace(/\/$/, '');
+    }
+  }
+
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, '');
+  if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
+    return process.env.NEXTAUTH_URL.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`.replace(/\/$/, '');
+  return (process.env.NEXTAUTH_URL || 'http://localhost:3000').replace(/\/$/, '');
+}
+
 export async function sendQuoteReminderEmail(params: {
   toEmail: string;
   reviewerName: string;
@@ -118,13 +143,14 @@ export async function sendQuoteReminderEmail(params: {
     daysPending: number;
     totalFormatted?: string;
   }>;
+  appUrl?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || '"The Window & Door Store" <noreply@vwd.com>';
-  const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const appUrl = params.appUrl || getAppUrl();
 
   if (!host || !user || !pass) {
     console.log(`[Quote Reminder Email Simulated] To: ${params.toEmail}, Quotes: ${params.pendingQuotes.length}`);
@@ -211,13 +237,14 @@ export async function sendQuoteApprovedEmail(params: {
   status: 'APPROVED' | 'MODIFIED' | 'RETURNED';
   reviewChanges?: string[];
   reviewerNotes?: string;
+  appUrl?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || '"The Window & Door Store" <noreply@vwd.com>';
-  const appUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const appUrl = params.appUrl || getAppUrl();
 
   if (!host || !user || !pass) {
     console.log(`[Quote Approved Email Simulated] To: ${params.toEmail}, Status: ${params.status}`);
@@ -299,6 +326,84 @@ export async function sendQuoteApprovedEmail(params: {
     return { success: true };
   } catch (error: any) {
     console.error('Failed to send quote approval email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sendQuoteReviewRequestedEmail(params: {
+  toEmail: string;
+  reviewerName: string;
+  preparerName: string;
+  quoteNumber: string;
+  customerName: string;
+  preparerNotes?: string;
+  appUrl?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || '"The Window & Door Store" <noreply@vwd.com>';
+  const appUrl = params.appUrl || getAppUrl();
+
+  if (!host || !user || !pass) {
+    console.log(`[Quote Review Request Email Simulated] To: ${params.toEmail}, Quote: #${params.quoteNumber}`);
+    return { success: true };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465 || process.env.SMTP_SECURE === 'true',
+      auth: { user, pass },
+    });
+
+    let notesHtml = '';
+    if (params.preparerNotes) {
+      notesHtml = `
+        <div style="background: #f8fafc; border-left: 3px solid #2563eb; padding: 10px 14px; margin: 14px 0; font-size: 13px; color: #334155;">
+          <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 3px;">Preparer Notes:</div>
+          "${params.preparerNotes}"
+        </div>
+      `;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; padding: 24px; margin: 0;">
+        <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 22px; color: #0f172a;">The Window & Door Store</h1>
+            <p style="margin: 4px 0 0; color: #64748b; font-size: 13px;">Quote Submitted for Review</p>
+          </div>
+          <p style="font-size: 15px; color: #1e293b;">Hello <b>${params.reviewerName}</b>,</p>
+          <p style="font-size: 14px; color: #475569; line-height: 1.5;">
+            <b>${params.preparerName}</b> has submitted quote <b>#${params.quoteNumber}</b> for <b>${params.customerName}</b> to you for review and approval.
+          </p>
+          ${notesHtml}
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${appUrl}/quotes" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+              Open Review Queue &rarr;
+            </a>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from,
+      to: params.toEmail,
+      subject: `New Quote #${params.quoteNumber} (${params.customerName}) Assigned for Review - The Window & Door Store`,
+      html: htmlContent,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to send quote review request email:', error);
     return { success: false, error: error.message };
   }
 }
