@@ -716,7 +716,7 @@ export default function QuotePdfStudioPage() {
                   {/* Generate Button at bottom of editor */}
                   <div className="pt-2">
                     <Button
-                      onClick={handleGeneratePdf}
+                      onClick={() => handleGeneratePdf()}
                       disabled={generating || !quoteData.items.length}
                       className="w-full gap-2 shadow-md cursor-pointer"
                     >
