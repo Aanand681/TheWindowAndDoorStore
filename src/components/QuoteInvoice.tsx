@@ -247,18 +247,7 @@ export default function QuoteInvoice({
     const labCents = Math.round((Number(a.lab) || 0) * 100);
     const miscCents = Math.round((Number(a.misc) || 0) * 100);
 
-    if (isDripEdge) {
-      // Drip edge: Only show labour portion in Extras table ($90.00).
-      // Misc portion ($20.97) is rolled directly into the Financial Summary's Miscellaneous line
-      if (labCents > 0) {
-        detailedExtrasList.push({
-          key: `${a.id || idx}-lab`,
-          label: a.label,
-          qty: a.qty || 1,
-          amount: labCents,
-        });
-      }
-    } else if (labCents > 0 && miscCents > 0) {
+    if (labCents > 0 && miscCents > 0) {
       detailedExtrasList.push({
         key: `${a.id || idx}-lab`,
         label: `${a.label} — Labour`,
@@ -309,6 +298,30 @@ export default function QuoteInvoice({
     regionName?.toLowerCase().includes('supply') ||
     taxTotals?.regionName?.toLowerCase().includes('supply')
   );
+
+  const hasJambs = Boolean(
+    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
+    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
+    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
+    (taxTotals?.jambId && taxTotals.jambId !== 'none')
+  );
+
+  const hasCasing = Boolean(
+    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
+    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
+    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
+    (taxTotals?.casingId && taxTotals.casingId !== 'none')
+  );
+
+  const jcLabel = (() => {
+    if (hasJambs && !hasCasing) {
+      return isSupplyOnly ? 'Jambs Only (Loose)' : 'Jambs Only';
+    }
+    if (!hasJambs && hasCasing) {
+      return isSupplyOnly ? 'Casing Only (Loose)' : 'Casing Only';
+    }
+    return isSupplyOnly ? 'Jambs & Casing (Loose)' : 'Jambs and Casings';
+  })();
 
   // Clean promo name to prevent raw MongoDB ObjectIDs from displaying on print/invoices
   const resolvedPromoName = (() => {
@@ -679,7 +692,7 @@ export default function QuoteInvoice({
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
                       <td className="py-1 text-[#0f172a] font-medium">
-                        {isSupplyOnly ? 'Jambs & Casing (Loose)' : 'Jambs and Casings'}
+                        {jcLabel}
                       </td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
                     </tr>
@@ -963,7 +976,7 @@ export default function QuoteInvoice({
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
                       <td className="py-1 text-[#0f172a] font-medium">
-                        {isSupplyOnly ? 'Jambs & Casing (Loose)' : 'Jambs and Casings'}
+                        {jcLabel}
                       </td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
                     </tr>
@@ -1252,7 +1265,7 @@ export default function QuoteInvoice({
                   {taxJCCents > 0 && (
                     <tr className="border-b border-[#e2e8f0]">
                       <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a] font-medium">
-                        {isSupplyOnly ? 'Jambs & Casing (Loose)' : 'Jambs and Casings'}
+                        {jcLabel}
                       </td>
                       <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
                     </tr>

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { LogoutButton } from '@/components/logout-button';
 import NotificationBell from '@/components/NotificationBell';
 import UserProfileMenu from '@/components/UserProfileMenu';
+import QuotesBinPill from '@/components/QuotesBinPill';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -49,13 +50,7 @@ export default async function AdminDashboard() {
               <Calculator className="w-3.5 h-3.5 text-primary" />
               <span>Calculator</span>
             </Link>
-            <Link 
-              href="/?tab=quotes" 
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur hover:bg-amber-500/10 hover:text-amber-500 transition-colors border-amber-500/30")}
-            >
-              <FileText className="w-3.5 h-3.5 text-amber-500" />
-              <span>Quotes &amp; Bin</span>
-            </Link>
+            <QuotesBinPill />
             <NotificationBell />
             <ThemeToggle />
             <UserProfileMenu />

@@ -566,10 +566,11 @@ export default function QuotePdfStudioPage() {
                       {quoteData.items.map((item, idx) => (
                         <div
                           key={idx}
-                          className={`p-3.5 rounded-xl border transition-all ${item.child
-                              ? 'bg-muted/20 border-border/40 ml-4'
-                              : 'bg-card/90 border-border/80 shadow-sm'
-                            }`}
+                          className={`rounded-xl border transition-all ${
+                            item.child
+                              ? 'bg-muted/15 border-border/40 ml-5 p-2.5 -mt-3 space-y-1'
+                              : 'bg-card/90 border-border/80 shadow-sm p-3.5'
+                          }`}
                         >
                           {/* Row Header */}
                           <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/40">
@@ -664,50 +665,62 @@ export default function QuotePdfStudioPage() {
                           </div>
 
                           {/* Options & CAD Drawing */}
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mt-3 items-center">
-                            <div className="sm:col-span-8 space-y-1">
+                          {item.child ? (
+                            <div className="space-y-1 mt-2">
                               <Label className="text-[11px] text-muted-foreground">Options &amp; Performance</Label>
-                              <Textarea
-                                rows={2}
+                              <Input
                                 value={item.options}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                                  handleUpdateItem(idx, 'options', e.target.value)
-                                }
-                                className="text-xs bg-background/80"
+                                onChange={e => handleUpdateItem(idx, 'options', e.target.value)}
+                                className="h-8 text-xs bg-background/80"
+                                placeholder="Child unit options..."
                               />
                             </div>
-
-                            {/* Drawing Preview & Upload */}
-                            <div className="sm:col-span-4 flex flex-col items-center justify-center p-2 rounded-lg bg-muted/20 border border-border/40">
-                              {item.image ? (
-                                <div className="text-center">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={item.image}
-                                    alt="CAD drawing"
-                                    className="max-h-20 max-w-full object-contain mx-auto bg-white p-1 rounded border shadow-xs"
-                                  />
-                                  <span className="text-[10px] text-muted-foreground block mt-1">Outside view</span>
-                                </div>
-                              ) : (
-                                <div className="text-center py-2 text-muted-foreground text-xs">
-                                  <ImageIcon className="w-5 h-5 mx-auto mb-1 opacity-40" />
-                                  <span>No drawing</span>
-                                </div>
-                              )}
-
-                              <label className="mt-1 text-[11px] text-primary hover:underline cursor-pointer flex items-center gap-1">
-                                <ImageIcon className="w-3 h-3" />
-                                <span>{item.image ? 'Replace' : 'Upload drawing'}</span>
-                                <input
-                                  type="file"
-                                  accept="image/png,image/jpeg"
-                                  className="hidden"
-                                  onChange={e => handleImageUpload(idx, e)}
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mt-3 items-center">
+                              <div className="sm:col-span-8 space-y-1">
+                                <Label className="text-[11px] text-muted-foreground">Options &amp; Performance</Label>
+                                <Textarea
+                                  rows={2}
+                                  value={item.options}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                                    handleUpdateItem(idx, 'options', e.target.value)
+                                  }
+                                  className="text-xs bg-background/80"
                                 />
-                              </label>
+                              </div>
+
+                              {/* Drawing Preview & Upload */}
+                              <div className="sm:col-span-4 flex flex-col items-center justify-center p-2 rounded-lg bg-muted/20 border border-border/40">
+                                {item.image ? (
+                                  <div className="text-center">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={item.image}
+                                      alt="CAD drawing"
+                                      className="max-h-20 max-w-full object-contain mx-auto bg-white p-1 rounded border shadow-xs"
+                                    />
+                                    <span className="text-[10px] text-muted-foreground block mt-1">Outside view</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-2 text-muted-foreground text-xs">
+                                    <ImageIcon className="w-5 h-5 mx-auto mb-1 opacity-40" />
+                                    <span>No drawing</span>
+                                  </div>
+                                )}
+
+                                <label className="mt-1 text-[11px] text-primary hover:underline cursor-pointer flex items-center gap-1">
+                                  <ImageIcon className="w-3 h-3" />
+                                  <span>{item.image ? 'Replace' : 'Upload drawing'}</span>
+                                  <input
+                                    type="file"
+                                    accept="image/png,image/jpeg"
+                                    className="hidden"
+                                    onChange={e => handleImageUpload(idx, e)}
+                                  />
+                                </label>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>

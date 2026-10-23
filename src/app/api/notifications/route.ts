@@ -42,21 +42,24 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const currentUsername = (session.user as any).name || (session.user as any).username;
+    const currentUsername = (session.user as any).username || (session.user as any).name;
     const body = await request.json();
     const { notificationId, markAllAsRead } = body;
 
     await dbConnect();
 
     if (markAllAsRead) {
-      await Notification.updateMany(
+      const result = await Notification.updateMany(
         {
-          recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, 'i') },
+          $or: [
+            { recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, 'i') } },
+            { recipientUsername: currentUsername },
+          ],
           isRead: false,
         },
         { $set: { isRead: true } }
       );
-      return NextResponse.json({ message: 'All notifications marked as read' });
+      return NextResponse.json({ message: 'All notifications marked as read', modifiedCount: result.modifiedCount });
     }
 
     if (notificationId) {
@@ -70,4 +73,6 @@ export async function PUT(request: Request) {
   }
 }
 
-export const PATCH = PUT;
+export async function PATCH(request: Request) {
+  return PUT(request);
+}

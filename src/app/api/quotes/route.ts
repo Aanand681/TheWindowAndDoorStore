@@ -45,19 +45,21 @@ export async function GET(request: Request) {
       const canReview = userRole === 'ADMIN' || userRole === 'SUPERADMIN' || deptDoc?.permissions?.canReviewQuote === true;
       const canAccessOdooQueue = userRole === 'ADMIN' || userRole === 'SUPERADMIN' || deptDoc?.permissions?.canAccessOdooQueue === true;
 
-      // Pending reviews specifically assigned to this user (or unassigned/legacy 'Admin')
-      const pendingReviewCount = await SavedQuote.countDocuments({
-        status: 'PENDING_REVIEW',
-        $or: [
-          { assignedTo: { $regex: new RegExp(`^${currentUser}$`, 'i') } },
-          { assignedTo: 'Admin' },
-          { assignedTo: { $exists: false } },
-          { assignedTo: '' },
-        ],
-      });
+      const isSuperAdmin = userRole === 'SUPERADMIN' || currentUser?.toLowerCase() === 'cheeku';
 
-      // Pending Odoo entries assigned to this user (or all pending if authorized)
-      const pendingOdooCount = canAccessOdooQueue
+      // Pending reviews specifically assigned to this user (SuperAdmin sees all)
+      const pendingReviewCount = isSuperAdmin
+        ? await SavedQuote.countDocuments({ status: 'PENDING_REVIEW' })
+        : await SavedQuote.countDocuments({
+            status: 'PENDING_REVIEW',
+            $or: [
+              { assignedTo: { $regex: new RegExp(`^${currentUser}$`, 'i') } },
+              ...(currentUser?.toLowerCase() === 'admin' ? [{ assignedTo: 'Admin' }, { assignedTo: { $exists: false } }, { assignedTo: '' }] : []),
+            ],
+          });
+
+      // Pending Odoo entries assigned to this user (or all pending if SuperAdmin)
+      const pendingOdooCount = isSuperAdmin
         ? await SavedQuote.countDocuments({ odooStatus: 'PENDING_ENTRY' })
         : await SavedQuote.countDocuments({
             odooStatus: 'PENDING_ENTRY',
@@ -71,7 +73,13 @@ export async function GET(request: Request) {
         updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // past 7 days
       });
 
-      const totalActionableCount = canReview
+      // For pill count:
+      // Reviewers count their assigned reviews + any Odoo orders explicitly assigned to them
+      // SuperAdmin counts all pending reviews + all pending Odoo orders
+      // Clerks count orders assigned to them
+      const totalActionableCount = isSuperAdmin
+        ? pendingReviewCount + pendingOdooCount
+        : canReview
         ? pendingReviewCount + pendingOdooCount
         : pendingOdooCount;
 

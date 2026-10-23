@@ -153,29 +153,36 @@ export default function PromoCalculator() {
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
   const [quotesSubTab, setQuotesSubTab] = useState<QuotesSubTabType>('review');
 
-  const switchTab = (tab: string, sub?: QuotesSubTabType) => {
+  const switchTab = (tab: string, sub?: QuotesSubTabType, replace = false) => {
     setShowGreeting(false);
     setActiveTab(tab);
     if (sub) {
       setQuotesSubTab(sub);
     }
     if (typeof window !== 'undefined') {
+      let targetUrl = '/';
       if (tab === 'quotes') {
         const targetSub = sub || quotesSubTab || 'my';
-        window.history.replaceState({}, '', `/?tab=quotes&sub=${targetSub}`);
+        targetUrl = `/?tab=quotes&sub=${targetSub}`;
       } else if (tab === 'tax') {
         if (reviewQuoteId) {
-          window.history.replaceState({}, '', `/?reviewQuoteId=${reviewQuoteId}&tab=tax${isEditMode ? '&edit=true' : ''}`);
+          targetUrl = `/?reviewQuoteId=${reviewQuoteId}&tab=tax${isEditMode ? '&edit=true' : ''}`;
         } else {
-          window.history.replaceState({}, '', '/?tab=tax');
+          targetUrl = '/?tab=tax';
         }
       } else {
         // tab === 'promo' (Calculator)
         if (reviewQuoteId) {
-          window.history.replaceState({}, '', `/?reviewQuoteId=${reviewQuoteId}${isEditMode ? '&edit=true' : ''}`);
+          targetUrl = `/?reviewQuoteId=${reviewQuoteId}${isEditMode ? '&edit=true' : ''}`;
         } else {
-          window.history.replaceState({}, '', '/');
+          targetUrl = '/';
         }
+      }
+
+      if (replace) {
+        window.history.replaceState({ tab, sub: sub || quotesSubTab, reviewQuoteId }, '', targetUrl);
+      } else {
+        window.history.pushState({ tab, sub: sub || quotesSubTab, reviewQuoteId }, '', targetUrl);
       }
     }
   };
@@ -206,6 +213,9 @@ export default function PromoCalculator() {
     return groups;
   }, [windows]);
   
+  // Tax Calculator reset key
+  const [taxCalcKey, setTaxCalcKey] = useState(0);
+
   // Submit for Review / Direct Approve Modal State
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [assignedReviewer, setAssignedReviewer] = useState('');
@@ -414,6 +424,82 @@ export default function PromoCalculator() {
     };
   }, []);
 
+  // Synchronize browser Back & Forward navigation with tabs and review state
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const subParam = params.get('sub') as QuotesSubTabType | null;
+      const qId = params.get('reviewQuoteId') || params.get('quoteId');
+      const editParam = params.get('edit') === 'true';
+
+      if (tabParam === 'quotes') {
+        setActiveTab('quotes');
+        if (subParam && ['odoo', 'review', 'my', 'all', 'odoo_completed', 'all_assigned'].includes(subParam)) {
+          setQuotesSubTab(subParam);
+        }
+      } else if (tabParam === 'tax') {
+        setActiveTab('tax');
+      } else {
+        setActiveTab('promo');
+      }
+
+      if (qId) {
+        if (qId !== reviewQuoteId) {
+          setReviewQuoteId(qId);
+          setIsEditMode(editParam);
+          fetch(`/api/quotes/${qId}?t=${Date.now()}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then(q => {
+              if (q && q._id) {
+                setReviewQuote(q);
+                setOriginalSnapshot(q.initialSnapshot || q);
+                if (q.windows?.length) setWindows(q.windows);
+                if (q.customerName) setCustomerName(q.customerName);
+                if (q.quoteNumber) setQuoteNumber(q.quoteNumber);
+                if (q.quoteNotes) setQuoteNotes(q.quoteNotes);
+                if (q.surchargeRate !== undefined) setSurchargeRate(q.surchargeRate);
+                if (q.activePromoId) {
+                  setActivePromoId(q.activePromoId);
+                  setLockedPromoId(q.activePromoId);
+                }
+                if (q.customJC !== undefined) setCustomJC(String(q.customJC || ''));
+                if (q.customMisc !== undefined) setCustomMisc(String(q.customMisc || ''));
+                if (q.customLabour !== undefined) setCustomLabour(String(q.customLabour || ''));
+                if (q.includeJCInPromo !== undefined) setIncludeJCInPromo(Boolean(q.includeJCInPromo));
+                if (q.includeMiscInPromo !== undefined) setIncludeMiscInPromo(Boolean(q.includeMiscInPromo));
+                if (q.includeLabourInPromo !== undefined) setIncludeLabourInPromo(Boolean(q.includeLabourInPromo));
+                if (q.taxTotals) {
+                  setTaxTotals({ ...q.taxTotals, _quoteId: q._id, _quoteNumber: q.quoteNumber });
+                }
+              }
+            })
+            .catch(console.error);
+        }
+      } else {
+        // No quote in URL: user navigated back to clean calculator
+        if (reviewQuoteId || reviewQuote) {
+          setIsEditMode(false);
+          setReviewQuote(null);
+          setReviewQuoteId(null);
+          setOriginalSnapshot(null);
+          setWindows([{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
+          setCustomerName('');
+          setQuoteNumber('');
+          setQuoteNotes('');
+          setCustomJC('');
+          setCustomMisc('');
+          setCustomLabour('');
+          setTaxTotals(null);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [reviewQuoteId, reviewQuote]);
+
   const handleOpenQuoteFromTab = (qId: string, isEdit?: boolean, originSubTab?: QuotesSubTabType) => {
     if (originSubTab) {
       setQuotesSubTab(originSubTab);
@@ -422,7 +508,7 @@ export default function PromoCalculator() {
     setReviewQuoteId(qId);
     setActiveTab('promo');
     if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', `/?reviewQuoteId=${qId}${isEdit ? '&edit=true' : ''}`);
+      window.history.pushState({ tab: 'promo', reviewQuoteId: qId, isEdit }, '', `/?reviewQuoteId=${qId}${isEdit ? '&edit=true' : ''}`);
     }
     fetch(`/api/quotes/${qId}?t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
@@ -779,7 +865,7 @@ export default function PromoCalculator() {
     setQuotesSubTab(targetSubTab);
     setActiveTab('quotes');
     if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', `/?tab=quotes&sub=${targetSubTab}`);
+      window.history.pushState({ tab: 'quotes', sub: targetSubTab }, '', `/?tab=quotes&sub=${targetSubTab}`);
     }
     const tabName = targetSubTab === 'review'
       ? 'Pending Review queue'
@@ -946,6 +1032,19 @@ export default function PromoCalculator() {
       setWindows(imported.length > 0 ? imported : [{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
       setLockedPromoId(null);
       setActivePromoId('none');
+
+      // Reset all manual price overrides, custom notes, and tax calculator form area
+      setCustomJC('');
+      setCustomMisc('');
+      setCustomLabour('');
+      setIncludeJCInPromo(true);
+      setIncludeMiscInPromo(true);
+      setIncludeLabourInPromo(true);
+      setQuoteNotes('');
+      setPreparerNotes('');
+      setTaxTotals(null);
+      setTaxCalcKey(k => k + 1);
+
       toast.success(`Imported ${imported.length} window(s) from ${file.name}.`);
     } catch (error: any) {
       toast.error(`PDF import failed: ${error.message}`);
@@ -1098,8 +1197,26 @@ export default function PromoCalculator() {
               variant="outline" 
               size="sm"
               onClick={() => {
-                const nextTab = activeTab === 'quotes' ? 'promo' : 'quotes';
-                switchTab(nextTab);
+                if (activeTab === 'quotes') {
+                  // Going from Quotes & Bin to Calculator: start fresh!
+                  if (reviewQuote) {
+                    setIsEditMode(false);
+                    setReviewQuote(null);
+                    setReviewQuoteId(null);
+                    setOriginalSnapshot(null);
+                    setWindows([{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
+                    setCustomerName('');
+                    setQuoteNumber('');
+                    setQuoteNotes('');
+                    setCustomJC('');
+                    setCustomMisc('');
+                    setCustomLabour('');
+                    setTaxTotals(null);
+                  }
+                  switchTab('promo');
+                } else {
+                  switchTab('quotes');
+                }
               }}
               className={cn(
                 "gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-colors cursor-pointer",
@@ -1166,7 +1283,7 @@ export default function PromoCalculator() {
 
 
         {/* Dynamic Sticky Review Mode Banner */}
-        {reviewQuote && (
+        {reviewQuote && activeTab !== 'quotes' && (
           <div className={`p-4 rounded-2xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 border-2 ${
             reviewQuote.status === 'APPROVED'
               ? 'bg-emerald-500/15 border-emerald-500/50'
@@ -1341,21 +1458,10 @@ export default function PromoCalculator() {
                         onClick={handleSaveQuotePrices}
                         disabled={reviewActionLoading}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer"
-                        title="Save changes and keep current approval status"
+                        title="Save changes and keep current approval status for clerk"
                       >
                         <Save className="w-3.5 h-3.5 mr-1.5" />
                         Save &amp; Keep Approved
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="default"
-                        onClick={handleResubmitReturnedQuote}
-                        disabled={reviewActionLoading}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm cursor-pointer"
-                        title="Resubmit quote for formal reviewer approval"
-                      >
-                        <Send className="w-3.5 h-3.5 mr-1.5" />
-                        Resubmit for Review
                       </Button>
                       <Button 
                         variant="outline" 
@@ -2350,6 +2456,7 @@ export default function PromoCalculator() {
       
       <div className={cn("mt-0 outline-none", activeTab !== 'tax' && "hidden")}>
         <TaxCalculatorTab 
+          key={taxCalcKey}
           windows={windows} 
           onWindowsChange={setWindows} 
           onCalculated={setTaxTotals} 

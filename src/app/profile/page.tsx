@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
 import NotificationBell from '@/components/NotificationBell';
+import QuotesBinPill from '@/components/QuotesBinPill';
+import SmartBackButton from '@/components/SmartBackButton';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -106,9 +108,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto px-4 py-12 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <Button onClick={() => router.back()} variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur" title="Go Back">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+            <SmartBackButton fallbackUrl="/" label="Back" />
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
@@ -124,6 +124,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <QuotesBinPill />
             <NotificationBell />
             <ThemeToggle />
           </div>

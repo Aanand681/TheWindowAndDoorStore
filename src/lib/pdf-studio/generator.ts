@@ -115,7 +115,7 @@ export async function generateStudioPdf(data: StudioQuoteData): Promise<Uint8Arr
       ['ITEM', 15],
       ['DESCRIPTION', 100],
       ['QTY', 255],
-      ['SIZE', 330],
+      ['SIZE', 315],
       ['LIST', 475],
       ['TOTAL', 545],
     ];
@@ -230,10 +230,21 @@ export async function generateStudioPdf(data: StudioQuoteData): Promise<Uint8Arr
 
     // Row height accounts for price line + CAD drawing (up to 75pt) + Outside view label
     const drawingHeight = item.image ? 85 : 0;
+    const parentBaseHeight = drawingHeight > 0 ? drawingHeight + 36 : 70;
+    // Decrease parent bottom space by 10% when followed by a child unit
+    const minHeight = isChild ? 22 : (isNextChild ? Math.round(parentBaseHeight * 0.9) : parentBaseHeight);
+    
+    // Accurate options height to prevent 2.1 and 2.2 text overlapping
+    const optsHeight = isChild
+      ? (optsLines.length > 0 ? 14 + (optsLines.length - 1) * 11 + 15 : 22)
+      : (optsLines.length * 11 + (isNextChild ? 25 : 30));
+
+    const sizeHeight = sizeLines.length > 0 ? sizeLines.length * 11 + 16 : 0;
+
     const rowHeight = Math.max(
-      drawingHeight > 0 ? drawingHeight + 36 : 85,
-      optsLines.length * 11 + 34,
-      sizeLines.length * 11 + 20
+      minHeight,
+      optsHeight,
+      sizeHeight
     );
 
     // If row doesn't fit on current page, create next page
@@ -252,9 +263,9 @@ export async function generateStudioPdf(data: StudioQuoteData): Promise<Uint8Arr
       draw(item.qty, 257, top);
     }
 
-    // Size lines (moved 20% right to x: 330)
+    // Size lines (moved 10% left to x: 315)
     sizeLines.forEach((line, j) => {
-      draw(line, 330, top - j * 11, 8);
+      draw(line, 315, top - j * 11, 8);
     });
 
     // Options lines

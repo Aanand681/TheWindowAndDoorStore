@@ -137,12 +137,21 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
         setQuotes(list);
         
         let totalActionable = 0;
-        if (canReview) {
-          const pendingReview = list.filter((q: any) => 
-            q.status === 'PENDING_REVIEW' && 
-            (!q.assignedTo || q.assignedTo.toLowerCase() === myUsername || q.assignedTo.toLowerCase() === 'admin')
-          ).length;
+        if (isSuperAdmin) {
+          const pendingReview = list.filter((q: any) => q.status === 'PENDING_REVIEW').length;
           const pendingOdoo = list.filter((q: any) => q.odooStatus === 'PENDING_ENTRY' || (!q.odooStatus && Boolean(q.odooAssignedTo))).length;
+          totalActionable = pendingReview + pendingOdoo;
+        } else if (canReview) {
+          const pendingReview = list.filter((q: any) => {
+            if (q.status !== 'PENDING_REVIEW') return false;
+            const assigned = q.assignedTo?.toLowerCase()?.trim();
+            if (assigned) return assigned === myUsername;
+            return myUsername === 'admin';
+          }).length;
+          const pendingOdoo = list.filter((q: any) => 
+            (q.odooStatus === 'PENDING_ENTRY' || (!q.odooStatus && Boolean(q.odooAssignedTo))) &&
+            q.odooAssignedTo?.toLowerCase() === myUsername
+          ).length;
           totalActionable = pendingReview + pendingOdoo;
         } else if (isClerk) {
           totalActionable = list.filter((q: any) => q.odooAssignedTo?.toLowerCase() === myUsername && q.odooStatus !== 'COMPLETED').length;
@@ -346,6 +355,11 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
       }
       if (previewId) {
         setActiveTab('odoo');
+        if (typeof window !== 'undefined') {
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('previewQuoteId');
+          window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+        }
         try {
           const res = await fetch(`/api/quotes/${previewId}?t=${Date.now()}`);
           if (res.ok) {
@@ -466,9 +480,13 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
       if (activeTab === 'review') {
         if (quote.status !== 'PENDING_REVIEW') return false;
         // Review section strictly displays quotes assigned to this reviewer/admin
-        const assigned = quote.assignedTo?.toLowerCase();
-        if (assigned && assigned !== myUsername && assigned !== 'admin') {
-          return false;
+        const assigned = quote.assignedTo?.toLowerCase()?.trim();
+        if (isSuperAdmin) {
+          // Superadmin can see all reviews
+        } else if (assigned) {
+          if (assigned !== myUsername) return false;
+        } else {
+          if (myUsername !== 'admin') return false;
         }
       } else if (activeTab === 'odoo') {
         if (!Boolean(quote.odooAssignedTo || quote.odooStatus === 'PENDING_ENTRY' || quote.odooStatus === 'COMPLETED')) return false;
@@ -551,8 +569,14 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
     setStatusFilter('all');
   };
 
-  // Admin / Reviewer Counts
-  const adminPendingCount = quotes.filter(q => q.status === 'PENDING_REVIEW').length;
+  // Admin / Reviewer Counts - strictly quotes assigned to this admin (or all if superadmin)
+  const adminPendingCount = quotes.filter(q => {
+    if (q.status !== 'PENDING_REVIEW') return false;
+    if (isSuperAdmin) return true;
+    const assigned = q.assignedTo?.toLowerCase()?.trim();
+    if (assigned) return assigned === myUsername;
+    return myUsername === 'admin';
+  }).length;
   const adminOdooCount = quotes.filter(q => q.odooStatus === 'PENDING_ENTRY' || (!q.odooStatus && Boolean(q.odooAssignedTo))).length;
   const adminArchiveCount = quotes.length;
 
@@ -1276,7 +1300,7 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
                             </Button>
                           )}
 
-                          {!isClerk && (
+                          {canReview && (
                             <Button 
                               variant="outline" 
                               size="sm" 

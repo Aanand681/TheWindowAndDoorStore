@@ -5,6 +5,8 @@ import dbConnect from './mongodb';
 import User from '@/models/User';
 import Department from '@/models/Department';
 
+import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts } from './login-rate-limiter';
+
 // Enable multi-host and LAN IP support (e.g. 192.168.x.x, localhost, custom domains)
 process.env.AUTH_TRUST_HOST = 'true';
 
@@ -34,18 +36,30 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Please enter username/email and password');
         }
 
+        const identifier = credentials.usernameOrEmail.trim();
+
+        // 1. Check Rate Limit & Lockout
+        const rateCheck = checkLoginRateLimit(identifier);
+        if (!rateCheck.allowed) {
+          throw new Error(`Too many failed login attempts. Please wait ${rateCheck.minutesRemaining} minutes before trying again.`);
+        }
+
         await dbConnect();
 
         // Check if the input is an email or username
-        const isEmail = credentials.usernameOrEmail.includes('@');
+        const isEmail = identifier.includes('@');
         const query = isEmail
-          ? { email: credentials.usernameOrEmail }
-          : { username: credentials.usernameOrEmail };
+          ? { email: identifier }
+          : { username: identifier };
 
         const user = await User.findOne(query);
 
         if (!user) {
-          throw new Error('No user found');
+          const failed = recordFailedLogin(identifier);
+          if (failed.isLocked) {
+            throw new Error('Too many failed login attempts. Your account has been temporarily locked for 15 minutes.');
+          }
+          throw new Error(`Invalid username or password. (${failed.attemptsRemaining} attempt${failed.attemptsRemaining === 1 ? '' : 's'} remaining)`);
         }
 
         const isValidPassword = await bcrypt.compare(
@@ -54,8 +68,15 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValidPassword) {
-          throw new Error('Invalid password');
+          const failed = recordFailedLogin(identifier);
+          if (failed.isLocked) {
+            throw new Error('Too many failed login attempts. Your account has been temporarily locked for 15 minutes.');
+          }
+          throw new Error(`Invalid username or password. (${failed.attemptsRemaining} attempt${failed.attemptsRemaining === 1 ? '' : 's'} remaining)`);
         }
+
+        // Login successful: reset rate limit tracking
+        resetLoginAttempts(identifier);
 
         const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
         let canAccessAdmin = isSuper || user.role === 'ADMIN';
@@ -98,6 +119,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.department = (user as any).department;
         token.id = (user as any).id;
+        token.username = (user as any).name || (user as any).username;
         token.landingPage = (user as any).landingPage || 'calculator';
         token.muteNotifications = (user as any).muteNotifications || false;
         token.canAccessAdmin = Boolean((user as any).canAccessAdmin);
@@ -109,6 +131,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).department = token.department;
         (session.user as any).id = token.id;
+        (session.user as any).username = (token as any).username || session.user.name;
         (session.user as any).landingPage = token.landingPage || 'calculator';
         (session.user as any).muteNotifications = token.muteNotifications || false;
         (session.user as any).canAccessAdmin = Boolean(token.canAccessAdmin);
@@ -117,10 +140,14 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/login', // We will build this page later
+    signIn: '/login',
   },
   session: {
     strategy: 'jwt',
+    maxAge: 60 * 60, // 1 hour session lifetime
+  },
+  jwt: {
+    maxAge: 60 * 60, // 1 hour token lifetime
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

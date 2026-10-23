@@ -9,6 +9,8 @@ import { ArrowLeft, Map, Save, Maximize2, Minimize2, RotateCcw, Trash2, Plus, X,
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import NotificationBell from '@/components/NotificationBell';
+import QuotesBinPill from '@/components/QuotesBinPill';
+import SmartBackButton from '@/components/SmartBackButton';
 import dynamic from 'next/dynamic';
 
 const AdminGeofenceMap = dynamic(() => import('@/components/AdminGeofenceMap'), { ssr: false });
@@ -235,11 +237,7 @@ export default function RegionsDashboard() {
       <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/admin">
-              <Button variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur" title="Back to Admin">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </Link>
+            <SmartBackButton fallbackUrl="/admin" label="Back to Admin" />
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
@@ -255,6 +253,7 @@ export default function RegionsDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <QuotesBinPill />
             <Button
               onClick={() => setIsCreateOpen(true)}
               size="sm"

@@ -385,28 +385,38 @@ export async function PUT(
         }
       }
 
-    // 2. If an Odoo employee is assigned upon approval or reassignment, send instant notification to them
-    const isOdooAssignment = body.odooAssignedTo && (
+    // 2. If an Odoo employee is newly assigned or quote newly approved, send instant notification to them
+    const isNewOdooAssignment = body.odooAssignedTo && (
       body.odooAssignedTo !== existingQuote.odooAssignedTo ||
-      newStatus === 'APPROVED' || 
-      newStatus === 'MODIFIED'
+      (existingQuote.status !== 'APPROVED' && newStatus === 'APPROVED')
     );
-    if (isOdooAssignment) {
+    if (isNewOdooAssignment) {
       try {
         const reviewerDisplay = updatedQuote.reviewedBy || reviewerUsername || (session?.user as any)?.username || 'Admin';
-        const odooClerkNotif = await Notification.create({
-          recipientUsername: body.odooAssignedTo,
-          senderUsername: reviewerDisplay,
-          type: 'QUOTE_ODOO_ASSIGNED',
-          title: `Quote #${updatedQuote.quoteNumber} Assigned for Odoo Entry`,
-          message: `${reviewerDisplay} assigned quote #${updatedQuote.quoteNumber} (${updatedQuote.customerName}) to you for Odoo entry & physical filing.`,
+        
+        // Prevent duplicate spam: if an unread notification already exists for this quote & clerk, don't create duplicate
+        const existingNotif = await Notification.findOne({
           quoteId: updatedQuote._id.toString(),
-          quoteNumber: updatedQuote.quoteNumber,
-          customerName: updatedQuote.customerName,
+          recipientUsername: { $regex: new RegExp(`^${body.odooAssignedTo}$`, 'i') },
+          type: 'QUOTE_ODOO_ASSIGNED',
           isRead: false,
         });
 
-        await triggerPusherEvent(`user-${body.odooAssignedTo.toLowerCase()}`, 'notification', odooClerkNotif);
+        if (!existingNotif) {
+          const odooClerkNotif = await Notification.create({
+            recipientUsername: body.odooAssignedTo,
+            senderUsername: reviewerDisplay,
+            type: 'QUOTE_ODOO_ASSIGNED',
+            title: `Quote #${updatedQuote.quoteNumber} Assigned for Odoo Entry`,
+            message: `${reviewerDisplay} assigned quote #${updatedQuote.quoteNumber} (${updatedQuote.customerName}) to you for Odoo entry & physical filing.`,
+            quoteId: updatedQuote._id.toString(),
+            quoteNumber: updatedQuote.quoteNumber,
+            customerName: updatedQuote.customerName,
+            isRead: false,
+          });
+
+          await triggerPusherEvent(`user-${body.odooAssignedTo.toLowerCase()}`, 'notification', odooClerkNotif);
+        }
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
       } catch (odooErr) {
         console.error('Failed to create Odoo assignment notification:', odooErr);

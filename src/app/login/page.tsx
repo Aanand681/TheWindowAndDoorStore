@@ -43,28 +43,32 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError('Invalid username or password. Please try again.');
+      // Check if error contains rate limiting / lockout message
+      if (res.error.toLowerCase().includes('too many') || res.error.toLowerCase().includes('locked')) {
+        setError(res.error);
+      } else if (res.error.includes('(') && res.error.includes('remaining)')) {
+        setError(res.error);
+      } else {
+        setError('Invalid username or password. Please try again.');
+      }
       setLoading(false);
     } else {
+      let targetUrl = '/';
       try {
         const profRes = await fetch('/api/profile');
         if (profRes.ok) {
           const prof = await profRes.json();
           if (prof.landingPage === 'admin' && (prof.role === 'ADMIN' || prof.role === 'SUPERADMIN')) {
-            router.push('/admin');
-            router.refresh();
-            return;
+            targetUrl = '/admin';
           } else if (prof.landingPage === 'quotes') {
-            router.push('/quotes');
-            router.refresh();
-            return;
+            targetUrl = '/quotes';
           }
         }
       } catch (err) {
         console.error('Error fetching landing page preference:', err);
       }
-      router.push('/');
-      router.refresh();
+      // Use window.location.href to guarantee full session cookie synchronization and instant redirection
+      window.location.href = targetUrl;
     }
   };
 

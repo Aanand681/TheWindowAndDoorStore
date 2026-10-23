@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Settings2, DollarSign, Component } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
+import NotificationBell from '@/components/NotificationBell';
+import UserProfileMenu from '@/components/UserProfileMenu';
+import QuotesBinPill from '@/components/QuotesBinPill';
+import SmartBackButton from '@/components/SmartBackButton';
 
 export default function SettingsDashboard() {
   const [surcharge, setSurcharge] = useState<string>('');
@@ -57,11 +61,7 @@ export default function SettingsDashboard() {
       <div className="max-w-4xl mx-auto px-4 py-12 relative z-10 space-y-8">
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/admin">
-              <Button variant="outline" size="icon" className="rounded-full bg-card/50 backdrop-blur" title="Back to Admin">
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </Link>
+            <SmartBackButton fallbackUrl="/admin" title="Back to Admin" />
             <Link 
               href="/" 
               className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
@@ -76,7 +76,12 @@ export default function SettingsDashboard() {
               <span className="text-base font-semibold tracking-wider uppercase">Global Settings</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <QuotesBinPill />
+            <NotificationBell />
+            <ThemeToggle />
+            <UserProfileMenu />
+          </div>
         </header>
 
         <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
