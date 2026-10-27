@@ -31,15 +31,31 @@ export const authOptions: NextAuthOptions = {
         usernameOrEmail: { label: 'Username or Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.usernameOrEmail || !credentials?.password) {
           throw new Error('Please enter username/email and password');
         }
 
         const identifier = credentials.usernameOrEmail.trim();
 
-        // 1. Check Rate Limit & Lockout
-        const rateCheck = checkLoginRateLimit(identifier);
+        // Extract client IP address for dual tracking
+        let clientIp = '127.0.0.1';
+        try {
+          const { headers } = await import('next/headers');
+          const h = await headers();
+          clientIp = h.get('x-forwarded-for')?.split(',')[0].trim() || h.get('x-real-ip') || '127.0.0.1';
+        } catch {
+          if (req && (req as any).headers) {
+            const h = (req as any).headers;
+            const fwd = h['x-forwarded-for'] || h['x-real-ip'];
+            if (typeof fwd === 'string') clientIp = fwd.split(',')[0].trim();
+          }
+        }
+
+        const rateTarget = { identifier, clientIp };
+
+        // 1. Check Rate Limit & Lockout (Tracked across both username and IP)
+        const rateCheck = checkLoginRateLimit(rateTarget);
         if (!rateCheck.allowed) {
           throw new Error(`Too many failed login attempts. Please wait ${rateCheck.minutesRemaining} minutes before trying again.`);
         }
@@ -55,9 +71,9 @@ export const authOptions: NextAuthOptions = {
         const user = await User.findOne(query);
 
         if (!user) {
-          const failed = recordFailedLogin(identifier);
+          const failed = recordFailedLogin(rateTarget);
           if (failed.isLocked) {
-            throw new Error('Too many failed login attempts. Your account has been temporarily locked for 15 minutes.');
+            throw new Error('Too many failed login attempts. Your account or IP has been temporarily locked for 15 minutes.');
           }
           throw new Error(`Invalid username or password. (${failed.attemptsRemaining} attempt${failed.attemptsRemaining === 1 ? '' : 's'} remaining)`);
         }
@@ -68,15 +84,15 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValidPassword) {
-          const failed = recordFailedLogin(identifier);
+          const failed = recordFailedLogin(rateTarget);
           if (failed.isLocked) {
-            throw new Error('Too many failed login attempts. Your account has been temporarily locked for 15 minutes.');
+            throw new Error('Too many failed login attempts. Your account or IP has been temporarily locked for 15 minutes.');
           }
           throw new Error(`Invalid username or password. (${failed.attemptsRemaining} attempt${failed.attemptsRemaining === 1 ? '' : 's'} remaining)`);
         }
 
-        // Login successful: reset rate limit tracking
-        resetLoginAttempts(identifier);
+        // Login successful: reset rate limit tracking for both user and IP
+        resetLoginAttempts(rateTarget);
 
         const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
         let canAccessAdmin = isSuper || user.role === 'ADMIN';

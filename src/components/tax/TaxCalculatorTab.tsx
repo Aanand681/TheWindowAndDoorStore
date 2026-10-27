@@ -120,6 +120,10 @@ export default function TaxCalculatorTab({
       setManualHours('0');
       setTravelInfo(null);
       setCrew('none');
+      setJambId('none');
+      setCasingId('none');
+      setJambRate('0');
+      setCasingRate('0');
       return;
     }
     if (reg.name.toLowerCase().includes('dryden') || reg.name.toLowerCase().includes('sioux')) {
@@ -140,6 +144,11 @@ export default function TaxCalculatorTab({
             const ff = d.find((r: any) => r.name.toLowerCase().includes('fort frances'));
             const initial = ff || d[0];
             setSelectedRegionId(initial._id);
+            const isSupply = Boolean(initial.isSupplyOnly || initial.name?.toLowerCase().includes('supply'));
+            if (isSupply) {
+              setJambId('none');
+              setCasingId('none');
+            }
             if (initial.name.toLowerCase().includes('dryden') || initial.name.toLowerCase().includes('sioux')) {
               const std = initial.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
               setSetupFee(std ? String(std.value) : '727.5');
@@ -196,8 +205,13 @@ export default function TaxCalculatorTab({
         setIncludeLabour(true);
         setIncludeMisc(true);
         setIncludeJC(true);
-        setJambId('j3');
-        setCasingId('vinyl');
+        if (isSupplyOnly) {
+          setJambId('none');
+          setCasingId('none');
+        } else {
+          setJambId('j3');
+          setCasingId('vinyl');
+        }
       }
       return;
     }
@@ -370,11 +384,11 @@ export default function TaxCalculatorTab({
     const setup = isSupplyOnly ? 0 : (Number(setupFee) || 0);
     const extras = isSupplyOnly ? 0 : (vehicle + crewTravel + setup + (region.fixedSetupFee || 0) + (region.baseTravelFee || 0));
 
-    const jRate = jambId === 'custom' ? Number(jambRate) || 0 : (dbJambs.find(j => j.id === jambId)?.rate || 0);
-    const cRate = casingId === 'custom' ? Number(casingRate) || 0 : (dbCasings.find(c => c.id === casingId)?.rate || 0);
+    const jRate = jambId === 'none' ? 0 : (jambId === 'custom' ? Number(jambRate) || 0 : (dbJambs.find(j => j.id === jambId)?.rate || 0));
+    const cRate = casingId === 'none' ? 0 : (casingId === 'custom' ? Number(casingRate) || 0 : (dbCasings.find(c => c.id === casingId)?.rate || 0));
     
-    const jambTot = ln * jRate;
-    const casingTot = ln * cRate;
+    const jambTot = jambId === 'none' ? 0 : ln * jRate;
+    const casingTot = casingId === 'none' ? 0 : ln * cRate;
     const jc = jambTot + casingTot;
 
     const labourTotal = isSupplyOnly ? 0 : (labourWindows + extras);
@@ -802,7 +816,11 @@ export default function TaxCalculatorTab({
           <Card>
             <CardHeader>
               <CardTitle>Jambs & Casing</CardTitle>
-              <CardDescription>Priced on total linear ft: {c?.ln.toFixed(2)} ft</CardDescription>
+              <CardDescription>
+                {isSupplyOnly
+                  ? `Perimeter linear ft: ${c?.ln.toFixed(2)} ft (Supply-Only defaults to None)`
+                  : `Priced on total linear ft: ${c?.ln.toFixed(2)} ft`}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">

@@ -14,14 +14,15 @@ export async function GET(request: Request) {
 
     await dbConnect();
 
-    // Auto-flush notifications older than 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Auto-flush notifications older than 7 days
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     await Notification.deleteMany({
-      createdAt: { $lt: thirtyDaysAgo },
+      createdAt: { $lt: sevenDaysAgo },
     }).catch(err => console.error('Failed to flush old notifications:', err));
 
     const notifications = await Notification.find({
       recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, 'i') },
+      createdAt: { $gte: sevenDaysAgo },
     })
       .sort({ createdAt: -1 })
       .limit(50);
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     const unreadCount = await Notification.countDocuments({
       recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, 'i') },
       isRead: false,
+      createdAt: { $gte: sevenDaysAgo },
     });
 
     return NextResponse.json({ notifications, unreadCount });

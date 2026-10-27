@@ -82,6 +82,18 @@ export async function PUT(
       userRole === 'ADMIN' || 
       deptPerms.canEditApprovedQuote === true;
 
+    // Once a quote is confirmed in Odoo, it is permanently locked for EVERYONE (including admin)
+    const isAlreadyOdooCompleted = existingQuote.odooStatus === 'COMPLETED' || Boolean(existingQuote.odooOrderNumber);
+    if (isAlreadyOdooCompleted) {
+      const isSpecOrPriceEdit = ['windows', 'taxTotals', 'quoteResult', 'surchargeRate', 'activePromoId', 'reviewChanges', 'status', 'reviewerNotes', 'customerName', 'quoteNumber'].some(key => key in body);
+      if (isSpecOrPriceEdit) {
+        return NextResponse.json(
+          { error: 'This quote has been entered into Odoo and is locked. Modifications are prohibited.' },
+          { status: 403, headers: NO_CACHE_HEADERS }
+        );
+      }
+    }
+
     // Once a quote is approved or modified, block everyone without permission from editing details
     const isApprovedOrModified = existingQuote.status === 'APPROVED' || existingQuote.status === 'MODIFIED';
     if (isApprovedOrModified && !canEditApprovedQuote) {
@@ -424,24 +436,33 @@ export async function PUT(
       }
     }
 
-    // 4. Handle Odoo entry completed notification to Reviewer / Admin
+    // 4. Handle Odoo entry completed notification to Preparer, Reviewer, and Admin
     if (body.odooStatus === 'COMPLETED' && existingQuote.odooStatus !== 'COMPLETED') {
       try {
-        const targetRecipient = updatedQuote.reviewedBy || updatedQuote.assignedTo || 'Admin';
-        const odooOrderInfo = updatedQuote.odooOrderNumber ? ` (Odoo #${updatedQuote.odooOrderNumber})` : '';
-        const odooDoneNotif = await Notification.create({
-          recipientUsername: targetRecipient,
-          senderUsername: reviewerUsername || 'Odoo Clerk',
-          type: 'ODOO_ENTRY_COMPLETED',
-          title: `Quote #${updatedQuote.quoteNumber} Entered in Odoo`,
-          message: `${reviewerUsername || 'Odoo clerk'} confirmed quote #${updatedQuote.quoteNumber} for ${updatedQuote.customerName} has been entered into Odoo${odooOrderInfo} and filed.`,
-          quoteId: updatedQuote._id.toString(),
-          quoteNumber: updatedQuote.quoteNumber,
-          customerName: updatedQuote.customerName,
-          isRead: false,
-        });
+        const recipients = new Set<string>();
+        if (updatedQuote.preparedBy) recipients.add(updatedQuote.preparedBy);
+        if (updatedQuote.reviewedBy) recipients.add(updatedQuote.reviewedBy);
+        if (updatedQuote.assignedTo) recipients.add(updatedQuote.assignedTo);
+        if (recipients.size === 0) recipients.add('Admin');
 
-        await triggerPusherEvent(`user-${targetRecipient.toLowerCase()}`, 'notification', odooDoneNotif);
+        const odooOrderInfo = updatedQuote.odooOrderNumber ? ` (Odoo #${updatedQuote.odooOrderNumber})` : '';
+
+        for (const targetRecipient of recipients) {
+          if (targetRecipient.toLowerCase() === (reviewerUsername || '').toLowerCase()) continue;
+          const odooDoneNotif = await Notification.create({
+            recipientUsername: targetRecipient,
+            senderUsername: reviewerUsername || 'Odoo Clerk',
+            type: 'ODOO_ENTRY_COMPLETED',
+            title: `Quote #${updatedQuote.quoteNumber} Entered in Odoo`,
+            message: `${reviewerUsername || 'Odoo clerk'} confirmed quote #${updatedQuote.quoteNumber} for ${updatedQuote.customerName} has been entered into Odoo${odooOrderInfo} and filed.`,
+            quoteId: updatedQuote._id.toString(),
+            quoteNumber: updatedQuote.quoteNumber,
+            customerName: updatedQuote.customerName,
+            isRead: false,
+          });
+
+          await triggerPusherEvent(`user-${targetRecipient.toLowerCase()}`, 'notification', odooDoneNotif);
+        }
         await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', { quoteNumber: updatedQuote.quoteNumber });
       } catch (odooDoneErr) {
         console.error('Failed to create Odoo done notification:', odooDoneErr);

@@ -14,7 +14,6 @@ import {
   Save,
   Send,
   Printer,
-  Share2,
 } from 'lucide-react';
 
 export interface ReviewWorkflowBarProps {
@@ -195,223 +194,135 @@ export function ReviewWorkflowBar({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap self-end md:self-auto">
-        {isEditMode ? (
+        {/* 1. EDIT QUOTE / SAVE CHANGES (In-place transform) */}
+        {canEditCurrentQuote && (
+          isEditMode ? (
+            <Button
+              size="sm"
+              onClick={handleSaveQuotePrices}
+              disabled={reviewActionLoading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer transition-all"
+              title="Save changes to this quote"
+            >
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+              {reviewActionLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditMode(true)}
+              className="cursor-pointer border-primary/50 text-primary hover:bg-primary/10 font-bold bg-background/80 shadow-sm"
+              title="Enter edit mode to make changes"
+            >
+              <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+              Edit Quote
+            </Button>
+          )
+        )}
+
+        {/* Returned Quotes Resubmit Action */}
+        {reviewQuote.status === 'RETURNED' && !isEditMode && (
+          <Button
+            size="sm"
+            onClick={handleResubmitReturnedQuote}
+            disabled={reviewActionLoading}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm cursor-pointer"
+            title="Resubmit quote for reviewer approval"
+          >
+            <Send className="w-3.5 h-3.5 mr-1.5" />
+            {reviewActionLoading ? 'Resubmitting...' : 'Resubmit for Review'}
+          </Button>
+        )}
+
+        {/* 2. APPROVE QUOTE (Reviewer / Admin) */}
+        {reviewQuote.status === 'PENDING_REVIEW' && isReviewerOrAdmin && (
+          <Button
+            size="sm"
+            onClick={handleApproveReviewQuote}
+            disabled={reviewActionLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer"
+            title="Approve this quote"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1.5" />
+            {reviewActionLoading ? 'Approving...' : 'Approve Quote'}
+          </Button>
+        )}
+
+        {/* 3. RETURN WITH NOTE (Reviewer / Admin) */}
+        {reviewQuote.status === 'PENDING_REVIEW' && isReviewerOrAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReturnReviewQuote}
+            disabled={reviewActionLoading}
+            className="text-amber-700 dark:text-amber-400 border-amber-400/50 hover:bg-amber-500/10 font-semibold cursor-pointer shadow-sm"
+            title="Return quote to preparer with notes"
+          >
+            <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+            Return with Note
+          </Button>
+        )}
+
+        {/* Approved/Modified Quotes: Quick Preview & Print */}
+        {(reviewQuote.status === 'APPROVED' || reviewQuote.status === 'MODIFIED') && !isEditMode && (
           <>
-            {reviewQuote.status === 'PENDING_REVIEW' ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={handleSaveQuotePrices}
-                  disabled={reviewActionLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer"
-                  title="Save changes to this pending quote"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1.5" />
-                  Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelEdits}
-                  disabled={reviewActionLoading}
-                  className="cursor-pointer bg-background/60"
-                >
-                  Cancel Edits
-                </Button>
-              </>
-            ) : reviewQuote.status === 'RETURNED' ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={handleSaveQuotePrices}
-                  disabled={reviewActionLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer"
-                  title="Save revisions made to this returned quote"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1.5" />
-                  Save Revisions
-                </Button>
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={handleResubmitReturnedQuote}
-                  disabled={reviewActionLoading}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-sm cursor-pointer"
-                  title="Resubmit quote for formal reviewer approval"
-                >
-                  <Send className="w-3.5 h-3.5 mr-1.5" />
-                  Resubmit for Review
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelEdits}
-                  disabled={reviewActionLoading}
-                  className="cursor-pointer bg-background/60"
-                >
-                  Cancel Edits
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  onClick={handleSaveQuotePrices}
-                  disabled={reviewActionLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer"
-                  title="Save changes and keep current approval status for clerk"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1.5" />
-                  Save &amp; Keep Approved
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancelEdits}
-                  disabled={reviewActionLoading}
-                  className="cursor-pointer bg-background/60"
-                >
-                  Cancel Edits
-                </Button>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            {/* Edit Quote Button (Hidden for Odoo clerk & unauthorized users) */}
-            {canEditCurrentQuote && (
+            <Button
+              size="sm"
+              onClick={() => setIsPreviewOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm cursor-pointer"
+            >
+              <Printer className="w-4 h-4 mr-1.5" />
+              Preview &amp; Print
+            </Button>
+
+            {/* Mark Entered in Odoo Action for Clerk */}
+            {reviewQuote.odooStatus === 'PENDING_ENTRY' && (isReviewerOrAdmin || isOdooClerk) && (
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => setIsEditMode(true)}
-                className="cursor-pointer border-primary/50 text-primary hover:bg-primary/10 font-bold bg-background/80 shadow-sm"
+                onClick={() => {
+                  setOdooOrderNumberInput('');
+                  setShowCompleteOdooModal(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                Edit Quote
+                <CheckSquare className="w-4 h-4 mr-1.5" />
+                Mark Entered in Odoo
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExitReview}
-              className="cursor-pointer bg-background/60"
-            >
-              Exit Review
-            </Button>
-
-            {/* Approved or Modified Quotes: Quick Preview & Print */}
-            {(reviewQuote.status === 'APPROVED' || reviewQuote.status === 'MODIFIED') && (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => setIsPreviewOpen(true)}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm cursor-pointer"
-                >
-                  <Printer className="w-4 h-4 mr-1.5" />
-                  Preview &amp; Print
-                </Button>
-
-                {/* Mark Entered in Odoo Action */}
-                {reviewQuote.odooStatus === 'PENDING_ENTRY' && (isReviewerOrAdmin || isOdooClerk) && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setOdooOrderNumberInput('');
-                      setShowCompleteOdooModal(true);
-                    }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md cursor-pointer"
-                  >
-                    <CheckSquare className="w-4 h-4 mr-1.5" />
-                    Mark Entered in Odoo
-                  </Button>
-                )}
-              </>
-            )}
           </>
         )}
 
-        {/* Returned Quotes: Employee can Save Revisions or Resubmit */}
-        {reviewQuote.status === 'RETURNED' && !isEditMode && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveQuotePrices}
-              disabled={reviewActionLoading}
-              className="border-emerald-600/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer shadow-sm"
-            >
-              <Save className="w-4 h-4 mr-1.5" />
-              Save Revisions
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleResubmitReturnedQuote}
-              disabled={reviewActionLoading}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md cursor-pointer"
-            >
-              <Send className="w-4 h-4 mr-1.5" />
-              {reviewActionLoading ? 'Resubmitting...' : 'Resubmit for Review'}
-            </Button>
-          </>
-        )}
-
-        {/* Pending Review Quotes: Reviewer Controls */}
-        {reviewQuote.status === 'PENDING_REVIEW' && isReviewerOrAdmin && !isEditMode && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const other = staffList.find((s) => s.username?.toLowerCase() !== user?.username?.toLowerCase());
-                setReassignTo(other ? other.username : '');
-                setReassignNotes('');
-                setShowReassignModal(true);
-              }}
-              disabled={reviewActionLoading}
-              className="border-primary/40 text-primary hover:bg-primary/10 font-semibold cursor-pointer shadow-sm"
-              title="Forward this quote to another staff member or admin"
-            >
-              <Share2 className="w-4 h-4 mr-1.5" />
-              Forward
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveQuotePrices}
-              disabled={reviewActionLoading}
-              className="border-emerald-600/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-semibold cursor-pointer shadow-sm"
-            >
-              <Save className="w-4 h-4 mr-1.5" />
-              Save Changes
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReturnReviewQuote}
-              disabled={reviewActionLoading}
-              className="text-destructive hover:bg-destructive/10 border-destructive/30 font-semibold cursor-pointer"
-            >
-              Return with Note
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleApproveReviewQuote}
-              disabled={reviewActionLoading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              {reviewActionLoading ? 'Saving...' : 'Approve Quote'}
-            </Button>
-          </>
-        )}
-
-        {/* Pending Review for Non-Reviewer */}
+        {/* Read-Only Banner for non-reviewers when pending */}
         {reviewQuote.status === 'PENDING_REVIEW' && !isReviewerOrAdmin && !isEditMode && (
           <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
             <span>In Review with {reviewQuote.assignedTo || 'Reviewer'} (Read-Only)</span>
           </div>
+        )}
+
+        {/* 4. EXIT REVIEW / CANCEL EDITS (Bold Red) */}
+        {isEditMode ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancelEdits}
+            disabled={reviewActionLoading}
+            className="cursor-pointer font-bold text-rose-600 border-rose-300 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900/60 dark:hover:bg-rose-950/40 shadow-sm"
+            title="Cancel edits and restore original values"
+          >
+            Cancel Edits
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExitReview}
+            className="cursor-pointer font-bold text-rose-600 border-rose-400/80 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-800/80 dark:hover:bg-rose-950/50 shadow-sm"
+            title="Exit review mode and return to quotes list"
+          >
+            Exit Review
+          </Button>
         )}
       </div>
     </div>

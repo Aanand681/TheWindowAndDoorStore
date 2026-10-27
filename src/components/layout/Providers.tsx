@@ -5,6 +5,7 @@ import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { SessionTimeoutWatcher } from './SessionTimeoutWatcher';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
+      <SessionTimeoutWatcher />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           {children}

@@ -133,9 +133,12 @@ export function useCalculatorReviewActions({
     )
   );
 
+  const isOdooCompleted = Boolean(
+    reviewQuote?.odooStatus === 'COMPLETED' || reviewQuote?.odooOrderNumber
+  );
   const isApprovedOrModified = reviewQuote?.status === 'APPROVED' || reviewQuote?.status === 'MODIFIED';
-  const canEditCurrentQuote = Boolean(!isOdooClerk && (isApprovedOrModified ? canEditApprovedQuote : true));
-  const isReadOnly = Boolean(reviewQuote && (!isEditMode || !canEditCurrentQuote));
+  const canEditCurrentQuote = Boolean(!isOdooCompleted && !isOdooClerk && (isApprovedOrModified ? canEditApprovedQuote : true));
+  const isReadOnly = Boolean(reviewQuote && (!isEditMode || !canEditCurrentQuote || isOdooCompleted));
 
   // Handlers
   const handleOpenQuoteFromTab = (qId: string, isEdit?: boolean, originSubTab?: QuotesSubTabType) => {
@@ -155,7 +158,8 @@ export function useCalculatorReviewActions({
             !canReview && (user?.department === 'CLERK' || effectivePerms.canMarkOdooEntry || effectivePerms.canAccessOdooQueue)
           );
           const isApproved = q.status === 'APPROVED' || q.status === 'MODIFIED';
-          const allowEdit = Boolean(isEdit && !isClerk && (isApproved ? canEditApprovedQuote : true));
+          const isCompletedInOdoo = Boolean(q.odooStatus === 'COMPLETED' || q.odooOrderNumber);
+          const allowEdit = Boolean(isEdit && !isCompletedInOdoo && !isClerk && (isApproved ? canEditApprovedQuote : true));
           setIsEditMode(allowEdit);
 
           setReviewQuote(q);
@@ -249,6 +253,10 @@ export function useCalculatorReviewActions({
 
   const handleSaveQuotePrices = async () => {
     if (!reviewQuoteId) return;
+    if (isOdooCompleted) {
+      toast.error('This quote has been entered and confirmed in Odoo. Specifications cannot be modified.');
+      return;
+    }
     setReviewActionLoading(true);
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {

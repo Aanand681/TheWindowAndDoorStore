@@ -18,9 +18,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [expiredNotice, setExpiredNotice] = useState(false);
 
-  // If already authenticated, redirect to app automatically
+  // If already authenticated, redirect to app automatically (unless session just expired)
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('expired') === 'true') {
+        setExpiredNotice(true);
+        return;
+      }
+    }
+
     fetch('/api/profile')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -103,6 +112,19 @@ export default function LoginPage() {
       {/* Card */}
       <Card className="relative z-10 w-full max-w-md border border-border/60 bg-card/90 shadow-2xl backdrop-blur-sm">
         <CardContent className="pt-6 pb-8 px-7 space-y-5">
+
+          {/* Session Expiration Banner */}
+          {expiredNotice && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-900 dark:text-amber-200 text-sm animate-in fade-in duration-200 shadow-sm">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="font-semibold text-xs uppercase tracking-wider text-amber-700 dark:text-amber-400">Session Expired</p>
+                <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-0.5">
+                  You have been logged out after 1 hour of inactivity. Please sign in again to continue.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Error banner */}
           {error && (

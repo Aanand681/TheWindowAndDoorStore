@@ -21,13 +21,23 @@ function cleanExpired() {
   }
 }
 
-export function checkLoginRateLimit(identifier: string): {
-  allowed: boolean;
-  minutesRemaining?: number;
-  attemptsRemaining?: number;
-} {
+export interface RateLimitTarget {
+  identifier: string;
+  clientIp?: string;
+}
+
+function normalizeKey(target: string | RateLimitTarget, type: 'user' | 'ip'): string {
+  if (typeof target === 'string') {
+    return target.toLowerCase().trim();
+  }
+  if (type === 'ip') {
+    return (target.clientIp || '127.0.0.1').trim();
+  }
+  return (target.identifier || '').toLowerCase().trim();
+}
+
+function checkSingleTarget(key: string): { allowed: boolean; minutesRemaining?: number; attemptsRemaining: number } {
   cleanExpired();
-  const key = identifier.toLowerCase().trim();
   const record = attemptsMap.get(key);
 
   if (!record) {
@@ -41,6 +51,7 @@ export function checkLoginRateLimit(identifier: string): {
     return {
       allowed: false,
       minutesRemaining,
+      attemptsRemaining: 0,
     };
   }
 
@@ -54,13 +65,36 @@ export function checkLoginRateLimit(identifier: string): {
   return { allowed: true, attemptsRemaining };
 }
 
-export function recordFailedLogin(identifier: string): {
-  isLocked: boolean;
+export function checkLoginRateLimit(target: string | RateLimitTarget): {
+  allowed: boolean;
   minutesRemaining?: number;
-  attemptsRemaining: number;
+  attemptsRemaining?: number;
 } {
+  const userKey = normalizeKey(target, 'user');
+  const ipKey = typeof target === 'object' && target.clientIp ? `ip:${normalizeKey(target, 'ip')}` : null;
+
+  const userCheck = checkSingleTarget(`user:${userKey}`);
+  if (!userCheck.allowed) {
+    return userCheck;
+  }
+
+  if (ipKey) {
+    const ipCheck = checkSingleTarget(ipKey);
+    if (!ipCheck.allowed) {
+      return ipCheck;
+    }
+    // Return the lowest remaining attempts between user and IP so changing username does not reset attempts
+    return {
+      allowed: true,
+      attemptsRemaining: Math.min(userCheck.attemptsRemaining, ipCheck.attemptsRemaining),
+    };
+  }
+
+  return userCheck;
+}
+
+function recordSingleFailure(key: string): { isLocked: boolean; minutesRemaining?: number; attemptsRemaining: number } {
   cleanExpired();
-  const key = identifier.toLowerCase().trim();
   const now = Date.now();
   let record = attemptsMap.get(key);
 
@@ -88,7 +122,41 @@ export function recordFailedLogin(identifier: string): {
   };
 }
 
-export function resetLoginAttempts(identifier: string) {
-  const key = identifier.toLowerCase().trim();
-  attemptsMap.delete(key);
+export function recordFailedLogin(target: string | RateLimitTarget): {
+  isLocked: boolean;
+  minutesRemaining?: number;
+  attemptsRemaining: number;
+} {
+  const userKey = normalizeKey(target, 'user');
+  const ipKey = typeof target === 'object' && target.clientIp ? `ip:${normalizeKey(target, 'ip')}` : null;
+
+  const userRes = recordSingleFailure(`user:${userKey}`);
+
+  if (ipKey) {
+    const ipRes = recordSingleFailure(ipKey);
+    const isLocked = userRes.isLocked || ipRes.isLocked;
+    const minutesRemaining = Math.max(userRes.minutesRemaining || 0, ipRes.minutesRemaining || 0) || 15;
+    const attemptsRemaining = Math.min(userRes.attemptsRemaining, ipRes.attemptsRemaining);
+
+    return {
+      isLocked,
+      minutesRemaining: isLocked ? minutesRemaining : undefined,
+      attemptsRemaining,
+    };
+  }
+
+  return userRes;
 }
+
+export function resetLoginAttempts(target: string | RateLimitTarget) {
+  const userKey = normalizeKey(target, 'user');
+  attemptsMap.delete(`user:${userKey}`);
+
+  // Note: on successful user authentication, we clear the user key
+  // and decrement/reset the IP key if desired
+  if (typeof target === 'object' && target.clientIp) {
+    const ipKey = `ip:${normalizeKey(target, 'ip')}`;
+    attemptsMap.delete(ipKey);
+  }
+}
+

@@ -160,10 +160,23 @@ export default function NotificationBell() {
 
     if (n.type === 'QUOTE_ODOO_ASSIGNED' && n.quoteId) {
       if (typeof window !== 'undefined' && window.location.pathname === '/') {
-        window.dispatchEvent(new CustomEvent('open-clerk-preview', { detail: { quoteId: n.quoteId } }));
+        window.dispatchEvent(new CustomEvent('open-clerk-preview', { detail: { quoteId: n.quoteId, sub: 'odoo' } }));
         window.history.pushState({}, '', `/?tab=quotes&sub=odoo&previewQuoteId=${n.quoteId}`);
       } else {
         router.push(`/?tab=quotes&sub=odoo&previewQuoteId=${n.quoteId}`);
+      }
+      return;
+    }
+
+    // Approved, Modified, or Odoo-Completed quotes redirect to Preview/Print mode
+    const isApprovedOrCompleted = n.type === 'QUOTE_APPROVED' || n.type === 'QUOTE_MODIFIED' || n.type === 'ODOO_ENTRY_COMPLETED';
+    if (isApprovedOrCompleted && n.quoteId) {
+      const targetSub = 'my';
+      if (typeof window !== 'undefined' && window.location.pathname === '/') {
+        window.dispatchEvent(new CustomEvent('open-clerk-preview', { detail: { quoteId: n.quoteId, sub: targetSub } }));
+        window.history.pushState({}, '', `/?tab=quotes&sub=${targetSub}&previewQuoteId=${n.quoteId}`);
+      } else {
+        router.push(`/?tab=quotes&sub=${targetSub}&previewQuoteId=${n.quoteId}`);
       }
       return;
     }

@@ -325,7 +325,10 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
     const handleClerkPreview = async (e: any) => {
       const qId = e.detail?.quoteId;
       if (!qId) return;
-      setActiveTab('odoo');
+      const targetSub = e.detail?.sub || (currentUser?.role === 'ADMIN' ? 'all' : 'my');
+      if (['all', 'my', 'review', 'odoo'].includes(targetSub)) {
+        setActiveTab(targetSub as any);
+      }
       let target = quotes.find(q => q._id === qId);
       if (!target) {
         try {
@@ -344,17 +347,22 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
 
     window.addEventListener('open-clerk-preview', handleClerkPreview);
     return () => window.removeEventListener('open-clerk-preview', handleClerkPreview);
-  }, [quotes]);
+  }, [quotes, currentUser]);
 
   useEffect(() => {
     const checkUrlPreview = async () => {
       let previewId = initialPreviewQuoteId;
-      if (!previewId && typeof window !== 'undefined') {
+      let targetSub: string | null = null;
+      if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        previewId = params.get('previewQuoteId') || undefined;
+        if (!previewId) previewId = params.get('previewQuoteId') || undefined;
+        targetSub = params.get('sub');
       }
       if (previewId) {
-        setActiveTab('odoo');
+        const activeSub = targetSub && ['all', 'my', 'review', 'odoo'].includes(targetSub)
+          ? targetSub
+          : (currentUser?.role === 'ADMIN' ? 'all' : 'my');
+        setActiveTab(activeSub as any);
         if (typeof window !== 'undefined') {
           const cleanUrl = new URL(window.location.href);
           cleanUrl.searchParams.delete('previewQuoteId');
