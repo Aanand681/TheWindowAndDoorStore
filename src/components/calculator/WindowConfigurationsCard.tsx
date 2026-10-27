@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Component, FileUp, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { UIWindowItem } from '@/components/calculator/PromoCalculator';
+import { UIWindowItem } from '@/hooks/useCalculatorWindows';
 
 export interface WindowConfigurationsCardProps {
   windows: UIWindowItem[];

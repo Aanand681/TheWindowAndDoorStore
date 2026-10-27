@@ -83,7 +83,7 @@ export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps)
         >
           <Inbox className="w-3.5 h-3.5 text-amber-500" />
           <span>Quotes &amp; Bin</span>
-          {showQuotesBin && <QuotesBinPill />}
+          {showQuotesBin && <QuotesBinPill badgeOnly />}
         </Link>
 
         <Link

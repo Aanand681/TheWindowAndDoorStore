@@ -7,7 +7,12 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getPusherClient } from '@/lib/pusher-client';
 
-export default function QuotesBinPill({ className }: { className?: string }) {
+interface QuotesBinPillProps {
+  className?: string;
+  badgeOnly?: boolean;
+}
+
+export default function QuotesBinPill({ className, badgeOnly = false }: QuotesBinPillProps) {
   const [count, setCount] = useState<number>(0);
 
   const fetchCount = () => {
@@ -38,6 +43,15 @@ export default function QuotesBinPill({ className }: { className?: string }) {
     }
   }, []);
 
+  if (badgeOnly) {
+    if (count <= 0) return null;
+    return (
+      <span className={cn("bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-in fade-in", className)}>
+        {count}
+      </span>
+    );
+  }
+
   return (
     <Link
       href="/?tab=quotes"
@@ -51,7 +65,7 @@ export default function QuotesBinPill({ className }: { className?: string }) {
       <Inbox className="w-3.5 h-3.5 text-amber-500" />
       <span>Quotes &amp; Bin</span>
       {count > 0 && (
-        <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full animate-in fade-in">
+        <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-in fade-in">
           {count}
         </span>
       )}
