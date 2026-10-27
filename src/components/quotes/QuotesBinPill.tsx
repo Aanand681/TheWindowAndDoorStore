@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { Inbox } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getPusherClient } from '@/lib/pusher-client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface QuotesBinPillProps {
   className?: string;
@@ -13,35 +14,35 @@ interface QuotesBinPillProps {
 }
 
 export default function QuotesBinPill({ className, badgeOnly = false }: QuotesBinPillProps) {
-  const [count, setCount] = useState<number>(0);
+  const queryClient = useQueryClient();
 
-  const fetchCount = () => {
-    fetch('/api/quotes?countOnly=true', { cache: 'no-store' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data) {
-          const total = data.totalActionableCount ?? data.pendingReviewCount ?? 0;
-          setCount(total);
-        }
-      })
-      .catch(() => {});
-  };
+  const { data } = useQuery<{ totalActionableCount?: number; pendingReviewCount?: number }>({
+    queryKey: ['quotes-badge-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/quotes?countOnly=true');
+      if (!res.ok) return { totalActionableCount: 0 };
+      return res.json();
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const count = data?.totalActionableCount ?? data?.pendingReviewCount ?? 0;
 
   useEffect(() => {
-    fetchCount();
-
-    // Listen to real-time events via Pusher if available
     const pusher = getPusherClient();
     if (pusher) {
       const channel = pusher.subscribe('quotes-channel');
-      channel.bind('quote-updated', () => fetchCount());
-      channel.bind('quote-submitted', () => fetchCount());
+      const invalidate = () => {
+        queryClient.invalidateQueries({ queryKey: ['quotes-badge-count'] });
+      };
+      channel.bind('quote-updated', invalidate);
+      channel.bind('quote-submitted', invalidate);
       return () => {
         channel.unbind_all();
         pusher.unsubscribe('quotes-channel');
       };
     }
-  }, []);
+  }, [queryClient]);
 
   if (badgeOnly) {
     if (count <= 0) return null;

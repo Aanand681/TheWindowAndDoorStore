@@ -8,3 +8,5 @@ export { default as QuotesBinPill } from './QuotesBinPill';
 export * from './QuotesBinPill';
 export { default as QuoteNotesEditor } from './QuoteNotesEditor';
 export * from './QuoteNotesEditor';
+export { default as QuotePdfStudioClient } from './QuotePdfStudioClient';
+export * from './QuotePdfStudioClient';

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { toCents, DBPromo } from '@/lib/promo-logic';
 import { cachedFetch } from '@/lib/client-cache';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 // App shell and tab components
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -255,12 +256,41 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     }
   };
 
-  // Initial Data Fetching (Promos, User Profile, Settings, Badges)
-  useEffect(() => {
-    cachedFetch<DBPromo[]>('/api/promos?active=true')
-      .then(data => { if (Array.isArray(data)) setAvailablePromos(data); })
-      .catch(() => {});
+  // TanStack Query for Promos and Settings
+  const { data: promosData } = useQuery<DBPromo[]>({
+    queryKey: ['promos', 'active'],
+    queryFn: async () => {
+      const res = await fetch('/api/promos?active=true');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
 
+  const { data: settingsData } = useQuery<{ surchargeRate?: number }>({
+    queryKey: ['settings', 'global'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings');
+      if (!res.ok) return {};
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (Array.isArray(promosData) && promosData.length > 0) {
+      setAvailablePromos(promosData);
+    }
+  }, [promosData, setAvailablePromos]);
+
+  useEffect(() => {
+    if (settingsData && settingsData.surchargeRate !== undefined) {
+      setSurchargeRate(settingsData.surchargeRate);
+    }
+  }, [settingsData, setSurchargeRate]);
+
+  // Initial Data Fetching (User Profile & Reviewer/Clerk lists)
+  useEffect(() => {
     cachedFetch<any>('/api/profile')
       .then(data => {
         if (data) {
@@ -273,12 +303,6 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       .catch(err => {
         if (err?.message?.includes('401')) router.replace('/login');
       });
-
-    cachedFetch<any>('/api/settings')
-      .then(data => {
-        if (data && data.surchargeRate !== undefined) setSurchargeRate(data.surchargeRate);
-      })
-      .catch(() => {});
 
     // Reviewer and Clerk lists
     Promise.all([
