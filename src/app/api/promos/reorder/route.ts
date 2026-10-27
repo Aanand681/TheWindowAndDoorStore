@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Promo from '@/models/Promo';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheDel } from '@/lib/redis';
 
 import mongoose from 'mongoose';
 
@@ -44,6 +45,8 @@ export async function PUT(request: Request) {
     if (bulkOps.length > 0) {
       await Promo.collection.bulkWrite(bulkOps);
     }
+
+    cacheDel('promos:active', 'promos:all').catch(() => {});
 
     return NextResponse.json({ message: 'Promos reordered successfully' });
   } catch (error: any) {

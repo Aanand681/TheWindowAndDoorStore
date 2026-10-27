@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { triggerPusherEvent } from '@/lib/pusher-server';
 import { sendQuoteReviewRequestedEmail, getAppUrl } from '@/lib/email';
+import { cacheGet, cacheSet, cacheDelPattern } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -32,10 +33,16 @@ export async function GET(request: Request) {
     const search = searchParams.get('search');
     const countOnly = searchParams.get('countOnly') === 'true';
 
-    await dbConnect();
-
     // If requesting badge counts for notifications
     if (countOnly) {
+      const cacheKey = `quotes:badge:${currentUser || 'anon'}`;
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        return NextResponse.json(cached, { headers: NO_CACHE_HEADERS });
+      }
+
+      await dbConnect();
+
       const userRole = (session.user as any).role;
       const userDept = (session.user as any).department;
       let deptDoc: any = null;
@@ -83,13 +90,19 @@ export async function GET(request: Request) {
         ? pendingReviewCount + pendingOdooCount
         : pendingOdooCount;
 
-      return NextResponse.json({
+      const badgeData = {
         pendingReviewCount,
         pendingOdooCount,
         totalActionableCount,
         myUpdatesCount,
-      }, { headers: NO_CACHE_HEADERS });
+      };
+
+      cacheSet(cacheKey, badgeData, 30).catch(() => {});
+
+      return NextResponse.json(badgeData, { headers: NO_CACHE_HEADERS });
     }
+
+    await dbConnect();
 
     const filter: any = {};
 
@@ -272,6 +285,8 @@ export async function POST(request: Request) {
       }
     }
 
+    // Invalidate badge counters
+    cacheDelPattern('quotes:badge:*').catch(() => {});
 
     return NextResponse.json(
       { message: 'Quote submitted for review successfully', quote: newQuote },

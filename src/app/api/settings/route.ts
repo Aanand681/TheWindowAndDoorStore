@@ -3,11 +3,18 @@ import dbConnect from '@/lib/mongodb';
 import Settings from '@/models/Settings';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const cacheKey = 'settings:global';
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     await dbConnect();
     let settings = await Settings.findOne({});
     
@@ -46,6 +53,7 @@ export async function GET() {
       });
     }
     
+    cacheSet('settings:global', settings, 86400).catch(() => {});
     return NextResponse.json(settings);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -80,6 +88,9 @@ export async function PUT(request: Request) {
       { $set: updateFields },
       { returnDocument: 'after', upsert: true }
     );
+
+    // Invalidate settings cache
+    cacheDel('settings:global').catch(() => {});
 
     return NextResponse.json({ message: 'Settings updated successfully', settings: updatedSettings });
   } catch (error: any) {

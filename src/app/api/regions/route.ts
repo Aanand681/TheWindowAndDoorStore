@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import RegionConfig from '@/models/RegionConfig';
+import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const cacheKey = 'regions:all';
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     await dbConnect();
     
     // Auto-seed default "Supply Only" region if none exists
@@ -33,6 +40,7 @@ export async function GET() {
     }
 
     const regions = await RegionConfig.find().sort({ name: 1 });
+    cacheSet(cacheKey, regions, 86400).catch(() => {});
     return NextResponse.json(regions);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,6 +85,8 @@ export async function POST(req: Request) {
       baseTravelFee: isSupplyOnly ? 0 : (Number(data.baseTravelFee) ?? 0),
       polygon: Array.isArray(data.polygon) ? data.polygon : [],
     });
+
+    cacheDel('regions:all').catch(() => {});
 
     return NextResponse.json(newRegion, { status: 201 });
   } catch (error: any) {

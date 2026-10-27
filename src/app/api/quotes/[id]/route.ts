@@ -9,6 +9,7 @@ import { sendQuoteApprovedEmail, sendQuoteReviewRequestedEmail, getAppUrl } from
 import Notification from '@/models/Notification';
 import { detectQuoteChanges } from '@/lib/quote-diff';
 import { triggerPusherEvent } from '@/lib/pusher-server';
+import { cacheDelPattern } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -447,6 +448,9 @@ export async function PUT(
       }
     }
 
+    // Invalidate badge counters
+    cacheDelPattern('quotes:badge:*').catch(() => {});
+
     return NextResponse.json({
       message: isReviewAction ? `Quote marked as ${newStatus}` : 'Quote updated successfully',
       quote: updatedQuote,
@@ -491,6 +495,9 @@ export async function DELETE(
     await triggerPusherEvent('global-quotes', 'QUOTE_COUNT_UPDATED', {
       quoteNumber: quote.quoteNumber,
     });
+
+    // Invalidate badge counters
+    cacheDelPattern('quotes:badge:*').catch(() => {});
 
     return NextResponse.json({ message: 'Quote deleted successfully' }, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {

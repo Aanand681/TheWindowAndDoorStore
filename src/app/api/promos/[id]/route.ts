@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Promo from '@/models/Promo';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheDel } from '@/lib/redis';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,6 +42,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Promo not found' }, { status: 404 });
     }
 
+    cacheDel('promos:active', 'promos:all').catch(() => {});
+
     return NextResponse.json({ message: 'Promo updated successfully', promo: updatedPromo });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -62,6 +65,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!deletedPromo) {
       return NextResponse.json({ error: 'Promo not found' }, { status: 404 });
     }
+
+    cacheDel('promos:active', 'promos:all').catch(() => {});
 
     return NextResponse.json({ message: 'Promo deleted successfully' });
   } catch (error: any) {
