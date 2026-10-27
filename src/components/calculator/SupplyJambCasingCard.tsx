@@ -9,18 +9,7 @@ import { Layers, RotateCcw } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
 
-const DEFAULT_JAMBS = [
-  { id: 'j1', label: 'Vinyl Wrapped Jamb – 2 1/2', rate: 5.05 },
-  { id: 'j2', label: 'Vinyl Wrapped Jamb – 3 1/4', rate: 6.05 },
-  { id: 'j3', label: 'Vinyl Wrapped Jamb – 4 1/2', rate: 7.34 },
-  { id: 'j4', label: 'Vinyl Wrapped Jamb – 5 1/4', rate: 8.49 },
-  { id: 'j5', label: 'Vinyl Wrapped Jamb – 6 3/4', rate: 10.31 },
-];
 
-const DEFAULT_CASINGS = [
-  { id: 'vinyl', label: 'Vinyl casing charge', rate: 5.69 },
-  { id: 'oak', label: 'Oak casing charge', rate: 8.16 },
-];
 
 function parseInches(v: string | undefined | null) {
   const s = String(v ?? '').trim().replace(/"/g, '');
@@ -75,8 +64,8 @@ export function SupplyJambCasingCard({
   setCasingRate,
   onJCCalculated,
 }: SupplyJambCasingCardProps) {
-  const [dbJambs, setDbJambs] = useState<any[]>(DEFAULT_JAMBS);
-  const [dbCasings, setDbCasings] = useState<any[]>(DEFAULT_CASINGS);
+  const [dbJambs, setDbJambs] = useState<any[]>([]);
+  const [dbCasings, setDbCasings] = useState<any[]>([]);
   const [extraLinPerWindow, setExtraLinPerWindow] = useState<number>(2.17);
 
   // Fetch jambs, casings, and supply-only linear allowance from database
@@ -139,17 +128,17 @@ export function SupplyJambCasingCard({
   const jcTotalCents = jambTotCents + casingTotCents;
 
   const selectedJambLabel = useMemo(() => {
-    if (jambId === 'none') return 'None ($0.00)';
+    if (jambId === 'none') return 'None';
     if (jambId === 'custom') return jambName ? `${jambName} ($${Number(jambRate || 0).toFixed(2)}/ft)` : 'Custom...';
     const match = dbJambs.find((j) => j.id === jambId);
-    return match ? `${match.label} ($${Number(match.rate).toFixed(2)}/ft)` : 'None';
+    return match ? match.label : 'None';
   }, [jambId, jambName, jambRate, dbJambs]);
 
   const selectedCasingLabel = useMemo(() => {
-    if (casingId === 'none') return 'None ($0.00)';
+    if (casingId === 'none') return 'None';
     if (casingId === 'custom') return casingName ? `${casingName} ($${Number(casingRate || 0).toFixed(2)}/ft)` : 'Custom...';
     const match = dbCasings.find((c) => c.id === casingId);
-    return match ? `${match.label} ($${Number(match.rate).toFixed(2)}/ft)` : 'None';
+    return match ? match.label : 'None';
   }, [casingId, casingName, casingRate, dbCasings]);
 
   // Selected item objects for QuoteInvoice representation
@@ -230,10 +219,10 @@ export function SupplyJambCasingCard({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None ($0.00)</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {dbJambs.map((j) => (
                   <SelectItem key={j.id} value={j.id}>
-                    {j.label} (${Number(j.rate).toFixed(2)}/ft)
+                    {j.label}
                   </SelectItem>
                 ))}
                 <SelectItem value="custom">Custom...</SelectItem>
@@ -285,10 +274,10 @@ export function SupplyJambCasingCard({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None ($0.00)</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {dbCasings.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.label} (${Number(c.rate).toFixed(2)}/ft)
+                    {c.label}
                   </SelectItem>
                 ))}
                 <SelectItem value="custom">Custom...</SelectItem>

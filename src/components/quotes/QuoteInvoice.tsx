@@ -405,79 +405,74 @@ export default function QuoteInvoice({
     baseCents: number;
   };
 
-  const windowGroups: WindowGroup[] = [];
+  let dW = 0; // dual white
+  let tW = 0; // triple white
+  let dP = 0; // dual painted
+  let tP = 0; // triple painted
+  let totalBaseCentsCalculated = 0;
 
   if (Array.isArray(windows) && windows.length > 0) {
-    const groupMap = new Map<string, WindowGroup>();
-
-    windows.forEach(w => {
+    windows.forEach((w) => {
       const q = Math.max(1, Number(w.qty) || 1);
       const itemBase = toCents(w.base);
-      const isTriple = (Number(w.triple) > 0) || (toCents(w.triple) > 0);
-      const pane: 'Dual' | 'Triple' = isTriple ? 'Triple' : 'Dual';
-      const color: 'White' | 'Painted' = (w.color && w.color.toLowerCase() === 'painted') ? 'Painted' : 'White';
+      const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
+      const isPainted = w.color && w.color.toLowerCase() === 'painted';
 
-      const key = `${pane}_${color}`;
-      const existing = groupMap.get(key);
-      if (existing) {
-        existing.qty += q;
-        existing.baseCents += itemBase;
+      if (isPainted) {
+        if (isTriple) tP += q;
+        else dP += q;
       } else {
-        groupMap.set(key, {
-          key,
-          pane,
-          color,
-          qty: q,
-          baseCents: itemBase,
-        });
+        if (isTriple) tW += q;
+        else dW += q;
       }
-    });
-
-    const order = ['Dual_White', 'Dual_Painted', 'Triple_White', 'Triple_Painted'];
-    order.forEach(k => {
-      const g = groupMap.get(k);
-      if (g && g.qty > 0) {
-        windowGroups.push(g);
-      }
+      totalBaseCentsCalculated += itemBase;
     });
   }
 
-  // Fallback if windows array had no item prices but basePrice prop was supplied
-  if (windowGroups.length === 0 && basePrice > 0) {
-    windowGroups.push({
-      key: 'Dual_White',
-      pane: 'Dual',
-      color: 'White',
-      qty: 1,
-      baseCents: basePrice,
-    });
+  const totalQty = dW + tW + dP + tP;
+  let paintedPart = '';
+  if (dP > 0 && tP > 0) {
+    paintedPart = `${dP} dual & ${tP} triple pane painted`;
+  } else if (dP > 0) {
+    paintedPart = `${dP} dual pane painted`;
+  } else if (tP > 0) {
+    paintedPart = `${tP} triple pane painted`;
   }
+
+  let whitePart = '';
+  if (dW > 0 && tW > 0) {
+    whitePart = `${dW} dual & ${tW} triple pane white`;
+  } else if (dW > 0) {
+    whitePart = `${dW} dual pane white`;
+  } else if (tW > 0) {
+    whitePart = `${tW} triple pane white`;
+  }
+
+  const plural = totalQty > 1 ? 'windows' : 'window';
+  let windowSummarySentence = '';
+  if (paintedPart && whitePart) {
+    const separator = paintedPart.includes('&') || whitePart.includes('&') ? ', ' : ' and ';
+    windowSummarySentence = `${paintedPart}${separator}${whitePart} ${plural}`;
+  } else if (paintedPart) {
+    windowSummarySentence = `${paintedPart} ${plural}`;
+  } else if (whitePart) {
+    windowSummarySentence = `${whitePart} ${plural}`;
+  } else {
+    windowSummarySentence = 'Base price of windows';
+  }
+
+  const totalWindowBaseCents = totalBaseCentsCalculated > 0 ? totalBaseCentsCalculated : (basePrice > 0 ? basePrice : 0);
 
   const renderWindowBasePriceRows = (textColor: string = 'text-[#0f172a]') => {
-    if (windowGroups.length === 0) {
-      return (
-        <tr className="border-b border-[#e2e8f0]">
-          <td className={`py-1 ${textColor} font-medium`}>Base price of windows</td>
-          <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
-            {formatMoney(basePrice)}
-          </td>
-        </tr>
-      );
-    }
-
     return (
-      <>
-        {windowGroups.map((g) => (
-          <tr key={g.key} className="border-b border-[#e2e8f0]">
-            <td className={`py-1 ${textColor} font-medium`}>
-              {g.qty} {g.pane} pane {g.color} window{g.qty > 1 ? 's' : ''}
-            </td>
-            <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
-              {formatMoney(g.baseCents || (windowGroups.length === 1 ? basePrice : 0))}
-            </td>
-          </tr>
-        ))}
-      </>
+      <tr className="border-b border-[#e2e8f0]">
+        <td className={`py-1 ${textColor} font-medium capitalize`}>
+          {windowSummarySentence}
+        </td>
+        <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
+          {formatMoney(totalWindowBaseCents)}
+        </td>
+      </tr>
     );
   };
 

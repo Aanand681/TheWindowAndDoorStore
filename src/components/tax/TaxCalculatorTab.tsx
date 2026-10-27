@@ -30,18 +30,7 @@ const ADDONS = [
   { id: 'jchan', label: 'J channels (qty × $325 labour + $180 misc)', lab: 325, misc: 180 }
 ];
 
-const JAMBS = [
-  { id: 'j1', label: 'Vinyl Wrapped Jamb – 3/4 x 2 1/2', rate: 5.05 },
-  { id: 'j2', label: 'Vinyl Wrapped Jamb – 3/4 x 3 1/4', rate: 6.05 },
-  { id: 'j3', label: 'Vinyl Wrapped Jamb – 3/4 x 4 1/2', rate: 7.34 },
-  { id: 'j4', label: 'Vinyl Wrapped Jamb – 3/4 x 5 1/4', rate: 8.49 },
-  { id: 'j5', label: 'Vinyl Wrapped Jamb – 3/4 x 6 3/4', rate: 10.31 }
-];
 
-const CASINGS = [
-  { id: 'vinyl', label: 'Vinyl casing charge', rate: 5.69 },
-  { id: 'oak', label: 'Oak casing charge', rate: 8.16 }
-];
 
 function parseInches(v: string | undefined | null) {
   const s = String(v ?? '').trim().replace(/"/g, '');
@@ -62,6 +51,7 @@ export default function TaxCalculatorTab({
   readOnly = false,
   onOpenPreview,
   isSupplyOnly: isSupplyOnlyProp = false,
+  summarySlot,
 }: { 
   windows: any[], 
   onWindowsChange: (w: any[]) => void, 
@@ -70,13 +60,14 @@ export default function TaxCalculatorTab({
   readOnly?: boolean,
   onOpenPreview?: () => void,
   isSupplyOnly?: boolean,
+  summarySlot?: React.ReactNode,
 }) {
   const [regions, setRegions] = useState<any[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   
   const [dbAddons, setDbAddons] = useState<any[]>(ADDONS);
-  const [dbJambs, setDbJambs] = useState<any[]>(JAMBS);
-  const [dbCasings, setDbCasings] = useState<any[]>(CASINGS);
+  const [dbJambs, setDbJambs] = useState<any[]>([]);
+  const [dbCasings, setDbCasings] = useState<any[]>([]);
   const [dbVehicleRate, setDbVehicleRate] = useState<number>(0.98);
   const [dbCrewRates, setDbCrewRates] = useState<any[]>([
     { crewSize: '2', hourlyRate: 150 },
@@ -875,6 +866,9 @@ export default function TaxCalculatorTab({
       </div>
 
       {/* Sidebar Summary */}
+      {summarySlot ? (
+        summarySlot
+      ) : (
       <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
         <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl">
           <CardHeader className="pb-4">
@@ -987,6 +981,7 @@ export default function TaxCalculatorTab({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

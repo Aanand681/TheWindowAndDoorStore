@@ -50,19 +50,19 @@ export function WindowConfigurationsCard({
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 py-3.5 px-5 sm:px-6">
         <div>
           <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
             <Component className="w-5 sm:w-6 h-5 sm:h-6 text-primary shrink-0" />
             <span>Window Configurations</span>
           </CardTitle>
-          <CardDescription className="mt-1 text-xs sm:text-sm">
+          <CardDescription className="mt-0.5 text-xs sm:text-sm">
             Enter the base prices and upgrade components for each window.
           </CardDescription>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5 bg-muted/50 p-1.5 sm:p-2 rounded-xl border border-border/50 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 sm:p-1.5 rounded-xl border border-border/50 w-full sm:w-auto justify-between sm:justify-start">
           {setIsSupplyOnly && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/70 bg-background/60 hover:bg-background transition-colors cursor-pointer select-none">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/70 bg-background/60 hover:bg-background transition-colors cursor-pointer select-none">
               <Checkbox
                 id="supplyOnlyToggle"
                 disabled={isReadOnly}
@@ -89,17 +89,17 @@ export function WindowConfigurationsCard({
             size="sm"
             onClick={handlePdfImportClick}
             disabled={isReadOnly}
-            className="whitespace-nowrap shadow-sm h-9 px-3 text-xs sm:text-sm font-semibold cursor-pointer"
+            className="whitespace-nowrap shadow-sm h-8 px-2.5 text-xs font-semibold cursor-pointer"
           >
-            <FileUp className="w-4 h-4 mr-1.5" />
+            <FileUp className="w-3.5 h-3.5 mr-1.5" />
             Import PDF
           </Button>
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-muted/20 border-t border-border">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 py-3 px-5 sm:px-6 bg-muted/20 border-b border-border/40">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Quote/Order Number
             </Label>
             <Input
@@ -107,11 +107,11 @@ export function WindowConfigurationsCard({
               value={quoteNumber}
               onChange={(e) => setQuoteNumber(e.target.value)}
               placeholder="e.g. 400820"
-              className="bg-background shadow-sm"
+              className="bg-background shadow-xs h-9 text-sm"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Customer Name
             </Label>
             <Input
@@ -119,15 +119,15 @@ export function WindowConfigurationsCard({
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="e.g. Jason Schram"
-              className="bg-background shadow-sm"
+              className="bg-background shadow-xs h-9 text-sm"
             />
           </div>
         </div>
-        <div className="w-full max-h-[600px] overflow-auto border-t border-border">
+        <div className="w-full max-h-[600px] overflow-auto">
           <div className="text-[11px] text-muted-foreground/80 md:hidden px-4 py-2 bg-muted/30 border-b border-border/40 flex items-center justify-between font-medium">
             <span>← Swipe table horizontally to edit all panes &amp; prices →</span>
           </div>
-          <div className="min-w-[800px] p-6">
+          <div className="min-w-[800px] p-4 sm:p-5">
             <div className="grid grid-cols-12 gap-4 mb-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">
               <div className="col-span-1">Seq</div>
               <div className="col-span-1">Qty</div>

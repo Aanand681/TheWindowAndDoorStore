@@ -507,7 +507,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         {/* Tab Controls */}
         <Tabs value={activeTab} onValueChange={(val) => switchTab(val as any)} className="w-full">
           {activeTab !== 'quotes' && (
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-muted p-1 rounded-full border border-border/50 shadow-sm animate-in fade-in duration-200">
+            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-4 sm:mb-5 bg-muted p-1 rounded-full border border-border/50 shadow-sm animate-in fade-in duration-200">
               <TabsTrigger value="promo" className="rounded-full text-xs sm:text-sm font-semibold cursor-pointer">
                 Promo Calculator
               </TabsTrigger>
@@ -519,8 +519,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
           {/* Tab 1: Promo Calculator */}
           <div className={cn("mt-0 outline-none", activeTab !== 'promo' && "hidden")}>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+              <div className="lg:col-span-8 space-y-4 sm:space-y-5">
                 <WindowConfigurationsCard
                   windows={windows}
                   surchargeRate={surchargeRate}
@@ -654,6 +654,73 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
               readOnly={isReadOnly}
               onOpenPreview={() => setIsPreviewOpen(true)}
               isSupplyOnly={isSupplyOnly}
+              summarySlot={
+                <QuoteSummaryCard
+                  quoteResult={quoteResult}
+                  summaryWindowGroups={summaryWindowGroups}
+                  surchargeRate={surchargeRate}
+                  taxTotals={taxTotals}
+                  taxJC={taxJC}
+                  taxMisc={taxMisc}
+                  taxLabour={taxLabour}
+                  customJC={customJC}
+                  setCustomJC={setCustomJC}
+                  customMisc={customMisc}
+                  setCustomMisc={setCustomMisc}
+                  customLabour={customLabour}
+                  setCustomLabour={setCustomLabour}
+                  includeJCInPromo={includeJCInPromo}
+                  setIncludeJCInPromo={setIncludeJCInPromo}
+                  includeMiscInPromo={includeMiscInPromo}
+                  setIncludeMiscInPromo={setIncludeMiscInPromo}
+                  includeLabourInPromo={includeLabourInPromo}
+                  setIncludeLabourInPromo={setIncludeLabourInPromo}
+                  wantsUpgrade={wantsUpgrade}
+                  setWantsUpgrade={setWantsUpgrade}
+                  upgrade={upgrade}
+                  shownUpgrade={shownUpgrade}
+                  beforeTaxDiscount={beforeTaxDiscount}
+                  afterDiscount={afterDiscount}
+                  hstRate={hstRate}
+                  setHstRate={setHstRate}
+                  total={total}
+                  firstPayment={firstPayment}
+                  secondPayment={secondPayment}
+                  quoteNotes={quoteNotes}
+                  setQuoteNotes={setQuoteNotes}
+                  isReadOnly={isReadOnly}
+                  user={user}
+                  reviewQuote={reviewQuote}
+                  isEditMode={isEditMode}
+                  setIsEditMode={setIsEditMode}
+                  canEditApprovedQuote={canEditApprovedQuote}
+                  canEditCurrentQuote={canEditCurrentQuote}
+                  isReviewerOrAdmin={isReviewerOrAdmin}
+                  reviewActionLoading={reviewActionLoading}
+                  staffList={staffList}
+                  clerkList={clerkList}
+                  quoteNumber={quoteNumber}
+                  customerName={customerName}
+                  assignedReviewer={assignedReviewer}
+                  setAssignedReviewer={setAssignedReviewer}
+                  selectedOdooClerk={selectedOdooClerk}
+                  setSelectedOdooClerk={setSelectedOdooClerk}
+                  setShowSubmitModal={setShowSubmitModal}
+                  handleResubmitReturnedQuote={handleResubmitReturnedQuote}
+                  handleSaveQuotePrices={handleSaveQuotePrices}
+                  handleExitReview={handleExitReview}
+                  handleCancelEdits={handleCancelEdits}
+                  setOdooOrderNumberInput={setOdooOrderNumberInput}
+                  setShowCompleteOdooModal={setShowCompleteOdooModal}
+                  setIsPreviewOpen={setIsPreviewOpen}
+                  handleApproveReviewQuote={handleApproveReviewQuote}
+                  setReassignTo={setReassignTo}
+                  setReassignNotes={setReassignNotes}
+                  setShowReassignModal={setShowReassignModal}
+                  handleReturnReviewQuote={handleReturnReviewQuote}
+                  isSupplyOnly={isSupplyOnly}
+                />
+              }
             />
           </div>
 

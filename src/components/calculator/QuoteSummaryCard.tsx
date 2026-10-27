@@ -165,11 +165,10 @@ export function QuoteSummaryCard({
   const effectiveLabourCents = customLabour !== '' ? toCents(customLabour) : (taxLabour || 0);
 
   const jcSummaryLabel = React.useMemo(() => {
-    const hasJamb = Boolean(taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0));
-    const hasCasing = Boolean(taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0));
-    if (hasJamb && hasCasing) return 'Jambs & Casing';
-    if (hasJamb) return 'Jambs';
-    if (hasCasing) return 'Casing';
+    const hasJamb = Boolean(taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.total) > 0 || Number(taxTotals.selectedJamb.rate) > 0));
+    const hasCasing = Boolean(taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.total) > 0 || Number(taxTotals.selectedCasing.rate) > 0));
+    if (hasJamb && !hasCasing) return 'Jambs Only';
+    if (!hasJamb && hasCasing) return 'Casing Only';
     return 'Jambs & Casing';
   }, [taxTotals?.selectedJamb, taxTotals?.selectedCasing]);
 
@@ -212,11 +211,11 @@ export function QuoteSummaryCard({
                     <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
                   </div>
                 )}
-                {/* Jambs & Casing (Only if chosen for supply, or if present in regular quote) */}
+                {/* Jambs & Casing (or Jambs Only / Casing Only) */}
                 {effectiveJCCents > 0 && (
                   <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                     <span className="text-muted-foreground">
-                      {isSupplyOnly ? jcSummaryLabel : 'Jambs & Casing'}
+                      {jcSummaryLabel}
                     </span>
                     <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
                       +{formatMoney(effectiveJCCents)}
@@ -247,29 +246,27 @@ export function QuoteSummaryCard({
                   <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult.surcharge)}</span>
                 </div>
                 {quoteResult.promoDiscount > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
-                    <span>Promo discount</span>
-                    <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
-                  </div>
+                  <>
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
+                      <span>Promo discount</span>
+                      <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
+                    </div>
+                    {quoteResult.text && (
+                      <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 my-1.5 bg-muted/50 p-2.5 rounded-lg border border-border/60">
+                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
+                        <span>{quoteResult.text}</span>
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
-              {/* Subtotal & After Discount */}
-              <div className="space-y-1.5 pb-2.5 border-b border-border/50 text-xs sm:text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-mono whitespace-nowrap shrink-0">{formatMoney(beforeTaxDiscount)}</span>
-                </div>
+              {/* Subtotal (After Discount) */}
+              <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
                 <div className="flex items-center justify-between font-medium">
-                  <span className="text-foreground">After Discount</span>
+                  <span className="text-foreground">Subtotal</span>
                   <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">{formatMoney(afterDiscount)}</span>
                 </div>
-                {quoteResult.text && (
-                  <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 mt-2 bg-muted/50 p-2.5 rounded-lg border border-border/60">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                    <span>{quoteResult.text}</span>
-                  </p>
-                )}
               </div>
 
               {/* HST Selection (Standard 13% vs 8% First Nations Material Exemption) */}
