@@ -110,57 +110,67 @@ export function useCalculatorWindows() {
   };
 
   const summaryWindowGroups = useMemo(() => {
-    type ColorSummary = {
-      color: 'White' | 'Painted';
-      dualQty: number;
-      tripleQty: number;
-      baseCents: number;
-      label: string;
-      key: string;
-    };
-    const map = new Map<'White' | 'Painted', { dualQty: number; tripleQty: number; baseCents: number }>();
-    map.set('White', { dualQty: 0, tripleQty: 0, baseCents: 0 });
-    map.set('Painted', { dualQty: 0, tripleQty: 0, baseCents: 0 });
+    let dW = 0; // dual white
+    let tW = 0; // triple white
+    let dP = 0; // dual painted
+    let tP = 0; // triple painted
+    let totalBaseCents = 0;
 
     windows.forEach(w => {
       const q = Math.max(1, Number(w.qty) || 1);
       const itemBase = toCents(w.base);
       const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
-      const color: 'White' | 'Painted' = w.color && w.color.toLowerCase() === 'painted' ? 'Painted' : 'White';
-      const entry = map.get(color)!;
-      if (isTriple) {
-        entry.tripleQty += q;
+      const isPainted = w.color && w.color.toLowerCase() === 'painted';
+
+      if (isPainted) {
+        if (isTriple) tP += q;
+        else dP += q;
       } else {
-        entry.dualQty += q;
+        if (isTriple) tW += q;
+        else dW += q;
       }
-      entry.baseCents += itemBase;
+      totalBaseCents += itemBase;
     });
 
-    const groups: ColorSummary[] = [];
-    (['White', 'Painted'] as const).forEach(color => {
-      const g = map.get(color)!;
-      const totalQty = g.dualQty + g.tripleQty;
-      if (totalQty > 0) {
-        let label = '';
-        if (g.dualQty > 0 && g.tripleQty > 0) {
-          label = `${g.dualQty} dual and ${g.tripleQty} triple pane ${color.toLowerCase()} window${totalQty > 1 ? 's' : ''}`;
-        } else if (g.dualQty > 0) {
-          label = `${g.dualQty} dual pane ${color.toLowerCase()} window${g.dualQty > 1 ? 's' : ''}`;
-        } else {
-          label = `${g.tripleQty} triple pane ${color.toLowerCase()} window${g.tripleQty > 1 ? 's' : ''}`;
-        }
-        groups.push({
-          key: color,
-          color,
-          dualQty: g.dualQty,
-          tripleQty: g.tripleQty,
-          baseCents: g.baseCents,
-          label,
-        });
-      }
-    });
+    const totalQty = dW + tW + dP + tP;
+    if (totalQty === 0) return [];
 
-    return groups;
+    let paintedPart = '';
+    if (dP > 0 && tP > 0) {
+      paintedPart = `${dP} dual & ${tP} triple pane painted`;
+    } else if (dP > 0) {
+      paintedPart = `${dP} dual pane painted`;
+    } else if (tP > 0) {
+      paintedPart = `${tP} triple pane painted`;
+    }
+
+    let whitePart = '';
+    if (dW > 0 && tW > 0) {
+      whitePart = `${dW} dual & ${tW} triple pane white`;
+    } else if (dW > 0) {
+      whitePart = `${dW} dual pane white`;
+    } else if (tW > 0) {
+      whitePart = `${tW} triple pane white`;
+    }
+
+    let fullLabel = '';
+    const plural = totalQty > 1 ? 'windows' : 'window';
+
+    if (paintedPart && whitePart) {
+      const separator = (paintedPart.includes('&') || whitePart.includes('&')) ? ', ' : ' and ';
+      fullLabel = `${paintedPart}${separator}${whitePart} ${plural}`;
+    } else if (paintedPart) {
+      fullLabel = `${paintedPart} ${plural}`;
+    } else if (whitePart) {
+      fullLabel = `${whitePart} ${plural}`;
+    }
+
+    return [{
+      key: 'all_windows',
+      label: fullLabel,
+      baseCents: totalBaseCents,
+      qty: totalQty,
+    }];
   }, [windows]);
 
   return {
