@@ -174,9 +174,9 @@ export function QuoteSummaryCard({
 
   return (
     <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
-      <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl overflow-hidden relative">
+      <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl overflow-hidden relative py-0 gap-0 [--card-spacing:0px]">
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-primary/50" />
-        <CardHeader className="pb-3 border-b border-border/50">
+        <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-xl flex items-center gap-2">
               <Calculator className="w-5 h-5 text-primary" />
@@ -189,7 +189,7 @@ export function QuoteSummaryCard({
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4">
+        <CardContent className="space-y-4 pt-3.5 px-5 sm:px-6 pb-5">
           {quoteResult ? (
             <>
               {/* Window configurations (Strictly single line per group) */}

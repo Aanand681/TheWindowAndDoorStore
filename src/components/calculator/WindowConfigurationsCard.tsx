@@ -49,8 +49,8 @@ export function WindowConfigurationsCard({
   setIsSupplyOnly,
 }: WindowConfigurationsCardProps) {
   return (
-    <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 py-3.5 px-5 sm:px-6">
+    <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl py-0 gap-0 [--card-spacing:0px]">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 py-3 px-5 sm:px-6 !pb-3">
         <div>
           <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
             <Component className="w-5 sm:w-6 h-5 sm:h-6 text-primary shrink-0" />
@@ -97,7 +97,7 @@ export function WindowConfigurationsCard({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 py-3 px-5 sm:px-6 bg-muted/20 border-b border-border/40">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2.5 px-5 sm:px-6 bg-muted/20 border-b border-border/40">
           <div className="space-y-1">
             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Quote/Order Number
@@ -245,9 +245,13 @@ export function WindowConfigurationsCard({
           </div>
         </div>
         {!isReadOnly && (
-          <div className="p-6 border-t border-border bg-muted/10 rounded-b-xl flex justify-center sm:justify-start">
-            <Button onClick={handleAddWindow} className="shadow-lg w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
+          <div className="py-2.5 px-4 sm:px-5 border-t border-border/50 bg-muted/10 rounded-b-xl flex justify-center sm:justify-start">
+            <Button
+              onClick={handleAddWindow}
+              size="sm"
+              className="h-8 text-xs font-semibold shadow-xs w-full sm:w-auto cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
               Add Window Manually
             </Button>
           </div>

@@ -181,7 +181,7 @@ export function SupplyJambCasingCard({
   }, [linearFeet, jambTotCents, casingTotCents, jcTotalCents, selectedJambObj, selectedCasingObj]);
 
   return (
-    <Card className="bg-card/70 border-primary/25 backdrop-blur-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+    <Card className="bg-card/70 border-primary/25 backdrop-blur-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 py-0 gap-0 [--card-spacing:0px]">
       <CardContent className="p-4 space-y-3">
         {/* Slim Top Bar */}
         <div className="flex items-center justify-between pb-2 border-b border-border/40 text-xs">
