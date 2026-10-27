@@ -32,11 +32,17 @@ export async function GET() {
         miscPerSqft: 0,
         labourMin: 0,
         miscMin: 0,
-        extraLinPerWindow: 0,
+        extraLinPerWindow: 2.17,
         fixedSetupFee: 0,
         baseTravelFee: 0,
         polygon: [],
       });
+    } else if (!supplyExists.extraLinPerWindow || supplyExists.extraLinPerWindow === 0) {
+      await RegionConfig.updateMany(
+        { $or: [{ isSupplyOnly: true }, { name: /^supply only$/i }], extraLinPerWindow: { $in: [0, null] } },
+        { $set: { extraLinPerWindow: 2.17 } }
+      );
+      await cacheDel(cacheKey);
     }
 
     const regions = await RegionConfig.find().sort({ name: 1 });
@@ -80,7 +86,7 @@ export async function POST(req: Request) {
       miscPerSqft: isSupplyOnly ? 0 : (Number(data.miscPerSqft) ?? 8),
       labourMin: isSupplyOnly ? 0 : (Number(data.labourMin) ?? 325),
       miscMin: isSupplyOnly ? 0 : (Number(data.miscMin) ?? 74),
-      extraLinPerWindow: isSupplyOnly ? 0 : (Number(data.extraLinPerWindow) ?? 2.17),
+      extraLinPerWindow: Number(data.extraLinPerWindow) > 0 ? Number(data.extraLinPerWindow) : 2.17,
       fixedSetupFee: isSupplyOnly ? 0 : (Number(data.fixedSetupFee) ?? 140),
       baseTravelFee: isSupplyOnly ? 0 : (Number(data.baseTravelFee) ?? 0),
       polygon: Array.isArray(data.polygon) ? data.polygon : [],

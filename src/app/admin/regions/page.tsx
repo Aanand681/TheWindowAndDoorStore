@@ -107,7 +107,7 @@ export default function RegionsDashboard() {
         miscPerSqft: 0,
         labourMin: 0,
         miscMin: 0,
-        extraLinPerWindow: 0,
+        extraLinPerWindow: 2.17,
         fixedSetupFee: 0,
         baseTravelFee: 0,
         setupFeeOptions: [{ label: 'Supply Only (No Setup)', value: 0 }],
@@ -337,7 +337,7 @@ export default function RegionsDashboard() {
                                   updateRegion(region._id, 'miscPerSqft', 0);
                                   updateRegion(region._id, 'labourMin', 0);
                                   updateRegion(region._id, 'miscMin', 0);
-                                  updateRegion(region._id, 'extraLinPerWindow', 0);
+                                  updateRegion(region._id, 'extraLinPerWindow', 2.17);
                                   updateRegion(region._id, 'fixedSetupFee', 0);
                                   updateRegion(region._id, 'baseTravelFee', 0);
                                 }

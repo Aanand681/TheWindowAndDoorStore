@@ -351,7 +351,10 @@ export default function TaxCalculatorTab({
       if (!W || !H || q <= 0) return null;
       const unitSq = (W * H) / 144;
       const sqft = unitSq * q;
-      const lin = ((W * 2 + H * 2) / 12) * q + (isSupplyOnly ? 0 : q * (region.extraLinPerWindow || 0));
+      const extraLin = (region.extraLinPerWindow !== undefined && region.extraLinPerWindow !== null && region.extraLinPerWindow > 0)
+        ? region.extraLinPerWindow
+        : 2.17;
+      const lin = ((W * 2 + H * 2) / 12) * q + (q * extraLin);
       const labRaw = isSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
       const miscRaw = isSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
       const lab = isSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
