@@ -92,6 +92,7 @@ export interface QuoteSummaryCardProps {
   setReassignNotes: (val: string) => void;
   setShowReassignModal: (val: boolean) => void;
   handleReturnReviewQuote: () => void;
+  isSupplyOnly?: boolean;
 }
 
 export function QuoteSummaryCard({
@@ -157,10 +158,20 @@ export function QuoteSummaryCard({
   setReassignNotes,
   setShowReassignModal,
   handleReturnReviewQuote,
+  isSupplyOnly = false,
 }: QuoteSummaryCardProps) {
   const effectiveJCCents = customJC !== '' ? toCents(customJC) : (taxJC || 0);
   const effectiveMiscCents = customMisc !== '' ? toCents(customMisc) : (taxMisc || 0);
   const effectiveLabourCents = customLabour !== '' ? toCents(customLabour) : (taxLabour || 0);
+
+  const jcSummaryLabel = React.useMemo(() => {
+    const hasJamb = Boolean(taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0));
+    const hasCasing = Boolean(taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0));
+    if (hasJamb && hasCasing) return 'Jambs & Casing';
+    if (hasJamb) return 'Jambs';
+    if (hasCasing) return 'Casing';
+    return 'Jambs & Casing';
+  }, [taxTotals?.selectedJamb, taxTotals?.selectedCasing]);
 
   return (
     <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
@@ -201,6 +212,36 @@ export function QuoteSummaryCard({
                     <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
                   </div>
                 )}
+                {/* Jambs & Casing (Only if chosen for supply, or if present in regular quote) */}
+                {effectiveJCCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">
+                      {isSupplyOnly ? jcSummaryLabel : 'Jambs & Casing'}
+                    </span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveJCCents)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Labour and Misc: ONLY shown if NOT supply only */}
+                {!isSupplyOnly && effectiveLabourCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">Labour</span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveLabourCents)}
+                    </span>
+                  </div>
+                )}
+                {!isSupplyOnly && effectiveMiscCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">Miscellaneous</span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveMiscCents)}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                   <span className="text-muted-foreground">Surcharge ({surchargeRate}%)</span>
                   <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult.surcharge)}</span>
@@ -209,37 +250,6 @@ export function QuoteSummaryCard({
                   <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
                     <span>Promo discount</span>
                     <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
-                  </div>
-                )}
-                {effectiveJCCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <span>Jambs &amp; Casing</span>
-                      {taxTotals?.isSupplyOnly && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                          Supply
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveJCCents)}
-                    </span>
-                  </div>
-                )}
-                {effectiveMiscCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground">Miscellaneous</span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveMiscCents)}
-                    </span>
-                  </div>
-                )}
-                {effectiveLabourCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground">Labour</span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveLabourCents)}
-                    </span>
                   </div>
                 )}
               </div>
@@ -260,31 +270,6 @@ export function QuoteSummaryCard({
                     <span>{quoteResult.text}</span>
                   </p>
                 )}
-              </div>
-
-              {/* 5-year free labour upgrade checkbox */}
-              <div className="flex items-start space-x-2.5 bg-primary/5 p-3 rounded-xl border border-primary/15">
-                <Checkbox
-                  id="summaryUpgrade"
-                  disabled={isReadOnly}
-                  checked={wantsUpgrade}
-                  onCheckedChange={(c) => setWantsUpgrade(!!c)}
-                  className="mt-0.5"
-                />
-                <div className="space-y-0.5 flex-1">
-                  <Label htmlFor="summaryUpgrade" className="text-xs font-semibold cursor-pointer">
-                    Include 5-year free labour upgrade
-                  </Label>
-                  <p className="text-[10px] text-muted-foreground">
-                    Optional. Shows upgrade price only; not added to final total.
-                  </p>
-                  {wantsUpgrade && (
-                    <div className="flex items-center justify-between text-xs font-semibold text-primary pt-1">
-                      <span>Upgrade ({upgrade.rate})</span>
-                      <span className="font-mono whitespace-nowrap shrink-0">{formatMoney(shownUpgrade)}</span>
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* HST Selection (Standard 13% vs 8% First Nations Material Exemption) */}
@@ -353,25 +338,41 @@ export function QuoteSummaryCard({
                 </div>
               </div>
 
-              {/* Optional Quote Notes Field with Rich Auto-Growing WYSIWYG Editor */}
-              <div className="pt-3 border-t border-border/50">
-                {reviewQuote && reviewQuote.status === 'RETURNED' && reviewQuote.reviewerNotes && (
-                  <div className="mb-3 text-xs bg-amber-500/15 border border-amber-500/35 text-amber-950 dark:text-amber-200 p-3 rounded-xl font-medium flex items-start gap-2 shadow-xs animate-in fade-in">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-amber-900 dark:text-amber-300">Reviewer Revision Instructions:</strong>
-                      <p className="mt-0.5 italic text-foreground/90 font-normal">"{reviewQuote.reviewerNotes}"</p>
-                    </div>
-                  </div>
-                )}
-                <QuoteNotesEditor
-                  id="quoteNotesInput"
-                  value={quoteNotes}
-                  onChange={setQuoteNotes}
-                  readOnly={isReadOnly}
-                  placeholder="Enter special site notes, instructions, or employee comments..."
+              {/* 5-year free labour upgrade checkbox (placed right after 50/50 deposits) */}
+              <div className="flex items-start space-x-2.5 bg-primary/5 p-3 rounded-xl border border-primary/15 mt-3">
+                <Checkbox
+                  id="summaryUpgrade"
+                  disabled={isReadOnly}
+                  checked={wantsUpgrade}
+                  onCheckedChange={(c) => setWantsUpgrade(!!c)}
+                  className="mt-0.5"
                 />
+                <div className="space-y-0.5 flex-1">
+                  <Label htmlFor="summaryUpgrade" className="text-xs font-semibold cursor-pointer">
+                    Include 5-year free labour upgrade
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Optional. Shows upgrade price only; not added to final total.
+                  </p>
+                  {wantsUpgrade && (
+                    <div className="flex items-center justify-between text-xs font-semibold text-primary pt-1">
+                      <span>Upgrade ({upgrade.rate})</span>
+                      <span className="font-mono whitespace-nowrap shrink-0">{formatMoney(shownUpgrade)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Reviewer Revision Instructions (if returned) */}
+              {reviewQuote && reviewQuote.status === 'RETURNED' && reviewQuote.reviewerNotes && (
+                <div className="mt-3 text-xs bg-amber-500/15 border border-amber-500/35 text-amber-950 dark:text-amber-200 p-3 rounded-xl font-medium flex items-start gap-2 shadow-xs animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-amber-900 dark:text-amber-300">Reviewer Revision Instructions:</strong>
+                    <p className="mt-0.5 italic text-foreground/90 font-normal">"{reviewQuote.reviewerNotes}"</p>
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="mt-4 flex flex-col gap-2.5 w-full">

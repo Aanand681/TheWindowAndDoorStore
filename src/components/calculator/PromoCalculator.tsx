@@ -73,8 +73,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     summaryWindowGroups,
   } = useCalculatorWindows();
 
-  // Supply Only: Jambs & Casings State
-  const [isSupplyJCOpen, setIsSupplyJCOpen] = useState<boolean>(false);
+  // Supply Only: State
+  const [isSupplyOnly, setIsSupplyOnly] = useState<boolean>(false);
   const [supplyJambId, setSupplyJambId] = useState<string>('none');
   const [supplyJambName, setSupplyJambName] = useState<string>('');
   const [supplyJambRate, setSupplyJambRate] = useState<string>('');
@@ -135,7 +135,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setQuoteNumber('');
     setQuoteNotes('');
     setSurchargeRate(8);
-    setIsSupplyJCOpen(false);
+    setIsSupplyOnly(false);
     setSupplyJambId('none');
     setSupplyJambName('');
     setSupplyJambRate('');
@@ -145,19 +145,25 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     resetPricingOverrides();
   };
 
-  const handleToggleSupplyJC = (open: boolean) => {
-    setIsSupplyJCOpen(open);
-    if (!open) {
+  const handleToggleSupplyOnly = (isSupply: boolean) => {
+    setIsSupplyOnly(isSupply);
+    if (isSupply) {
+      setTaxTotals((prev: any) => ({
+        ...prev,
+        isSupplyOnly: true,
+        standardLabourCents: 0,
+        miscLabourCents: 0,
+        finalLabour: 0,
+        finalMisc: 0,
+      }));
+    } else {
       setCustomJC('');
+      setSupplyJambId('none');
+      setSupplyCasingId('none');
       setTaxTotals((prev: any) => {
-        if (!prev?.isSupplyOnly) return prev;
+        if (!prev) return prev;
         const next = { ...prev };
         delete next.isSupplyOnly;
-        delete next.selectedJamb;
-        delete next.selectedCasing;
-        next.finalJC = 0;
-        next.jcLabourCents = 0;
-        next.jc = 0;
         return next;
       });
     }
@@ -171,7 +177,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     selectedJamb: any;
     selectedCasing: any;
   }) => {
-    if (!isSupplyJCOpen) return;
+    if (!isSupplyOnly) return;
     const dollars = data.jcTotalCents > 0 ? (data.jcTotalCents / 100).toFixed(2) : '';
     setCustomJC(dollars);
     setTaxTotals((prev: any) => {
@@ -187,6 +193,10 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       return {
         ...prev,
         isSupplyOnly: true,
+        standardLabourCents: 0,
+        miscLabourCents: 0,
+        finalLabour: 0,
+        finalMisc: 0,
         ln: data.linearFeet,
         jc: data.jcTotalCents / 100,
         finalJC: data.jcTotalCents / 100,
@@ -195,12 +205,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         selectedCasing: data.selectedCasing,
       };
     });
-  }, [isSupplyJCOpen, setCustomJC, setTaxTotals]);
+  }, [isSupplyOnly, setCustomJC, setTaxTotals]);
 
-  // Restore Supply J&C state when opening a saved/reviewed quote
+  // Restore Supply Only state when opening a saved/reviewed quote
   useEffect(() => {
     if (taxTotals?.isSupplyOnly) {
-      setIsSupplyJCOpen(true);
+      setIsSupplyOnly(true);
       if (taxTotals.selectedJamb) {
         setSupplyJambId(taxTotals.selectedJamb.id || 'none');
         if (taxTotals.selectedJamb.id === 'custom') {
@@ -532,11 +542,11 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   handleRemoveWindow={(id) => handleRemoveWindow(id, () => setLockedPromoId(null))}
                   handleAddWindow={() => handleAddWindow(() => setLockedPromoId(null))}
                   windowEndRef={windowEndRef}
-                  isSupplyJCOpen={isSupplyJCOpen}
-                  setIsSupplyJCOpen={handleToggleSupplyJC}
+                  isSupplyOnly={isSupplyOnly}
+                  setIsSupplyOnly={handleToggleSupplyOnly}
                 />
 
-                {isSupplyJCOpen && (
+                {isSupplyOnly && (
                   <SupplyJambCasingCard
                     windows={windows}
                     isReadOnly={isReadOnly}
@@ -628,6 +638,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                 setReassignNotes={setReassignNotes}
                 setShowReassignModal={setShowReassignModal}
                 handleReturnReviewQuote={handleReturnReviewQuote}
+                isSupplyOnly={isSupplyOnly}
               />
             </div>
           </div>
@@ -642,6 +653,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
               savedTaxTotals={reviewQuote?.taxTotals || null}
               readOnly={isReadOnly}
               onOpenPreview={() => setIsPreviewOpen(true)}
+              isSupplyOnly={isSupplyOnly}
             />
           </div>
 

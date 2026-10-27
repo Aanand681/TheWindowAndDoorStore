@@ -1,13 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Layers, Ruler, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Layers, RotateCcw } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
+
+const DEFAULT_JAMBS = [
+  { id: 'j1', label: 'Vinyl Wrapped Jamb – 2 1/2', rate: 5.05 },
+  { id: 'j2', label: 'Vinyl Wrapped Jamb – 3 1/4', rate: 6.05 },
+  { id: 'j3', label: 'Vinyl Wrapped Jamb – 4 1/2', rate: 7.34 },
+  { id: 'j4', label: 'Vinyl Wrapped Jamb – 5 1/4', rate: 8.49 },
+  { id: 'j5', label: 'Vinyl Wrapped Jamb – 6 3/4', rate: 10.31 },
+];
+
+const DEFAULT_CASINGS = [
+  { id: 'vinyl', label: 'Vinyl casing charge', rate: 5.69 },
+  { id: 'oak', label: 'Oak casing charge', rate: 8.16 },
+];
 
 function parseInches(v: string | undefined | null) {
   const s = String(v ?? '').trim().replace(/"/g, '');
@@ -62,8 +75,8 @@ export function SupplyJambCasingCard({
   setCasingRate,
   onJCCalculated,
 }: SupplyJambCasingCardProps) {
-  const [dbJambs, setDbJambs] = useState<any[]>([]);
-  const [dbCasings, setDbCasings] = useState<any[]>([]);
+  const [dbJambs, setDbJambs] = useState<any[]>(DEFAULT_JAMBS);
+  const [dbCasings, setDbCasings] = useState<any[]>(DEFAULT_CASINGS);
   const [extraLinPerWindow, setExtraLinPerWindow] = useState<number>(2.17);
 
   // Fetch jambs, casings, and supply-only linear allowance from database
@@ -125,6 +138,20 @@ export function SupplyJambCasingCard({
   const casingTotCents = Math.round(linearFeet * effectiveCasingRate * 100);
   const jcTotalCents = jambTotCents + casingTotCents;
 
+  const selectedJambLabel = useMemo(() => {
+    if (jambId === 'none') return 'None ($0.00)';
+    if (jambId === 'custom') return jambName ? `${jambName} ($${Number(jambRate || 0).toFixed(2)}/ft)` : 'Custom...';
+    const match = dbJambs.find((j) => j.id === jambId);
+    return match ? `${match.label} ($${Number(match.rate).toFixed(2)}/ft)` : 'None';
+  }, [jambId, jambName, jambRate, dbJambs]);
+
+  const selectedCasingLabel = useMemo(() => {
+    if (casingId === 'none') return 'None ($0.00)';
+    if (casingId === 'custom') return casingName ? `${casingName} ($${Number(casingRate || 0).toFixed(2)}/ft)` : 'Custom...';
+    const match = dbCasings.find((c) => c.id === casingId);
+    return match ? `${match.label} ($${Number(match.rate).toFixed(2)}/ft)` : 'None';
+  }, [casingId, casingName, casingRate, dbCasings]);
+
   // Selected item objects for QuoteInvoice representation
   const selectedJambObj = useMemo(() => {
     if (jambId === 'none') return null;
@@ -165,46 +192,42 @@ export function SupplyJambCasingCard({
   }, [linearFeet, jambTotCents, casingTotCents, jcTotalCents, selectedJambObj, selectedCasingObj]);
 
   return (
-    <Card className="bg-card/70 border-primary/25 backdrop-blur-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-      <CardHeader className="py-4 px-6 border-b border-border/50 bg-primary/5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2 text-foreground">
-              <Layers className="w-5 h-5 text-primary" />
-              <span>Supply Only — Jambs &amp; Casings</span>
-            </CardTitle>
-            <CardDescription className="text-xs mt-0.5">
-              Select jamb extension depth and casing style. Linear footage includes {extraLinPerWindow} ft allowance per window from database.
-            </CardDescription>
+    <Card className="bg-card/70 border-primary/25 backdrop-blur-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+      <CardContent className="p-4 space-y-3">
+        {/* Slim Top Bar */}
+        <div className="flex items-center justify-between pb-2 border-b border-border/40 text-xs">
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <Layers className="w-3.5 h-3.5 text-primary" />
+            <span>Supply Jambs &amp; Casings (Optional)</span>
           </div>
-          <div className="flex items-center gap-2 bg-background/80 px-3 py-1.5 rounded-lg border border-border/60 text-xs font-mono font-semibold text-primary shrink-0">
-            <Ruler className="w-3.5 h-3.5" />
-            <span>{linearFeet.toFixed(2)} lin ft total</span>
-          </div>
+          <span className="text-[11px] font-mono text-muted-foreground">
+            {linearFeet.toFixed(2)} lin ft total
+          </span>
         </div>
-      </CardHeader>
 
-      <CardContent className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Compact 2-Column Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Jamb Extension Selector */}
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <Label className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Jamb Extension
               </Label>
               {jambId !== 'none' && !isReadOnly && (
                 <button
                   type="button"
                   onClick={() => setJambId('none')}
-                  className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3" /> Set to None
+                  <RotateCcw className="w-2.5 h-2.5" /> None
                 </button>
               )}
             </div>
             <Select disabled={isReadOnly} value={jambId} onValueChange={(val) => setJambId(val ?? 'none')}>
-              <SelectTrigger className="w-full bg-background font-medium">
-                <SelectValue placeholder="Select jamb extension" />
+              <SelectTrigger className="w-full h-9 bg-background text-xs font-medium">
+                <SelectValue placeholder="Select jamb extension">
+                  {selectedJambLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None ($0.00)</SelectItem>
@@ -224,47 +247,42 @@ export function SupplyJambCasingCard({
                   placeholder="Custom Jamb Name"
                   value={jambName}
                   onChange={(e) => setJambName(e.target.value)}
-                  className="bg-background text-xs"
+                  className="bg-background h-8 text-xs"
                 />
                 <Input
                   disabled={isReadOnly}
                   type="number"
                   step="0.01"
-                  placeholder="Rate/ft (e.g. 7.50)"
+                  placeholder="Rate/ft"
                   value={jambRate}
                   onChange={(e) => setJambRate(e.target.value)}
-                  className="bg-background text-xs font-mono"
+                  className="bg-background h-8 text-xs font-mono"
                 />
-              </div>
-            )}
-
-            {jambId !== 'none' && (
-              <div className="text-[11px] text-muted-foreground flex justify-between px-1">
-                <span>{linearFeet.toFixed(2)} ft × ${effectiveJambRate.toFixed(2)}/ft</span>
-                <span className="font-mono font-semibold text-foreground">{formatMoney(jambTotCents)}</span>
               </div>
             )}
           </div>
 
           {/* Casing Style Selector */}
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <Label className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Casing Profile
               </Label>
               {casingId !== 'none' && !isReadOnly && (
                 <button
                   type="button"
                   onClick={() => setCasingId('none')}
-                  className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3" /> Set to None
+                  <RotateCcw className="w-2.5 h-2.5" /> None
                 </button>
               )}
             </div>
             <Select disabled={isReadOnly} value={casingId} onValueChange={(val) => setCasingId(val ?? 'none')}>
-              <SelectTrigger className="w-full bg-background font-medium">
-                <SelectValue placeholder="Select casing style" />
+              <SelectTrigger className="w-full h-9 bg-background text-xs font-medium">
+                <SelectValue placeholder="Select casing style">
+                  {selectedCasingLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None ($0.00)</SelectItem>
@@ -284,40 +302,20 @@ export function SupplyJambCasingCard({
                   placeholder="Custom Casing Name"
                   value={casingName}
                   onChange={(e) => setCasingName(e.target.value)}
-                  className="bg-background text-xs"
+                  className="bg-background h-8 text-xs"
                 />
                 <Input
                   disabled={isReadOnly}
                   type="number"
                   step="0.01"
-                  placeholder="Rate/ft (e.g. 5.75)"
+                  placeholder="Rate/ft"
                   value={casingRate}
                   onChange={(e) => setCasingRate(e.target.value)}
-                  className="bg-background text-xs font-mono"
+                  className="bg-background h-8 text-xs font-mono"
                 />
               </div>
             )}
-
-            {casingId !== 'none' && (
-              <div className="text-[11px] text-muted-foreground flex justify-between px-1">
-                <span>{linearFeet.toFixed(2)} ft × ${effectiveCasingRate.toFixed(2)}/ft</span>
-                <span className="font-mono font-semibold text-foreground">{formatMoney(casingTotCents)}</span>
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Live Total Cost Banner */}
-        <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border/60 text-xs sm:text-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="font-medium text-foreground">
-              Total Jambs &amp; Casings (added directly to quote):
-            </span>
-          </div>
-          <span className="font-mono font-bold text-base text-primary">
-            {formatMoney(jcTotalCents)}
-          </span>
         </div>
       </CardContent>
     </Card>

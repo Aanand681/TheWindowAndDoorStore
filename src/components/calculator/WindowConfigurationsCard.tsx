@@ -26,8 +26,8 @@ export interface WindowConfigurationsCardProps {
   handleRemoveWindow: (id: string) => void;
   handleAddWindow: () => void;
   windowEndRef: React.RefObject<HTMLDivElement | null>;
-  isSupplyJCOpen?: boolean;
-  setIsSupplyJCOpen?: (val: boolean) => void;
+  isSupplyOnly?: boolean;
+  setIsSupplyOnly?: (val: boolean) => void;
 }
 
 export function WindowConfigurationsCard({
@@ -45,8 +45,8 @@ export function WindowConfigurationsCard({
   handleRemoveWindow,
   handleAddWindow,
   windowEndRef,
-  isSupplyJCOpen,
-  setIsSupplyJCOpen,
+  isSupplyOnly,
+  setIsSupplyOnly,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl">
@@ -60,33 +60,20 @@ export function WindowConfigurationsCard({
             Enter the base prices and upgrade components for each window.
           </CardDescription>
         </div>
-        <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1.5 sm:p-2 rounded-xl border border-border/50 w-full sm:w-auto justify-between sm:justify-start">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="surcharge" className="whitespace-nowrap px-1 text-xs sm:text-sm font-medium">
-              Surcharge %
-            </Label>
-            <Input
-              id="surcharge"
-              type="number"
-              readOnly
-              value={surchargeRate}
-              className="w-16 sm:w-20 h-9 bg-background opacity-70 cursor-not-allowed text-xs sm:text-sm font-mono"
-              title="Configured by Admin in Settings"
-            />
-          </div>
-          {setIsSupplyJCOpen && (
+        <div className="flex flex-wrap items-center gap-2.5 bg-muted/50 p-1.5 sm:p-2 rounded-xl border border-border/50 w-full sm:w-auto justify-between sm:justify-start">
+          {setIsSupplyOnly && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/70 bg-background/60 hover:bg-background transition-colors cursor-pointer select-none">
               <Checkbox
-                id="supplyJCToggle"
+                id="supplyOnlyToggle"
                 disabled={isReadOnly}
-                checked={isSupplyJCOpen}
-                onCheckedChange={(checked) => setIsSupplyJCOpen(!!checked)}
+                checked={isSupplyOnly}
+                onCheckedChange={(checked) => setIsSupplyOnly(!!checked)}
               />
               <Label
-                htmlFor="supplyJCToggle"
+                htmlFor="supplyOnlyToggle"
                 className="text-xs font-semibold cursor-pointer whitespace-nowrap select-none text-foreground"
               >
-                Supply: Add Jambs &amp; Casing
+                Supply Only
               </Label>
             </div>
           )}

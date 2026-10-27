@@ -61,6 +61,7 @@ export default function TaxCalculatorTab({
   savedTaxTotals,
   readOnly = false,
   onOpenPreview,
+  isSupplyOnly: isSupplyOnlyProp = false,
 }: { 
   windows: any[], 
   onWindowsChange: (w: any[]) => void, 
@@ -68,6 +69,7 @@ export default function TaxCalculatorTab({
   savedTaxTotals?: any,
   readOnly?: boolean,
   onOpenPreview?: () => void,
+  isSupplyOnly?: boolean,
 }) {
   const [regions, setRegions] = useState<any[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
@@ -113,7 +115,7 @@ export default function TaxCalculatorTab({
     setSelectedRegionId(regId);
     const reg = currentRegions.find(r => r._id === regId);
     if (!reg) return;
-    const isSupply = Boolean(reg.isSupplyOnly || reg.name?.toLowerCase().includes('supply'));
+    const isSupply = Boolean(isSupplyOnlyProp || reg.isSupplyOnly || reg.name?.toLowerCase().includes('supply'));
     if (isSupply) {
       setSetupFee('0');
       setManualKm('0');
@@ -139,16 +141,13 @@ export default function TaxCalculatorTab({
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d)) {
-          setRegions(d);
-          if (d.length > 0) {
-            const ff = d.find((r: any) => r.name.toLowerCase().includes('fort frances'));
-            const initial = ff || d[0];
+          // Remove "Supply Only" from region list as requested
+          const installRegions = d.filter((r: any) => !r.isSupplyOnly && !r.name?.toLowerCase().includes('supply'));
+          setRegions(installRegions);
+          if (installRegions.length > 0) {
+            const ff = installRegions.find((r: any) => r.name.toLowerCase().includes('fort frances'));
+            const initial = ff || installRegions[0];
             setSelectedRegionId(initial._id);
-            const isSupply = Boolean(initial.isSupplyOnly || initial.name?.toLowerCase().includes('supply'));
-            if (isSupply) {
-              setJambId('none');
-              setCasingId('none');
-            }
             if (initial.name.toLowerCase().includes('dryden') || initial.name.toLowerCase().includes('sioux')) {
               const std = initial.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
               setSetupFee(std ? String(std.value) : '727.5');
@@ -341,7 +340,7 @@ export default function TaxCalculatorTab({
   }, [savedTaxTotals, regions]);
 
   const region = regions.find(r => r._id === selectedRegionId);
-  const isSupplyOnly = Boolean(region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
+  const isSupplyOnly = Boolean(isSupplyOnlyProp || region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
 
   const calculate = () => {
     if (!region) return null;
