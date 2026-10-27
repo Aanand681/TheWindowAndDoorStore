@@ -32,13 +32,21 @@ export function useCalculatorPricing({ surchargeRate }: UseCalculatorPricingProp
   const [hstRate, setHstRate] = useState<number>(13);
 
   // Effective extra cost amounts
-  const effectiveJC = customJC !== '' ? toCents(customJC) : (taxTotals?.jcLabourCents || 0);
-  const effectiveMisc = customMisc !== '' ? toCents(customMisc) : (taxTotals?.miscLabourCents || 0);
-  const effectiveLabour = customLabour !== '' ? toCents(customLabour) : (taxTotals?.standardLabourCents || 0);
+  const taxJC = taxTotals?.jcLabourCents !== undefined
+    ? taxTotals.jcLabourCents
+    : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100);
 
-  const taxJC = taxTotals?.jcLabourCents || 0;
-  const taxMisc = taxTotals?.miscLabourCents || 0;
-  const taxLabour = taxTotals?.standardLabourCents || 0;
+  const taxMisc = taxTotals?.miscLabourCents !== undefined
+    ? taxTotals.miscLabourCents
+    : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100);
+
+  const taxLabour = taxTotals?.standardLabourCents !== undefined
+    ? taxTotals.standardLabourCents
+    : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100);
+
+  const effectiveJC = customJC !== '' ? toCents(customJC) : taxJC;
+  const effectiveMisc = customMisc !== '' ? toCents(customMisc) : taxMisc;
+  const effectiveLabour = customLabour !== '' ? toCents(customLabour) : taxLabour;
 
   const calculateQuote = useCallback((windows: UIWindowItem[]) => {
     const validWindows = windows.map(w => ({

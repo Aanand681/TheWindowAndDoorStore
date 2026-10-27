@@ -285,13 +285,48 @@ export default function QuoteInvoice({
     }
   });
 
-  const taxJCCents = includeJCInPromo ? (effectiveJC !== undefined ? effectiveJC : Math.round((taxTotals?.finalJC ?? taxTotals?.jc ?? 0) * 100)) : 0;
-  const taxMiscCents = includeMiscInPromo ? (effectiveMisc !== undefined ? effectiveMisc : Math.round((taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100)) : 0;
-  const taxLabourCents = includeLabourInPromo ? (effectiveLabour !== undefined ? effectiveLabour : Math.round((taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100)) : 0;
+  const taxJCCents = includeJCInPromo
+    ? (effectiveJC !== undefined && effectiveJC > 0
+        ? effectiveJC
+        : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100))
+    : 0;
+  const taxMiscCents = includeMiscInPromo
+    ? (effectiveMisc !== undefined && effectiveMisc > 0
+        ? effectiveMisc
+        : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100))
+    : 0;
+  const taxLabourCents = includeLabourInPromo
+    ? (effectiveLabour !== undefined && effectiveLabour > 0
+        ? effectiveLabour
+        : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100))
+    : 0;
   const promoDiscountCents = activePromo?.discount || 0;
   const monthlyDiscountCents = Math.round((taxTotals?.discount || 0) * 100);
-  const hstAmountCents = hstRate > 0 ? Math.round(afterDiscount * (hstRate / 100)) : 0;
-  const subtotalCents = afterDiscount > 0 ? afterDiscount : Math.max(0, total - hstAmountCents);
+
+  // Compute exact subtotal from component lines:
+  const lineItemsSubtotalCents = Math.max(0,
+    basePrice +
+    surcharge +
+    taxJCCents +
+    taxMiscCents +
+    taxLabourCents -
+    promoDiscountCents -
+    monthlyDiscountCents
+  );
+
+  const subtotalCents = (afterDiscount > 0 && Math.abs(afterDiscount - lineItemsSubtotalCents) <= 10)
+    ? afterDiscount
+    : lineItemsSubtotalCents;
+
+  const hstAmountCents = hstRate > 0 ? Math.round(subtotalCents * (hstRate / 100)) : 0;
+  const displayTotalCents = (total > 0 && Math.abs(total - (subtotalCents + hstAmountCents)) <= 10)
+    ? total
+    : (subtotalCents + hstAmountCents);
+
+  const displayFirstPayment = (firstPayment > 0 && Math.abs(firstPayment - Math.floor(displayTotalCents / 2)) <= 5)
+    ? firstPayment
+    : Math.floor(displayTotalCents / 2);
+  const displaySecondPayment = displayTotalCents - displayFirstPayment;
 
   const isSupplyOnly = Boolean(
     taxTotals?.isSupplyOnly ||
@@ -757,18 +792,18 @@ export default function QuoteInvoice({
               {/* 8. Total */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded p-2 flex justify-between items-center font-extrabold mt-2">
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(total)}</span>
+                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
               </div>
 
               {/* 50% Deposit & Final 50% Balance */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(firstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(secondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
                 </div>
               </div>
             </div>
@@ -1031,18 +1066,18 @@ export default function QuoteInvoice({
               {/* Total Banner */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(total)}</span>
+                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
               </div>
 
               {/* Deposit Terms */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(firstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(secondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
                 </div>
               </div>
             </div>
@@ -1322,18 +1357,18 @@ export default function QuoteInvoice({
               {/* Total Banner - Clean Ink-Saving Architectural Border */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(total)}</span>
+                <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
               </div>
 
               {/* Deposit Terms */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(firstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(secondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
                 </div>
               </div>
             </div>

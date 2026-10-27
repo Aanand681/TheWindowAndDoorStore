@@ -460,7 +460,11 @@ export default function TaxCalculatorTab({
       includeMisc,
       includeJC,
       regionName: region.name,
-      city: travelInfo?.city || region.name
+      city: travelInfo?.city || region.name,
+      jcLabourCents: Math.round((finalJC || 0) * 100),
+      miscLabourCents: Math.round((finalMisc || 0) * 100),
+      standardLabourCents: Math.round((finalLabour || 0) * 100),
+      jcTotal: finalJC,
     };
   };
 
