@@ -337,7 +337,6 @@ export default function RegionsDashboard() {
                                   updateRegion(region._id, 'miscPerSqft', 0);
                                   updateRegion(region._id, 'labourMin', 0);
                                   updateRegion(region._id, 'miscMin', 0);
-                                  updateRegion(region._id, 'extraLinPerWindow', 2.17);
                                   updateRegion(region._id, 'fixedSetupFee', 0);
                                   updateRegion(region._id, 'baseTravelFee', 0);
                                 }

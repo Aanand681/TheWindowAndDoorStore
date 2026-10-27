@@ -14,37 +14,6 @@ export async function GET() {
     }
 
     await dbConnect();
-    
-    // Auto-seed default "Supply Only" region if none exists
-    const supplyExists = await RegionConfig.findOne({
-      $or: [{ isSupplyOnly: true }, { name: /^supply only$/i }]
-    });
-
-    if (!supplyExists) {
-      await RegionConfig.create({
-        name: 'Supply Only',
-        isSupplyOnly: true,
-        officeLat: 48.6017,
-        officeLon: -93.3986,
-        freeCities: [],
-        setupFeeOptions: [{ label: 'Supply Only (No Setup)', value: 0 }],
-        labourPerSqft: 0,
-        miscPerSqft: 0,
-        labourMin: 0,
-        miscMin: 0,
-        extraLinPerWindow: 2.17,
-        fixedSetupFee: 0,
-        baseTravelFee: 0,
-        polygon: [],
-      });
-    } else if (!supplyExists.extraLinPerWindow || supplyExists.extraLinPerWindow === 0) {
-      await RegionConfig.updateMany(
-        { $or: [{ isSupplyOnly: true }, { name: /^supply only$/i }], extraLinPerWindow: { $in: [0, null] } },
-        { $set: { extraLinPerWindow: 2.17 } }
-      );
-      await cacheDel(cacheKey);
-    }
-
     const regions = await RegionConfig.find().sort({ name: 1 });
     cacheSet(cacheKey, regions, 86400).catch(() => {});
     return NextResponse.json(regions);
