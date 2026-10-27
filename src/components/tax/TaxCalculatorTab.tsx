@@ -82,7 +82,7 @@ export default function TaxCalculatorTab({
   const [travelInfo, setTravelInfo] = useState<any>(null);
   const [manualKm, setManualKm] = useState('0');
   const [manualHours, setManualHours] = useState('0');
-  const [crew, setCrew] = useState('2');
+  const [crew, setCrew] = useState('3');
   const [setupFee, setSetupFee] = useState('0');
 
   // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 4 1/2 and Vinyl casing charge)
@@ -524,22 +524,23 @@ export default function TaxCalculatorTab({
   if (!region) return <div>Loading region data...</div>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
       {readOnly && (
-        <div className="lg:col-span-12 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-3.5 flex items-center gap-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 animate-in fade-in">
+        <div className="lg:col-span-12 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-3 flex items-center gap-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 animate-in fade-in">
           <Lock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>Tax &amp; Labour Calculator is in Read-Only Mode. Values and extras are locked and cannot be edited.</span>
         </div>
       )}
-      <div className="lg:col-span-8 space-y-8">
+      <div className="lg:col-span-8 space-y-4 sm:space-y-5">
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Region Profile</CardTitle>
+        {/* Region Profile */}
+        <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
+          <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
+            <CardTitle className="text-base sm:text-lg">Region Profile</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-5">
             <Select disabled={readOnly} value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
-              <SelectTrigger className="w-full sm:w-[300px]">
+              <SelectTrigger className="w-full sm:w-[300px] h-9 text-xs sm:text-sm">
                 <SelectValue placeholder="Select Region">
                   {regions.find(r => r._id === selectedRegionId)?.name}
                 </SelectValue>
@@ -549,93 +550,93 @@ export default function TaxCalculatorTab({
               </SelectContent>
             </Select>
             {isSupplyOnly ? (
-              <div className="mt-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2.5 text-xs text-amber-500 font-medium">
-                <span className="font-bold text-sm">⚡ Supply Only Order:</span>
-                <span>Installation labour, travel fees, and setup fees are $0.00. Promotional window discounts and optional Jamb &amp; Casing apply normally.</span>
+              <div className="mt-2.5 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-xs text-amber-500 font-medium">
+                <span className="font-bold text-xs sm:text-sm">⚡ Supply Only Order:</span>
+                <span>Installation labour, travel fees, and setup fees are $0.00. Optional Jamb &amp; Casing apply normally.</span>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                 Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft.
               </p>
             )}
           </CardContent>
         </Card>
 
-        {/* Windows List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Windows Sizes &amp; Labour</CardTitle>
-            <CardDescription>Sizes accepted in inches (e.g. 61 1/4 or 61.25). You can edit width and height here.</CardDescription>
+        {/* Windows Sizes & Labour */}
+        <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
+          <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
+            <CardTitle className="text-base sm:text-lg">Windows Sizes &amp; Labour</CardTitle>
+            <CardDescription className="text-xs">Sizes accepted in inches (e.g. 61 1/4 or 61.25). You can edit width and height here.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="w-full max-h-[500px] overflow-auto border rounded-xl bg-background/50">
+          <CardContent className="p-4 sm:p-5 space-y-3">
+            <div className="w-full max-h-[420px] overflow-auto border rounded-xl bg-background/50">
               <div className="text-[11px] text-muted-foreground/80 md:hidden px-4 py-2 bg-muted/30 border-b border-border/40 font-medium">
                 ← Swipe horizontally to edit sizes &amp; view labour →
               </div>
-              <div className="space-y-3 p-4 min-w-[700px]">
+              <div className="space-y-2 p-3 min-w-[700px]">
                 {windows.map((w, i) => {
                   const line = c?.lines[i];
                   return (
-                    <div key={w.id} className="grid grid-cols-12 gap-4 items-center bg-card p-3 rounded-xl border border-border/80 shadow-sm">
-                      <div className="col-span-1 text-center font-mono text-muted-foreground">{i + 1}</div>
+                    <div key={w.id} className="grid grid-cols-12 gap-3 items-center bg-card p-2.5 rounded-xl border border-border/80 shadow-xs">
+                      <div className="col-span-1 text-center font-mono text-xs text-muted-foreground">{i + 1}</div>
                       <div className="col-span-2 space-y-1">
-                        <Label className="text-xs text-muted-foreground">Width"</Label>
-                        <Input disabled={readOnly} className="h-9" value={w.w || ''} onChange={e => {
+                        <Label className="text-[11px] text-muted-foreground">Width"</Label>
+                        <Input disabled={readOnly} className="h-8 text-xs font-mono" value={w.w || ''} onChange={e => {
                           const nw = [...windows]; nw[i].w = e.target.value.replace(/[^0-9\s./-]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
-                        <Label className="text-xs text-muted-foreground">Height"</Label>
-                        <Input disabled={readOnly} className="h-9" value={w.h || ''} onChange={e => {
+                        <Label className="text-[11px] text-muted-foreground">Height"</Label>
+                        <Input disabled={readOnly} className="h-8 text-xs font-mono" value={w.h || ''} onChange={e => {
                           const nw = [...windows]; nw[i].h = e.target.value.replace(/[^0-9\s./-]/g, ''); onWindowsChange(nw);
                         }} />
                       </div>
                       <div className="col-span-2 space-y-1">
-                        <Label className="text-xs text-muted-foreground">Qty</Label>
-                        <Input disabled={readOnly} type="number" min="1" className="h-9" value={w.qty} onChange={e => {
+                        <Label className="text-[11px] text-muted-foreground">Qty</Label>
+                        <Input disabled={readOnly} type="number" min="1" className="h-8 text-xs font-mono" value={w.qty} onChange={e => {
                           const nw = [...windows]; nw[i].qty = e.target.value; onWindowsChange(nw);
                         }} />
                       </div>
-                      <div className="col-span-4 text-xs space-y-1 mt-4">
+                      <div className="col-span-4 text-xs space-y-0.5 mt-3">
                         {line ? (
                           <>
-                            <div className="text-muted-foreground font-medium">Sqft: {line.sqft.toFixed(2)} | LinFt: {line.lin.toFixed(2)}</div>
+                            <div className="text-muted-foreground font-medium text-[11px]">Sqft: {line.sqft.toFixed(2)} | LinFt: {line.lin.toFixed(2)}</div>
                             {isSupplyOnly ? (
-                              <div className="font-semibold text-amber-500">Supply Only (No Install Labour)</div>
+                              <div className="font-semibold text-amber-500 text-xs">Supply Only (No Install Labour)</div>
                             ) : (
-                              <div className="font-semibold text-primary">Lab: {formatMoney(line.lab * 100)} | Misc: {formatMoney(line.misc * 100)}</div>
+                              <div className="font-semibold text-primary text-xs">Lab: {formatMoney(line.lab * 100)} | Misc: {formatMoney(line.misc * 100)}</div>
                             )}
                           </>
                         ) : (
-                          <div className="text-muted-foreground italic">Invalid size</div>
+                          <div className="text-muted-foreground italic text-xs">Invalid size</div>
                         )}
                       </div>
                       <div className="col-span-1">
-                        <Button disabled={readOnly} variant="ghost" size="icon" className="text-destructive mt-4 hover:bg-destructive/10" onClick={() => {
+                        <Button disabled={readOnly} variant="ghost" size="icon" className="text-destructive mt-3 hover:bg-destructive/10 h-8 w-8" onClick={() => {
                           const nw = windows.filter((_, idx) => idx !== i);
                           onWindowsChange(nw.length ? nw : [{ id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }]);
-                        }}><Trash2 className="w-4 h-4" /></Button>
+                        }}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
-            <Button disabled={readOnly} variant="secondary" onClick={() => onWindowsChange([...windows, { id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }])}>
-              <Plus className="w-4 h-4 mr-2" /> Add Window Manually
+            <Button disabled={readOnly} variant="secondary" size="sm" className="h-8 text-xs font-semibold cursor-pointer" onClick={() => onWindowsChange([...windows, { id: Math.random().toString(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '' }])}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Window Manually
             </Button>
           </CardContent>
         </Card>
 
         {/* Travel and Map */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Travel &amp; Set-up</CardTitle>
+        <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
+          <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
+            <CardTitle className="text-base sm:text-lg">Travel &amp; Set-up</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 sm:p-5 space-y-3.5">
             {isSupplyOnly ? (
-              <div className="p-8 text-center rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 space-y-2">
-                <div className="text-amber-500 font-bold flex items-center justify-center gap-2 text-sm">
+              <div className="p-6 text-center rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 space-y-2">
+                <div className="text-amber-500 font-bold flex items-center justify-center gap-2 text-xs sm:text-sm">
                   <span>⚡ Supply Only Order Active</span>
                 </div>
                 <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
@@ -644,12 +645,12 @@ export default function TaxCalculatorTab({
               </div>
             ) : (
               <>
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Label>Paste Coordinates / Google Maps link</Label>
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Paste Coordinates / Google Maps link</Label>
                     <div className="flex gap-2">
-                      <Input disabled={readOnly} value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
-                      <Button disabled={readOnly} variant="secondary" onClick={() => {
+                      <Input disabled={readOnly} className="h-9 text-xs" value={coords} onChange={e => setCoords(e.target.value)} placeholder="48.6094, -93.4108" />
+                      <Button disabled={readOnly} size="sm" variant="secondary" className="h-9 text-xs font-semibold whitespace-nowrap" onClick={() => {
                         const cMatch = coords.match(/(-?\d+\.\d+)[\s,]+(-?\d+\.\d+)/);
                         if (cMatch) {
                            calculateTravelFromCoords(Number(cMatch[1]), Number(cMatch[2])); 
@@ -662,9 +663,9 @@ export default function TaxCalculatorTab({
                 </div>
 
                 {travelInfo && (
-                  <div className={`p-4 rounded-lg border ${travelInfo.isFree ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-primary/10 border-primary/20'}`}>
+                  <div className={`p-3 rounded-lg border text-xs ${travelInfo.isFree ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-primary/10 border-primary/20'}`}>
                     <div className="font-semibold">{travelInfo.label}</div>
-                    <div className="text-sm mt-1">
+                    <div className="mt-0.5">
                       City matched: <b>{travelInfo.city}</b>.
                       {travelInfo.isFree 
                         ? ` This is within ${region.name}'s free zone. No travel charged.` 
@@ -673,7 +674,7 @@ export default function TaxCalculatorTab({
                   </div>
                 )}
 
-                <div className="border border-border rounded-lg overflow-hidden h-[300px] z-0 relative">
+                <div className="border border-border rounded-lg overflow-hidden h-[210px] z-0 relative">
                   <MapComponent 
                     lat={travelInfo?.lat || region.officeLat} 
                     lon={travelInfo?.lon || region.officeLon} 
@@ -687,15 +688,15 @@ export default function TaxCalculatorTab({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Round-trip km</Label>
-                    <Input disabled={readOnly} type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-muted-foreground">Round-trip km</Label>
+                    <Input disabled={readOnly} className="h-9 text-xs font-mono" type="number" value={manualKm === '0' ? '' : manualKm} onChange={e => setManualKm(e.target.value.replace(/^0+(?=\d)/, ''))} />
                   </div>
-                  <div className="space-y-2 col-span-1 md:col-span-2">
-                    <Label>Crew</Label>
+                  <div className="space-y-1 col-span-1 md:col-span-2">
+                    <Label className="text-xs font-semibold text-muted-foreground">Crew</Label>
                     <Select disabled={readOnly} value={crew} onValueChange={val => setCrew(val ?? '')}>
-                      <SelectTrigger className="w-full text-base py-6 font-medium border-2 border-primary/20 hover:border-primary/50 transition-colors bg-primary/5">
+                      <SelectTrigger className="w-full h-9 text-xs font-medium border border-primary/30 hover:border-primary/60 transition-colors bg-primary/5">
                         <SelectValue placeholder="Select crew size" />
                       </SelectTrigger>
                       <SelectContent>
@@ -706,16 +707,16 @@ export default function TaxCalculatorTab({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Round-trip hours</Label>
-                    <Input disabled={readOnly || crew === 'none'} type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} />
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-muted-foreground">Round-trip hours</Label>
+                    <Input disabled={readOnly || crew === 'none'} className="h-9 text-xs font-mono" type="number" value={manualHours === '0' ? '' : manualHours} onChange={e => setManualHours(e.target.value.replace(/^0+(?=\d)/, ''))} />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Per-job set-up fee (Region Specific)</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-muted-foreground">Per-job set-up fee (Region Specific)</Label>
                   <Select disabled={readOnly} value={setupFee} onValueChange={val => setSetupFee(val ?? '')}>
-                    <SelectTrigger className="w-full sm:w-[350px]">
+                    <SelectTrigger className="w-full sm:w-[350px] h-9 text-xs">
                       <SelectValue>
                         {(region.setupFeeOptions || []).find((o: any) => String(o.value) === setupFee)?.label || "Select Setup Fee"}
                       </SelectValue>
@@ -728,30 +729,31 @@ export default function TaxCalculatorTab({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground mt-1">An additional fixed "All Job Set Up Fee" of ${region.fixedSetupFee} is always included.</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">An additional fixed "All Job Set Up Fee" of ${region.fixedSetupFee} is always included.</p>
                 </div>
               </>
             )}
           </CardContent>
         </Card>
 
-
         {/* Extras and J&C */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader><CardTitle>Extras</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
+            <CardHeader className="py-3 px-4 sm:px-5 !pb-3 border-b border-border/50">
+              <CardTitle className="text-base">Extras</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
               {dbAddons.map((a: any, index: number) => (
-                <div key={a.id} className="flex justify-between items-center gap-4">
+                <div key={a.id} className="flex justify-between items-center gap-3">
                   {a.isCustom ? (
-                    <div className="flex-1 space-y-2">
-                      <Input disabled={readOnly} placeholder="Description" className="h-8" value={a.label} onChange={e => {
+                    <div className="flex-1 space-y-1.5">
+                      <Input disabled={readOnly} placeholder="Description" className="h-8 text-xs" value={a.label} onChange={e => {
                         const newDb = [...dbAddons];
                         newDb[index].label = e.target.value;
                         setDbAddons(newDb);
                       }} />
                       <div className="flex gap-2">
-                        <Input disabled={readOnly} type="number" placeholder="Lab $" className="h-8 w-24" value={a.lab || ''} onChange={e => {
+                        <Input disabled={readOnly} type="number" placeholder="Lab $" className="h-8 text-xs w-20 font-mono" value={a.lab || ''} onChange={e => {
                           const newDb = [...dbAddons];
                           newDb[index].lab = Number(e.target.value);
                           setDbAddons(newDb);
@@ -759,7 +761,7 @@ export default function TaxCalculatorTab({
                             setAddons(prev => ({ ...prev, [a.id]: '1' }));
                           }
                         }} />
-                        <Input disabled={readOnly} type="number" placeholder="Misc $" className="h-8 w-24" value={a.misc || ''} onChange={e => {
+                        <Input disabled={readOnly} type="number" placeholder="Misc $" className="h-8 text-xs w-20 font-mono" value={a.misc || ''} onChange={e => {
                           const newDb = [...dbAddons];
                           newDb[index].misc = Number(e.target.value);
                           setDbAddons(newDb);
@@ -770,57 +772,57 @@ export default function TaxCalculatorTab({
                       </div>
                     </div>
                   ) : (
-                    <Label className="text-xs flex-1">{a.label}</Label>
+                    <Label className="text-xs flex-1 text-muted-foreground">{a.label}</Label>
                   )}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input 
                       disabled={readOnly}
                       type="number" 
-                      className="w-20" 
+                      className="w-16 h-8 text-xs font-mono" 
                       placeholder={a.isCustom ? "1" : "Qty"} 
                       min="0" 
                       value={addons[a.id] || ''} 
                       onChange={e => setAddons({...addons, [a.id]: e.target.value})} 
                     />
                     {!readOnly && a.isCustom && (
-                      <Button variant="ghost" size="icon" className="text-destructive h-9" onClick={() => {
+                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => {
                         setDbAddons(dbAddons.filter(item => item.id !== a.id));
                         const newAddonsMap = {...addons};
                         delete newAddonsMap[a.id];
                         setAddons(newAddonsMap);
                       }}>
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
                   </div>
                 </div>
               ))}
               {!readOnly && (
-                <Button variant="outline" size="sm" className="w-full mt-2 border-dashed" onClick={() => {
+                <Button variant="outline" size="sm" className="w-full mt-1.5 h-8 text-xs border-dashed" onClick={() => {
                   const newId = 'custom_' + Date.now();
                   setDbAddons([...dbAddons, { id: newId, label: '', lab: 0, misc: 0, isCustom: true }]);
                   setAddons(prev => ({ ...prev, [newId]: '1' }));
                 }}>
-                  <Plus className="w-4 h-4 mr-2" /> Add Custom Extra (This Session Only)
+                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Custom Extra
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Jambs & Casing</CardTitle>
-              <CardDescription>
+          <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
+            <CardHeader className="py-3 px-4 sm:px-5 !pb-3 border-b border-border/50">
+              <CardTitle className="text-base">Jambs &amp; Casing</CardTitle>
+              <CardDescription className="text-xs">
                 {isSupplyOnly
                   ? `Perimeter linear ft: ${c?.ln.toFixed(2)} ft (Supply-Only defaults to None)`
                   : `Priced on total linear ft: ${c?.ln.toFixed(2)} ft`}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Jamb</Label>
+            <CardContent className="p-4 space-y-3.5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Jamb</Label>
                 <Select disabled={readOnly} value={jambId} onValueChange={val => setJambId(val ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue>
                       {jambId === 'none' ? 'None' : jambId === 'custom' ? 'Custom...' : dbJambs.find(j => j.id === jambId)?.label}
                     </SelectValue>
@@ -833,15 +835,15 @@ export default function TaxCalculatorTab({
                 </Select>
                 {jambId === 'custom' && (
                   <div className="flex gap-2 mt-2">
-                    <Input disabled={readOnly} placeholder="Name" value={jambName} onChange={e => setJambName(e.target.value)} />
-                    <Input disabled={readOnly} placeholder="Rate/ft" type="number" value={jambRate} onChange={e => setJambRate(e.target.value)} />
+                    <Input disabled={readOnly} className="h-8 text-xs" placeholder="Name" value={jambName} onChange={e => setJambName(e.target.value)} />
+                    <Input disabled={readOnly} className="h-8 text-xs font-mono" placeholder="Rate/ft" type="number" value={jambRate} onChange={e => setJambRate(e.target.value)} />
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Casing</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Casing</Label>
                 <Select disabled={readOnly} value={casingId} onValueChange={val => setCasingId(val ?? '')}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue>
                       {casingId === 'none' ? 'None' : casingId === 'custom' ? 'Custom...' : dbCasings.find(c => c.id === casingId)?.label}
                     </SelectValue>
@@ -854,8 +856,8 @@ export default function TaxCalculatorTab({
                 </Select>
                 {casingId === 'custom' && (
                   <div className="flex gap-2 mt-2">
-                    <Input disabled={readOnly} placeholder="Name" value={casingName} onChange={e => setCasingName(e.target.value)} />
-                    <Input disabled={readOnly} placeholder="Rate/ft" type="number" value={casingRate} onChange={e => setCasingRate(e.target.value)} />
+                    <Input disabled={readOnly} className="h-8 text-xs" placeholder="Name" value={casingName} onChange={e => setCasingName(e.target.value)} />
+                    <Input disabled={readOnly} className="h-8 text-xs font-mono" placeholder="Rate/ft" type="number" value={casingRate} onChange={e => setCasingRate(e.target.value)} />
                   </div>
                 )}
               </div>
