@@ -110,29 +110,56 @@ export function useCalculatorWindows() {
   };
 
   const summaryWindowGroups = useMemo(() => {
-    const map = new Map<string, { pane: 'Dual' | 'Triple'; color: 'White' | 'Painted'; qty: number; baseCents: number }>();
+    type ColorSummary = {
+      color: 'White' | 'Painted';
+      dualQty: number;
+      tripleQty: number;
+      baseCents: number;
+      label: string;
+      key: string;
+    };
+    const map = new Map<'White' | 'Painted', { dualQty: number; tripleQty: number; baseCents: number }>();
+    map.set('White', { dualQty: 0, tripleQty: 0, baseCents: 0 });
+    map.set('Painted', { dualQty: 0, tripleQty: 0, baseCents: 0 });
+
     windows.forEach(w => {
       const q = Math.max(1, Number(w.qty) || 1);
       const itemBase = toCents(w.base);
       const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
-      const pane: 'Dual' | 'Triple' = isTriple ? 'Triple' : 'Dual';
       const color: 'White' | 'Painted' = w.color && w.color.toLowerCase() === 'painted' ? 'Painted' : 'White';
-      const key = `${pane}_${color}`;
-      const existing = map.get(key);
-      if (existing) {
-        existing.qty += q;
-        existing.baseCents += itemBase;
+      const entry = map.get(color)!;
+      if (isTriple) {
+        entry.tripleQty += q;
       } else {
-        map.set(key, { pane, color, qty: q, baseCents: itemBase });
+        entry.dualQty += q;
+      }
+      entry.baseCents += itemBase;
+    });
+
+    const groups: ColorSummary[] = [];
+    (['White', 'Painted'] as const).forEach(color => {
+      const g = map.get(color)!;
+      const totalQty = g.dualQty + g.tripleQty;
+      if (totalQty > 0) {
+        let label = '';
+        if (g.dualQty > 0 && g.tripleQty > 0) {
+          label = `${g.dualQty} dual and ${g.tripleQty} triple pane ${color.toLowerCase()} window${totalQty > 1 ? 's' : ''}`;
+        } else if (g.dualQty > 0) {
+          label = `${g.dualQty} dual pane ${color.toLowerCase()} window${g.dualQty > 1 ? 's' : ''}`;
+        } else {
+          label = `${g.tripleQty} triple pane ${color.toLowerCase()} window${g.tripleQty > 1 ? 's' : ''}`;
+        }
+        groups.push({
+          key: color,
+          color,
+          dualQty: g.dualQty,
+          tripleQty: g.tripleQty,
+          baseCents: g.baseCents,
+          label,
+        });
       }
     });
 
-    const order = ['Dual_White', 'Dual_Painted', 'Triple_White', 'Triple_Painted'];
-    const groups: { key: string; pane: string; color: string; qty: number; baseCents: number }[] = [];
-    order.forEach(k => {
-      const g = map.get(k);
-      if (g && g.qty > 0) groups.push({ key: k, ...g });
-    });
     return groups;
   }, [windows]);
 

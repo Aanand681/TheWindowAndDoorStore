@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MapPin, Calculator, Plus, Trash2, Lock, Eye, Printer } from 'lucide-react';
+import { MapPin, Calculator, Plus, Trash2, Lock, Eye, Printer, Download } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
 import { toast } from 'sonner';
 
@@ -979,11 +979,11 @@ export default function TaxCalculatorTab({
             <Button
               type="button"
               variant="outline"
-              onClick={() => window.print()}
+              onClick={onOpenPreview}
               className="w-full h-9 text-xs font-medium flex items-center justify-center gap-2 border-border/80 text-muted-foreground hover:text-foreground cursor-pointer"
             >
-              <Printer className="w-3.5 h-3.5" />
-              Quick Print
+              <Download className="w-3.5 h-3.5" />
+              Download / Print PDF
             </Button>
           </div>
         )}

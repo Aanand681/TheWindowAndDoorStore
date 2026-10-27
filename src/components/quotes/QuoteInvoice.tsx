@@ -318,7 +318,18 @@ export default function QuoteInvoice({
     ? afterDiscount
     : lineItemsSubtotalCents;
 
-  const hstAmountCents = hstRate > 0 ? Math.round(subtotalCents * (hstRate / 100)) : 0;
+  let hstAmountCents = 0;
+  let hstLabel = `HST (${hstRate}%)`;
+  if (hstRate === 13) {
+    hstAmountCents = Math.round(subtotalCents * 0.13);
+    hstLabel = 'HST (13%)';
+  } else if (hstRate === 8) {
+    // 8% Provincial Point-of-Sale Exemption on materials (5% GST on materials, 13% on labour)
+    const matCents = Math.max(0, (basePrice + surcharge - (activePromo?.discount || 0)) + taxJCCents);
+    const srvCents = Math.max(0, subtotalCents - matCents);
+    hstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
+    hstLabel = 'HST (8% Exempt on Materials)';
+  }
   const displayTotalCents = (total > 0 && Math.abs(total - (subtotalCents + hstAmountCents)) <= 10)
     ? total
     : (subtotalCents + hstAmountCents);
@@ -782,7 +793,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}
@@ -1056,7 +1067,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}
@@ -1347,7 +1358,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#334155] font-medium">{hstLabel}</td>
                       <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}

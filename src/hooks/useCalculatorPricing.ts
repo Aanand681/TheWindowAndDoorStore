@@ -96,7 +96,23 @@ export function useCalculatorPricing({ surchargeRate }: UseCalculatorPricingProp
   const afterDiscount = Math.max(0, beforeTaxDiscount - (quoteResult?.promoDiscount || 0));
   const upgrade = calculateUpgrade(afterDiscount);
   const shownUpgrade = wantsUpgrade ? upgrade.charge : 0;
-  const hst = hstRate > 0 ? Math.round(afterDiscount * (hstRate / 100)) : 0;
+
+  const materialAfterDiscount = quoteResult
+    ? Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJC)
+    : 0;
+  const serviceAfterDiscount = Math.max(0, afterDiscount - materialAfterDiscount);
+
+  let hst = 0;
+  if (hstRate === 13) {
+    hst = Math.round(afterDiscount * 0.13);
+  } else if (hstRate === 8) {
+    // 8% Provincial Point-of-Sale Exemption (First Nations):
+    // 5% GST on materials (8% provincial exempt), 13% HST on labour and services
+    const materialTax = Math.round(materialAfterDiscount * 0.05);
+    const serviceTax = Math.round(serviceAfterDiscount * 0.13);
+    hst = materialTax + serviceTax;
+  }
+
   const total = afterDiscount + hst;
   const firstPayment = Math.floor(total / 2);
   const secondPayment = total - firstPayment;
