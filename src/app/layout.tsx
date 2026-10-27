@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono, IBM_Plex_Sans, Merriweather } from "next/font/google"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/layout/theme-provider"
 import { cn } from "@/lib/utils";
 
 const merriweatherHeading = Merriweather({subsets:['latin'],variable:'--font-heading'});
@@ -13,7 +13,7 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-import { Providers } from "@/components/Providers"
+import { Providers } from "@/components/layout/Providers"
 
 export default function RootLayout({
   children,

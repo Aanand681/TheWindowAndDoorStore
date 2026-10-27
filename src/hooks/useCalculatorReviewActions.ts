@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { detectQuoteChanges } from '@/lib/quote-diff';
-import { QuotesSubTabType } from '@/components/QuotesTab';
+import { QuotesSubTabType } from '@/components/quotes/QuotesTab';
 
 export interface UseCalculatorReviewActionsProps {
   user: any;

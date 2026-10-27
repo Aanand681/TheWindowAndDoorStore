@@ -3,8 +3,8 @@
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { AppLayout } from '@/components/AppLayout';
-import QuotesTab, { QuotesSubTabType } from '@/components/QuotesTab';
+import { AppLayout } from '@/components/layout/AppLayout';
+import QuotesTab, { QuotesSubTabType } from '@/components/quotes/QuotesTab';
 
 function QuotesPageContent() {
   const router = useRouter();

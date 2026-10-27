@@ -27,8 +27,8 @@ import {
 
 import { formatMoney } from '@/lib/promo-logic';
 import { toast } from 'sonner';
-import QuotePreviewModal from '@/components/QuotePreviewModal';
-import { QuoteTemplateType } from '@/components/QuoteInvoice';
+import QuotePreviewModal from './QuotePreviewModal';
+import { QuoteTemplateType } from './QuoteInvoice';
 import { useViewport } from '@/hooks/use-viewport';
 import { cn } from '@/lib/utils';
 

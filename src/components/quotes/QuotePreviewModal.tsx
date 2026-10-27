@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, X, FileText, CheckCircle2, Star } from 'lucide-react';
-import QuoteInvoice, { QuoteInvoiceProps, QuoteTemplateType } from '@/components/QuoteInvoice';
-import QuoteNotesEditor from '@/components/QuoteNotesEditor';
+import QuoteInvoice, { QuoteInvoiceProps, QuoteTemplateType } from './QuoteInvoice';
+import QuoteNotesEditor from './QuoteNotesEditor';
 import { toast } from 'sonner';
 
 interface QuotePreviewModalProps extends QuoteInvoiceProps {

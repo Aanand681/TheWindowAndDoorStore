@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { Component, Calculator, Inbox, FileText, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/theme-toggle';
-import NotificationBell from '@/components/NotificationBell';
-import UserProfileMenu from '@/components/UserProfileMenu';
-import QuotesBinPill from '@/components/QuotesBinPill';
+import { ThemeToggle } from './theme-toggle';
+import NotificationBell from '@/components/shared/NotificationBell';
+import UserProfileMenu from '@/components/shared/UserProfileMenu';
+import QuotesBinPill from '@/components/quotes/QuotesBinPill';
 import { useSession } from 'next-auth/react';
 
 import { cachedFetch, getCachedData } from '@/lib/client-cache';

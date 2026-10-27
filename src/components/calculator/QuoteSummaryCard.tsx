@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/lib/promo-logic';
-import QuoteNotesEditor from '@/components/QuoteNotesEditor';
+import QuoteNotesEditor from '@/components/quotes/QuoteNotesEditor';
 import { toast } from 'sonner';
 
 export interface QuoteSummaryCardProps {

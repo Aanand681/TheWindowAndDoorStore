@@ -7,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Map, Save, Maximize2, Minimize2, RotateCcw, Trash2, Plus, X, AlertCircle, MapPin, Loader2, Component } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/theme-toggle';
-import NotificationBell from '@/components/NotificationBell';
-import QuotesBinPill from '@/components/QuotesBinPill';
-import SmartBackButton from '@/components/SmartBackButton';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
+import NotificationBell from '@/components/shared/NotificationBell';
+import QuotesBinPill from '@/components/quotes/QuotesBinPill';
+import SmartBackButton from '@/components/shared/SmartBackButton';
 import dynamic from 'next/dynamic';
 
-const AdminGeofenceMap = dynamic(() => import('@/components/AdminGeofenceMap'), { ssr: false });
+const AdminGeofenceMap = dynamic(() => import('@/components/admin/AdminGeofenceMap'), { ssr: false });
 
 export default function RegionsDashboard() {
   const [regions, setRegions] = useState<any[]>([]);

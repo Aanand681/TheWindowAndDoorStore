@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Component, Users, Tag, DollarSign, UserCircle, Map, Calculator, FileText } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import Link from 'next/link';
-import { LogoutButton } from '@/components/logout-button';
-import NotificationBell from '@/components/NotificationBell';
-import UserProfileMenu from '@/components/UserProfileMenu';
-import QuotesBinPill from '@/components/QuotesBinPill';
+import { LogoutButton } from '@/components/shared/logout-button';
+import NotificationBell from '@/components/shared/NotificationBell';
+import UserProfileMenu from '@/components/shared/UserProfileMenu';
+import QuotesBinPill from '@/components/quotes/QuotesBinPill';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);

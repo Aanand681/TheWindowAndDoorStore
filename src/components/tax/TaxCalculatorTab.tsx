@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 
 import dynamic from 'next/dynamic';
 
-const MapComponent = dynamic(() => import('@/components/MapComponent'), { 
+const MapComponent = dynamic(() => import('@/components/admin/MapComponent'), { 
   ssr: false, 
   loading: () => <div className="h-[300px] bg-muted animate-pulse rounded-lg flex items-center justify-center">Loading Map...</div>
 });

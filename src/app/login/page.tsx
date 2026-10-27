@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

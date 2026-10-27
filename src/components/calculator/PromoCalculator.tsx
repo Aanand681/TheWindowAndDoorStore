@@ -9,11 +9,11 @@ import { cachedFetch } from '@/lib/client-cache';
 import { toast } from 'sonner';
 
 // App shell and tab components
-import { AppHeader } from '@/components/AppHeader';
-import TaxCalculatorTab from '@/components/TaxCalculatorTab';
-import QuotesTab, { QuotesSubTabType } from '@/components/QuotesTab';
-import QuoteInvoice, { QuoteTemplateType } from '@/components/QuoteInvoice';
-import QuotePreviewModal from '@/components/QuotePreviewModal';
+import { AppHeader } from '@/components/layout/AppHeader';
+import TaxCalculatorTab from '@/components/tax/TaxCalculatorTab';
+import QuotesTab, { QuotesSubTabType } from '@/components/quotes/QuotesTab';
+import QuoteInvoice, { QuoteTemplateType } from '@/components/quotes/QuoteInvoice';
+import QuotePreviewModal from '@/components/quotes/QuotePreviewModal';
 
 // Calculator modular sub-components
 import { ReviewWorkflowBar } from '@/components/calculator/ReviewWorkflowBar';

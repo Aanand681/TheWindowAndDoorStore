@@ -7,11 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Settings2, DollarSign, Component } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/theme-toggle';
-import NotificationBell from '@/components/NotificationBell';
-import UserProfileMenu from '@/components/UserProfileMenu';
-import QuotesBinPill from '@/components/QuotesBinPill';
-import SmartBackButton from '@/components/SmartBackButton';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
+import NotificationBell from '@/components/shared/NotificationBell';
+import UserProfileMenu from '@/components/shared/UserProfileMenu';
+import QuotesBinPill from '@/components/quotes/QuotesBinPill';
+import SmartBackButton from '@/components/shared/SmartBackButton';
 
 export default function SettingsDashboard() {
   const [surcharge, setSurcharge] = useState<string>('');

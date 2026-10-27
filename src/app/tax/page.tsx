@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { AppLayout } from '@/components/AppLayout';
-import TaxCalculatorTab from '@/components/TaxCalculatorTab';
+import { AppLayout } from '@/components/layout/AppLayout';
+import TaxCalculatorTab from '@/components/tax/TaxCalculatorTab';
 
 function TaxPageContent() {
   const [windows, setWindows] = useState<any[]>([
