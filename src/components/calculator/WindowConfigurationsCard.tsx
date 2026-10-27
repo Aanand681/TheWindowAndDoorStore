@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Component, FileUp, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
@@ -25,6 +26,8 @@ export interface WindowConfigurationsCardProps {
   handleRemoveWindow: (id: string) => void;
   handleAddWindow: () => void;
   windowEndRef: React.RefObject<HTMLDivElement | null>;
+  isSupplyJCOpen?: boolean;
+  setIsSupplyJCOpen?: (val: boolean) => void;
 }
 
 export function WindowConfigurationsCard({
@@ -42,6 +45,8 @@ export function WindowConfigurationsCard({
   handleRemoveWindow,
   handleAddWindow,
   windowEndRef,
+  isSupplyJCOpen,
+  setIsSupplyJCOpen,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl">
@@ -69,6 +74,22 @@ export function WindowConfigurationsCard({
               title="Configured by Admin in Settings"
             />
           </div>
+          {setIsSupplyJCOpen && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/70 bg-background/60 hover:bg-background transition-colors cursor-pointer select-none">
+              <Checkbox
+                id="supplyJCToggle"
+                disabled={isReadOnly}
+                checked={isSupplyJCOpen}
+                onCheckedChange={(checked) => setIsSupplyJCOpen(!!checked)}
+              />
+              <Label
+                htmlFor="supplyJCToggle"
+                className="text-xs font-semibold cursor-pointer whitespace-nowrap select-none text-foreground"
+              >
+                Supply: Add Jambs &amp; Casing
+              </Label>
+            </div>
+          )}
           <input
             type="file"
             accept=".pdf,application/pdf"

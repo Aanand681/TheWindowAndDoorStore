@@ -25,7 +25,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatMoney } from '@/lib/promo-logic';
+import { formatMoney, toCents } from '@/lib/promo-logic';
 import QuoteNotesEditor from '@/components/quotes/QuoteNotesEditor';
 import { toast } from 'sonner';
 
@@ -158,6 +158,10 @@ export function QuoteSummaryCard({
   setShowReassignModal,
   handleReturnReviewQuote,
 }: QuoteSummaryCardProps) {
+  const effectiveJCCents = customJC !== '' ? toCents(customJC) : (taxJC || 0);
+  const effectiveMiscCents = customMisc !== '' ? toCents(customMisc) : (taxMisc || 0);
+  const effectiveLabourCents = customLabour !== '' ? toCents(customLabour) : (taxLabour || 0);
+
   return (
     <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
       <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl overflow-hidden relative">
@@ -205,6 +209,37 @@ export function QuoteSummaryCard({
                   <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
                     <span>Promo discount</span>
                     <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
+                  </div>
+                )}
+                {effectiveJCCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <span>Jambs &amp; Casing</span>
+                      {taxTotals?.isSupplyOnly && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          Supply
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveJCCents)}
+                    </span>
+                  </div>
+                )}
+                {effectiveMiscCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">Miscellaneous</span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveMiscCents)}
+                    </span>
+                  </div>
+                )}
+                {effectiveLabourCents > 0 && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">Labour</span>
+                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                      +{formatMoney(effectiveLabourCents)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -291,7 +326,7 @@ export function QuoteSummaryCard({
                     {formatMoney(
                       hstRate === 8
                         ? (total - afterDiscount)
-                        : Math.round(Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + taxJC) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + taxJC))) * 0.13)
+                        : Math.round(Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents))) * 0.13)
                     )}
                   </span>
                 </div>

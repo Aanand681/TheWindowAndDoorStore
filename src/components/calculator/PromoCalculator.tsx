@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import QuotePreviewModal from '@/components/quotes/QuotePreviewModal';
 // Calculator modular sub-components
 import { ReviewWorkflowBar } from '@/components/calculator/ReviewWorkflowBar';
 import { WindowConfigurationsCard } from '@/components/calculator/WindowConfigurationsCard';
+import { SupplyJambCasingCard } from '@/components/calculator/SupplyJambCasingCard';
 import { PromoComparisonGrid } from '@/components/calculator/PromoComparisonGrid';
 import { QuoteSummaryCard } from '@/components/calculator/QuoteSummaryCard';
 import { SubmitReviewModal } from '@/components/calculator/SubmitReviewModal';
@@ -71,6 +72,15 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     handlePdfUpload,
     summaryWindowGroups,
   } = useCalculatorWindows();
+
+  // Supply Only: Jambs & Casings State
+  const [isSupplyJCOpen, setIsSupplyJCOpen] = useState<boolean>(false);
+  const [supplyJambId, setSupplyJambId] = useState<string>('none');
+  const [supplyJambName, setSupplyJambName] = useState<string>('');
+  const [supplyJambRate, setSupplyJambRate] = useState<string>('');
+  const [supplyCasingId, setSupplyCasingId] = useState<string>('none');
+  const [supplyCasingName, setSupplyCasingName] = useState<string>('');
+  const [supplyCasingRate, setSupplyCasingRate] = useState<string>('');
 
   // Pricing & Promos Hook
   const {
@@ -125,8 +135,88 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setQuoteNumber('');
     setQuoteNotes('');
     setSurchargeRate(8);
+    setIsSupplyJCOpen(false);
+    setSupplyJambId('none');
+    setSupplyJambName('');
+    setSupplyJambRate('');
+    setSupplyCasingId('none');
+    setSupplyCasingName('');
+    setSupplyCasingRate('');
     resetPricingOverrides();
   };
+
+  const handleToggleSupplyJC = (open: boolean) => {
+    setIsSupplyJCOpen(open);
+    if (!open) {
+      setCustomJC('');
+      setTaxTotals((prev: any) => {
+        if (!prev?.isSupplyOnly) return prev;
+        const next = { ...prev };
+        delete next.isSupplyOnly;
+        delete next.selectedJamb;
+        delete next.selectedCasing;
+        next.finalJC = 0;
+        next.jcLabourCents = 0;
+        next.jc = 0;
+        return next;
+      });
+    }
+  };
+
+  const handleSupplyJCCalculated = useCallback((data: {
+    linearFeet: number;
+    jambTotCents: number;
+    casingTotCents: number;
+    jcTotalCents: number;
+    selectedJamb: any;
+    selectedCasing: any;
+  }) => {
+    if (!isSupplyJCOpen) return;
+    const dollars = data.jcTotalCents > 0 ? (data.jcTotalCents / 100).toFixed(2) : '';
+    setCustomJC(dollars);
+    setTaxTotals((prev: any) => {
+      if (
+        prev?.isSupplyOnly &&
+        prev?.jcLabourCents === data.jcTotalCents &&
+        prev?.ln === data.linearFeet &&
+        prev?.selectedJamb?.id === data.selectedJamb?.id &&
+        prev?.selectedCasing?.id === data.selectedCasing?.id
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        isSupplyOnly: true,
+        ln: data.linearFeet,
+        jc: data.jcTotalCents / 100,
+        finalJC: data.jcTotalCents / 100,
+        jcLabourCents: data.jcTotalCents,
+        selectedJamb: data.selectedJamb,
+        selectedCasing: data.selectedCasing,
+      };
+    });
+  }, [isSupplyJCOpen, setCustomJC, setTaxTotals]);
+
+  // Restore Supply J&C state when opening a saved/reviewed quote
+  useEffect(() => {
+    if (taxTotals?.isSupplyOnly) {
+      setIsSupplyJCOpen(true);
+      if (taxTotals.selectedJamb) {
+        setSupplyJambId(taxTotals.selectedJamb.id || 'none');
+        if (taxTotals.selectedJamb.id === 'custom') {
+          setSupplyJambName(taxTotals.selectedJamb.name || '');
+          setSupplyJambRate(String(taxTotals.selectedJamb.rate || ''));
+        }
+      }
+      if (taxTotals.selectedCasing) {
+        setSupplyCasingId(taxTotals.selectedCasing.id || 'none');
+        if (taxTotals.selectedCasing.id === 'custom') {
+          setSupplyCasingName(taxTotals.selectedCasing.name || '');
+          setSupplyCasingRate(String(taxTotals.selectedCasing.rate || ''));
+        }
+      }
+    }
+  }, [taxTotals?._quoteId]);
 
   // Review & Approval Workflows Hook
   const {
@@ -442,7 +532,29 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   handleRemoveWindow={(id) => handleRemoveWindow(id, () => setLockedPromoId(null))}
                   handleAddWindow={() => handleAddWindow(() => setLockedPromoId(null))}
                   windowEndRef={windowEndRef}
+                  isSupplyJCOpen={isSupplyJCOpen}
+                  setIsSupplyJCOpen={handleToggleSupplyJC}
                 />
+
+                {isSupplyJCOpen && (
+                  <SupplyJambCasingCard
+                    windows={windows}
+                    isReadOnly={isReadOnly}
+                    jambId={supplyJambId}
+                    setJambId={setSupplyJambId}
+                    jambName={supplyJambName}
+                    setJambName={setSupplyJambName}
+                    jambRate={supplyJambRate}
+                    setJambRate={setSupplyJambRate}
+                    casingId={supplyCasingId}
+                    setCasingId={setSupplyCasingId}
+                    casingName={supplyCasingName}
+                    setCasingName={setSupplyCasingName}
+                    casingRate={supplyCasingRate}
+                    setCasingRate={setSupplyCasingRate}
+                    onJCCalculated={handleSupplyJCCalculated}
+                  />
+                )}
 
                 <PromoComparisonGrid
                   compareOptions={compareOptions}
