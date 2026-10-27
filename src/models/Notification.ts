@@ -68,6 +68,9 @@ const NotificationSchema = new Schema<INotification>(
   }
 );
 
+// Compound index for fast notification queue retrieval
+NotificationSchema.index({ recipientUsername: 1, isRead: 1, createdAt: -1 }, { name: 'user_notifications' });
+
 // TTL Index: Automatically expire notifications older than 30 days (30 * 24 * 60 * 60 seconds)
 NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
 

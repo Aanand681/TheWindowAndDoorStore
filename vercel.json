@@ -1,0 +1,33 @@
+{
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    },
+    "src/app/api/quotes/route.ts": {
+      "maxDuration": 60,
+      "memory": 2048
+    },
+    "src/app/quote-studio/page.tsx": {
+      "maxDuration": 60,
+      "memory": 2048
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/quotes/reminders",
+      "schedule": "0 9 * * 1-5"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ]
+}

@@ -176,6 +176,16 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
   { timestamps: true, strict: false }
 );
 
+// Compound and search indexes for query optimization
+SavedQuoteSchema.index({ status: 1, assignedTo: 1, createdAt: -1 }, { name: 'reviewer_queue' });
+SavedQuoteSchema.index({ odooAssignedTo: 1, odooStatus: 1, createdAt: -1 }, { name: 'clerk_odoo_queue' });
+SavedQuoteSchema.index({ preparedBy: 1, status: 1, createdAt: -1 }, { name: 'employee_history' });
+SavedQuoteSchema.index({ createdAt: -1 }, { name: 'admin_archive' });
+SavedQuoteSchema.index(
+  { quoteNumber: 'text', customerName: 'text', preparedBy: 'text', odooOrderNumber: 'text' },
+  { name: 'quote_text_search' }
+);
+
 if (mongoose.models.SavedQuote && (!mongoose.models.SavedQuote.schema.path('quoteNumber') || !mongoose.models.SavedQuote.schema.path('odooStatus'))) {
   delete (mongoose.models as any).SavedQuote;
 }
