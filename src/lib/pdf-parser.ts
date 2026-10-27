@@ -236,6 +236,35 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
       ? children.map((r, j) => [r, children[j + 1] ?? end]) : [[start, end]];
       
     const totalOption = (name: string) => sections.reduce((s, sec) => s + option(sec[0], sec[1], name), 0);
+
+    const resolveSectionSolar = (from: number, to: number): number => {
+      let solarGainPrice: number | null = null;
+      let solarShieldPrice: number | null = null;
+
+      for (let r = from + 1; r < to; r++) {
+        const lbl = (R[r].label || '').toUpperCase().trim();
+        if (lbl.startsWith('SOLAR GAIN')) {
+          const price = R[r].list ?? R[r].total;
+          if (price === null) throw new Error('Missing SOLAR GAIN list price in PDF (page ' + (R[r].page + 1) + ', group ' + id + '). Nothing imported.');
+          if (solarGainPrice === null) {
+            solarGainPrice = Math.round(price * 100);
+          }
+        } else if (lbl.startsWith('SOLAR SHIELD')) {
+          const price = R[r].list ?? R[r].total;
+          if (price === null) throw new Error('Missing SOLAR SHIELD list price in PDF (page ' + (R[r].page + 1) + ', group ' + id + '). Nothing imported.');
+          if (solarShieldPrice === null) {
+            solarShieldPrice = Math.round(price * 100);
+          }
+        }
+      }
+
+      // Priority rule: if both present, count SOLAR GAIN; else if SOLAR SHIELD present, use it; else 0
+      if (solarGainPrice !== null) return solarGainPrice;
+      if (solarShieldPrice !== null) return solarShieldPrice;
+      return 0;
+    };
+
+    const totalSolar = sections.reduce((s, sec) => s + resolveSectionSolar(sec[0], sec[1]), 0);
     
     // Extract Width and Height strictly for parent window frame (FR: W X H)
     let txt = R[start].size || '';
@@ -300,7 +329,7 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
       qty: R[start].qty as number, 
       base: Math.round(total * 100),
       argon: totalOption('ARGON'),   
-      solar: totalOption('SOLAR GAIN'), 
+      solar: totalSolar, 
       triple: totalOption('TRIPLE GLAZED') + totalOption('TRIPLE PANE'),
       w: width,
       h: height,
