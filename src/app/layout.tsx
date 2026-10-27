@@ -13,7 +13,7 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
-import { Toaster } from "@/components/ui/sonner"
+import { Providers } from "@/components/Providers"
 
 export default function RootLayout({
   children,
@@ -27,10 +27,7 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", ibmPlexSans.variable, merriweatherHeading.variable)}
     >
       <body>
-        <ThemeProvider>
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
