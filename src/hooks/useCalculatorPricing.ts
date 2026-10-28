@@ -6,14 +6,16 @@ import {
   toCents,
   calculatePromo,
   calculateUpgrade,
+  ILabourUpgradeTier,
 } from '@/lib/promo-logic';
 import { UIWindowItem } from './useCalculatorWindows';
 
 export interface UseCalculatorPricingProps {
   surchargeRate: number;
+  labourUpgradeTiers?: ILabourUpgradeTier[];
 }
 
-export function useCalculatorPricing({ surchargeRate }: UseCalculatorPricingProps) {
+export function useCalculatorPricing({ surchargeRate, labourUpgradeTiers }: UseCalculatorPricingProps) {
   const [availablePromos, setAvailablePromos] = useState<DBPromo[]>([]);
   const [activePromoId, setActivePromoId] = useState<string>('none');
   const [lockedPromoId, setLockedPromoId] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function useCalculatorPricing({ surchargeRate }: UseCalculatorPricingProp
     : 0;
 
   const afterDiscount = Math.max(0, beforeTaxDiscount - (quoteResult?.promoDiscount || 0));
-  const upgrade = calculateUpgrade(afterDiscount);
+  const upgrade = calculateUpgrade(afterDiscount, labourUpgradeTiers);
   const shownUpgrade = wantsUpgrade ? upgrade.charge : 0;
 
   const materialAfterDiscount = quoteResult

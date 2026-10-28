@@ -36,6 +36,7 @@ export interface QuoteInvoiceProps {
   quoteNotes?: string;
   preparedBy?: string;
   orientation?: 'portrait' | 'landscape';
+  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
 }
 
 function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
@@ -169,6 +170,7 @@ export default function QuoteInvoice({
   quoteNotes = '',
   preparedBy = '',
   orientation = 'portrait',
+  attachedUpgrade = null,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
 
@@ -709,6 +711,19 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                    <span>Optional Upgrade Offer</span>
+                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                  </div>
+                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                    {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                  </div>
+                </div>
+              )}
+
               {/* Optional Employee Quote Notes */}
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
@@ -992,6 +1007,19 @@ export default function QuoteInvoice({
                   </div>
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
                     Optional extended labour warranty coverage. Not included in quote total.
+                  </div>
+                </div>
+              )}
+
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                    <span>Optional Upgrade Offer</span>
+                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                  </div>
+                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                    {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
                   </div>
                 </div>
               )}
@@ -1281,6 +1309,19 @@ export default function QuoteInvoice({
                     <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b]">(Optional — not included in quote total)</span>
                   </div>
                   <span className="font-mono font-black text-emerald-700">+{formatMoney(shownUpgrade)}</span>
+                </div>
+              )}
+
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-1.5 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                  <div>
+                    <span className="font-bold text-[#0f172a] block">Optional Upgrade Offer:</span>
+                    <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
+                      {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                    </span>
+                  </div>
+                  <span className="font-mono font-black text-[#b45309]">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
                 </div>
               )}
 

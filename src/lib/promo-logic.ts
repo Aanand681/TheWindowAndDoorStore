@@ -35,6 +35,17 @@ export const toCents = (val: number | string) => {
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
 };
 
+export function parseInches(v: string | undefined | null): number | null {
+  const s = String(v ?? '').trim().replace(/"/g, '');
+  if (!s) return null;
+  let m = s.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/);
+  if (m) return Number(m[1]) + Number(m[2]) / Number(m[3]);
+  m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (m) return Number(m[1]) / Number(m[2]);
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 function getUnits(items: WindowItem[]) {
   const units: number[] = [];
   items.forEach((item) => {
@@ -171,7 +182,56 @@ export function calculatePromo(
   };
 }
 
-export function calculateUpgrade(afterDiscount: number) {
+export interface ILabourUpgradeTier {
+  id: string;
+  minAmount: number;
+  maxAmount: number | null;
+  ratePercent: number;
+  minFee: number;
+  isAvailable: boolean;
+  label?: string;
+}
+
+export const DEFAULT_LABOUR_UPGRADE_TIERS: ILabourUpgradeTier[] = [
+  { id: 'tier_0', minAmount: 0, maxAmount: 3000, ratePercent: 0, minFee: 0, isAvailable: false, label: 'Not available below $3,000' },
+  { id: 'tier_1', minAmount: 3000, maxAmount: 5000, ratePercent: 6, minFee: 260, isAvailable: true, label: '6% (minimum $260)' },
+  { id: 'tier_2', minAmount: 5000, maxAmount: 7500, ratePercent: 7, minFee: 0, isAvailable: true, label: '7%' },
+  { id: 'tier_3', minAmount: 7500, maxAmount: 10000, ratePercent: 8, minFee: 0, isAvailable: true, label: '8%' },
+  { id: 'tier_4', minAmount: 10000, maxAmount: 15000, ratePercent: 8.5, minFee: 0, isAvailable: true, label: '8.5%' },
+  { id: 'tier_5', minAmount: 15000, maxAmount: 20000, ratePercent: 9, minFee: 0, isAvailable: true, label: '9%' },
+  { id: 'tier_6', minAmount: 20000, maxAmount: 25000, ratePercent: 10, minFee: 0, isAvailable: true, label: '10%' },
+  { id: 'tier_7', minAmount: 25000, maxAmount: null, ratePercent: 11, minFee: 0, isAvailable: true, label: '11%' },
+];
+
+export function calculateUpgrade(afterDiscount: number, customTiers?: ILabourUpgradeTier[]) {
+  if (customTiers && customTiers.length > 0) {
+    const amountDollars = afterDiscount / 100;
+    const tier = customTiers.find((t) => {
+      const minOk = amountDollars >= t.minAmount;
+      const maxOk = t.maxAmount === null || t.maxAmount === undefined || amountDollars < t.maxAmount;
+      return minOk && maxOk;
+    });
+
+    if (tier) {
+      if (!tier.isAvailable) {
+        return {
+          charge: 0,
+          rate: tier.label || `Not available below $${tier.maxAmount?.toLocaleString() || '3,000'}`,
+        };
+      }
+      const rawFee = (amountDollars * tier.ratePercent) / 100;
+      const feeInDollars = Math.max(rawFee, tier.minFee || 0);
+      const charge = Math.round(feeInDollars * 100);
+      const rateLabel =
+        tier.label ||
+        (tier.minFee > 0
+          ? `${tier.ratePercent}% (minimum $${tier.minFee})`
+          : `${tier.ratePercent}%`);
+      return { charge, rate: rateLabel };
+    }
+  }
+
+  // Default fallback tiers if customTiers not passed
   if (afterDiscount < 300000) return { charge: 0, rate: 'Not available below $3,000' };
   if (afterDiscount < 500000) return { charge: Math.max(Math.round(afterDiscount * 0.06), 26000), rate: '6% (minimum $260)' };
   if (afterDiscount < 750000) return { charge: Math.round(afterDiscount * 0.07), rate: '7%' };

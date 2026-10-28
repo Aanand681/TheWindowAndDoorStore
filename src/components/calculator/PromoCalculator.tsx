@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Sparkles, RotateCcw, Check } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { toCents, DBPromo } from '@/lib/promo-logic';
+import { toCents, DBPromo, ILabourUpgradeTier } from '@/lib/promo-logic';
 import { cachedFetch } from '@/lib/client-cache';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -25,6 +27,7 @@ import { QuoteSummaryCard } from '@/components/calculator/QuoteSummaryCard';
 import { SubmitReviewModal } from '@/components/calculator/SubmitReviewModal';
 import { WorkflowDialogs } from '@/components/calculator/WorkflowDialogs';
 import { OdooActionModals } from '@/components/calculator/OdooActionModals';
+import { QuoteComparisonModal } from '@/components/calculator/QuoteComparisonModal';
 
 // Custom Hooks
 import { useCalculatorWindows, generateId, UIWindowItem } from '@/hooks/useCalculatorWindows';
@@ -56,6 +59,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
   // Invoice & Preview Modal State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [appliedOption, setAppliedOption] = useState<'A' | 'B'>('A');
+  const [baseWindowsA, setBaseWindowsA] = useState<UIWindowItem[] | null>(null);
+  const [attachedUpgrade, setAttachedUpgrade] = useState<{ title: string; amountPreTaxCents: number } | null>(null);
+  const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
+  const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
   const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
@@ -81,6 +90,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [supplyCasingId, setSupplyCasingId] = useState<string>('none');
   const [supplyCasingName, setSupplyCasingName] = useState<string>('');
   const [supplyCasingRate, setSupplyCasingRate] = useState<string>('');
+  const [dbLabourUpgradeTiers, setDbLabourUpgradeTiers] = useState<ILabourUpgradeTier[] | undefined>(undefined);
 
   // Pricing & Promos Hook
   const {
@@ -127,7 +137,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     secondPayment,
     calculateQuote,
     resetPricingOverrides,
-  } = useCalculatorPricing({ surchargeRate });
+  } = useCalculatorPricing({ surchargeRate, labourUpgradeTiers: dbLabourUpgradeTiers });
 
   const resetCalculatorDefaults = () => {
     setWindows([{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
@@ -142,6 +152,11 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setSupplyCasingId('none');
     setSupplyCasingName('');
     setSupplyCasingRate('');
+    setAppliedOption('A');
+    setBaseWindowsA(null);
+    setAttachedUpgrade(null);
+    setIsComparisonStaging(false);
+    setBaseSnapshotA(null);
     resetPricingOverrides();
   };
 
@@ -225,8 +240,225 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           setSupplyCasingRate(String(taxTotals.selectedCasing.rate || ''));
         }
       }
+      if (taxTotals.attachedUpgrade) {
+        setAttachedUpgrade(taxTotals.attachedUpgrade);
+      }
     }
   }, [taxTotals?._quoteId]);
+
+  // Sync attached upgrade offer into taxTotals for persistence
+  useEffect(() => {
+    setTaxTotals((prev: any) => {
+      if (prev?.attachedUpgrade === attachedUpgrade) return prev;
+      return {
+        ...prev,
+        attachedUpgrade,
+      };
+    });
+  }, [attachedUpgrade, setTaxTotals]);
+
+  // Phase 3 Hybrid Mode: Revert back to Base Snapshot A
+  const handleRevertToBase = useCallback(() => {
+    if (baseSnapshotA) {
+      setWindows(baseSnapshotA.windows);
+      setSurchargeRate(baseSnapshotA.surchargeRate);
+      setIsSupplyOnly(baseSnapshotA.isSupplyOnly);
+      setSupplyJambId(baseSnapshotA.supplyJambId);
+      setSupplyJambName(baseSnapshotA.supplyJambName);
+      setSupplyJambRate(baseSnapshotA.supplyJambRate);
+      setSupplyCasingId(baseSnapshotA.supplyCasingId);
+      setSupplyCasingName(baseSnapshotA.supplyCasingName);
+      setSupplyCasingRate(baseSnapshotA.supplyCasingRate);
+      setTaxTotals(baseSnapshotA.taxTotals);
+      setCustomJC(baseSnapshotA.customJC);
+      setCustomMisc(baseSnapshotA.customMisc);
+      setCustomLabour(baseSnapshotA.customLabour);
+      setActivePromoId(baseSnapshotA.activePromoId);
+      setHstRate(baseSnapshotA.hstRate);
+      setCustomerName(baseSnapshotA.customerName);
+      setQuoteNumber(baseSnapshotA.quoteNumber);
+    } else if (baseWindowsA && baseWindowsA.length > 0) {
+      setWindows(baseWindowsA);
+    }
+    setIsComparisonStaging(false);
+    setAppliedOption('A');
+    setBaseSnapshotA(null);
+    setLockedPromoId(null);
+    toast.info('Reverted to Base Quote (Option A).');
+  }, [baseSnapshotA, baseWindowsA, setWindows, setSurchargeRate, setTaxTotals, setCustomJC, setCustomMisc, setCustomLabour, setActivePromoId, setHstRate, setCustomerName, setQuoteNumber, setLockedPromoId]);
+
+  // Phase 3 Hybrid Mode: Commit Option B as the new primary quote
+  const handleKeepOptionB = useCallback(() => {
+    setIsComparisonStaging(false);
+    setAppliedOption('A');
+    setBaseSnapshotA(null);
+    setBaseWindowsA(null);
+    toast.success('Kept Option B as the active quote.');
+  }, []);
+
+  // Helper to snapshot Base Quote A state
+  const captureSnapshotA = useCallback(() => {
+    const activeJId = isSupplyOnly ? supplyJambId : (taxTotals?.selectedJamb?.id || taxTotals?.jambId || 'none');
+    const activeJName = isSupplyOnly ? supplyJambName : (taxTotals?.selectedJamb?.name || taxTotals?.jambName || '');
+    const activeJRate = isSupplyOnly ? supplyJambRate : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || '');
+    const activeCId = isSupplyOnly ? supplyCasingId : (taxTotals?.selectedCasing?.id || taxTotals?.casingId || 'none');
+    const activeCName = isSupplyOnly ? supplyCasingName : (taxTotals?.selectedCasing?.name || taxTotals?.casingName || '');
+    const activeCRate = isSupplyOnly ? supplyCasingRate : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || '');
+
+    return {
+      windows: [...windows],
+      surchargeRate,
+      isSupplyOnly,
+      supplyJambId: activeJId,
+      supplyJambName: activeJName,
+      supplyJambRate: activeJRate,
+      supplyCasingId: activeCId,
+      supplyCasingName: activeCName,
+      supplyCasingRate: activeCRate,
+      taxTotals: taxTotals ? JSON.parse(JSON.stringify(taxTotals)) : null,
+      customJC,
+      customMisc,
+      customLabour,
+      activePromoId,
+      hstRate,
+      customerName,
+      quoteNumber,
+      quoteResult,
+      afterDiscount,
+      total,
+      firstPayment,
+      secondPayment,
+    };
+  }, [
+    windows,
+    surchargeRate,
+    isSupplyOnly,
+    supplyJambId,
+    supplyJambName,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingName,
+    supplyCasingRate,
+    taxTotals,
+    customJC,
+    customMisc,
+    customLabour,
+    activePromoId,
+    hstRate,
+    customerName,
+    quoteNumber,
+    quoteResult,
+    afterDiscount,
+    total,
+    firstPayment,
+    secondPayment,
+  ]);
+
+  // Phase 3 Hybrid Mode: Apply Option B & enter full workspace staging
+  const handleApplyAndCustomize = useCallback(
+    (
+      optionWindows: UIWindowItem[],
+      meta?: { customerName?: string; quoteNumber?: string },
+      overrides?: {
+        jambId?: string;
+        jambRate?: string;
+        casingId?: string;
+        casingRate?: string;
+        extraLabour?: string;
+      }
+    ) => {
+      if (!baseSnapshotA) {
+        setBaseSnapshotA(captureSnapshotA());
+      }
+      setBaseWindowsA(windows);
+      setIsComparisonStaging(true);
+      setAppliedOption('B');
+
+      // Apply Option B windows
+      setWindows(optionWindows);
+      if (meta?.customerName && !customerName) setCustomerName(meta.customerName);
+      if (meta?.quoteNumber && !quoteNumber) setQuoteNumber(meta.quoteNumber);
+
+      // Apply in-modal overrides if provided
+      if (overrides) {
+        if (overrides.jambId && overrides.jambId !== 'inherit') {
+          setSupplyJambId(overrides.jambId);
+          if (overrides.jambRate) setSupplyJambRate(overrides.jambRate);
+        }
+        if (overrides.casingId && overrides.casingId !== 'inherit') {
+          setSupplyCasingId(overrides.casingId);
+          if (overrides.casingRate) setSupplyCasingRate(overrides.casingRate);
+        }
+        if (overrides.extraLabour && Number(overrides.extraLabour) > 0) {
+          setCustomLabour(String(Number(customLabour || 0) + Number(overrides.extraLabour)));
+        }
+      }
+
+      setLockedPromoId(null);
+      toast.success('Loaded Option B into calculator. Base Quote A is safely preserved.');
+    },
+    [
+      baseSnapshotA,
+      captureSnapshotA,
+      windows,
+      customerName,
+      quoteNumber,
+      customLabour,
+      setWindows,
+      setCustomerName,
+      setQuoteNumber,
+      setLockedPromoId,
+    ]
+  );
+
+  // Phase 3: Dual PDF Upgrade two-way swapping
+  const handleApplyOption = useCallback(
+    (
+      target: 'A' | 'B',
+      optionWindows: UIWindowItem[],
+      meta?: { customerName?: string; quoteNumber?: string },
+      overrides?: {
+        jambId?: string;
+        jambRate?: string;
+        casingId?: string;
+        casingRate?: string;
+        extraLabour?: string;
+      }
+    ) => {
+      if (target === 'B') {
+        if (!baseSnapshotA) {
+          setBaseSnapshotA(captureSnapshotA());
+        }
+        setBaseWindowsA(windows);
+        setWindows(optionWindows);
+        setAppliedOption('B');
+        if (meta?.customerName && !customerName) {
+          setCustomerName(meta.customerName);
+        }
+        if (meta?.quoteNumber && !quoteNumber) {
+          setQuoteNumber(meta.quoteNumber);
+        }
+        if (overrides) {
+          if (overrides.jambId && overrides.jambId !== 'inherit') {
+            setSupplyJambId(overrides.jambId);
+            if (overrides.jambRate) setSupplyJambRate(overrides.jambRate);
+          }
+          if (overrides.casingId && overrides.casingId !== 'inherit') {
+            setSupplyCasingId(overrides.casingId);
+            if (overrides.casingRate) setSupplyCasingRate(overrides.casingRate);
+          }
+          if (overrides.extraLabour && Number(overrides.extraLabour) > 0) {
+            setCustomLabour(String(Number(customLabour || 0) + Number(overrides.extraLabour)));
+          }
+        }
+        setLockedPromoId(null);
+        toast.success('Applied Option B to quote.');
+      } else {
+        handleRevertToBase();
+      }
+    },
+    [baseSnapshotA, captureSnapshotA, windows, customerName, quoteNumber, customLabour, setWindows, setCustomerName, setQuoteNumber, setLockedPromoId, handleRevertToBase]
+  );
 
   // Review & Approval Workflows Hook
   const {
@@ -367,7 +599,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     staleTime: 60 * 1000,
   });
 
-  const { data: settingsData } = useQuery<{ surchargeRate?: number }>({
+  const { data: settingsData } = useQuery<{ surchargeRate?: number; labourUpgradeTiers?: ILabourUpgradeTier[] }>({
     queryKey: ['settings', 'global'],
     queryFn: async () => {
       const res = await fetch('/api/settings');
@@ -384,8 +616,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   }, [promosData, setAvailablePromos]);
 
   useEffect(() => {
-    if (settingsData && settingsData.surchargeRate !== undefined) {
-      setSurchargeRate(settingsData.surchargeRate);
+    if (settingsData) {
+      if (settingsData.surchargeRate !== undefined) {
+        setSurchargeRate(settingsData.surchargeRate);
+      }
+      if (Array.isArray(settingsData.labourUpgradeTiers) && settingsData.labourUpgradeTiers.length > 0) {
+        setDbLabourUpgradeTiers(settingsData.labourUpgradeTiers);
+      }
     }
   }, [settingsData, setSurchargeRate]);
 
@@ -472,7 +709,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <div>
-        <div className="max-w-[1650px] mx-auto px-4 sm:px-6 pt-4">
+        <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6">
           <AppHeader currentPath="/calculator" />
         </div>
       </div>
@@ -503,6 +740,59 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           handleReturnReviewQuote={handleReturnReviewQuote}
           handleApproveReviewQuote={handleApproveReviewQuote}
         />
+
+        {/* Phase 3 Hybrid: Staging Mode Banner */}
+        {isComparisonStaging && (
+          <div className="bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/15 border border-amber-500/40 rounded-2xl p-3.5 px-4 sm:px-5 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-150">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500 text-amber-950 font-bold shadow-xs">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Comparison Staging Mode: Option B (Upgraded Quote)
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30">
+                    Live Editing
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Base Quote A is preserved. Customize crew, distance, jambs, or promo on Option B, then view the live comparison.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsCompareModalOpen(true)}
+                className="h-8 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-amber-950 gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>View Comparison &amp; Delta</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRevertToBase}
+                className="h-8 text-xs font-semibold gap-1.5 border-border hover:bg-muted text-foreground cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Revert to Base (Option A)</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleKeepOptionB}
+                className="h-8 text-xs font-bold gap-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Keep Option B</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Tab Controls */}
         <Tabs value={activeTab} onValueChange={(val) => switchTab(val as any)} className="w-full">
@@ -544,6 +834,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   windowEndRef={windowEndRef}
                   isSupplyOnly={isSupplyOnly}
                   setIsSupplyOnly={handleToggleSupplyOnly}
+                  onOpenCompareModal={() => setIsCompareModalOpen(true)}
+                  attachedUpgrade={attachedUpgrade}
+                  onRemoveAttachedUpgrade={() => {
+                    setAttachedUpgrade(null);
+                    toast.info('Removed optional upgrade offer from quote.');
+                  }}
                 />
 
                 {isSupplyOnly && (
@@ -812,6 +1108,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveJC={effectiveJC}
         effectiveMisc={effectiveMisc}
         effectiveLabour={effectiveLabour}
+        attachedUpgrade={attachedUpgrade}
       />
 
       {/* Submit for Review / Direct Approve Modal */}
@@ -876,6 +1173,41 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         staffList={staffList}
         confirmApproveReviewQuote={confirmApproveReviewQuote}
         handleCompleteOdooEntry={handleCompleteOdooEntry}
+      />
+
+      {/* Phase 3: Dual PDF Upgrade & Option Comparison Modal */}
+      <QuoteComparisonModal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        currentWindows={baseSnapshotA ? baseSnapshotA.windows : (appliedOption === 'B' && baseWindowsA ? baseWindowsA : windows)}
+        customerName={baseSnapshotA ? baseSnapshotA.customerName : customerName}
+        quoteNumber={baseSnapshotA ? baseSnapshotA.quoteNumber : quoteNumber}
+        surchargeRate={baseSnapshotA ? baseSnapshotA.surchargeRate : surchargeRate}
+        isSupplyOnly={baseSnapshotA ? baseSnapshotA.isSupplyOnly : isSupplyOnly}
+        supplyJambId={baseSnapshotA ? baseSnapshotA.supplyJambId : (isSupplyOnly ? supplyJambId : (taxTotals?.selectedJamb?.id || taxTotals?.jambId || 'none'))}
+        supplyJambName={baseSnapshotA ? baseSnapshotA.supplyJambName : (isSupplyOnly ? supplyJambName : (taxTotals?.selectedJamb?.name || taxTotals?.jambName || ''))}
+        supplyJambRate={baseSnapshotA ? baseSnapshotA.supplyJambRate : (isSupplyOnly ? supplyJambRate : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ''))}
+        supplyCasingId={baseSnapshotA ? baseSnapshotA.supplyCasingId : (isSupplyOnly ? supplyCasingId : (taxTotals?.selectedCasing?.id || taxTotals?.casingId || 'none'))}
+        supplyCasingName={baseSnapshotA ? baseSnapshotA.supplyCasingName : (isSupplyOnly ? supplyCasingName : (taxTotals?.selectedCasing?.name || taxTotals?.casingName || ''))}
+        supplyCasingRate={baseSnapshotA ? baseSnapshotA.supplyCasingRate : (isSupplyOnly ? supplyCasingRate : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ''))}
+        effectiveJC={baseSnapshotA ? (baseSnapshotA.taxTotals?.jcLabourCents ?? (baseSnapshotA.customJC ? toCents(baseSnapshotA.customJC) : 0)) : effectiveJC}
+        effectiveMisc={baseSnapshotA ? (baseSnapshotA.taxTotals?.miscLabourCents ?? (baseSnapshotA.customMisc ? toCents(baseSnapshotA.customMisc) : 0)) : effectiveMisc}
+        effectiveLabour={baseSnapshotA ? (baseSnapshotA.taxTotals?.standardLabourCents ?? (baseSnapshotA.customLabour ? toCents(baseSnapshotA.customLabour) : 0)) : effectiveLabour}
+        availablePromos={availablePromos}
+        activePromoId={baseSnapshotA ? baseSnapshotA.activePromoId : activePromoId}
+        hstRate={baseSnapshotA ? baseSnapshotA.hstRate : hstRate}
+        quoteResultA={baseSnapshotA ? baseSnapshotA.quoteResult : quoteResult}
+        afterDiscountA={baseSnapshotA ? baseSnapshotA.afterDiscount : afterDiscount}
+        totalA={baseSnapshotA ? baseSnapshotA.total : total}
+        firstPaymentA={baseSnapshotA ? baseSnapshotA.firstPayment : firstPayment}
+        secondPaymentA={baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment}
+        appliedOption={appliedOption}
+        isComparisonStaging={isComparisonStaging}
+        onApplyOption={handleApplyOption}
+        onApplyAndCustomize={handleApplyAndCustomize}
+        onKeepOptionB={handleKeepOptionB}
+        attachedUpgrade={attachedUpgrade}
+        onAttachUpgrade={setAttachedUpgrade}
       />
     </div>
   );

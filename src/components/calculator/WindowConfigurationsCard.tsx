@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Component, FileUp, Plus, Trash2 } from 'lucide-react';
+import { Component, FileUp, Plus, Trash2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
+import { formatMoney } from '@/lib/promo-logic';
 
 export interface WindowConfigurationsCardProps {
   windows: UIWindowItem[];
@@ -28,6 +29,9 @@ export interface WindowConfigurationsCardProps {
   windowEndRef: React.RefObject<HTMLDivElement | null>;
   isSupplyOnly?: boolean;
   setIsSupplyOnly?: (val: boolean) => void;
+  onOpenCompareModal?: () => void;
+  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
+  onRemoveAttachedUpgrade?: () => void;
 }
 
 export function WindowConfigurationsCard({
@@ -47,6 +51,9 @@ export function WindowConfigurationsCard({
   windowEndRef,
   isSupplyOnly,
   setIsSupplyOnly,
+  onOpenCompareModal,
+  attachedUpgrade,
+  onRemoveAttachedUpgrade,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl py-0 gap-0 [--card-spacing:0px]">
@@ -94,8 +101,60 @@ export function WindowConfigurationsCard({
             <FileUp className="w-3.5 h-3.5 mr-1.5" />
             Import PDF
           </Button>
+          {onOpenCompareModal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenCompareModal}
+              disabled={isReadOnly}
+              className="whitespace-nowrap shadow-xs h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500"
+              title="Compare with Upgraded Manufacturer PDF (Triple Pane, Painted, etc.)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Compare Upgrade PDF</span>
+            </Button>
+          )}
         </div>
       </CardHeader>
+
+      {/* Optional Upgrade Attached Callout Banner */}
+      {attachedUpgrade && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 bg-amber-500/10 border-b border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="font-semibold">
+              Optional Upgrade Attached to Quote PDF:{' '}
+              <span className="font-bold underline decoration-amber-500/50">
+                {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {onOpenCompareModal && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenCompareModal}
+                className="h-6 text-[11px] px-2 text-amber-800 dark:text-amber-300 hover:text-amber-950 hover:bg-amber-500/20 cursor-pointer"
+              >
+                Review / Change
+              </Button>
+            )}
+            {onRemoveAttachedUpgrade && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRemoveAttachedUpgrade}
+                className="h-6 text-[11px] px-2 text-destructive hover:bg-destructive/10 cursor-pointer gap-1"
+                title="Remove upgrade line from PDF quote"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Remove Option</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       <CardContent className="p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2.5 px-5 sm:px-6 bg-muted/20 border-b border-border/40">
           <div className="space-y-1">

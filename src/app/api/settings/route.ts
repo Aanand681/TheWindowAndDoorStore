@@ -4,6 +4,7 @@ import Settings from '@/models/Settings';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
+import { DEFAULT_LABOUR_UPGRADE_TIERS } from '@/lib/promo-logic';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,8 +50,12 @@ export async function GET() {
           { crewSize: '2', hourlyRate: 150 },
           { crewSize: '3', hourlyRate: 200 },
           { crewSize: '4', hourlyRate: 500 }
-        ]
+        ],
+        labourUpgradeTiers: DEFAULT_LABOUR_UPGRADE_TIERS
       });
+    } else if (!settings.labourUpgradeTiers || settings.labourUpgradeTiers.length === 0) {
+      settings.labourUpgradeTiers = DEFAULT_LABOUR_UPGRADE_TIERS;
+      await settings.save();
     }
     
     cacheSet('settings:global', settings, 86400).catch(() => {});
@@ -81,6 +86,7 @@ export async function PUT(request: Request) {
     if (body.casings !== undefined) updateFields.casings = body.casings;
     if (body.vehicleRate !== undefined) updateFields.vehicleRate = body.vehicleRate;
     if (body.crewRates !== undefined) updateFields.crewRates = body.crewRates;
+    if (body.labourUpgradeTiers !== undefined) updateFields.labourUpgradeTiers = body.labourUpgradeTiers;
 
     // Upsert the first settings document
     const updatedSettings = await Settings.findOneAndUpdate(

@@ -2,15 +2,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Component, Users, Tag, DollarSign, UserCircle, Map, Calculator, FileText } from 'lucide-react';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { Button } from '@/components/ui/button';
+import { Users, Tag, DollarSign, Map, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { LogoutButton } from '@/components/shared/logout-button';
-import NotificationBell from '@/components/shared/NotificationBell';
-import UserProfileMenu from '@/components/shared/UserProfileMenu';
-import QuotesBinPill from '@/components/quotes/QuotesBinPill';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
@@ -32,30 +27,8 @@ export default async function AdminDashboard() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
       
-      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
-        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
-            title="Go to Calculator"
-          >
-            <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
-            <span className="text-xl font-semibold tracking-wider uppercase">Window & Door Store</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link 
-              href="/" 
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur hover:bg-primary/10 hover:text-primary transition-colors")}
-            >
-              <Calculator className="w-3.5 h-3.5 text-primary" />
-              <span>Calculator</span>
-            </Link>
-            <QuotesBinPill />
-            <NotificationBell />
-            <ThemeToggle />
-            <UserProfileMenu />
-          </div>
-        </header>
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-10 relative z-10 space-y-8">
+        <AppHeader currentPath="/admin" />
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -144,22 +117,22 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Quotes & Review Queue */}
-          <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl hover:border-amber-500/50 transition-colors">
+          {/* Sealed Unit Pricing - Available to both SUPERADMIN and ADMIN */}
+          <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl hover:border-primary/50 transition-colors">
             <CardHeader>
               <div className="flex items-center justify-between mb-1">
                 <CardTitle className="text-xl flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-amber-500" />
-                  Quotes &amp; Review Bin
+                  <Layers className="w-5 h-5 text-primary" />
+                  Sealed Unit Pricing
                 </CardTitle>
               </div>
               <CardDescription>
-                Review submitted quotes, approve price changes, and search historical customer quotes.
+                Update glass rates (Annealed/Tempered), thickness ladders, formula multipliers, and installation labour rules.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/quotes" className="w-full block">
-                <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold">Open Review Bin</Button>
+              <Link href="/admin/sealed-units" className="w-full block">
+                <Button className="w-full">Edit Sealed Unit Pricing</Button>
               </Link>
             </CardContent>
           </Card>
