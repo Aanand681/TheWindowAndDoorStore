@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Component, FileUp, Plus, Trash2, Sparkles } from 'lucide-react';
+import { Component, FileUp, Plus, Trash2, Sparkles, Bookmark, FolderOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
 import { formatMoney } from '@/lib/promo-logic';
@@ -32,6 +32,9 @@ export interface WindowConfigurationsCardProps {
   onOpenCompareModal?: () => void;
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   onRemoveAttachedUpgrade?: () => void;
+  onSaveDraft?: () => void;
+  onOpenSavedQuotes?: () => void;
+  savedDraftsCount?: number;
 }
 
 export function WindowConfigurationsCard({
@@ -54,6 +57,9 @@ export function WindowConfigurationsCard({
   onOpenCompareModal,
   attachedUpgrade,
   onRemoveAttachedUpgrade,
+  onSaveDraft,
+  onOpenSavedQuotes,
+  savedDraftsCount,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl py-0 gap-0 [--card-spacing:0px]">
@@ -67,23 +73,31 @@ export function WindowConfigurationsCard({
             Enter the base prices and upgrade components for each window.
           </CardDescription>
         </div>
-        <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 sm:p-1.5 rounded-xl border border-border/50 w-full sm:w-auto justify-between sm:justify-start">
+        {/* Clean Unified Action Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          {/* Supply Only Mode Pill */}
           {setIsSupplyOnly && (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/70 bg-background/60 hover:bg-background transition-colors cursor-pointer select-none">
+            <label
+              htmlFor="supplyOnlyToggle"
+              className={cn(
+                'flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-xs',
+                isSupplyOnly
+                  ? 'bg-primary/15 border-primary/40 text-primary'
+                  : 'bg-muted/50 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+            >
               <Checkbox
                 id="supplyOnlyToggle"
                 disabled={isReadOnly}
                 checked={isSupplyOnly}
                 onCheckedChange={(checked) => setIsSupplyOnly(!!checked)}
+                className="data-[state=checked]:bg-primary h-3.5 w-3.5"
               />
-              <Label
-                htmlFor="supplyOnlyToggle"
-                className="text-xs font-semibold cursor-pointer whitespace-nowrap select-none text-foreground"
-              >
-                Supply Only
-              </Label>
-            </div>
+              <span className="whitespace-nowrap">Supply Only</span>
+            </label>
           )}
+
+          {/* Import PDF */}
           <input
             type="file"
             accept=".pdf,application/pdf"
@@ -92,26 +106,66 @@ export function WindowConfigurationsCard({
             onChange={handlePdfUpload}
           />
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={handlePdfImportClick}
             disabled={isReadOnly}
-            className="whitespace-nowrap shadow-sm h-8 px-2.5 text-xs font-semibold cursor-pointer"
+            className="h-8 px-2.5 text-xs font-semibold cursor-pointer shadow-xs bg-card hover:bg-muted border-border/70 text-foreground"
           >
-            <FileUp className="w-3.5 h-3.5 mr-1.5" />
-            Import PDF
+            <FileUp className="w-3.5 h-3.5 mr-1 text-primary" />
+            <span>Import PDF</span>
           </Button>
+
+          {/* Compare PDF */}
           {onOpenCompareModal && (
             <Button
               variant="outline"
               size="sm"
               onClick={onOpenCompareModal}
               disabled={isReadOnly}
-              className="whitespace-nowrap shadow-xs h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500"
+              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 shadow-xs"
               title="Compare with Upgraded Manufacturer PDF (Triple Pane, Painted, etc.)"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Compare Upgrade PDF</span>
+              <span>Compare PDF</span>
+            </Button>
+          )}
+
+          {/* Vertical Separator */}
+          {(onSaveDraft || onOpenSavedQuotes) && (
+            <div className="hidden sm:block h-5 w-px bg-border/60 mx-0.5" />
+          )}
+
+          {/* Save Draft */}
+          {onSaveDraft && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSaveDraft}
+              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
+              title="Save current quote to drafts"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-primary" />
+              <span>Save Draft</span>
+            </Button>
+          )}
+
+          {/* Saved Quotes */}
+          {onOpenSavedQuotes && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenSavedQuotes}
+              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
+              title="View and load saved quotes"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+              <span>Saved Quotes</span>
+              {typeof savedDraftsCount === 'number' && savedDraftsCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                  {savedDraftsCount}
+                </span>
+              )}
             </Button>
           )}
         </div>

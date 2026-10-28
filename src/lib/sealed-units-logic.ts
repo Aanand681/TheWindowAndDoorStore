@@ -70,6 +70,8 @@ export interface GrillItemConfig {
   type: GrillType;
   profile?: GrillProfile;
   color?: string;
+  colsCount?: number;
+  rowsCount?: number;
   squaresCount?: number;
   tIntersectionsCount?: number;
   bentHubsCount?: number;
@@ -356,25 +358,39 @@ export function calculateGrillRawCost(
   if (config.type === 'grid') {
     const profile = (config.profile || '5/8" x 1/4"') as string;
     const color = config.color || 'White';
-    const squares = Math.max(0, config.squaresCount || 0);
     const gridRates = settings.gridRates || DEFAULT_GRILL_SETTINGS.gridRates;
     const rate = gridRates?.[profile]?.[color] ?? 5.50;
-    const gridCost = squares * rate;
 
-    const tIntersections = Math.max(0, config.tIntersectionsCount || 0);
-    const tCost = tIntersections * (settings.tIntersectionPrice ?? 5.50);
+    let squares = 0;
+    let tIntersections = 0;
+    let hasPattern = false;
+
+    if (config.colsCount && config.rowsCount && config.colsCount > 0 && config.rowsCount > 0) {
+      squares = config.colsCount * config.rowsCount;
+      tIntersections = Math.max(0, config.colsCount - 1) * Math.max(0, config.rowsCount - 1);
+      hasPattern = true;
+    } else {
+      squares = Math.max(0, config.squaresCount || 0);
+      tIntersections = Math.max(0, config.tIntersectionsCount || 0);
+    }
+
+    // T-section price matches the selected color rate (e.g. White $5.50, Brass $6.50, Black/White $11.00)
+    const tRate = rate;
+    const gridCost = squares * rate;
+    const tCost = tIntersections * tRate;
 
     const bentHubs = Math.max(0, config.bentHubsCount || 0);
     const bentCost = bentHubs * (settings.bentHubPrice ?? 110.00);
 
     const total = gridCost + tCost + bentCost;
+    const patternPrefix = hasPattern ? `${config.colsCount}×${config.rowsCount} Grid: ` : 'Grid: ';
     const parts = [
       `${squares} sq @ $${rate.toFixed(2)} (${profile}, ${color})`,
-      tIntersections > 0 ? `${tIntersections} T-conn` : null,
+      tIntersections > 0 ? `${tIntersections} T-conn @ $${tRate.toFixed(2)}` : null,
       bentHubs > 0 ? `${bentHubs} Bent Hubs` : null,
     ].filter(Boolean);
 
-    return { rawCost: total, description: `Grid: ${parts.join(' + ')}` };
+    return { rawCost: total, description: `${patternPrefix}${parts.join(' + ')}` };
   }
 
   return { rawCost: 0, description: 'No Grills' };
@@ -424,12 +440,65 @@ export function getThicknessForArea(area: number, breaks = DEFAULT_THICKNESS_BRE
   return 6; // Max ladder rule or flag manual quote above 50
 }
 
+export type GlassShape = 'rectangle' | 'rakehead_triangle' | 'roundtop_circle_octagon';
+
+export interface ShapeChargeResult {
+  rawCost: number;
+  label: string;
+}
+
+export function calculateShapeRawCost(
+  shape: GlassShape | undefined,
+  treatment: GlassTreatment,
+  paneType: PaneType,
+  rawGlassCost: number
+): ShapeChargeResult {
+  if (!shape || shape === 'rectangle') {
+    return { rawCost: 0, label: 'Standard Rectangle' };
+  }
+
+  if (treatment === 'annealed') {
+    if (shape === 'rakehead_triangle') {
+      const cost = paneType === 'triple' ? 40.0 : 20.0;
+      return { rawCost: cost, label: `Rakehead / Triangle ($${cost.toFixed(2)}/unit)` };
+    }
+    if (shape === 'roundtop_circle_octagon') {
+      const cost = paneType === 'triple' ? 50.0 : 30.0;
+      return { rawCost: cost, label: `Roundtop / Circle / Octagon ($${cost.toFixed(2)}/unit)` };
+    }
+  } else {
+    // Tempered: 10% or 20% of glass cost
+    if (shape === 'rakehead_triangle') {
+      const cost = Math.round(rawGlassCost * 0.10 * 100) / 100;
+      return { rawCost: cost, label: `Rakehead / Triangle (10% of glass: $${cost.toFixed(2)})` };
+    }
+    if (shape === 'roundtop_circle_octagon') {
+      const cost = Math.round(rawGlassCost * 0.20 * 100) / 100;
+      return { rawCost: cost, label: `Roundtop / Circle / Octagon (20% of glass: $${cost.toFixed(2)})` };
+    }
+  }
+
+  return { rawCost: 0, label: 'Standard Rectangle' };
+}
+
+export function getAvailableGrillColors(profile: GrillProfile): string[] {
+  if (profile === '8mm x 18mm Georgian') {
+    return ['White'];
+  }
+  if (profile === '3/8" x 1/4"') {
+    return ['White', 'Brass', 'Pewter', 'Brushed Chrome', 'Black'];
+  }
+  // 5/8" x 1/4"
+  return ['White', 'Brass', 'Pewter', 'Brushed Chrome', 'Black', 'Black/White'];
+}
+
 export interface CalculateSealedUnitParams {
   combo: ComboPricing;
   paneType: PaneType;
   widthIn: number;
   heightIn: number;
   quantity: number;
+  shape?: GlassShape;
   formula?: SealedUnitFormulaConstants;
   thicknessBreaks?: ThicknessBreak[];
   labourSettings?: SealedUnitLabourSettings;
@@ -456,18 +525,25 @@ export interface SealedUnitLineItem {
   rawGrillCost: number;
   grillDescription: string;
   grill?: GrillItemConfig;
-  rawPrice: number; // (rateWithArgon * billableSqft) + rawGrillCost
+  shape: GlassShape;
+  rawShapeCost: number;
+  shapeDescription: string;
+  rawPrice: number; // (rateWithArgon * billableSqft) + rawGrillCost + rawShapeCost
   surchargeAmount: number;
   subtotalAfterSurcharge: number;
-  multipliedAmount: number;
-  finalAddonAmount: number;
-  finalUnitPrice: number;
+  multipliedAmount: number; // unit price BEFORE 8% surcharge
+  surcharge8PercentAmount: number; // 8% surcharge amount per unit
+  finalAddonAmount: number; // backward compatibility alias for 8% surcharge
+  finalUnitPrice: number; // multipliedAmount + surcharge8PercentAmount
   quantity: number;
   lineGlassTotal: number;
-  // Installation & Labour per line item
-  unitLabour: number; // max(minFee, billableSqft * labourRate)
+  multipliedTotal: number; // multipliedAmount * quantity (before 8% surcharge)
+  surcharge8PercentTotal: number; // 8% surcharge total
+  finalAddonTotal: number; // backward compatibility alias for 8% surcharge total
+  // Installation & Labour per line item (Calculated on ACTUAL unrounded sq ft)
+  unitLabour: number; // max(minFee, actualSqft * labourRate)
   totalLabour: number;
-  unitMisc: number; // billableSqft * miscRate
+  unitMisc: number; // actualSqft * miscRate
   totalMisc: number;
 }
 
@@ -475,9 +551,10 @@ export function calculateSealedUnitItem(params: CalculateSealedUnitParams): Seal
   const formula = params.formula || DEFAULT_FORMULA_CONSTANTS;
   const breaks = params.thicknessBreaks || DEFAULT_THICKNESS_BREAKS;
   const labourSettings = params.labourSettings || DEFAULT_LABOUR_SETTINGS;
+  const shape = params.shape || 'rectangle';
 
   const actualSqft = inchesToSqft(params.widthIn, params.heightIn);
-  // User Rule: round up sq ft (e.g. 12.01 or 12.1 rounds to 13), with 4.0 sq ft min enforced
+  // User Rule: round up sq ft (e.g. 12.01 or 12.1 rounds to 13), with 4.0 sq ft min enforced for glass
   const roundedSqft = Math.ceil(actualSqft);
   const billableSqft = Math.max(formula.minSqft || 4.0, roundedSqft);
   const linealFt = inchesToLinealFt(params.widthIn, params.heightIn);
@@ -517,27 +594,39 @@ export function calculateSealedUnitItem(params: CalculateSealedUnitParams): Seal
     params.grillSettings
   );
 
+  // Argon is added directly to base price per sqft (e.g. 19.70 + 0.60 = 20.30)
   const rateWithArgon = baseRate + formula.argonPerSqft;
   const rawGlassCost = rateWithArgon * billableSqft;
-  // Raw grill cost is added to raw glass cost before 27% surcharge, 2.5 multiplier, and 8% final addon
-  const rawPrice = rawGlassCost + rawGrillCost;
+
+  // Shape Charge Calculation (Flat fee on Annealed or % on Tempered)
+  const { rawCost: rawShapeCost, label: shapeDescription } = calculateShapeRawCost(
+    shape,
+    params.combo.treatment,
+    params.paneType,
+    rawGlassCost
+  );
+
+  // Raw costs combined before 27% surcharge, 2.5 multiplier, and 8% surcharge
+  const rawPrice = rawGlassCost + rawGrillCost + rawShapeCost;
   const surchargeAmount = rawPrice * formula.surchargeRate;
   const subtotalAfterSurcharge = rawPrice + surchargeAmount;
   const multipliedAmount = subtotalAfterSurcharge * formula.stepMultiplier;
-  const finalAddonAmount = multipliedAmount * formula.finalAddonRate;
-  const finalUnitPrice = Math.round((multipliedAmount + finalAddonAmount) * 100) / 100;
+  const surcharge8PercentAmount = multipliedAmount * formula.finalAddonRate;
+  const finalAddonAmount = surcharge8PercentAmount;
+  const finalUnitPrice = Math.round((multipliedAmount + surcharge8PercentAmount) * 100) / 100;
   const lineGlassTotal = Math.round(finalUnitPrice * params.quantity * 100) / 100;
 
-  // Installation labour calculation from Excel formula:
-  // K6 = SUMIF(J6,"<120",120)+SUMIF(J6,">120",J6) where J6 = SqFt * 14.40
-  const rawUnitLabour = billableSqft * labourSettings.labourRatePerSqft;
+  // Installation labour calculation from actual unrounded sq ft (User Rule: take actual, do not round):
+  const rawUnitLabour = actualSqft * labourSettings.labourRatePerSqft;
   const unitLabour = Math.max(rawUnitLabour, labourSettings.labourMinPerUnit);
   const totalLabour = Math.round(unitLabour * params.quantity * 100) / 100;
 
-  // Misc supplies from Excel formula:
-  // L6 = SqFt * 2.40
-  const unitMisc = Math.round(billableSqft * labourSettings.miscRatePerSqft * 100) / 100;
+  // Misc supplies from actual unrounded sq ft:
+  const unitMisc = Math.round(actualSqft * labourSettings.miscRatePerSqft * 100) / 100;
   const totalMisc = Math.round(unitMisc * params.quantity * 100) / 100;
+  const multipliedTotal = Math.round(multipliedAmount * params.quantity * 100) / 100;
+  const surcharge8PercentTotal = Math.round(surcharge8PercentAmount * params.quantity * 100) / 100;
+  const finalAddonTotal = surcharge8PercentTotal;
 
   return {
     id: `su_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -558,17 +647,106 @@ export function calculateSealedUnitItem(params: CalculateSealedUnitParams): Seal
     rawGrillCost,
     grillDescription,
     grill: params.grill,
+    shape,
+    rawShapeCost,
+    shapeDescription,
     rawPrice,
     surchargeAmount,
     subtotalAfterSurcharge,
     multipliedAmount,
+    surcharge8PercentAmount,
     finalAddonAmount,
     finalUnitPrice,
     quantity: params.quantity,
     lineGlassTotal,
+    multipliedTotal,
+    surcharge8PercentTotal,
+    finalAddonTotal,
     unitLabour,
     totalLabour,
     unitMisc,
     totalMisc,
   };
 }
+
+/**
+ * Generates unified single-sentence summary of sealed units
+ * Examples:
+ * - "4 dual pane SU with grills and 2 triple pane SU without grills"
+ * - "4 triple pane SU with grills and 2 dual pane SU without grills"
+ * - "4 dual pane SU without grills and 2 triple pane SU with grills"
+ */
+export function formatSealedUnitSummarySentence(lineItems: SealedUnitLineItem[]): string {
+  if (!lineItems || lineItems.length === 0) return 'Sealed Units';
+
+  let dWithGrills = 0;
+  let dNoGrills = 0;
+  let tWithGrills = 0;
+  let tNoGrills = 0;
+
+  lineItems.forEach((item) => {
+    const q = Math.max(1, Number(item.quantity) || 1);
+    const hasG = Number(item.rawGrillCost) > 0;
+    if (item.paneType === 'triple') {
+      if (hasG) tWithGrills += q;
+      else tNoGrills += q;
+    } else {
+      if (hasG) dWithGrills += q;
+      else dNoGrills += q;
+    }
+  });
+
+  interface PartGroup {
+    text: string;
+    count: number;
+    hasGrills: boolean;
+  }
+
+  const groups: PartGroup[] = [];
+
+  if (dWithGrills > 0) {
+    groups.push({
+      text: `${dWithGrills} dual pane SU with grills`,
+      count: dWithGrills,
+      hasGrills: true,
+    });
+  }
+  if (dNoGrills > 0) {
+    groups.push({
+      text: `${dNoGrills} dual pane SU without grills`,
+      count: dNoGrills,
+      hasGrills: false,
+    });
+  }
+  if (tWithGrills > 0) {
+    groups.push({
+      text: `${tWithGrills} triple pane SU with grills`,
+      count: tWithGrills,
+      hasGrills: true,
+    });
+  }
+  if (tNoGrills > 0) {
+    groups.push({
+      text: `${tNoGrills} triple pane SU without grills`,
+      count: tNoGrills,
+      hasGrills: false,
+    });
+  }
+
+  if (groups.length === 0) return 'Sealed Units';
+
+  // Sort groups: primary by count descending (so 4 comes before 2), secondary by hasGrills descending
+  groups.sort((a, b) => {
+    if (b.count !== a.count) {
+      return b.count - a.count;
+    }
+    return (b.hasGrills ? 1 : 0) - (a.hasGrills ? 1 : 0);
+  });
+
+  const texts = groups.map((g) => g.text);
+  if (texts.length === 1) return texts[0];
+  if (texts.length === 2) return `${texts[0]} and ${texts[1]}`;
+  return texts.slice(0, -1).join(', ') + ' and ' + texts[texts.length - 1];
+}
+
+

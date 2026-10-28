@@ -23,6 +23,8 @@ import {
   Eye,
   Download,
   AlertTriangle,
+  Bookmark,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMoney, toCents } from '@/lib/promo-logic';
@@ -93,6 +95,8 @@ export interface QuoteSummaryCardProps {
   setShowReassignModal: (val: boolean) => void;
   handleReturnReviewQuote: () => void;
   isSupplyOnly?: boolean;
+  onSaveDraft?: () => void;
+  onOpenSavedQuotes?: () => void;
 }
 
 export function QuoteSummaryCard({
@@ -159,6 +163,8 @@ export function QuoteSummaryCard({
   setShowReassignModal,
   handleReturnReviewQuote,
   isSupplyOnly = false,
+  onSaveDraft,
+  onOpenSavedQuotes,
 }: QuoteSummaryCardProps) {
   const effectiveJCCents = customJC !== '' ? toCents(customJC) : (taxJC || 0);
   const effectiveMiscCents = customMisc !== '' ? toCents(customMisc) : (taxMisc || 0);
@@ -645,6 +651,37 @@ export function QuoteSummaryCard({
                 >
                   <Download className="w-4 h-4 mr-2 cursor-pointer" /> Download / Print PDF
                 </Button>
+
+                {(onSaveDraft || onOpenSavedQuotes) && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {onSaveDraft && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onSaveDraft}
+                        className="flex-1 h-9 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                        title="Save quote to drafts"
+                      >
+                        <Bookmark className="w-3.5 h-3.5 text-primary" />
+                        <span>Save Draft</span>
+                      </Button>
+                    )}
+                    {onOpenSavedQuotes && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onOpenSavedQuotes}
+                        className="flex-1 h-9 text-xs font-semibold cursor-pointer gap-1.5 border-border hover:bg-muted"
+                        title="Open saved quotes"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>Saved Quotes</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           ) : (

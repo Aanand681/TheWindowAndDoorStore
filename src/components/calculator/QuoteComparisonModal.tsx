@@ -73,6 +73,26 @@ export interface QuoteComparisonModalProps {
   // Two-way Option Swapping & Full Workspace Staging
   appliedOption: 'A' | 'B';
   isComparisonStaging?: boolean;
+  stagedOptionB?: {
+    windows: UIWindowItem[];
+    quoteResult: any;
+    afterDiscount: number;
+    total: number;
+    firstPayment: number;
+    secondPayment: number;
+    effectiveJC: number;
+    effectiveMisc: number;
+    effectiveLabour: number;
+    activePromoId: string;
+    supplyJambId?: string;
+    supplyJambName?: string;
+    supplyJambRate?: string;
+    supplyCasingId?: string;
+    supplyCasingName?: string;
+    supplyCasingRate?: string;
+    customerName?: string;
+    quoteNumber?: string;
+  };
   onApplyOption: (
     target: 'A' | 'B',
     windows: UIWindowItem[],
@@ -158,6 +178,7 @@ export function QuoteComparisonModal({
   secondPaymentA,
   appliedOption,
   isComparisonStaging = false,
+  stagedOptionB,
   onApplyOption,
   onApplyAndCustomize,
   onKeepOptionB,
@@ -167,6 +188,14 @@ export function QuoteComparisonModal({
   const [mounted, setMounted] = useState(false);
   const [optionBFile, setOptionBFile] = useState<File | null>(null);
   const [optionBWindows, setOptionBWindows] = useState<UIWindowItem[] | null>(null);
+
+  // Live Option B windows: prioritize active staged workspace when in comparison staging
+  const effectiveOptionBWindows = useMemo(() => {
+    if (isComparisonStaging && stagedOptionB?.windows && stagedOptionB.windows.length > 0) {
+      return stagedOptionB.windows;
+    }
+    return optionBWindows;
+  }, [isComparisonStaging, stagedOptionB, optionBWindows]);
   const [optionBMeta, setOptionBMeta] = useState<{ customerName?: string; quoteNumber?: string }>({});
   const [isParsing, setIsParsing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -357,9 +386,65 @@ export function QuoteComparisonModal({
 
   // Option B Financial Calculations
   const optionBFinancials = useMemo(() => {
-    if (!optionBWindows || optionBWindows.length === 0) return null;
+    // 1. If actively staging Option B in full workspace, derive directly from live workspace state
+    if (isComparisonStaging && stagedOptionB) {
+      const validWindows = (stagedOptionB.windows || []).map((w) => ({
+        id: w.id,
+        qty: Math.max(1, Number(w.qty) || 1),
+        base: toCents(w.base),
+        argon: toCents(w.argon),
+        solar: toCents(w.solar),
+        triple: toCents(w.triple),
+        w: w.w || '',
+        h: w.h || '',
+        color: w.color || 'White',
+      }));
 
-    const validWindows = optionBWindows.map((w) => ({
+      const base = Number(stagedOptionB.quoteResult?.base) || 0;
+      const surcharge = Number(stagedOptionB.quoteResult?.surcharge) || 0;
+      const promoDiscount = Number(stagedOptionB.quoteResult?.promoDiscount) || 0;
+      const jc = Number(stagedOptionB.effectiveJC) || 0;
+      const misc = Number(stagedOptionB.effectiveMisc) || 0;
+      const labour = Number(stagedOptionB.effectiveLabour) || 0;
+      const beforeTaxDiscount = base + surcharge + jc + misc + labour;
+      const afterDiscount =
+        stagedOptionB.afterDiscount !== undefined
+          ? stagedOptionB.afterDiscount
+          : Math.max(0, beforeTaxDiscount - promoDiscount);
+      const total = stagedOptionB.total !== undefined ? stagedOptionB.total : afterDiscount;
+      const hst = Math.max(0, total - afterDiscount);
+      const firstPayment =
+        stagedOptionB.firstPayment !== undefined
+          ? stagedOptionB.firstPayment
+          : Math.floor(total / 2);
+      const secondPayment =
+        stagedOptionB.secondPayment !== undefined
+          ? stagedOptionB.secondPayment
+          : total - firstPayment;
+
+      return {
+        validWindows,
+        base,
+        surcharge,
+        promoDiscount,
+        jc,
+        linearFeet: 0,
+        labour,
+        misc,
+        beforeTaxDiscount,
+        afterDiscount,
+        hst,
+        total,
+        firstPayment,
+        secondPayment,
+        promoResult: stagedOptionB.quoteResult,
+      };
+    }
+
+    // 2. Otherwise calculate from uploaded Option B PDF and in-modal overrides
+    if (!effectiveOptionBWindows || effectiveOptionBWindows.length === 0) return null;
+
+    const validWindows = effectiveOptionBWindows.map((w) => ({
       id: w.id,
       qty: Math.max(1, Number(w.qty) || 1),
       base: toCents(w.base),
@@ -380,7 +465,7 @@ export function QuoteComparisonModal({
     } else if (overrideJambId === 'inherit' && overrideCasingId === 'inherit') {
       jcTotalCents = effectiveJC;
     } else {
-      optionBWindows.forEach((w) => {
+      effectiveOptionBWindows.forEach((w) => {
         const W = parseInches(w.w);
         const H = parseInches(w.h);
         const q = Math.max(1, Number(w.qty) || 1);
@@ -439,6 +524,7 @@ export function QuoteComparisonModal({
       jc: jcTotalCents,
       linearFeet,
       labour: effectiveLabour,
+      misc: effectiveMisc,
       beforeTaxDiscount,
       afterDiscount,
       hst,
@@ -448,7 +534,9 @@ export function QuoteComparisonModal({
       promoResult,
     };
   }, [
-    optionBWindows,
+    isComparisonStaging,
+    stagedOptionB,
+    effectiveOptionBWindows,
     surchargeRate,
     isSupplyOnly,
     extraLinPerWindow,
@@ -483,10 +571,10 @@ export function QuoteComparisonModal({
 
   // Auto-detect upgrade title for PDF invoice
   const detectedUpgradeTitle = useMemo(() => {
-    if (!optionBWindows) return 'Upgrade to Premium Windows';
+    if (!effectiveOptionBWindows) return 'Upgrade to Premium Windows';
     let tripleDiff = 0;
     let paintedDiff = 0;
-    optionBWindows.forEach((wb, i) => {
+    effectiveOptionBWindows.forEach((wb, i) => {
       const wa = currentWindows[i];
       const isTripleB = Number(wb.triple) > 0 || toCents(wb.triple) > 0;
       const isTripleA = wa && (Number(wa.triple) > 0 || toCents(wa.triple) > 0);
@@ -501,7 +589,7 @@ export function QuoteComparisonModal({
     if (tripleDiff > 0) return 'Upgrade to Triple Pane Windows';
     if (paintedDiff > 0) return 'Upgrade to Painted Windows';
     return 'Optional Window Upgrade';
-  }, [optionBWindows, currentWindows]);
+  }, [effectiveOptionBWindows, currentWindows]);
 
   const handleToggleAttachUpgrade = () => {
     if (!delta || delta.preTax <= 0) {
@@ -765,16 +853,21 @@ export function QuoteComparisonModal({
                         ✓ Active in Quote
                       </span>
                     )}
+                    {isComparisonStaging && (
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        Live Customized
+                      </span>
+                    )}
                   </div>
-                  {optionBMeta.quoteNumber && (
+                  {(stagedOptionB?.quoteNumber || optionBMeta.quoteNumber) && (
                     <span className="text-xs font-bold text-foreground">
-                      {optionBMeta.quoteNumber}
+                      {stagedOptionB?.quoteNumber || optionBMeta.quoteNumber}
                     </span>
                   )}
                 </div>
 
                 {/* Upload State vs Loaded State */}
-                {!optionBWindows ? (
+                {!effectiveOptionBWindows ? (
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -812,7 +905,7 @@ export function QuoteComparisonModal({
                     <div className="mt-3 space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-bold text-foreground truncate">
-                          {optionBMeta.customerName || customerName || 'Upgraded Quote'}
+                          {stagedOptionB?.customerName || optionBMeta.customerName || customerName || 'Upgraded Quote'}
                         </p>
                         {/* High-visibility Change PDF button */}
                         <Button
@@ -833,7 +926,7 @@ export function QuoteComparisonModal({
                         />
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        {getWindowsSummarySentence(optionBWindows)}
+                        {getWindowsSummarySentence(effectiveOptionBWindows)}
                       </p>
                     </div>
 
@@ -1005,11 +1098,11 @@ export function QuoteComparisonModal({
           </div>
 
           {/* Window Differences Table */}
-          {optionBWindows && (
+          {effectiveOptionBWindows && (
             <div className="border border-border/70 rounded-2xl overflow-hidden shadow-xs bg-muted/10">
               <div className="px-4 py-2.5 bg-muted/40 border-b border-border/60 flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                  Window-by-Window Configuration Diff ({optionBWindows.length} items)
+                  Window-by-Window Configuration Diff ({effectiveOptionBWindows.length} items)
                 </span>
                 <span className="text-[11px] text-muted-foreground">
                   Comparison between Option A &amp; Option B line items
@@ -1028,7 +1121,7 @@ export function QuoteComparisonModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {optionBWindows.map((wb, idx) => {
+                    {effectiveOptionBWindows.map((wb, idx) => {
                       const wa = currentWindows[idx];
                       const isTripleA = wa && (Number(wa.triple) > 0 || toCents(wa.triple) > 0);
                       const isTripleB = Number(wb.triple) > 0 || toCents(wb.triple) > 0;
@@ -1122,12 +1215,12 @@ export function QuoteComparisonModal({
             </Button>
 
             {/* Hybrid Action: Full Workspace Edit Button */}
-            {onApplyAndCustomize && optionBWindows && optionBWindows.length > 0 && !isComparisonStaging && (
+            {onApplyAndCustomize && effectiveOptionBWindows && effectiveOptionBWindows.length > 0 && !isComparisonStaging && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  onApplyAndCustomize(optionBWindows, optionBMeta, getOverridesPayload());
+                  onApplyAndCustomize(effectiveOptionBWindows, optionBMeta, getOverridesPayload());
                   onClose();
                 }}
                 className="gap-1.5 text-xs font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer shadow-xs"
@@ -1172,10 +1265,10 @@ export function QuoteComparisonModal({
               <Button
                 variant="default"
                 size="sm"
-                disabled={!optionBWindows || optionBWindows.length === 0}
+                disabled={!effectiveOptionBWindows || effectiveOptionBWindows.length === 0}
                 onClick={() => {
-                  if (optionBWindows) {
-                    onApplyOption('B', optionBWindows, optionBMeta, getOverridesPayload());
+                  if (effectiveOptionBWindows) {
+                    onApplyOption('B', effectiveOptionBWindows, optionBMeta, getOverridesPayload());
                     onClose();
                   }
                 }}

@@ -16,3 +16,5 @@ export { OdooActionModals } from './OdooActionModals';
 export * from './OdooActionModals';
 export { SupplyJambCasingCard } from './SupplyJambCasingCard';
 export * from './SupplyJambCasingCard';
+export { SavedQuotesModal } from './SavedQuotesModal';
+export * from './SavedQuotesModal';
