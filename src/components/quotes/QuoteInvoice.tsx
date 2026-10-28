@@ -36,6 +36,7 @@ export interface QuoteInvoiceProps {
   quoteNotes?: string;
   preparedBy?: string;
   orientation?: 'portrait' | 'landscape';
+  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
 }
 
 function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
@@ -169,6 +170,7 @@ export default function QuoteInvoice({
   quoteNotes = '',
   preparedBy = '',
   orientation = 'portrait',
+  attachedUpgrade = null,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
 
@@ -318,7 +320,18 @@ export default function QuoteInvoice({
     ? afterDiscount
     : lineItemsSubtotalCents;
 
-  const hstAmountCents = hstRate > 0 ? Math.round(subtotalCents * (hstRate / 100)) : 0;
+  let hstAmountCents = 0;
+  let hstLabel = `HST (${hstRate}%)`;
+  if (hstRate === 13) {
+    hstAmountCents = Math.round(subtotalCents * 0.13);
+    hstLabel = 'HST (13%)';
+  } else if (hstRate === 8) {
+    // 8% Provincial Point-of-Sale Exemption on materials (5% GST on materials, 13% on labour)
+    const matCents = Math.max(0, (basePrice + surcharge - (activePromo?.discount || 0)) + taxJCCents);
+    const srvCents = Math.max(0, subtotalCents - matCents);
+    hstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
+    hstLabel = 'HST (8% Exempt on Materials)';
+  }
   const displayTotalCents = (total > 0 && Math.abs(total - (subtotalCents + hstAmountCents)) <= 10)
     ? total
     : (subtotalCents + hstAmountCents);
@@ -394,79 +407,74 @@ export default function QuoteInvoice({
     baseCents: number;
   };
 
-  const windowGroups: WindowGroup[] = [];
+  let dW = 0; // dual white
+  let tW = 0; // triple white
+  let dP = 0; // dual painted
+  let tP = 0; // triple painted
+  let totalBaseCentsCalculated = 0;
 
   if (Array.isArray(windows) && windows.length > 0) {
-    const groupMap = new Map<string, WindowGroup>();
-
-    windows.forEach(w => {
+    windows.forEach((w) => {
       const q = Math.max(1, Number(w.qty) || 1);
       const itemBase = toCents(w.base);
-      const isTriple = (Number(w.triple) > 0) || (toCents(w.triple) > 0);
-      const pane: 'Dual' | 'Triple' = isTriple ? 'Triple' : 'Dual';
-      const color: 'White' | 'Painted' = (w.color && w.color.toLowerCase() === 'painted') ? 'Painted' : 'White';
+      const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
+      const isPainted = w.color && w.color.toLowerCase() === 'painted';
 
-      const key = `${pane}_${color}`;
-      const existing = groupMap.get(key);
-      if (existing) {
-        existing.qty += q;
-        existing.baseCents += itemBase;
+      if (isPainted) {
+        if (isTriple) tP += q;
+        else dP += q;
       } else {
-        groupMap.set(key, {
-          key,
-          pane,
-          color,
-          qty: q,
-          baseCents: itemBase,
-        });
+        if (isTriple) tW += q;
+        else dW += q;
       }
-    });
-
-    const order = ['Dual_White', 'Dual_Painted', 'Triple_White', 'Triple_Painted'];
-    order.forEach(k => {
-      const g = groupMap.get(k);
-      if (g && g.qty > 0) {
-        windowGroups.push(g);
-      }
+      totalBaseCentsCalculated += itemBase;
     });
   }
 
-  // Fallback if windows array had no item prices but basePrice prop was supplied
-  if (windowGroups.length === 0 && basePrice > 0) {
-    windowGroups.push({
-      key: 'Dual_White',
-      pane: 'Dual',
-      color: 'White',
-      qty: 1,
-      baseCents: basePrice,
-    });
+  const totalQty = dW + tW + dP + tP;
+  let paintedPart = '';
+  if (dP > 0 && tP > 0) {
+    paintedPart = `${dP} dual & ${tP} triple pane painted`;
+  } else if (dP > 0) {
+    paintedPart = `${dP} dual pane painted`;
+  } else if (tP > 0) {
+    paintedPart = `${tP} triple pane painted`;
   }
+
+  let whitePart = '';
+  if (dW > 0 && tW > 0) {
+    whitePart = `${dW} dual & ${tW} triple pane white`;
+  } else if (dW > 0) {
+    whitePart = `${dW} dual pane white`;
+  } else if (tW > 0) {
+    whitePart = `${tW} triple pane white`;
+  }
+
+  const plural = totalQty > 1 ? 'windows' : 'window';
+  let windowSummarySentence = '';
+  if (paintedPart && whitePart) {
+    const separator = paintedPart.includes('&') || whitePart.includes('&') ? ', ' : ' and ';
+    windowSummarySentence = `${paintedPart}${separator}${whitePart} ${plural}`;
+  } else if (paintedPart) {
+    windowSummarySentence = `${paintedPart} ${plural}`;
+  } else if (whitePart) {
+    windowSummarySentence = `${whitePart} ${plural}`;
+  } else {
+    windowSummarySentence = 'Base price of windows';
+  }
+
+  const totalWindowBaseCents = totalBaseCentsCalculated > 0 ? totalBaseCentsCalculated : (basePrice > 0 ? basePrice : 0);
 
   const renderWindowBasePriceRows = (textColor: string = 'text-[#0f172a]') => {
-    if (windowGroups.length === 0) {
-      return (
-        <tr className="border-b border-[#e2e8f0]">
-          <td className={`py-1 ${textColor} font-medium`}>Base price of windows</td>
-          <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
-            {formatMoney(basePrice)}
-          </td>
-        </tr>
-      );
-    }
-
     return (
-      <>
-        {windowGroups.map((g) => (
-          <tr key={g.key} className="border-b border-[#e2e8f0]">
-            <td className={`py-1 ${textColor} font-medium`}>
-              {g.qty} {g.pane} pane {g.color} window{g.qty > 1 ? 's' : ''}
-            </td>
-            <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
-              {formatMoney(g.baseCents || (windowGroups.length === 1 ? basePrice : 0))}
-            </td>
-          </tr>
-        ))}
-      </>
+      <tr className="border-b border-[#e2e8f0]">
+        <td className={`py-1 ${textColor} font-medium capitalize`}>
+          {windowSummarySentence}
+        </td>
+        <td className={`py-1 text-right font-mono font-bold ${textColor}`}>
+          {formatMoney(totalWindowBaseCents)}
+        </td>
+      </tr>
     );
   };
 
@@ -703,6 +711,19 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                    <span>Optional Upgrade Offer</span>
+                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                  </div>
+                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                    {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                  </div>
+                </div>
+              )}
+
               {/* Optional Employee Quote Notes */}
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
@@ -782,7 +803,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}
@@ -990,6 +1011,19 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                    <span>Optional Upgrade Offer</span>
+                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                  </div>
+                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                    {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                  </div>
+                </div>
+              )}
+
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
                   <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
@@ -1056,7 +1090,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
                       <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}
@@ -1278,6 +1312,19 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Optional Window Upgrade Offer */}
+              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                <div className="p-1.5 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                  <div>
+                    <span className="font-bold text-[#0f172a] block">Optional Upgrade Offer:</span>
+                    <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
+                      {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                    </span>
+                  </div>
+                  <span className="font-mono font-black text-[#b45309]">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                </div>
+              )}
+
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded space-y-0.5">
                   <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
@@ -1347,7 +1394,7 @@ export default function QuoteInvoice({
 
                   {hstRate > 0 && (
                     <tr className="border-b border-[#cbd5e1]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#334155] font-medium">HST ({hstRate}%)</td>
+                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#334155] font-medium">{hstLabel}</td>
                       <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
                     </tr>
                   )}

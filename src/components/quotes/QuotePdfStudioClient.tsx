@@ -1,14 +1,10 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { FileText, Calculator, Component, ShieldCheck, Inbox } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
-import NotificationBell from '@/components/shared/NotificationBell';
-import UserProfileMenu from '@/components/shared/UserProfileMenu';
+import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuotePdfStudio } from '@/hooks/useQuotePdfStudio';
+import { AppHeader } from '@/components/layout/AppHeader';
 import {
   StudioUploadCard,
   StudioBrandingCard,
@@ -48,59 +44,9 @@ export default function QuotePdfStudioClient() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
 
-      <div className="max-w-[1650px] w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-10 relative z-10 space-y-6 sm:space-y-8">
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-10 relative z-10 space-y-6 sm:space-y-8">
         {/* Standard Unified Application Header */}
-        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 sm:mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer group"
-            title="Window & Door Store - Home / Calculator"
-          >
-            <Component className="w-6 h-6 transition-transform group-hover:scale-105" />
-            <span className="text-xl font-semibold tracking-wider uppercase">Window &amp; Door Store</span>
-          </Link>
-
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 md:gap-3">
-            <Link
-              href="/"
-              className={cn(
-                buttonVariants({ variant: 'outline', size: 'sm' }),
-                'gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-colors cursor-pointer border-primary/40 text-primary hover:bg-primary/10'
-              )}
-            >
-              <Calculator className="w-3.5 h-3.5 text-primary" />
-              <span>Calculator</span>
-            </Link>
-
-            <Link
-              href="/?tab=quotes"
-              className={cn(
-                buttonVariants({ variant: 'outline', size: 'sm' }),
-                'gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-colors cursor-pointer border-amber-500/40 text-amber-500 hover:bg-amber-500/10'
-              )}
-            >
-              <Inbox className="w-3.5 h-3.5 text-amber-500" />
-              <span>Quotes &amp; Bin</span>
-            </Link>
-
-            {user && canAccessAdmin && (
-              <Link
-                href="/admin"
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'sm' }),
-                  'rounded-full gap-1.5 text-xs font-semibold shadow-sm'
-                )}
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                <span>Dashboard</span>
-              </Link>
-            )}
-
-            <NotificationBell />
-            <ThemeToggle />
-            <UserProfileMenu user={user} />
-          </div>
-        </header>
+        <AppHeader currentPath="/quote-studio" />
 
         {/* Page Title & Overview */}
         <div>

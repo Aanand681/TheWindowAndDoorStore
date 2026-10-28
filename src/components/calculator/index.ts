@@ -14,3 +14,5 @@ export { WorkflowDialogs } from './WorkflowDialogs';
 export * from './WorkflowDialogs';
 export { OdooActionModals } from './OdooActionModals';
 export * from './OdooActionModals';
+export { SupplyJambCasingCard } from './SupplyJambCasingCard';
+export * from './SupplyJambCasingCard';

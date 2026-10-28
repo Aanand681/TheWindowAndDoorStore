@@ -2,13 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Component, Calculator, Inbox, FileText, ShieldCheck } from 'lucide-react';
+import { Component, Calculator, Inbox, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
 import NotificationBell from '@/components/shared/NotificationBell';
 import UserProfileMenu from '@/components/shared/UserProfileMenu';
 import QuotesBinPill from '@/components/quotes/QuotesBinPill';
+import ToolsMenu from './ToolsMenu';
 import { useSession } from 'next-auth/react';
 
 import { cachedFetch, getCachedData } from '@/lib/client-cache';
@@ -86,19 +87,7 @@ export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps)
           {showQuotesBin && <QuotesBinPill badgeOnly />}
         </Link>
 
-        <Link
-          href="/quote-studio"
-          className={cn(
-            buttonVariants({ variant: 'outline', size: 'sm' }),
-            'gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-colors cursor-pointer',
-            isStudioActive
-              ? 'border-primary text-primary bg-primary/10 hover:bg-primary/15'
-              : 'border-border/60 hover:bg-muted/30 text-muted-foreground'
-          )}
-        >
-          <FileText className="w-3.5 h-3.5 text-primary" />
-          <span>Quote PDF Studio</span>
-        </Link>
+        <ToolsMenu currentPath={currentPath} />
 
         {canAccessAdmin && (
           <Link

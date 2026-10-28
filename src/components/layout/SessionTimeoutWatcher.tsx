@@ -5,8 +5,9 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
-const CHECK_INTERVAL_MS = 30 * 1000; // Check every 30 seconds
+const CHECK_INTERVAL_MS = 15 * 1000; // Check every 15 seconds
 const THROTTLE_MS = 5 * 1000; // Throttle activity updates to once per 5 seconds
+const STORAGE_KEY = 'vwd_last_active_time';
 
 export function SessionTimeoutWatcher() {
   const { data: session, status } = useSession();
@@ -20,15 +21,55 @@ export function SessionTimeoutWatcher() {
       return;
     }
 
-    lastActivityRef.current = Date.now();
+    const now = Date.now();
+    const existing = Number(localStorage.getItem(STORAGE_KEY));
+    if (existing && !isNaN(existing) && existing > 0) {
+      lastActivityRef.current = existing;
+    } else {
+      lastActivityRef.current = now;
+      localStorage.setItem(STORAGE_KEY, String(now));
+    }
     isLoggingOutRef.current = false;
+
+    const triggerLogout = async () => {
+      if (isLoggingOutRef.current) return;
+      isLoggingOutRef.current = true;
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        await signOut({ redirect: false });
+      } catch (err) {
+        console.warn('[SessionTimeoutWatcher] signOut error:', err);
+      }
+      window.location.href = '/login?expired=true';
+    };
+
+    const checkExpiration = () => {
+      if (isLoggingOutRef.current) return;
+      const stored = Number(localStorage.getItem(STORAGE_KEY) || lastActivityRef.current);
+      const currentTime = Date.now();
+      if (currentTime - stored >= INACTIVITY_TIMEOUT_MS) {
+        triggerLogout();
+      }
+    };
+
+    // Immediate check on mount
+    checkExpiration();
 
     let lastRecord = 0;
     const handleUserActivity = () => {
-      const now = Date.now();
-      if (now - lastRecord > THROTTLE_MS) {
-        lastRecord = now;
-        lastActivityRef.current = now;
+      const currentTime = Date.now();
+      const stored = Number(localStorage.getItem(STORAGE_KEY) || lastActivityRef.current);
+      
+      // If user acts AFTER 60 min of inactivity, log them out immediately rather than extending
+      if (currentTime - stored >= INACTIVITY_TIMEOUT_MS) {
+        triggerLogout();
+        return;
+      }
+
+      if (currentTime - lastRecord > THROTTLE_MS) {
+        lastRecord = currentTime;
+        lastActivityRef.current = currentTime;
+        localStorage.setItem(STORAGE_KEY, String(currentTime));
       }
     };
 
@@ -37,26 +78,26 @@ export function SessionTimeoutWatcher() {
       window.addEventListener(evt, handleUserActivity, { passive: true });
     });
 
-    const interval = setInterval(async () => {
-      if (isLoggingOutRef.current) return;
-
-      const idleTime = Date.now() - lastActivityRef.current;
-      if (idleTime >= INACTIVITY_TIMEOUT_MS) {
-        isLoggingOutRef.current = true;
-        try {
-          await signOut({ redirect: false });
-        } catch (err) {
-          console.warn('[SessionTimeoutWatcher] signOut error:', err);
-        }
-        window.location.href = '/login?expired=true';
+    // Instant check when laptop wakes up or tab becomes visible / focused
+    const handleVisibilityOrFocus = () => {
+      if (!document.hidden) {
+        checkExpiration();
       }
-    }, CHECK_INTERVAL_MS);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // Periodic check interval
+    const interval = setInterval(checkExpiration, CHECK_INTERVAL_MS);
 
     return () => {
       clearInterval(interval);
       events.forEach((evt) => {
         window.removeEventListener(evt, handleUserActivity);
       });
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, [status, pathname]);
 
