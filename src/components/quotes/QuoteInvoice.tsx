@@ -37,6 +37,7 @@ export interface QuoteInvoiceProps {
   preparedBy?: string;
   orientation?: 'portrait' | 'landscape';
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
+  attachedSealedUnit?: any | null;
 }
 
 function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
@@ -171,6 +172,7 @@ export default function QuoteInvoice({
   preparedBy = '',
   orientation = 'portrait',
   attachedUpgrade = null,
+  attachedSealedUnit = null,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
 
@@ -341,6 +343,72 @@ export default function QuoteInvoice({
     : Math.floor(displayTotalCents / 2);
   const displaySecondPayment = displayTotalCents - displayFirstPayment;
 
+  // Combined Sealed Unit Calculations (if attachedSealedUnit is present)
+  const hasAttachedSU = Boolean(attachedSealedUnit && attachedSealedUnit.totals);
+  const suTotals = attachedSealedUnit?.totals || {};
+  const suLineItems: any[] = attachedSealedUnit?.lineItems || [];
+  const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+  const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+  const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+  const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+  const effectiveMiscTotalCents = taxMiscCents + (hasAttachedSU ? suMiscCents : 0);
+  const effectiveLabourTotalCents = taxLabourCents + (hasAttachedSU ? suLabourCents : 0);
+  const effectiveSurchargeTotalCents = surcharge + (hasAttachedSU ? suSurchargeCents : 0);
+  const totalDiscountCents = promoDiscountCents + monthlyDiscountCents;
+
+  const combinedSubtotalCalculatedCents = Math.max(
+    0,
+    (quoteResult?.base || basePrice || 0) +
+    (hasAttachedSU ? suGlassCents : 0) +
+    taxJCCents +
+    effectiveMiscTotalCents +
+    effectiveLabourTotalCents +
+    effectiveSurchargeTotalCents -
+    totalDiscountCents
+  );
+
+  const finalSubtotalCents = hasAttachedSU ? combinedSubtotalCalculatedCents : subtotalCents;
+
+  let finalHstAmountCents = 0;
+  let finalHstLabel = hstLabel;
+  if (hasAttachedSU) {
+    if (hstRate === 13) {
+      finalHstAmountCents = Math.round(finalSubtotalCents * 0.13);
+      finalHstLabel = 'HST (13%)';
+    } else if (hstRate === 8) {
+      const matCents = Math.max(
+        0,
+        (quoteResult?.base || basePrice || 0) + surcharge - totalDiscountCents + taxJCCents + suGlassCents + suSurchargeCents
+      );
+      const srvCents = Math.max(0, effectiveLabourTotalCents + effectiveMiscTotalCents);
+      finalHstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
+      finalHstLabel = 'HST (8% Exempt on Materials)';
+    } else {
+      finalHstAmountCents = 0;
+      finalHstLabel = 'HST (0%)';
+    }
+  } else {
+    finalHstAmountCents = hstAmountCents;
+  }
+
+  const finalTotalCents = hasAttachedSU
+    ? finalSubtotalCents + finalHstAmountCents
+    : displayTotalCents;
+
+  const finalFirstPayment = hasAttachedSU
+    ? Math.round(finalTotalCents / 2)
+    : displayFirstPayment;
+  const finalSecondPayment = finalTotalCents - finalFirstPayment;
+
+  // Sealed Unit Summary Sentence for Line 2
+  let suSummarySentence = 'Sealed Unit';
+  if (suLineItems.length > 0) {
+    const totalSUQty = suLineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
+    const paneTypes = Array.from(new Set(suLineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual'))));
+    suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit${totalSUQty > 1 ? 's' : ''}`;
+  }
+
   const isSupplyOnly = Boolean(
     taxTotals?.isSupplyOnly ||
     regionName?.toLowerCase().includes('supply') ||
@@ -475,6 +543,204 @@ export default function QuoteInvoice({
           {formatMoney(totalWindowBaseCents)}
         </td>
       </tr>
+    );
+  };
+
+  const renderSealedUnitsTable = (theme: 'modern' | 'executive' | 'cards') => {
+    if (!hasAttachedSU || suLineItems.length === 0) return null;
+
+    const isModern = theme === 'modern';
+    const isExecutive = theme === 'executive';
+    const isCards = theme === 'cards';
+
+    return (
+      <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
+        <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
+              Sealed Glass Units
+            </span>
+            {attachedSealedUnit.quoteNumber && (
+              <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
+                #{attachedSealedUnit.quoteNumber}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
+            {suLineItems.length} item{suLineItems.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+          <thead>
+            <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
+              <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[25%]">Dimensions</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[34%]">Glass Specification</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[18%]">Shape &amp; Grills</th>
+              <th className="py-1 px-1.5 text-center font-bold w-[6%]">Qty</th>
+              <th className="py-1 px-1.5 text-right font-mono font-bold w-[12%]">Price</th>
+            </tr>
+          </thead>
+          <tbody style={{ fontSize: `${bodyFs}px` }}>
+            {suLineItems.map((item: any, idx: number) => {
+              const qty = Number(item.quantity) || 1;
+              const unitPrice = item.multipliedAmount || 0;
+              const lineTotal = item.multipliedTotal || (unitPrice * qty);
+              const paneLabel = item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane';
+              const glassSpec = item.combinationName || `${paneLabel} · ${item.treatment || 'Cardinal 366'}`;
+              const shapeText = item.shapeDescription || item.shape || 'Standard (Rectangle)';
+              const grillText = item.grillDescription || 'No Grills';
+
+              return (
+                <tr key={item.id || idx} className="border-b border-[#cbd5e1] bg-white">
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">
+                    {idx + 1}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                    {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#1e293b]">
+                    <span className="font-semibold">{paneLabel}</span>
+                    <span className="text-[#475569] text-xs block">{glassSpec}</span>
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155]">
+                    <div>{shapeText}</div>
+                    {grillText !== 'No Grills' && (
+                      <div style={{ fontSize: `${microFs}px` }} className="text-emerald-700 font-medium">
+                        {grillText}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">
+                    {qty}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                    <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
+                    {qty > 1 && (
+                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
+                        ({formatMoney(Math.round(unitPrice * 100))} ea)
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderSummaryRows = (textColor: string = 'text-[#0f172a]', rowPyOverride?: number) => {
+    const py = rowPyOverride ?? 1;
+    return (
+      <>
+        {/* Line 1: [Qty] [Pane] [Color] Window (Window base glass total) */}
+        {renderWindowBasePriceRows(textColor)}
+
+        {/* Line 2: [Qty] [Pane] Sealed Unit (Sealed unit glass total pre-8%) */}
+        {hasAttachedSU && suGlassCents > 0 && (
+          <tr className="border-b border-[#e2e8f0]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium capitalize`}>
+              {suSummarySentence}
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+              {formatMoney(suGlassCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 3: Jambs & Casing (Window only, if applicable) */}
+        {taxJCCents > 0 && (
+          <tr className="border-b border-[#e2e8f0]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+              {jcLabel}
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+              {formatMoney(taxJCCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 4: Misc (Window misc + Sealed unit misc) */}
+        {effectiveMiscTotalCents > 0 && (
+          <tr className="border-b border-[#e2e8f0]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+              Miscellaneous
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+              {formatMoney(effectiveMiscTotalCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 5: Labour (Window installation/labour + Sealed unit labour) */}
+        {effectiveLabourTotalCents > 0 && (
+          <tr className="border-b border-[#e2e8f0]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+              Labour <span style={{ fontSize: `${smallFs}px` }} className="text-[#334155]">(incl. installation &amp; travel)</span>
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+              {formatMoney(effectiveLabourTotalCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 6: Surcharge (Window surcharge + Sealed unit 8% surcharge) */}
+        {effectiveSurchargeTotalCents > 0 && (
+          <tr className="border-b border-[#e2e8f0]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+              Surcharge
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+              +{formatMoney(effectiveSurchargeTotalCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 7: Discount (Window promos/discounts only — sealed units exempt) */}
+        {promoDiscountCents > 0 && (
+          <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="pl-1">
+              <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold tracking-wider text-emerald-700 block">Promo Applied:</span>
+              {resolvedPromoName}
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono text-emerald-700 font-bold pr-1">
+              −{formatMoney(promoDiscountCents)}
+            </td>
+          </tr>
+        )}
+
+        {monthlyDiscountCents > 0 && (
+          <tr className="border-b border-[#e2e8f0] text-emerald-800 font-semibold">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}>Monthly Discount</td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono">
+              −{formatMoney(monthlyDiscountCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 8: Subtotal (Pre-tax combined subtotal) */}
+        <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
+          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-[#0f172a]">Subtotal</td>
+          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono font-bold text-[#0f172a]">
+            {formatMoney(finalSubtotalCents)}
+          </td>
+        </tr>
+
+        {/* Line 9: Tax (HST on combined subtotal) */}
+        {hstRate > 0 && (
+          <tr className="border-b border-[#cbd5e1]">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-[#334155] font-medium">
+              {finalHstLabel}
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono font-bold text-[#0f172a]">
+              {formatMoney(finalHstAmountCents)}
+            </td>
+          </tr>
+        )}
+      </>
     );
   };
 
@@ -636,6 +902,8 @@ export default function QuoteInvoice({
             </table>
           </div>
 
+          {renderSealedUnitsTable('modern')}
+
           {/* Two-Column Layout (Left: Details / Right: Financial Summary) */}
           <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t border-[#cbd5e1] pt-2">
 
@@ -743,88 +1011,25 @@ export default function QuoteInvoice({
 
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  {renderWindowBasePriceRows('text-[#0f172a]')}
-
-                  {taxJCCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">
-                        {jcLabel}
-                      </td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
-                    </tr>
-                  )}
-
-                  {taxMiscCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">Miscellaneous</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxMiscCents)}</td>
-                    </tr>
-                  )}
-
-                  {taxLabourCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">
-                        Labour <span style={{ fontSize: `${smallFs}px` }} className="text-[#334155]">(incl. installation &amp; travel)</span>
-                      </td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxLabourCents)}</td>
-                    </tr>
-                  )}
-
-                  {surcharge > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">Surcharge</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">+{formatMoney(surcharge)}</td>
-                    </tr>
-                  )}
-
-                  {promoDiscountCents > 0 && (
-                    <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
-                      <td className="py-1 pl-1">
-                        <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold tracking-wider text-emerald-700 block">Promo Applied:</span>
-                        {resolvedPromoName}
-                      </td>
-                      <td className="py-1 text-right font-mono text-emerald-700 font-bold pr-1">
-                        −{formatMoney(promoDiscountCents)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {monthlyDiscountCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0] text-emerald-800 font-semibold">
-                      <td className="py-1">Monthly Discount</td>
-                      <td className="py-1 text-right font-mono">−{formatMoney(monthlyDiscountCents)}</td>
-                    </tr>
-                  )}
-
-                  <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
-                    <td className="py-1 text-[#0f172a]">Subtotal</td>
-                    <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(subtotalCents)}</td>
-                  </tr>
-
-                  {hstRate > 0 && (
-                    <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
-                    </tr>
-                  )}
+                  {renderSummaryRows('text-[#0f172a]')}
                 </tbody>
               </table>
 
               {/* 8. Total */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded p-2 flex justify-between items-center font-extrabold mt-2">
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
+                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
               </div>
 
               {/* 50% Deposit & Final 50% Balance */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                 </div>
               </div>
             </div>
@@ -941,6 +1146,8 @@ export default function QuoteInvoice({
             </table>
           </div>
 
+          {renderSealedUnitsTable('executive')}
+
           {/* Bottom Grid: Same Compact Scope & Accounting as Modern List, Distinct Ledger Design */}
           <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
             {/* Left: Project Specifications & Scope */}
@@ -1041,77 +1248,25 @@ export default function QuoteInvoice({
               </div>
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  {renderWindowBasePriceRows('text-[#0f172a]')}
-                  {taxJCCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">
-                        {jcLabel}
-                      </td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
-                    </tr>
-                  )}
-                  {taxMiscCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">Miscellaneous</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxMiscCents)}</td>
-                    </tr>
-                  )}
-                  {taxLabourCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">Labour <span style={{ fontSize: `${smallFs}px` }} className="text-[#334155]">(incl. installation &amp; travel)</span></td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxLabourCents)}</td>
-                    </tr>
-                  )}
-                  {surcharge > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td className="py-1 text-[#0f172a] font-medium">Surcharge</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">+{formatMoney(surcharge)}</td>
-                    </tr>
-                  )}
-                  {promoDiscountCents > 0 && (
-                    <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
-                      <td className="py-1 pl-1">
-                        <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold text-emerald-700 block">Promo Applied:</span>
-                        {resolvedPromoName}
-                      </td>
-                      <td className="py-1 text-right font-mono text-emerald-700 font-bold pr-1">−{formatMoney(promoDiscountCents)}</td>
-                    </tr>
-                  )}
-                  {monthlyDiscountCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0] text-emerald-800 font-semibold">
-                      <td className="py-1">Monthly Discount</td>
-                      <td className="py-1 text-right font-mono">−{formatMoney(monthlyDiscountCents)}</td>
-                    </tr>
-                  )}
-                  <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
-                    <td className="py-1 text-[#0f172a]">Subtotal</td>
-                    <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(subtotalCents)}</td>
-                  </tr>
-
-                  {hstRate > 0 && (
-                    <tr className="border-b border-[#cbd5e1]">
-                      <td className="py-1 text-[#334155] font-medium">{hstLabel}</td>
-                      <td className="py-1 text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
-                    </tr>
-                  )}
+                  {renderSummaryRows('text-[#0f172a]')}
                 </tbody>
               </table>
 
               {/* Total Banner */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
+                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
               </div>
 
               {/* Deposit Terms */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                 </div>
               </div>
             </div>
@@ -1232,6 +1387,8 @@ export default function QuoteInvoice({
             </table>
           </div>
 
+          {renderSealedUnitsTable('cards')}
+
           {/* Project Extras & Hardware (if any) */}
           {detailedExtrasList.length > 0 && !isSupplyOnly && (
             <div style={{ marginBottom: `${Math.max(6, sectionMb - 4)}px` }}>
@@ -1343,79 +1500,25 @@ export default function QuoteInvoice({
 
               <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
                 <tbody>
-                  {renderWindowBasePriceRows('text-[#0f172a]')}
-                  {taxJCCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a] font-medium">
-                        {jcLabel}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxJCCents)}</td>
-                    </tr>
-                  )}
-                  {taxMiscCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a] font-medium">Miscellaneous</td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxMiscCents)}</td>
-                    </tr>
-                  )}
-                  {taxLabourCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a] font-medium">
-                        Labour <span style={{ fontSize: `${smallFs}px` }} className="text-[#334155]">(incl. installation &amp; travel)</span>
-                      </td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(taxLabourCents)}</td>
-                    </tr>
-                  )}
-                  {surcharge > 0 && (
-                    <tr className="border-b border-[#e2e8f0]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a] font-medium">Surcharge</td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">+{formatMoney(surcharge)}</td>
-                    </tr>
-                  )}
-                  {promoDiscountCents > 0 && (
-                    <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="pl-1">
-                        <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold tracking-wider text-emerald-700 block">Promo Applied:</span>
-                        {resolvedPromoName}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono text-emerald-700 font-bold pr-1">−{formatMoney(promoDiscountCents)}</td>
-                    </tr>
-                  )}
-                  {monthlyDiscountCents > 0 && (
-                    <tr className="border-b border-[#e2e8f0] text-emerald-800 font-semibold">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }}>Monthly Discount</td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold">−{formatMoney(monthlyDiscountCents)}</td>
-                    </tr>
-                  )}
-                  <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
-                    <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#0f172a]">Subtotal</td>
-                    <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(subtotalCents)}</td>
-                  </tr>
-
-                  {hstRate > 0 && (
-                    <tr className="border-b border-[#cbd5e1]">
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-[#334155] font-medium">{hstLabel}</td>
-                      <td style={{ paddingTop: `${rowPy * 0.6}px`, paddingBottom: `${rowPy * 0.6}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(hstAmountCents)}</td>
-                    </tr>
-                  )}
+                  {renderSummaryRows('text-[#0f172a]', rowPy * 0.6)}
                 </tbody>
               </table>
 
               {/* Total Banner - Clean Ink-Saving Architectural Border */}
               <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
                 <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(displayTotalCents)}</span>
+                <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
               </div>
 
               {/* Deposit Terms */}
               <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displayFirstPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
                 </div>
                 <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(displaySecondPayment)}</div>
+                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                 </div>
               </div>
             </div>

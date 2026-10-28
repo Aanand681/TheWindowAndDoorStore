@@ -29,6 +29,7 @@ import { WorkflowDialogs } from '@/components/calculator/WorkflowDialogs';
 import { OdooActionModals } from '@/components/calculator/OdooActionModals';
 import { QuoteComparisonModal } from '@/components/calculator/QuoteComparisonModal';
 import { SavedQuotesModal } from '@/components/calculator/SavedQuotesModal';
+import { AttachSealedUnitModal } from '@/components/calculator/AttachSealedUnitModal';
 
 // Drafts & Auto-Recovery Storage
 import {
@@ -77,6 +78,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [appliedOption, setAppliedOption] = useState<'A' | 'B'>('A');
   const [baseWindowsA, setBaseWindowsA] = useState<UIWindowItem[] | null>(null);
   const [attachedUpgrade, setAttachedUpgrade] = useState<{ title: string; amountPreTaxCents: number } | null>(null);
+  const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
   const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
   const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
@@ -177,6 +180,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setAppliedOption('A');
     setBaseWindowsA(null);
     setAttachedUpgrade(null);
+    setAttachedSealedUnit(null);
     setIsComparisonStaging(false);
     setBaseSnapshotA(null);
     resetPricingOverrides();
@@ -219,6 +223,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       if (d.includeLabourInPromo !== undefined) setIncludeLabourInPromo(d.includeLabourInPromo);
       if (d.hstRate !== undefined) setHstRate(d.hstRate);
       if (d.attachedUpgrade !== undefined) setAttachedUpgrade(d.attachedUpgrade);
+      if (d.attachedSealedUnit !== undefined) setAttachedSealedUnit(d.attachedSealedUnit);
+      else setAttachedSealedUnit(null);
 
       clearActiveAutoSave('window');
       setActiveAutoSaveDraft(null);
@@ -302,6 +308,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         includeLabourInPromo,
         hstRate,
         attachedUpgrade,
+        attachedSealedUnit,
         subtotal: afterDiscount || 0,
         grandTotal: total || 0,
         itemCount: windows.length,
@@ -457,6 +464,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           includeLabourInPromo,
           hstRate,
           attachedUpgrade,
+          attachedSealedUnit,
           subtotal: afterDiscount || 0,
           grandTotal: total || 0,
           itemCount: windows.length,
@@ -1244,6 +1252,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                     setAttachedUpgrade(null);
                     toast.info('Removed optional upgrade offer from quote.');
                   }}
+                  attachedSealedUnit={attachedSealedUnit}
+                  onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                  onRemoveAttachedSealedUnit={() => {
+                    setAttachedSealedUnit(null);
+                    toast.info('Detached sealed units from quote.');
+                  }}
                   onSaveDraft={handleSaveDraft}
                   onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                   savedDraftsCount={savedDraftsCount}
@@ -1342,6 +1356,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                 setShowReassignModal={setShowReassignModal}
                 handleReturnReviewQuote={handleReturnReviewQuote}
                 isSupplyOnly={isSupplyOnly}
+                attachedSealedUnit={attachedSealedUnit}
+                onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                onRemoveAttachedSealedUnit={() => {
+                  setAttachedSealedUnit(null);
+                  toast.info('Detached sealed units from quote.');
+                }}
                 onSaveDraft={handleSaveDraft}
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
               />
@@ -1424,6 +1444,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   setShowReassignModal={setShowReassignModal}
                   handleReturnReviewQuote={handleReturnReviewQuote}
                   isSupplyOnly={isSupplyOnly}
+                  attachedSealedUnit={attachedSealedUnit}
+                  onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                  onRemoveAttachedSealedUnit={() => {
+                    setAttachedSealedUnit(null);
+                    toast.info('Detached sealed units from quote.');
+                  }}
                   onSaveDraft={handleSaveDraft}
                   onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                 />
@@ -1477,6 +1503,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           spacing={quoteSpacing}
           quoteNotes={quoteNotes}
           preparedBy={reviewQuote?.preparedBy || user?.username || ''}
+          attachedUpgrade={attachedUpgrade}
+          attachedSealedUnit={attachedSealedUnit}
         />
       )}
 
@@ -1520,6 +1548,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveMisc={effectiveMisc}
         effectiveLabour={effectiveLabour}
         attachedUpgrade={attachedUpgrade}
+        attachedSealedUnit={attachedSealedUnit}
       />
 
       {/* Submit for Review / Direct Approve Modal */}
@@ -1650,6 +1679,14 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         onClose={() => setIsSavedQuotesOpen(false)}
         defaultType="window"
         onLoadQuote={loadDraftIntoWorkspace}
+      />
+
+      <AttachSealedUnitModal
+        isOpen={isAttachModalOpen}
+        onClose={() => setIsAttachModalOpen(false)}
+        attachedSealedUnit={attachedSealedUnit}
+        onAttach={(su) => setAttachedSealedUnit(su)}
+        onDetach={() => setAttachedSealedUnit(null)}
       />
     </div>
   );

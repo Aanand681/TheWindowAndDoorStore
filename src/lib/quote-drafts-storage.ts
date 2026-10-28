@@ -26,6 +26,7 @@ export interface WindowQuoteDraftPayload {
   includeLabourInPromo?: boolean;
   hstRate?: number;
   attachedUpgrade?: any;
+  attachedSealedUnit?: any;
   subtotal: number;
   grandTotal: number;
   itemCount: number;
@@ -47,6 +48,7 @@ export interface SealedUnitQuoteDraftPayload {
   subtotal: number;
   grandTotal: number;
   itemCount: number;
+  totals?: any;
 }
 
 export interface QuoteDraftItem {

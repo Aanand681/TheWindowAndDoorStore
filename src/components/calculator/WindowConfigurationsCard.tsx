@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Component, FileUp, Plus, Trash2, Sparkles, Bookmark, FolderOpen } from 'lucide-react';
+import { Component, FileUp, Plus, Trash2, Sparkles, Bookmark, FolderOpen, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
 import { formatMoney } from '@/lib/promo-logic';
@@ -32,6 +32,9 @@ export interface WindowConfigurationsCardProps {
   onOpenCompareModal?: () => void;
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   onRemoveAttachedUpgrade?: () => void;
+  attachedSealedUnit?: any | null;
+  onOpenAttachSealedUnitModal?: () => void;
+  onRemoveAttachedSealedUnit?: () => void;
   onSaveDraft?: () => void;
   onOpenSavedQuotes?: () => void;
   savedDraftsCount?: number;
@@ -57,6 +60,9 @@ export function WindowConfigurationsCard({
   onOpenCompareModal,
   attachedUpgrade,
   onRemoveAttachedUpgrade,
+  attachedSealedUnit,
+  onOpenAttachSealedUnitModal,
+  onRemoveAttachedSealedUnit,
   onSaveDraft,
   onOpenSavedQuotes,
   savedDraftsCount,
@@ -131,6 +137,30 @@ export function WindowConfigurationsCard({
             </Button>
           )}
 
+          {/* Attach Sealed Units Button (Option A) */}
+          {onOpenAttachSealedUnitModal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenAttachSealedUnitModal}
+              className={cn(
+                'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
+                attachedSealedUnit
+                  ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                  : 'border-border/80 hover:bg-muted text-foreground'
+              )}
+              title="Attach a saved Sealed Unit quote to this window quotation"
+            >
+              <Paperclip
+                className={cn(
+                  'w-3.5 h-3.5',
+                  attachedSealedUnit ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'
+                )}
+              />
+              <span>{attachedSealedUnit ? 'Attached Sealed Units' : 'Attach Sealed Units'}</span>
+            </Button>
+          )}
+
           {/* Vertical Separator */}
           {(onSaveDraft || onOpenSavedQuotes) && (
             <div className="hidden sm:block h-5 w-px bg-border/60 mx-0.5" />
@@ -170,6 +200,46 @@ export function WindowConfigurationsCard({
           )}
         </div>
       </CardHeader>
+
+      {/* Attached Sealed Unit Callout Banner */}
+      {attachedSealedUnit && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/30 text-emerald-950 dark:text-emerald-200 text-xs animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <Paperclip className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-semibold">
+              Attached Sealed Units:{' '}
+              <span className="font-bold underline decoration-emerald-500/50">
+                Quote #{attachedSealedUnit.quoteNumber} (
+                {attachedSealedUnit.itemCount || (attachedSealedUnit.lineItems && attachedSealedUnit.lineItems.length) || 0} units · ${attachedSealedUnit.totals?.grandTotal ? attachedSealedUnit.totals.grandTotal.toFixed(2) : '0.00'})
+              </span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {onOpenAttachSealedUnitModal && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenAttachSealedUnitModal}
+                className="h-6 text-[11px] px-2 text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 hover:bg-emerald-500/20 cursor-pointer"
+              >
+                Change Quote
+              </Button>
+            )}
+            {onRemoveAttachedSealedUnit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRemoveAttachedSealedUnit}
+                className="h-6 text-[11px] px-2 text-destructive hover:bg-destructive/10 cursor-pointer gap-1"
+                title="Remove attached sealed units from this quote"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Detach</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Optional Upgrade Attached Callout Banner */}
       {attachedUpgrade && (

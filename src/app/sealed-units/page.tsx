@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Bookmark,
   FolderOpen,
+  Paperclip,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -553,6 +554,7 @@ export default function SealedUnitsCalculatorPage() {
         subtotal: totals.subtotalPreTax || 0,
         grandTotal: totals.grandTotal || 0,
         itemCount: lineItems.length,
+        totals: totals,
       },
     });
 
@@ -686,6 +688,7 @@ export default function SealedUnitsCalculatorPage() {
           subtotal: totals.subtotalPreTax || 0,
           grandTotal: totals.grandTotal || 0,
           itemCount: lineItems.length,
+          totals: totals,
         },
       });
     }, 1500);
@@ -717,6 +720,18 @@ export default function SealedUnitsCalculatorPage() {
       return;
     }
     window.print();
+  };
+
+  const handleAttachToWindowQuote = () => {
+    if (lineItems.length === 0) {
+      toast.error('Add at least one sealed unit before attaching to a window quote.');
+      return;
+    }
+    handleSaveDraft();
+    toast.success('Sealed unit draft saved! Opening Window Calculator to attach...');
+    setTimeout(() => {
+      router.push('/calculator');
+    }, 600);
   };
 
   const handleSubmitForReview = async () => {
@@ -836,6 +851,17 @@ export default function SealedUnitsCalculatorPage() {
               >
                 <Bookmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Save Draft</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAttachToWindowQuote}
+                className="h-7 text-xs cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                title="Save and attach this sealed unit quote to a window quotation"
+              >
+                <Paperclip className="w-3.5 h-3.5 text-primary" />
+                <span>Attach to Window Quote</span>
               </Button>
               <Button
                 type="button"

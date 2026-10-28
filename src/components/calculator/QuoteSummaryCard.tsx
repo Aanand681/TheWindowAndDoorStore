@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   Bookmark,
   FolderOpen,
+  Paperclip,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMoney, toCents } from '@/lib/promo-logic';
@@ -95,6 +96,9 @@ export interface QuoteSummaryCardProps {
   setShowReassignModal: (val: boolean) => void;
   handleReturnReviewQuote: () => void;
   isSupplyOnly?: boolean;
+  attachedSealedUnit?: any | null;
+  onOpenAttachSealedUnitModal?: () => void;
+  onRemoveAttachedSealedUnit?: () => void;
   onSaveDraft?: () => void;
   onOpenSavedQuotes?: () => void;
 }
@@ -163,6 +167,9 @@ export function QuoteSummaryCard({
   setShowReassignModal,
   handleReturnReviewQuote,
   isSupplyOnly = false,
+  attachedSealedUnit,
+  onOpenAttachSealedUnitModal,
+  onRemoveAttachedSealedUnit,
   onSaveDraft,
   onOpenSavedQuotes,
 }: QuoteSummaryCardProps) {
@@ -177,6 +184,87 @@ export function QuoteSummaryCard({
     if (!hasJamb && hasCasing) return 'Casing Only';
     return 'Jambs & Casing';
   }, [taxTotals?.selectedJamb, taxTotals?.selectedCasing]);
+
+  // Combined Financials Ledger when attachedSealedUnit exists
+  const combinedData = React.useMemo(() => {
+    if (!attachedSealedUnit || !quoteResult) return null;
+    const suTotals = attachedSealedUnit.totals || {};
+    const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+    const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+    const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+    const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+    const windowBaseCents = quoteResult.base || 0;
+    const windowSurchargeCents = quoteResult.surcharge || 0;
+    const windowDiscountCents = quoteResult.promoDiscount || 0;
+
+    const combinedMiscCents = effectiveMiscCents + suMiscCents;
+    const combinedLabourCents = effectiveLabourCents + suLabourCents;
+    const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
+
+    // Subtotal pre-tax: sum of lines 1 to 6 minus promo discount
+    const combinedSubtotalCents =
+      windowBaseCents +
+      suGlassCents +
+      effectiveJCCents +
+      combinedMiscCents +
+      combinedLabourCents +
+      combinedSurchargeCents -
+      windowDiscountCents;
+
+    // Tax calculation
+    let combinedTaxCents = 0;
+    if (hstRate === 13) {
+      combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+    } else if (hstRate === 8) {
+      const materialsCents = Math.max(
+        0,
+        windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJCCents + suGlassCents + suSurchargeCents
+      );
+      const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
+      combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+    } else {
+      combinedTaxCents = 0;
+    }
+
+    const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
+    const combinedFirstPayment = Math.round(combinedTotalCents / 2);
+    const combinedSecondPayment = combinedTotalCents - combinedFirstPayment;
+
+    // Format sealed unit summary sentence
+    const lineItems = attachedSealedUnit.lineItems || [];
+    let suSummarySentence = 'Sealed Unit';
+    if (lineItems.length > 0) {
+      const totalSUQty = lineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
+      const paneTypes = Array.from(
+        new Set(lineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual')))
+      );
+      suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit`;
+    }
+
+    return {
+      windowBaseCents,
+      suGlassCents,
+      suSummarySentence,
+      effectiveJCCents,
+      combinedMiscCents,
+      combinedLabourCents,
+      combinedSurchargeCents,
+      windowDiscountCents,
+      combinedSubtotalCents,
+      combinedTaxCents,
+      combinedTotalCents,
+      combinedFirstPayment,
+      combinedSecondPayment,
+    };
+  }, [
+    attachedSealedUnit,
+    quoteResult,
+    effectiveMiscCents,
+    effectiveLabourCents,
+    effectiveJCCents,
+    hstRate,
+  ]);
 
   return (
     <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
@@ -198,148 +286,340 @@ export function QuoteSummaryCard({
         <CardContent className="space-y-4 pt-3.5 px-5 sm:px-6 pb-5">
           {quoteResult ? (
             <>
-              {/* Window configurations (Strictly single line per group) */}
-              <div className="space-y-1.5 pb-2.5 border-b border-border/50">
-                {summaryWindowGroups.length > 0 ? (
-                  summaryWindowGroups.map((g) => (
-                    <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
-                      <span className="text-muted-foreground font-medium truncate capitalize">
-                        {g.label}
+              {/* Attached Sealed Unit Badge */}
+              {attachedSealedUnit && (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-300 mb-2">
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    <Paperclip className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Combined Quote: Attached #{attachedSealedUnit.quoteNumber}</span>
+                  </span>
+                  {onRemoveAttachedSealedUnit && (
+                    <button
+                      type="button"
+                      onClick={onRemoveAttachedSealedUnit}
+                      className="text-[11px] font-bold text-destructive hover:underline cursor-pointer"
+                    >
+                      Detach
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* COMBINED 11-LINE FINANCIAL LEDGER (Windows + Attached Sealed Units) */}
+              {combinedData ? (
+                <>
+                  <div className="space-y-1.5 pb-2.5 border-b border-border/50">
+                    {/* Line 1: Window glass configurations */}
+                    {summaryWindowGroups.length > 0 ? (
+                      summaryWindowGroups.map((g) => (
+                        <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground font-medium truncate capitalize">
+                            1. {g.label}
+                          </span>
+                          <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                            {formatMoney(g.baseCents)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground font-medium">1. Window base price</span>
+                        <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(combinedData.windowBaseCents)}</span>
+                      </div>
+                    )}
+
+                    {/* Line 2: Sealed unit glass price */}
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                      <span className="text-muted-foreground font-medium text-emerald-700 dark:text-emerald-400">
+                        2. {combinedData.suSummarySentence}
                       </span>
                       <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                        {formatMoney(g.baseCents)}
+                        +{formatMoney(combinedData.suGlassCents)}
                       </span>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground font-medium">Base window price</span>
-                    <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
-                  </div>
-                )}
-                {/* Jambs & Casing (or Jambs Only / Casing Only) */}
-                {effectiveJCCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground">
-                      {jcSummaryLabel}
-                    </span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveJCCents)}
-                    </span>
-                  </div>
-                )}
 
-                {/* Labour and Misc: ONLY shown if NOT supply only */}
-                {!isSupplyOnly && effectiveLabourCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground">Labour</span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveLabourCents)}
-                    </span>
-                  </div>
-                )}
-                {!isSupplyOnly && effectiveMiscCents > 0 && (
-                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                    <span className="text-muted-foreground">Miscellaneous</span>
-                    <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                      +{formatMoney(effectiveMiscCents)}
-                    </span>
-                  </div>
-                )}
+                    {/* Line 3: Jambs & Casing (Window only, if exists) */}
+                    {combinedData.effectiveJCCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">
+                          3. {jcSummaryLabel} <span className="text-[10px] text-muted-foreground/70">(window only)</span>
+                        </span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(combinedData.effectiveJCCents)}
+                        </span>
+                      </div>
+                    )}
 
-                <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                  <span className="text-muted-foreground">Surcharge ({surchargeRate}%)</span>
-                  <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult.surcharge)}</span>
-                </div>
-                {quoteResult.promoDiscount > 0 && (
-                  <>
-                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
-                      <span>Promo discount</span>
-                      <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
+                    {/* Line 4: Misc (Window + Sealed Unit) */}
+                    {combinedData.combinedMiscCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">
+                          4. Miscellaneous <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
+                        </span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(combinedData.combinedMiscCents)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Line 5: Labour (Window + Sealed Unit) */}
+                    {combinedData.combinedLabourCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">
+                          5. Labour <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
+                        </span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(combinedData.combinedLabourCents)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Line 6: Surcharge (Window + Sealed Unit 8%) */}
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                      <span className="text-muted-foreground">
+                        6. Surcharge <span className="text-[10px] text-muted-foreground/70">(window + SU 8%)</span>
+                      </span>
+                      <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">
+                        +{formatMoney(combinedData.combinedSurchargeCents)}
+                      </span>
                     </div>
-                    {quoteResult.text && (
-                      <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 my-1.5 bg-muted/50 p-2.5 rounded-lg border border-border/60">
-                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                        <span>{quoteResult.text}</span>
-                      </p>
+
+                    {/* Line 7: Promo discount (Window only) */}
+                    {combinedData.windowDiscountCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
+                        <span>7. Promo discount <span className="text-[10px] text-muted-foreground/70">(window only)</span></span>
+                        <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(combinedData.windowDiscountCents)}</span>
+                      </div>
                     )}
-                  </>
-                )}
-              </div>
-
-              {/* Subtotal (After Discount) */}
-              <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
-                <div className="flex items-center justify-between font-medium">
-                  <span className="text-foreground">Subtotal</span>
-                  <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">{formatMoney(afterDiscount)}</span>
-                </div>
-              </div>
-
-              {/* HST Selection (Standard 13% vs 8% First Nations Material Exemption) */}
-              <div className="flex flex-col gap-2 pt-1 pb-2.5 border-b border-border/50">
-                <div className="flex justify-between items-center text-xs sm:text-sm">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="promoHst13"
-                      disabled={isReadOnly}
-                      checked={hstRate === 13}
-                      onCheckedChange={(c) => setHstRate(c ? 13 : 0)}
-                    />
-                    <Label htmlFor="promoHst13" className="cursor-pointer text-muted-foreground font-normal">
-                      Include 13% HST
-                    </Label>
                   </div>
-                  <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 13 ? 'line-through opacity-40' : ''}`}>
-                    {formatMoney(Math.round(afterDiscount * 0.13))}
-                  </span>
-                </div>
 
-                <div className="flex justify-between items-center text-xs sm:text-sm">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="promoHst8"
-                      disabled={isReadOnly}
-                      checked={hstRate === 8}
-                      onCheckedChange={(c) => setHstRate(c ? 8 : 0)}
-                    />
-                    <Label
-                      htmlFor="promoHst8"
-                      className="cursor-pointer text-muted-foreground font-normal"
-                      title="Ontario Point-of-Sale Exemption: 8% provincial tax exempt on window & jamb materials; 13% on labour"
-                    >
-                      8% First Nations Material Exemption
-                    </Label>
+                  {/* Line 8: Subtotal */}
+                  <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
+                    <div className="flex items-center justify-between font-medium">
+                      <span className="text-foreground">8. Combined Subtotal</span>
+                      <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">
+                        {formatMoney(combinedData.combinedSubtotalCents)}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 8 ? 'line-through opacity-40' : 'text-emerald-500 font-semibold'}`}>
-                    {formatMoney(
-                      hstRate === 8
-                        ? (total - afterDiscount)
-                        : Math.round(Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents))) * 0.13)
+
+                  {/* Line 9: Tax (HST on combined subtotal) */}
+                  <div className="flex flex-col gap-2 pt-1 pb-2.5 border-b border-border/50">
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="promoHst13"
+                          disabled={isReadOnly}
+                          checked={hstRate === 13}
+                          onCheckedChange={(c) => setHstRate(c ? 13 : 0)}
+                        />
+                        <Label htmlFor="promoHst13" className="cursor-pointer text-muted-foreground font-normal">
+                          9. Include 13% HST
+                        </Label>
+                      </div>
+                      <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 13 ? 'line-through opacity-40' : ''}`}>
+                        {formatMoney(combinedData.combinedTaxCents)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="promoHst8"
+                          disabled={isReadOnly}
+                          checked={hstRate === 8}
+                          onCheckedChange={(c) => setHstRate(c ? 8 : 0)}
+                        />
+                        <Label
+                          htmlFor="promoHst8"
+                          className="cursor-pointer text-muted-foreground font-normal"
+                          title="Point-of-Sale Exemption: 8% provincial tax exempt on materials; 13% on labour"
+                        >
+                          8% Material Tax Exemption
+                        </Label>
+                      </div>
+                      <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 8 ? 'line-through opacity-40' : 'text-emerald-500 font-semibold'}`}>
+                        {formatMoney(combinedData.combinedTaxCents)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Line 10: Total incl. HST */}
+                  <div className="pt-2">
+                    <div className="flex justify-between items-baseline mb-3">
+                      <span className="text-base font-bold">10. Total incl. HST</span>
+                      <span className="text-2xl font-black font-mono tracking-tight text-primary whitespace-nowrap shrink-0">
+                        {formatMoney(combinedData.combinedTotalCents)}
+                      </span>
+                    </div>
+
+                    {/* Line 11: 50/50 Deposit Schedule */}
+                    <div className="text-[11px] text-muted-foreground font-semibold mb-1">
+                      11. Deposit Schedule (50 / 50)
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">First 50%</div>
+                        <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">
+                          {formatMoney(combinedData.combinedFirstPayment)}
+                        </div>
+                      </div>
+                      <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Final 50%</div>
+                        <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">
+                          {formatMoney(combinedData.combinedSecondPayment)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* STANDARD SINGLE WINDOW QUOTE FINANCIAL LEDGER */
+                <>
+                  {/* Window configurations (Strictly single line per group) */}
+                  <div className="space-y-1.5 pb-2.5 border-b border-border/50">
+                    {summaryWindowGroups.length > 0 ? (
+                      summaryWindowGroups.map((g) => (
+                        <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground font-medium truncate capitalize">
+                            {g.label}
+                          </span>
+                          <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                            {formatMoney(g.baseCents)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground font-medium">Base window price</span>
+                        <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
+                      </div>
                     )}
-                  </span>
-                </div>
-              </div>
+                    {/* Jambs & Casing (or Jambs Only / Casing Only) */}
+                    {effectiveJCCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">
+                          {jcSummaryLabel}
+                        </span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(effectiveJCCents)}
+                        </span>
+                      </div>
+                    )}
 
-              {/* Total incl. HST */}
-              <div className="pt-2">
-                <div className="flex justify-between items-baseline mb-3">
-                  <span className="text-base font-bold">Total incl. HST</span>
-                  <span className="text-2xl font-black font-mono tracking-tight text-primary whitespace-nowrap shrink-0">
-                    {formatMoney(total)}
-                  </span>
-                </div>
+                    {/* Labour and Misc: ONLY shown if NOT supply only */}
+                    {!isSupplyOnly && effectiveLabourCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">Labour</span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(effectiveLabourCents)}
+                        </span>
+                      </div>
+                    )}
+                    {!isSupplyOnly && effectiveMiscCents > 0 && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                        <span className="text-muted-foreground">Miscellaneous</span>
+                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
+                          +{formatMoney(effectiveMiscCents)}
+                        </span>
+                      </div>
+                    )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">First 50%</div>
-                    <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">{formatMoney(firstPayment)}</div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                      <span className="text-muted-foreground">Surcharge ({surchargeRate}%)</span>
+                      <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult.surcharge)}</span>
+                    </div>
+                    {quoteResult.promoDiscount > 0 && (
+                      <>
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
+                          <span>Promo discount</span>
+                          <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
+                        </div>
+                        {quoteResult.text && (
+                          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 my-1.5 bg-muted/50 p-2.5 rounded-lg border border-border/60">
+                            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
+                            <span>{quoteResult.text}</span>
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
-                  <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Final 50%</div>
-                    <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">{formatMoney(secondPayment)}</div>
+
+                  {/* Subtotal (After Discount) */}
+                  <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
+                    <div className="flex items-center justify-between font-medium">
+                      <span className="text-foreground">Subtotal</span>
+                      <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">{formatMoney(afterDiscount)}</span>
+                    </div>
                   </div>
-                </div>
-              </div>
+
+                  {/* HST Selection (Standard 13% vs 8% First Nations Material Exemption) */}
+                  <div className="flex flex-col gap-2 pt-1 pb-2.5 border-b border-border/50">
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="promoHst13"
+                          disabled={isReadOnly}
+                          checked={hstRate === 13}
+                          onCheckedChange={(c) => setHstRate(c ? 13 : 0)}
+                        />
+                        <Label htmlFor="promoHst13" className="cursor-pointer text-muted-foreground font-normal">
+                          Include 13% HST
+                        </Label>
+                      </div>
+                      <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 13 ? 'line-through opacity-40' : ''}`}>
+                        {formatMoney(Math.round(afterDiscount * 0.13))}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="promoHst8"
+                          disabled={isReadOnly}
+                          checked={hstRate === 8}
+                          onCheckedChange={(c) => setHstRate(c ? 8 : 0)}
+                        />
+                        <Label
+                          htmlFor="promoHst8"
+                          className="cursor-pointer text-muted-foreground font-normal"
+                          title="Ontario Point-of-Sale Exemption: 8% provincial tax exempt on window & jamb materials; 13% on labour"
+                        >
+                          8% First Nations Material Exemption
+                        </Label>
+                      </div>
+                      <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 8 ? 'line-through opacity-40' : 'text-emerald-500 font-semibold'}`}>
+                        {formatMoney(
+                          hstRate === 8
+                            ? (total - afterDiscount)
+                            : Math.round(Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents))) * 0.13)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Total incl. HST */}
+                  <div className="pt-2">
+                    <div className="flex justify-between items-baseline mb-3">
+                      <span className="text-base font-bold">Total incl. HST</span>
+                      <span className="text-2xl font-black font-mono tracking-tight text-primary whitespace-nowrap shrink-0">
+                        {formatMoney(total)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">First 50%</div>
+                        <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">{formatMoney(firstPayment)}</div>
+                      </div>
+                      <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Final 50%</div>
+                        <div className="font-mono font-bold text-primary text-sm sm:text-base whitespace-nowrap">{formatMoney(secondPayment)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* 5-year free labour upgrade checkbox (placed right after 50/50 deposits) */}
               <div className="flex items-start space-x-2.5 bg-primary/5 p-3 rounded-xl border border-primary/15 mt-3">
@@ -636,6 +916,18 @@ export function QuoteSummaryCard({
                       </>
                     )}
                   </>
+                )}
+
+                {onOpenAttachSealedUnitModal && !attachedSealedUnit && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-10 text-xs font-semibold cursor-pointer gap-1.5 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                    onClick={onOpenAttachSealedUnitModal}
+                  >
+                    <Paperclip className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Attach Sealed Units to Quote</span>
+                  </Button>
                 )}
 
                 <Button
