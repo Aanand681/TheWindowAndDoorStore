@@ -637,9 +637,9 @@ export function QuoteSummaryCard({
                   <p className="text-[10px] text-muted-foreground">
                     Optional. Shows upgrade price only; not added to final total.
                   </p>
-                  {wantsUpgrade && (
+                  {wantsUpgrade && upgrade && (
                     <div className="flex items-center justify-between text-xs font-semibold text-primary pt-1">
-                      <span>Upgrade ({upgrade.rate})</span>
+                      <span>Upgrade ({upgrade?.rate})</span>
                       <span className="font-mono whitespace-nowrap shrink-0">{formatMoney(shownUpgrade)}</span>
                     </div>
                   )}
