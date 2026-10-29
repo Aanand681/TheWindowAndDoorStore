@@ -305,16 +305,16 @@ export function QuoteSummaryCard({
                 </div>
               )}
 
-              {/* COMBINED 11-LINE FINANCIAL LEDGER (Windows + Attached Sealed Units) */}
+              {/* COMBINED FINANCIAL LEDGER (Windows + Attached Sealed Units) */}
               {combinedData ? (
                 <>
                   <div className="space-y-1.5 pb-2.5 border-b border-border/50">
-                    {/* Line 1: Window glass configurations */}
+                    {/* Window glass configurations */}
                     {summaryWindowGroups.length > 0 ? (
                       summaryWindowGroups.map((g) => (
                         <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
                           <span className="text-muted-foreground font-medium truncate capitalize">
-                            1. {g.label}
+                            {g.label}
                           </span>
                           <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
                             {formatMoney(g.baseCents)}
@@ -323,26 +323,26 @@ export function QuoteSummaryCard({
                       ))
                     ) : (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground font-medium">1. Window base price</span>
+                        <span className="text-muted-foreground font-medium">Window base price</span>
                         <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(combinedData.windowBaseCents)}</span>
                       </div>
                     )}
 
-                    {/* Line 2: Sealed unit glass price */}
+                    {/* Sealed unit glass price */}
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                       <span className="text-muted-foreground font-medium text-emerald-700 dark:text-emerald-400">
-                        2. {combinedData.suSummarySentence}
+                        {combinedData.suSummarySentence}
                       </span>
                       <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
                         +{formatMoney(combinedData.suGlassCents)}
                       </span>
                     </div>
 
-                    {/* Line 3: Jambs & Casing (Window only, if exists) */}
+                    {/* Jambs & Casing (Window only, if exists) */}
                     {combinedData.effectiveJCCents > 0 && (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                         <span className="text-muted-foreground">
-                          3. {jcSummaryLabel} <span className="text-[10px] text-muted-foreground/70">(window only)</span>
+                          {jcSummaryLabel} <span className="text-[10px] text-muted-foreground/70">(window only)</span>
                         </span>
                         <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
                           +{formatMoney(combinedData.effectiveJCCents)}
@@ -350,11 +350,11 @@ export function QuoteSummaryCard({
                       </div>
                     )}
 
-                    {/* Line 4: Misc (Window + Sealed Unit) */}
+                    {/* Misc (Window + Sealed Unit) */}
                     {combinedData.combinedMiscCents > 0 && (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                         <span className="text-muted-foreground">
-                          4. Miscellaneous <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
+                          Miscellaneous <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
                         </span>
                         <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
                           +{formatMoney(combinedData.combinedMiscCents)}
@@ -362,11 +362,11 @@ export function QuoteSummaryCard({
                       </div>
                     )}
 
-                    {/* Line 5: Labour (Window + Sealed Unit) */}
+                    {/* Labour (Window + Sealed Unit) */}
                     {combinedData.combinedLabourCents > 0 && (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                         <span className="text-muted-foreground">
-                          5. Labour <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
+                          Labour <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
                         </span>
                         <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
                           +{formatMoney(combinedData.combinedLabourCents)}
@@ -374,36 +374,36 @@ export function QuoteSummaryCard({
                       </div>
                     )}
 
-                    {/* Line 6: Surcharge (Window + Sealed Unit 8%) */}
+                    {/* Surcharge (Window + Sealed Unit 8%) */}
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                       <span className="text-muted-foreground">
-                        6. Surcharge <span className="text-[10px] text-muted-foreground/70">(window + SU 8%)</span>
+                        Surcharge <span className="text-[10px] text-muted-foreground/70">(window + SU 8%)</span>
                       </span>
                       <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">
                         +{formatMoney(combinedData.combinedSurchargeCents)}
                       </span>
                     </div>
 
-                    {/* Line 7: Promo discount (Window only) */}
+                    {/* Promo discount (Window only) */}
                     {combinedData.windowDiscountCents > 0 && (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
-                        <span>7. Promo discount <span className="text-[10px] text-muted-foreground/70">(window only)</span></span>
+                        <span>Promo discount <span className="text-[10px] text-muted-foreground/70">(window only)</span></span>
                         <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(combinedData.windowDiscountCents)}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Line 8: Subtotal */}
+                  {/* Subtotal */}
                   <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
                     <div className="flex items-center justify-between font-medium">
-                      <span className="text-foreground">8. Combined Subtotal</span>
+                      <span className="text-foreground">Combined Subtotal</span>
                       <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">
                         {formatMoney(combinedData.combinedSubtotalCents)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Line 9: Tax (HST on combined subtotal) */}
+                  {/* Tax (HST on combined subtotal) */}
                   <div className="flex flex-col gap-2 pt-1 pb-2.5 border-b border-border/50">
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <div className="flex items-center gap-2">
@@ -414,7 +414,7 @@ export function QuoteSummaryCard({
                           onCheckedChange={(c) => setHstRate(c ? 13 : 0)}
                         />
                         <Label htmlFor="promoHst13" className="cursor-pointer text-muted-foreground font-normal">
-                          9. Include 13% HST
+                          Include 13% HST
                         </Label>
                       </div>
                       <span className={`font-mono whitespace-nowrap shrink-0 ${hstRate !== 13 ? 'line-through opacity-40' : ''}`}>
@@ -444,18 +444,18 @@ export function QuoteSummaryCard({
                     </div>
                   </div>
 
-                  {/* Line 10: Total incl. HST */}
+                  {/* Total incl. HST */}
                   <div className="pt-2">
                     <div className="flex justify-between items-baseline mb-3">
-                      <span className="text-base font-bold">10. Total incl. HST</span>
+                      <span className="text-base font-bold">Total incl. HST</span>
                       <span className="text-2xl font-black font-mono tracking-tight text-primary whitespace-nowrap shrink-0">
                         {formatMoney(combinedData.combinedTotalCents)}
                       </span>
                     </div>
 
-                    {/* Line 11: 50/50 Deposit Schedule */}
+                    {/* Deposit Schedule */}
                     <div className="text-[11px] text-muted-foreground font-semibold mb-1">
-                      11. Deposit Schedule (50 / 50)
+                      Deposit Schedule (50 / 50)
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60">

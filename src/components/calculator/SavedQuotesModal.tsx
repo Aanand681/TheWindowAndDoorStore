@@ -24,6 +24,7 @@ import {
   QuoteType,
   getSavedDrafts,
   deleteQuoteDraft,
+  clearAllQuoteDrafts,
   DRAFT_CHANGE_EVENT,
 } from '@/lib/quote-drafts-storage';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ export function SavedQuotesModal({
   const [selectedTab, setSelectedTab] = useState<QuoteType | 'all'>(defaultType);
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isConfirmingDeleteAll, setIsConfirmingDeleteAll] = useState(false);
 
   const loadDraftsFromStorage = React.useCallback(() => {
     setDrafts(getSavedDrafts());
@@ -56,6 +58,7 @@ export function SavedQuotesModal({
       setSelectedTab(defaultType);
       setSearchQuery('');
       setConfirmDeleteId(null);
+      setIsConfirmingDeleteAll(false);
     }
   }, [isOpen, defaultType, loadDraftsFromStorage]);
 
@@ -98,6 +101,19 @@ export function SavedQuotesModal({
     setConfirmDeleteId(null);
     loadDraftsFromStorage();
     toast.success(`Draft #${quoteNumber} removed from saved list`);
+  };
+
+  const handleDeleteAll = () => {
+    clearAllQuoteDrafts(selectedTab);
+    setIsConfirmingDeleteAll(false);
+    loadDraftsFromStorage();
+    toast.success(
+      selectedTab === 'all'
+        ? 'All saved quotes deleted'
+        : selectedTab === 'window'
+        ? 'All window quotes deleted'
+        : 'All sealed unit quotes deleted'
+    );
   };
 
   const formatDate = (isoString: string) => {
@@ -274,14 +290,22 @@ export function SavedQuotesModal({
 
                   {/* Right: Financials & Action Buttons */}
                   <div className="flex items-center justify-between sm:justify-end gap-3 sm:border-l sm:border-border/60 sm:pl-4 shrink-0">
-                    <div className="text-left sm:text-right">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                        Total Amount
-                      </div>
-                      <div className="font-mono font-black text-base sm:text-lg text-primary">
-                        ${draft.grandTotal ? draft.grandTotal.toFixed(2) : '0.00'}
-                      </div>
-                    </div>
+                    {(() => {
+                      const displayGrandTotal =
+                        draft.grandTotal > 50000 && draft.type === 'window'
+                          ? draft.grandTotal / 100
+                          : (draft.grandTotal || 0);
+                      return (
+                        <div className="text-left sm:text-right">
+                          <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                            Total Amount
+                          </div>
+                          <div className="font-mono font-black text-base sm:text-lg text-primary">
+                            ${displayGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div className="flex items-center gap-1.5">
                       {isConfirmingDelete ? (
@@ -341,16 +365,61 @@ export function SavedQuotesModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-border/70 bg-muted/20 flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
-            {drafts.length} total saved {drafts.length === 1 ? 'quote' : 'quotes'}
+        <div className="p-3.5 sm:p-4 border-t border-border/70 bg-muted/20 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-muted-foreground">
+              {drafts.length} total saved {drafts.length === 1 ? 'quote' : 'quotes'}
+            </div>
+
+            {drafts.length > 0 && (
+              <>
+                {isConfirmingDeleteAll ? (
+                  <div className="flex items-center gap-1.5 bg-destructive/10 px-2 py-1 rounded-lg border border-destructive/30">
+                    <span className="text-xs font-bold text-destructive">
+                      Delete all {selectedTab === 'all' ? 'quotes' : selectedTab === 'window' ? 'window quotes' : 'sealed unit quotes'}?
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={handleDeleteAll}
+                      className="h-6 px-2 text-xs font-bold cursor-pointer"
+                    >
+                      Yes, Delete All
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsConfirmingDeleteAll(false)}
+                      className="h-6 px-1.5 text-xs cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsConfirmingDeleteAll(true)}
+                    className="h-7 px-2 text-xs font-semibold text-destructive/80 hover:text-destructive hover:bg-destructive/10 gap-1 cursor-pointer"
+                    title="Delete all saved quotes"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete All</span>
+                  </Button>
+                )}
+              </>
+            )}
           </div>
+
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="h-8 text-xs font-semibold cursor-pointer"
+            className="h-8 text-xs font-semibold cursor-pointer ml-auto"
           >
             Close
           </Button>

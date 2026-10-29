@@ -89,6 +89,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   // Saved Drafts & Auto-Recovery State
   const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState(false);
   const [savedDraftsCount, setSavedDraftsCount] = useState(0);
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
   const [activeAutoSaveDraft, setActiveAutoSaveDraft] = useState<ActiveAutoSaveDraft | null>(null);
   const [autoSaveRestoredOrDismissed, setAutoSaveRestoredOrDismissed] = useState(false);
   const lastSavedSnapshotRef = useRef<string>('');
@@ -184,6 +185,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setIsComparisonStaging(false);
     setBaseSnapshotA(null);
     resetPricingOverrides();
+    setLoadedDraftId(null);
     clearActiveAutoSave('window');
     setActiveAutoSaveDraft(null);
     setAutoSaveRestoredOrDismissed(true);
@@ -204,6 +206,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       const d = draft.data as any;
       if (!d) return;
 
+      setLoadedDraftId(draft.id);
       if (d.quoteNumber) setQuoteNumber(d.quoteNumber);
       if (d.customerName !== undefined) setCustomerName(d.customerName);
       if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
@@ -280,13 +283,62 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           : `${windows.length} Windows (White)`
         : '0 Windows';
 
-    saveQuoteDraft({
+    // Calculate dollar totals matching the quote summary card
+    let draftSubtotalDollars = 0;
+    let draftGrandTotalDollars = 0;
+
+    if (attachedSealedUnit && quoteResult) {
+      const suTotals = attachedSealedUnit.totals || {};
+      const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+      const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+      const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+      const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+      const windowBaseCents = quoteResult.base || 0;
+      const windowSurchargeCents = quoteResult.surcharge || 0;
+      const windowDiscountCents = quoteResult.promoDiscount || 0;
+
+      const combinedMiscCents = effectiveMisc + suMiscCents;
+      const combinedLabourCents = effectiveLabour + suLabourCents;
+      const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
+
+      const combinedSubtotalCents =
+        windowBaseCents +
+        suGlassCents +
+        effectiveJC +
+        combinedMiscCents +
+        combinedLabourCents +
+        combinedSurchargeCents -
+        windowDiscountCents;
+
+      let combinedTaxCents = 0;
+      if (hstRate === 13) {
+        combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+      } else if (hstRate === 8) {
+        const materialsCents = Math.max(
+          0,
+          windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
+        );
+        const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
+        combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+      }
+
+      const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
+      draftSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
+      draftGrandTotalDollars = Math.round(combinedTotalCents) / 100;
+    } else {
+      draftSubtotalDollars = Math.round(afterDiscount || 0) / 100;
+      draftGrandTotalDollars = Math.round(total || 0) / 100;
+    }
+
+    const savedDraft = saveQuoteDraft({
+      id: loadedDraftId || undefined,
       type: 'window',
       quoteNumber: effectiveQuoteNumber,
       customerName: customerName.trim() || 'Unnamed Customer',
       itemCount: windows.length,
-      subtotal: afterDiscount || 0,
-      grandTotal: total || 0,
+      subtotal: draftSubtotalDollars,
+      grandTotal: draftGrandTotalDollars,
       summaryLabel: summaryTypeDesc,
       data: {
         quoteNumber: effectiveQuoteNumber,
@@ -309,11 +361,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         hstRate,
         attachedUpgrade,
         attachedSealedUnit,
-        subtotal: afterDiscount || 0,
-        grandTotal: total || 0,
+        subtotal: draftSubtotalDollars,
+        grandTotal: draftGrandTotalDollars,
         itemCount: windows.length,
       },
     });
+
+    setLoadedDraftId(savedDraft.id);
 
     // Cancel any pending debounced auto-saver immediately
     if (autoSaveTimerRef.current) {
@@ -360,6 +414,12 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     includeLabourInPromo,
     hstRate,
     attachedUpgrade,
+    attachedSealedUnit,
+    quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
+    loadedDraftId,
     setQuoteNumber,
   ]);
 
@@ -438,11 +498,55 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
+      let autoSubtotalDollars = Math.round(afterDiscount || 0) / 100;
+      let autoGrandTotalDollars = Math.round(total || 0) / 100;
+
+      if (attachedSealedUnit && quoteResult) {
+        const suTotals = attachedSealedUnit.totals || {};
+        const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+        const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+        const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+        const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+        const windowBaseCents = quoteResult.base || 0;
+        const windowSurchargeCents = quoteResult.surcharge || 0;
+        const windowDiscountCents = quoteResult.promoDiscount || 0;
+
+        const combinedMiscCents = effectiveMisc + suMiscCents;
+        const combinedLabourCents = effectiveLabour + suLabourCents;
+        const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
+
+        const combinedSubtotalCents =
+          windowBaseCents +
+          suGlassCents +
+          effectiveJC +
+          combinedMiscCents +
+          combinedLabourCents +
+          combinedSurchargeCents -
+          windowDiscountCents;
+
+        let combinedTaxCents = 0;
+        if (hstRate === 13) {
+          combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+        } else if (hstRate === 8) {
+          const materialsCents = Math.max(
+            0,
+            windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
+          );
+          const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
+          combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+        }
+
+        const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
+        autoSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
+        autoGrandTotalDollars = Math.round(combinedTotalCents) / 100;
+      }
+
       saveActiveAutoSave('window', {
         quoteNumber: quoteNumber || 'Draft',
         customerName: customerName || '',
         itemCount: windows.length,
-        grandTotal: total || 0,
+        grandTotal: autoGrandTotalDollars,
         summaryLabel: `${windows.length} Windows`,
         data: {
           quoteNumber,
@@ -465,8 +569,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           hstRate,
           attachedUpgrade,
           attachedSealedUnit,
-          subtotal: afterDiscount || 0,
-          grandTotal: total || 0,
+          subtotal: autoSubtotalDollars,
+          grandTotal: autoGrandTotalDollars,
           itemCount: windows.length,
         },
       });
@@ -497,6 +601,11 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     includeLabourInPromo,
     hstRate,
     attachedUpgrade,
+    attachedSealedUnit,
+    quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
     afterDiscount,
     total,
     initialReviewQuoteId,

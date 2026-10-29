@@ -79,125 +79,126 @@ export function WindowConfigurationsCard({
             Enter the base prices and upgrade components for each window.
           </CardDescription>
         </div>
-        {/* Clean Unified Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 justify-end">
-          {/* Supply Only Mode Pill */}
-          {setIsSupplyOnly && (
-            <label
-              htmlFor="supplyOnlyToggle"
-              className={cn(
-                'flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-xs',
-                isSupplyOnly
-                  ? 'bg-primary/15 border-primary/40 text-primary'
-                  : 'bg-muted/50 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              <Checkbox
-                id="supplyOnlyToggle"
+        {/* Clean Unified Action Toolbar: 2 Rows */}
+        <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+          {/* Row 1: Compare PDF, Supply Only, Import PDF */}
+          <div className="flex flex-wrap items-center gap-2 justify-end w-full sm:w-auto">
+            {/* Compare PDF */}
+            {onOpenCompareModal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenCompareModal}
                 disabled={isReadOnly}
-                checked={isSupplyOnly}
-                onCheckedChange={(checked) => setIsSupplyOnly(!!checked)}
-                className="data-[state=checked]:bg-primary h-3.5 w-3.5"
-              />
-              <span className="whitespace-nowrap">Supply Only</span>
-            </label>
-          )}
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 shadow-xs"
+                title="Compare with Upgraded Manufacturer PDF (Triple Pane, Painted, etc.)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Compare PDF</span>
+              </Button>
+            )}
 
-          {/* Import PDF */}
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            hidden
-            ref={fileInputRef as any}
-            onChange={handlePdfUpload}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePdfImportClick}
-            disabled={isReadOnly}
-            className="h-8 px-2.5 text-xs font-semibold cursor-pointer shadow-xs bg-card hover:bg-muted border-border/70 text-foreground"
-          >
-            <FileUp className="w-3.5 h-3.5 mr-1 text-primary" />
-            <span>Import PDF</span>
-          </Button>
-
-          {/* Compare PDF */}
-          {onOpenCompareModal && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenCompareModal}
-              disabled={isReadOnly}
-              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 shadow-xs"
-              title="Compare with Upgraded Manufacturer PDF (Triple Pane, Painted, etc.)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Compare PDF</span>
-            </Button>
-          )}
-
-          {/* Attach Sealed Units Button (Option A) */}
-          {onOpenAttachSealedUnitModal && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenAttachSealedUnitModal}
-              className={cn(
-                'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
-                attachedSealedUnit
-                  ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-                  : 'border-border/80 hover:bg-muted text-foreground'
-              )}
-              title="Attach a saved Sealed Unit quote to this window quotation"
-            >
-              <Paperclip
+            {/* Supply Only Mode Pill */}
+            {setIsSupplyOnly && (
+              <label
+                htmlFor="supplyOnlyToggle"
                 className={cn(
-                  'w-3.5 h-3.5',
-                  attachedSealedUnit ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'
+                  'flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-xs',
+                  isSupplyOnly
+                    ? 'bg-primary/15 border-primary/40 text-primary'
+                    : 'bg-muted/50 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
-              />
-              <span>{attachedSealedUnit ? 'Attached Sealed Units' : 'Attach Sealed Units'}</span>
-            </Button>
-          )}
+              >
+                <Checkbox
+                  id="supplyOnlyToggle"
+                  disabled={isReadOnly}
+                  checked={isSupplyOnly}
+                  onCheckedChange={(checked) => setIsSupplyOnly(!!checked)}
+                  className="data-[state=checked]:bg-primary h-3.5 w-3.5"
+                />
+                <span className="whitespace-nowrap">Supply Only</span>
+              </label>
+            )}
 
-          {/* Vertical Separator */}
-          {(onSaveDraft || onOpenSavedQuotes) && (
-            <div className="hidden sm:block h-5 w-px bg-border/60 mx-0.5" />
-          )}
-
-          {/* Save Draft */}
-          {onSaveDraft && (
+            {/* Import PDF */}
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              hidden
+              ref={fileInputRef as any}
+              onChange={handlePdfUpload}
+            />
             <Button
               variant="outline"
               size="sm"
-              onClick={onSaveDraft}
-              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
-              title="Save current quote to drafts"
+              onClick={handlePdfImportClick}
+              disabled={isReadOnly}
+              className="h-8 px-2.5 text-xs font-semibold cursor-pointer shadow-xs bg-card hover:bg-muted border-border/70 text-foreground"
             >
-              <Bookmark className="w-3.5 h-3.5 text-primary" />
-              <span>Save Draft</span>
+              <FileUp className="w-3.5 h-3.5 mr-1 text-primary" />
+              <span>Import PDF</span>
             </Button>
-          )}
+          </div>
 
-          {/* Saved Quotes */}
-          {onOpenSavedQuotes && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenSavedQuotes}
-              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
-              title="View and load saved quotes"
-            >
-              <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
-              <span>Saved Quotes</span>
-              {typeof savedDraftsCount === 'number' && savedDraftsCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
-                  {savedDraftsCount}
-                </span>
-              )}
-            </Button>
-          )}
+          {/* Row 2: Attach Quote, Save Draft, Saved Quotes */}
+          <div className="flex flex-wrap items-center gap-2 justify-end w-full sm:w-auto">
+            {/* Attach Quote Button */}
+            {onOpenAttachSealedUnitModal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenAttachSealedUnitModal}
+                className={cn(
+                  'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
+                  attachedSealedUnit
+                    ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                    : 'border-border/80 hover:bg-muted text-foreground'
+                )}
+                title="Attach an existing quote (Sealed Units, Entry Doors, etc.) to this window quote"
+              >
+                <Paperclip
+                  className={cn(
+                    'w-3.5 h-3.5',
+                    attachedSealedUnit ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'
+                  )}
+                />
+                <span>{attachedSealedUnit ? 'Quote Attached' : 'Attach Quote'}</span>
+              </Button>
+            )}
+
+            {/* Save Draft */}
+            {onSaveDraft && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSaveDraft}
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
+                title="Save current quote to drafts"
+              >
+                <Bookmark className="w-3.5 h-3.5 text-primary" />
+                <span>Save Draft</span>
+              </Button>
+            )}
+
+            {/* Saved Quotes */}
+            {onOpenSavedQuotes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenSavedQuotes}
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
+                title="View and load saved quotes"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Saved Quotes</span>
+                {typeof savedDraftsCount === 'number' && savedDraftsCount > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                    {savedDraftsCount}
+                  </span>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
