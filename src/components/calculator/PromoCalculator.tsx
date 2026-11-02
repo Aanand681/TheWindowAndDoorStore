@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RotateCcw, Check } from "lucide-react";
+import { Sparkles, RotateCcw, Check, FolderOpen } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { toCents, DBPromo, ILabourUpgradeTier } from '@/lib/promo-logic';
 import { cachedFetch } from '@/lib/client-cache';
@@ -28,6 +28,21 @@ import { SubmitReviewModal } from '@/components/calculator/SubmitReviewModal';
 import { WorkflowDialogs } from '@/components/calculator/WorkflowDialogs';
 import { OdooActionModals } from '@/components/calculator/OdooActionModals';
 import { QuoteComparisonModal } from '@/components/calculator/QuoteComparisonModal';
+import { SavedQuotesModal } from '@/components/calculator/SavedQuotesModal';
+import { AttachSealedUnitModal } from '@/components/calculator/AttachSealedUnitModal';
+
+// Drafts & Auto-Recovery Storage
+import {
+  saveQuoteDraft,
+  saveActiveAutoSave,
+  getActiveAutoSave,
+  clearActiveAutoSave,
+  getSavedDrafts,
+  isAutoSaveAlreadySaved,
+  QuoteDraftItem,
+  ActiveAutoSaveDraft,
+  DRAFT_CHANGE_EVENT,
+} from '@/lib/quote-drafts-storage';
 
 // Custom Hooks
 import { useCalculatorWindows, generateId, UIWindowItem } from '@/hooks/useCalculatorWindows';
@@ -63,11 +78,22 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [appliedOption, setAppliedOption] = useState<'A' | 'B'>('A');
   const [baseWindowsA, setBaseWindowsA] = useState<UIWindowItem[] | null>(null);
   const [attachedUpgrade, setAttachedUpgrade] = useState<{ title: string; amountPreTaxCents: number } | null>(null);
+  const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
   const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
   const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
+
+  // Saved Drafts & Auto-Recovery State
+  const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState(false);
+  const [savedDraftsCount, setSavedDraftsCount] = useState(0);
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
+  const [activeAutoSaveDraft, setActiveAutoSaveDraft] = useState<ActiveAutoSaveDraft | null>(null);
+  const [autoSaveRestoredOrDismissed, setAutoSaveRestoredOrDismissed] = useState(false);
+  const lastSavedSnapshotRef = useRef<string>('');
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Window Items & PDF Parser Hook
   const {
@@ -155,22 +181,468 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setAppliedOption('A');
     setBaseWindowsA(null);
     setAttachedUpgrade(null);
+    setAttachedSealedUnit(null);
     setIsComparisonStaging(false);
     setBaseSnapshotA(null);
     resetPricingOverrides();
+    setLoadedDraftId(null);
+    clearActiveAutoSave('window');
+    setActiveAutoSaveDraft(null);
+    setAutoSaveRestoredOrDismissed(true);
   };
+
+  const loadDraftIntoWorkspace = useCallback(
+    (draft: QuoteDraftItem) => {
+      if (draft.type === 'sealed_unit') {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          autoSaveTimerRef.current = null;
+        }
+        clearActiveAutoSave('window');
+        router.push(`/sealed-units?loadDraftId=${draft.id}`);
+        return;
+      }
+
+      const d = draft.data as any;
+      if (!d) return;
+
+      setLoadedDraftId(draft.id);
+      if (d.quoteNumber) setQuoteNumber(d.quoteNumber);
+      if (d.customerName !== undefined) setCustomerName(d.customerName);
+      if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
+      if (d.surchargeRate !== undefined) setSurchargeRate(d.surchargeRate);
+      if (Array.isArray(d.windows) && d.windows.length > 0) setWindows(d.windows);
+      if (d.activePromoId) setActivePromoId(d.activePromoId);
+      if (d.isSupplyOnly !== undefined) setIsSupplyOnly(d.isSupplyOnly);
+      if (d.supplyJambId !== undefined) setSupplyJambId(d.supplyJambId);
+      if (d.supplyJambRate !== undefined) setSupplyJambRate(d.supplyJambRate);
+      if (d.supplyCasingId !== undefined) setSupplyCasingId(d.supplyCasingId);
+      if (d.supplyCasingRate !== undefined) setSupplyCasingRate(d.supplyCasingRate);
+      if (d.customJC !== undefined) setCustomJC(d.customJC !== '' && d.customJC !== null ? String(d.customJC) : '');
+      if (d.customMisc !== undefined) setCustomMisc(d.customMisc !== '' && d.customMisc !== null ? String(d.customMisc) : '');
+      if (d.customLabour !== undefined) setCustomLabour(d.customLabour !== '' && d.customLabour !== null ? String(d.customLabour) : '');
+      if (d.includeJCInPromo !== undefined) setIncludeJCInPromo(d.includeJCInPromo);
+      if (d.includeMiscInPromo !== undefined) setIncludeMiscInPromo(d.includeMiscInPromo);
+      if (d.includeLabourInPromo !== undefined) setIncludeLabourInPromo(d.includeLabourInPromo);
+      if (d.hstRate !== undefined) setHstRate(d.hstRate);
+      if (d.attachedUpgrade !== undefined) setAttachedUpgrade(d.attachedUpgrade);
+      if (d.attachedSealedUnit !== undefined) setAttachedSealedUnit(d.attachedSealedUnit);
+      else setAttachedSealedUnit(null);
+
+      clearActiveAutoSave('window');
+      setActiveAutoSaveDraft(null);
+      setAutoSaveRestoredOrDismissed(true);
+      lastSavedSnapshotRef.current = JSON.stringify({
+        quoteNumber: d.quoteNumber || '',
+        customerName: (d.customerName || '').trim(),
+        windows: d.windows || [],
+        surchargeRate: d.surchargeRate || 8,
+        activePromoId: d.activePromoId || 'none',
+        isSupplyOnly: Boolean(d.isSupplyOnly),
+        customJC: d.customJC || '',
+        customMisc: d.customMisc || '',
+        customLabour: d.customLabour || '',
+      });
+      toast.success(`Loaded Window Quote #${draft.quoteNumber}`);
+    },
+    [
+      router,
+      setQuoteNumber,
+      setCustomerName,
+      setQuoteNotes,
+      setSurchargeRate,
+      setWindows,
+      setActivePromoId,
+      setIsSupplyOnly,
+      setSupplyJambId,
+      setSupplyJambRate,
+      setSupplyCasingId,
+      setSupplyCasingRate,
+      setCustomJC,
+      setCustomMisc,
+      setCustomLabour,
+      setIncludeJCInPromo,
+      setIncludeMiscInPromo,
+      setIncludeLabourInPromo,
+      setHstRate,
+      setAttachedUpgrade,
+    ]
+  );
+
+  const handleSaveDraft = useCallback(() => {
+    const effectiveQuoteNumber = quoteNumber.trim() || Math.floor(100000 + Math.random() * 900000).toString();
+    if (!quoteNumber.trim()) {
+      setQuoteNumber(effectiveQuoteNumber);
+    }
+
+    const paintedCount = windows.filter((w) => w.color === 'Painted').length;
+    const summaryTypeDesc =
+      windows.length > 0
+        ? paintedCount > 0
+          ? `${windows.length} Windows (${paintedCount} Painted)`
+          : `${windows.length} Windows (White)`
+        : '0 Windows';
+
+    // Calculate dollar totals matching the quote summary card
+    let draftSubtotalDollars = 0;
+    let draftGrandTotalDollars = 0;
+
+    if (attachedSealedUnit && quoteResult) {
+      const suTotals = attachedSealedUnit.totals || {};
+      const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+      const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+      const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+      const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+      const windowBaseCents = quoteResult.base || 0;
+      const windowSurchargeCents = quoteResult.surcharge || 0;
+      const windowDiscountCents = quoteResult.promoDiscount || 0;
+
+      const combinedMiscCents = effectiveMisc + suMiscCents;
+      const combinedLabourCents = effectiveLabour + suLabourCents;
+      const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
+
+      const combinedSubtotalCents =
+        windowBaseCents +
+        suGlassCents +
+        effectiveJC +
+        combinedMiscCents +
+        combinedLabourCents +
+        combinedSurchargeCents -
+        windowDiscountCents;
+
+      let combinedTaxCents = 0;
+      if (hstRate === 13) {
+        combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+      } else if (hstRate === 8) {
+        const materialsCents = Math.max(
+          0,
+          windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
+        );
+        const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
+        combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+      }
+
+      const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
+      draftSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
+      draftGrandTotalDollars = Math.round(combinedTotalCents) / 100;
+    } else {
+      draftSubtotalDollars = Math.round(afterDiscount || 0) / 100;
+      draftGrandTotalDollars = Math.round(total || 0) / 100;
+    }
+
+    const savedDraft = saveQuoteDraft({
+      id: loadedDraftId || undefined,
+      type: 'window',
+      quoteNumber: effectiveQuoteNumber,
+      customerName: customerName.trim() || 'Unnamed Customer',
+      itemCount: windows.length,
+      subtotal: draftSubtotalDollars,
+      grandTotal: draftGrandTotalDollars,
+      summaryLabel: summaryTypeDesc,
+      data: {
+        quoteNumber: effectiveQuoteNumber,
+        customerName: customerName.trim(),
+        quoteNotes,
+        surchargeRate,
+        windows,
+        activePromoId,
+        isSupplyOnly,
+        supplyJambId,
+        supplyJambRate,
+        supplyCasingId,
+        supplyCasingRate,
+        customJC: customJC !== '' ? parseFloat(customJC) : undefined,
+        customMisc: customMisc !== '' ? parseFloat(customMisc) : undefined,
+        customLabour: customLabour !== '' ? parseFloat(customLabour) : undefined,
+        includeJCInPromo,
+        includeMiscInPromo,
+        includeLabourInPromo,
+        hstRate,
+        attachedUpgrade,
+        attachedSealedUnit,
+        subtotal: draftSubtotalDollars,
+        grandTotal: draftGrandTotalDollars,
+        itemCount: windows.length,
+      },
+    });
+
+    setLoadedDraftId(savedDraft.id);
+
+    // Cancel any pending debounced auto-saver immediately
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    // Mark as fully saved so auto-save won't falsely flag it as unsaved
+    clearActiveAutoSave('window');
+    setActiveAutoSaveDraft(null);
+    setAutoSaveRestoredOrDismissed(true);
+    lastSavedSnapshotRef.current = JSON.stringify({
+      quoteNumber: effectiveQuoteNumber,
+      customerName: customerName.trim(),
+      windows,
+      surchargeRate,
+      activePromoId,
+      isSupplyOnly,
+      customJC,
+      customMisc,
+      customLabour,
+    });
+
+    toast.success(`Quote #${effectiveQuoteNumber} saved to drafts!`);
+  }, [
+    quoteNumber,
+    customerName,
+    windows,
+    afterDiscount,
+    total,
+    quoteNotes,
+    surchargeRate,
+    activePromoId,
+    isSupplyOnly,
+    supplyJambId,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingRate,
+    customJC,
+    customMisc,
+    customLabour,
+    includeJCInPromo,
+    includeMiscInPromo,
+    includeLabourInPromo,
+    hstRate,
+    attachedUpgrade,
+    attachedSealedUnit,
+    quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
+    loadedDraftId,
+    setQuoteNumber,
+  ]);
+
+  // Saved drafts count sync
+  useEffect(() => {
+    const updateCount = () => {
+      const all = getSavedDrafts();
+      setSavedDraftsCount(all.filter((d) => d.type === 'window').length);
+    };
+    updateCount();
+    window.addEventListener(DRAFT_CHANGE_EVENT, updateCount);
+    return () => window.removeEventListener(DRAFT_CHANGE_EVENT, updateCount);
+  }, []);
+
+  // Check URL query param and auto-save on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const draftId = urlParams.get('loadDraftId');
+      if (draftId) {
+        const allDrafts = getSavedDrafts();
+        const match = allDrafts.find((d) => d.id === draftId);
+        if (match && match.type === 'window') {
+          loadDraftIntoWorkspace(match);
+          window.history.replaceState({}, '', '/calculator');
+          return;
+        }
+      }
+    }
+
+    if (!initialReviewQuoteId) {
+      const recovered = getActiveAutoSave('window');
+      if (recovered && recovered.data && (recovered.itemCount > 0 || recovered.customerName)) {
+        // Crucial Check: If quote is already in saved drafts, it is NOT unsaved!
+        if (isAutoSaveAlreadySaved('window', recovered)) {
+          clearActiveAutoSave('window');
+          setActiveAutoSaveDraft(null);
+        } else {
+          setActiveAutoSaveDraft(recovered);
+        }
+      }
+    }
+  }, [initialReviewQuoteId, loadDraftIntoWorkspace]);
+
+  // Debounced auto-save effect
+  useEffect(() => {
+    if (initialReviewQuoteId) return;
+
+    const hasContent =
+      windows.some((w) => (w.base && parseFloat(w.base) > 0) || w.w || w.h) ||
+      customerName.trim() !== '' ||
+      quoteNumber.trim() !== '';
+
+    if (!hasContent) return;
+
+    // Check if state is identical to last explicitly saved or loaded snapshot
+    const currentSnapshot = JSON.stringify({
+      quoteNumber: quoteNumber.trim(),
+      customerName: customerName.trim(),
+      windows,
+      surchargeRate,
+      activePromoId,
+      isSupplyOnly,
+      customJC,
+      customMisc,
+      customLabour,
+    });
+
+    if (currentSnapshot === lastSavedSnapshotRef.current) {
+      // Current workspace matches saved state exactly: not unsaved!
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      let autoSubtotalDollars = Math.round(afterDiscount || 0) / 100;
+      let autoGrandTotalDollars = Math.round(total || 0) / 100;
+
+      if (attachedSealedUnit && quoteResult) {
+        const suTotals = attachedSealedUnit.totals || {};
+        const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+        const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+        const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+        const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
+
+        const windowBaseCents = quoteResult.base || 0;
+        const windowSurchargeCents = quoteResult.surcharge || 0;
+        const windowDiscountCents = quoteResult.promoDiscount || 0;
+
+        const combinedMiscCents = effectiveMisc + suMiscCents;
+        const combinedLabourCents = effectiveLabour + suLabourCents;
+        const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
+
+        const combinedSubtotalCents =
+          windowBaseCents +
+          suGlassCents +
+          effectiveJC +
+          combinedMiscCents +
+          combinedLabourCents +
+          combinedSurchargeCents -
+          windowDiscountCents;
+
+        let combinedTaxCents = 0;
+        if (hstRate === 13) {
+          combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+        } else if (hstRate === 8) {
+          const materialsCents = Math.max(
+            0,
+            windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
+          );
+          const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
+          combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+        }
+
+        const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
+        autoSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
+        autoGrandTotalDollars = Math.round(combinedTotalCents) / 100;
+      }
+
+      saveActiveAutoSave('window', {
+        quoteNumber: quoteNumber || 'Draft',
+        customerName: customerName || '',
+        itemCount: windows.length,
+        grandTotal: autoGrandTotalDollars,
+        summaryLabel: `${windows.length} Windows`,
+        data: {
+          quoteNumber,
+          customerName,
+          quoteNotes,
+          surchargeRate,
+          windows,
+          activePromoId,
+          isSupplyOnly,
+          supplyJambId,
+          supplyJambRate,
+          supplyCasingId,
+          supplyCasingRate,
+          customJC: customJC !== '' ? parseFloat(customJC) : undefined,
+          customMisc: customMisc !== '' ? parseFloat(customMisc) : undefined,
+          customLabour: customLabour !== '' ? parseFloat(customLabour) : undefined,
+          includeJCInPromo,
+          includeMiscInPromo,
+          includeLabourInPromo,
+          hstRate,
+          attachedUpgrade,
+          attachedSealedUnit,
+          subtotal: autoSubtotalDollars,
+          grandTotal: autoGrandTotalDollars,
+          itemCount: windows.length,
+        },
+      });
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [
+    windows,
+    customerName,
+    quoteNumber,
+    quoteNotes,
+    surchargeRate,
+    activePromoId,
+    isSupplyOnly,
+    supplyJambId,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingRate,
+    customJC,
+    customMisc,
+    customLabour,
+    includeJCInPromo,
+    includeMiscInPromo,
+    includeLabourInPromo,
+    hstRate,
+    attachedUpgrade,
+    attachedSealedUnit,
+    quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
+    afterDiscount,
+    total,
+    initialReviewQuoteId,
+  ]);
 
   const handleToggleSupplyOnly = (isSupply: boolean) => {
     setIsSupplyOnly(isSupply);
     if (isSupply) {
-      setTaxTotals((prev: any) => ({
-        ...prev,
-        isSupplyOnly: true,
-        standardLabourCents: 0,
-        miscLabourCents: 0,
-        finalLabour: 0,
-        finalMisc: 0,
-      }));
+      setCustomJC('');
+      setSupplyJambId('none');
+      setSupplyCasingId('none');
+      setSupplyJambName('');
+      setSupplyJambRate('');
+      setSupplyCasingName('');
+      setSupplyCasingRate('');
+      setTaxTotals((prev: any) => {
+        if (!prev) return { isSupplyOnly: true, jc: 0, finalJC: 0, jcLabourCents: 0 };
+        return {
+          ...prev,
+          isSupplyOnly: true,
+          standardLabourCents: 0,
+          miscLabourCents: 0,
+          finalLabour: 0,
+          finalMisc: 0,
+          jc: 0,
+          finalJC: 0,
+          jcLabourCents: 0,
+          selectedJamb: null,
+          selectedCasing: null,
+          jambId: 'none',
+          casingId: 'none',
+          jambRate: 0,
+          casingRate: 0,
+          jambTot: 0,
+          casingTot: 0,
+        };
+      });
     } else {
       setCustomJC('');
       setSupplyJambId('none');
@@ -741,6 +1213,55 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           handleApproveReviewQuote={handleApproveReviewQuote}
         />
 
+        {/* Unsaved Draft Recovery Notification (Ultra-Slim Minimal Space) */}
+        {activeAutoSaveDraft && !autoSaveRestoredOrDismissed && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg py-1 px-3 flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+              <div className="text-xs text-foreground truncate">
+                <span className="font-semibold text-amber-700 dark:text-amber-400 mr-1">Unsaved Session:</span>
+                <span className="text-muted-foreground">{activeAutoSaveDraft.customerName || 'Customer'} (#{activeAutoSaveDraft.quoteNumber || 'Draft'} · {activeAutoSaveDraft.itemCount} items · ${activeAutoSaveDraft.grandTotal ? activeAutoSaveDraft.grandTotal.toFixed(2) : '0.00'})</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  loadDraftIntoWorkspace({
+                    id: 'autosave',
+                    type: 'window',
+                    quoteNumber: activeAutoSaveDraft.quoteNumber,
+                    customerName: activeAutoSaveDraft.customerName,
+                    createdAt: activeAutoSaveDraft.timestamp,
+                    updatedAt: activeAutoSaveDraft.timestamp,
+                    itemCount: activeAutoSaveDraft.itemCount,
+                    subtotal: (activeAutoSaveDraft.data as any).subtotal || 0,
+                    grandTotal: activeAutoSaveDraft.grandTotal,
+                    summaryLabel: activeAutoSaveDraft.summaryLabel,
+                    data: activeAutoSaveDraft.data,
+                  });
+                }}
+                className="h-5 px-2 text-[10px] font-bold cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                Resume
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  clearActiveAutoSave('window');
+                  setActiveAutoSaveDraft(null);
+                  setAutoSaveRestoredOrDismissed(true);
+                }}
+                className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Phase 3 Hybrid: Staging Mode Banner */}
         {isComparisonStaging && (
           <div className="bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/15 border border-amber-500/40 rounded-2xl p-3.5 px-4 sm:px-5 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-150">
@@ -840,6 +1361,15 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                     setAttachedUpgrade(null);
                     toast.info('Removed optional upgrade offer from quote.');
                   }}
+                  attachedSealedUnit={attachedSealedUnit}
+                  onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                  onRemoveAttachedSealedUnit={() => {
+                    setAttachedSealedUnit(null);
+                    toast.info('Detached sealed units from quote.');
+                  }}
+                  onSaveDraft={handleSaveDraft}
+                  onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
+                  savedDraftsCount={savedDraftsCount}
                 />
 
                 {isSupplyOnly && (
@@ -935,6 +1465,14 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                 setShowReassignModal={setShowReassignModal}
                 handleReturnReviewQuote={handleReturnReviewQuote}
                 isSupplyOnly={isSupplyOnly}
+                attachedSealedUnit={attachedSealedUnit}
+                onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                onRemoveAttachedSealedUnit={() => {
+                  setAttachedSealedUnit(null);
+                  toast.info('Detached sealed units from quote.');
+                }}
+                onSaveDraft={handleSaveDraft}
+                onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
               />
             </div>
           </div>
@@ -1015,6 +1553,14 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   setShowReassignModal={setShowReassignModal}
                   handleReturnReviewQuote={handleReturnReviewQuote}
                   isSupplyOnly={isSupplyOnly}
+                  attachedSealedUnit={attachedSealedUnit}
+                  onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
+                  onRemoveAttachedSealedUnit={() => {
+                    setAttachedSealedUnit(null);
+                    toast.info('Detached sealed units from quote.');
+                  }}
+                  onSaveDraft={handleSaveDraft}
+                  onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                 />
               }
             />
@@ -1066,6 +1612,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           spacing={quoteSpacing}
           quoteNotes={quoteNotes}
           preparedBy={reviewQuote?.preparedBy || user?.username || ''}
+          attachedUpgrade={attachedUpgrade}
+          attachedSealedUnit={attachedSealedUnit}
         />
       )}
 
@@ -1109,6 +1657,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveMisc={effectiveMisc}
         effectiveLabour={effectiveLabour}
         attachedUpgrade={attachedUpgrade}
+        attachedSealedUnit={attachedSealedUnit}
       />
 
       {/* Submit for Review / Direct Approve Modal */}
@@ -1203,11 +1752,50 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         secondPaymentA={baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment}
         appliedOption={appliedOption}
         isComparisonStaging={isComparisonStaging}
+        stagedOptionB={
+          isComparisonStaging && baseSnapshotA
+            ? {
+                windows,
+                quoteResult,
+                afterDiscount,
+                total,
+                firstPayment,
+                secondPayment,
+                effectiveJC: isSupplyOnly ? (customJC ? toCents(customJC) : 0) : effectiveJC,
+                effectiveMisc: isSupplyOnly ? 0 : effectiveMisc,
+                effectiveLabour: isSupplyOnly ? 0 : effectiveLabour,
+                activePromoId,
+                supplyJambId: isSupplyOnly ? supplyJambId : (taxTotals?.selectedJamb?.id || taxTotals?.jambId),
+                supplyJambName: isSupplyOnly ? supplyJambName : (taxTotals?.selectedJamb?.name || taxTotals?.jambName),
+                supplyJambRate: isSupplyOnly ? supplyJambRate : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ''),
+                supplyCasingId: isSupplyOnly ? supplyCasingId : (taxTotals?.selectedCasing?.id || taxTotals?.casingId),
+                supplyCasingName: isSupplyOnly ? supplyCasingName : (taxTotals?.selectedCasing?.name || taxTotals?.casingName),
+                supplyCasingRate: isSupplyOnly ? supplyCasingRate : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ''),
+                customerName,
+                quoteNumber,
+              }
+            : undefined
+        }
         onApplyOption={handleApplyOption}
         onApplyAndCustomize={handleApplyAndCustomize}
         onKeepOptionB={handleKeepOptionB}
         attachedUpgrade={attachedUpgrade}
         onAttachUpgrade={setAttachedUpgrade}
+      />
+
+      <SavedQuotesModal
+        isOpen={isSavedQuotesOpen}
+        onClose={() => setIsSavedQuotesOpen(false)}
+        defaultType="window"
+        onLoadQuote={loadDraftIntoWorkspace}
+      />
+
+      <AttachSealedUnitModal
+        isOpen={isAttachModalOpen}
+        onClose={() => setIsAttachModalOpen(false)}
+        attachedSealedUnit={attachedSealedUnit}
+        onAttach={(su) => setAttachedSealedUnit(su)}
+        onDetach={() => setAttachedSealedUnit(null)}
       />
     </div>
   );

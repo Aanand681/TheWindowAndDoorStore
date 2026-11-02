@@ -181,12 +181,23 @@
   body * {
     visibility: hidden;
   }
-  #printable-invoice, #printable-invoice * {
+  #printable-invoice, #printable-invoice *,
+  #printable-sealed-unit, #printable-sealed-unit * {
     visibility: visible;
   }
-  #printable-invoice {
+  #printable-invoice,
+  #printable-sealed-unit {
     position: static !important;
-    width: 100%;
+    width: 100% !important;
+    display: block !important;
+  }
+  .su-no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  .su-print-only {
+    display: block !important;
+    visibility: visible !important;
   }
   body.quote-modal-open > *:not(.quote-preview-portal) {
     display: none !important;
@@ -194,5 +205,11 @@
   body.quote-modal-open #printable-invoice.background-quote-invoice {
     display: none !important;
     visibility: hidden !important;
+  }
+}
+
+@media screen {
+  .su-print-only {
+    display: none !important;
   }
 }
