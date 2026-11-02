@@ -341,9 +341,13 @@ export function QuoteSummaryCard({
   const combinedData = React.useMemo(() => {
     if (!attachedSealedUnit) return null;
     const suTotals = attachedSealedUnit.totals || {};
-    const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-    const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-    const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+    const isAttachedSUService =
+      attachedSealedUnit.sealedUnitMode === 'service_only' ||
+      attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+      Boolean(suTotals.isServiceOnly);
+    const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+    const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+    const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
     const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
     const windowBaseCents = quoteResult?.base || 0;
@@ -386,7 +390,12 @@ export function QuoteSummaryCard({
     // Format sealed unit summary sentence
     const lineItems = attachedSealedUnit.lineItems || [];
     let suSummarySentence = 'Sealed Unit';
-    if (lineItems.length > 0) {
+    if (isAttachedSUService) {
+      const suSqft = Number(suTotals.totalSqft || 0);
+      suSummarySentence = suSqft > 0
+        ? `Sealed Unit On-Site Service (${suSqft.toFixed(1)} sq ft)`
+        : 'Sealed Unit Service Only';
+    } else if (lineItems.length > 0) {
       const totalSUQty = lineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
       const paneTypes = Array.from(
         new Set(lineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual')))
@@ -398,6 +407,7 @@ export function QuoteSummaryCard({
       windowBaseCents,
       suGlassCents,
       suSummarySentence,
+      isAttachedSUService,
       effectiveJCCents,
       combinedMiscCents,
       combinedLabourCents,
@@ -493,11 +503,18 @@ export function QuoteSummaryCard({
 
                     {/* Sealed unit glass price */}
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                      <span className="text-muted-foreground font-medium text-emerald-700 dark:text-emerald-400">
+                      <span className={cn(
+                        "font-medium truncate",
+                        combinedData.isAttachedSUService
+                          ? "text-blue-700 dark:text-blue-400"
+                          : "text-emerald-700 dark:text-emerald-400"
+                      )}>
                         {combinedData.suSummarySentence}
                       </span>
                       <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                        +{formatMoney(combinedData.suGlassCents)}
+                        {combinedData.isAttachedSUService && combinedData.suGlassCents === 0
+                          ? '$0.00 (Labour below)'
+                          : `+${formatMoney(combinedData.suGlassCents)}`}
                       </span>
                     </div>
 

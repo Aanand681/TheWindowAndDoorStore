@@ -7,6 +7,9 @@ import {
   DollarSign,
   ChevronDown,
   ChevronUp,
+  Layers,
+  RefreshCw,
+  Calculator,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,8 +36,16 @@ export interface SealedUnitLabourTravelCardProps {
   setCrewHours: (val: string) => void;
   crewSize: '2' | '3';
   setCrewSize: (val: '2' | '3') => void;
+  serviceSqftInput?: string;
+  setServiceSqftInput?: (val: string) => void;
+  serviceLabourRateInput?: string;
+  setServiceLabourRateInput?: (val: string) => void;
+  serviceMiscRateInput?: string;
+  setServiceMiscRateInput?: (val: string) => void;
+  itemsSqft?: number;
   totals: {
     totalSqft?: number;
+    itemsSqft?: number;
     unitLabourSum: number;
     baseSetupFee: number;
     additionalFarFee: number;
@@ -48,6 +59,8 @@ export interface SealedUnitLabourTravelCardProps {
     subtotalPreTax?: number;
     hstAmount?: number;
     grandTotal?: number;
+    effectiveLabourRate?: number;
+    effectiveMiscRate?: number;
   };
 }
 
@@ -69,6 +82,13 @@ export function SealedUnitLabourTravelCard({
   setCrewHours,
   crewSize,
   setCrewSize,
+  serviceSqftInput = '',
+  setServiceSqftInput,
+  serviceLabourRateInput = '',
+  setServiceLabourRateInput,
+  serviceMiscRateInput = '',
+  setServiceMiscRateInput,
+  itemsSqft = 0,
   totals,
 }: SealedUnitLabourTravelCardProps) {
   const currentMode = setMode ? mode : (isInstallation ? 'installation' : 'supply_only');
@@ -316,43 +336,153 @@ export function SealedUnitLabourTravelCard({
             </div>
           </>
         ) : currentMode === 'service_only' ? (
-          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-blue-500/20">
+          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-blue-500/20">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-600 text-white">
-                  <Wrench className="w-3.5 h-3.5" />
+                <span className="p-1.5 rounded-lg bg-blue-600 text-white shrink-0">
+                  <Wrench className="w-4 h-4" />
                 </span>
                 <div>
-                  <div className="font-bold text-xs text-foreground">Service Only Mode Active</div>
-                  <p className="text-[11px] text-muted-foreground">Labour &amp; misc service charged on total square footage.</p>
+                  <div className="font-bold text-xs text-foreground flex items-center gap-2">
+                    <span>Service Only Mode Active</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-600 text-white font-mono font-bold">
+                      {(totals.totalSqft || 0).toFixed(2)} sq ft
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Glazing service &amp; repair on total square footage. Glass manufacturing base is $0.00.
+                  </p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
-                {(totals.totalSqft || 0).toFixed(2)} sq ft total
-              </span>
+              {itemsSqft > 0 && setServiceSqftInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (serviceSqftInput) {
+                      setServiceSqftInput('');
+                    } else {
+                      setServiceSqftInput(itemsSqft.toFixed(2));
+                    }
+                  }}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                  title="Toggle between direct square footage input and sum of added glass items"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>{serviceSqftInput ? `Reset to Items (${itemsSqft.toFixed(2)} sq ft)` : `Items: ${itemsSqft.toFixed(2)} sq ft`}</span>
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              <div className="bg-background/80 p-2.5 rounded-lg border border-border/60">
+            {/* Direct Square Footage & Rate Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="serviceSqft" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                    <span>Total Service Sq Ft</span>
+                  </Label>
+                  {serviceSqftInput && (
+                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase">Override</span>
+                  )}
+                </div>
+                <Input
+                  id="serviceSqft"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={itemsSqft > 0 ? itemsSqft.toFixed(2) : 'e.g. 24.50'}
+                  value={serviceSqftInput}
+                  onChange={(e) => setServiceSqftInput && setServiceSqftInput(e.target.value)}
+                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
+                />
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  {itemsSqft > 0 && !serviceSqftInput
+                    ? `Auto-synced from ${itemsSqft.toFixed(2)} sq ft of added glass.`
+                    : 'Enter custom sq ft or add items below.'}
+                </p>
+              </div>
+
+              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
+                <Label htmlFor="serviceLabourRate" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Calculator className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>Labour Rate ($/sqft)</span>
+                </Label>
+                <Input
+                  id="serviceLabourRate"
+                  type="number"
+                  step="0.10"
+                  min="0"
+                  placeholder={(labour.labourRatePerSqft || 14.40).toFixed(2)}
+                  value={serviceLabourRateInput}
+                  onChange={(e) => setServiceLabourRateInput && setServiceLabourRateInput(e.target.value)}
+                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
+                />
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Default ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft.
+                </p>
+              </div>
+
+              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
+                <Label htmlFor="serviceMiscRate" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Calculator className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  <span>Misc / Materials ($/sqft)</span>
+                </Label>
+                <Input
+                  id="serviceMiscRate"
+                  type="number"
+                  step="0.10"
+                  min="0"
+                  placeholder={(labour.miscRatePerSqft || 2.40).toFixed(2)}
+                  value={serviceMiscRateInput}
+                  onChange={(e) => setServiceMiscRateInput && setServiceMiscRateInput(e.target.value)}
+                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
+                />
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Default ${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft.
+                </p>
+              </div>
+            </div>
+
+            {/* Live Financial Breakdown Tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
                 <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Service Labour (${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                  Service Labour
                 </div>
                 <div className="text-sm font-bold font-mono text-primary">
-                  ${((totals.serviceLabourTotal ?? ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                  ${(totals.serviceLabourTotal || 0).toFixed(2)}
                 </div>
               </div>
 
-              <div className="bg-background/80 p-2.5 rounded-lg border border-border/60">
+              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
                 <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Service Materials &amp; Misc (${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
+                  Materials &amp; Misc
                 </div>
                 <div className="text-sm font-bold font-mono text-foreground">
-                  ${((totals.miscTotal ?? ((totals.totalSqft || 0) * (labour.miscRatePerSqft || 2.40)))).toFixed(2)}
+                  ${(totals.miscTotal || 0).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
+                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
+                  Subtotal (Pre-Tax)
+                </div>
+                <div className="text-sm font-bold font-mono text-foreground">
+                  ${(totals.subtotalPreTax || 0).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
+                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
+                  Grand Total (13% HST)
+                </div>
+                <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  ${(totals.grandTotal || 0).toFixed(2)}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-blue-500/20 text-muted-foreground">
+            <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-blue-500/20 text-muted-foreground">
               <span>Tax status:</span>
               <span className="font-bold text-foreground">Strictly 13% HST (Material Exemption Inapplicable)</span>
             </div>

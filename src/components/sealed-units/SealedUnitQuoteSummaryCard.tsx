@@ -50,6 +50,8 @@ export interface SealedUnitQuoteSummaryCardProps {
     subtotalPreTax: number;
     hstAmount: number;
     grandTotal: number;
+    effectiveLabourRate?: number;
+    effectiveMiscRate?: number;
   };
   customerName: string;
   quoteNumber: string;
@@ -58,7 +60,7 @@ export interface SealedUnitQuoteSummaryCardProps {
   user?: any;
   onOpenSubmitModal?: () => void;
   onPrint: () => void;
-  onResetQuote: () => void;
+  onResetQuote?: () => void;
   onSaveDraft?: () => void;
   onOpenSavedQuotes?: () => void;
 }
@@ -84,6 +86,7 @@ export function SealedUnitQuoteSummaryCard({
   onOpenSavedQuotes,
 }: SealedUnitQuoteSummaryCardProps) {
   const isService = mode === 'service_only';
+  const hasContent = isService ? ((totals.totalSqft || 0) > 0 || lineItemsCount > 0) : lineItemsCount > 0;
 
   // 50/50 Deposit Schedule (Matching Promo Calculator)
   const firstPayment = Math.floor((totals.grandTotal / 2) * 100) / 100;
@@ -122,12 +125,16 @@ export function SealedUnitQuoteSummaryCard({
       </div>
 
       <div className="p-3 sm:p-3.5 space-y-3">
-        {lineItemsCount === 0 ? (
+        {!hasContent ? (
           <div className="py-8 text-center text-muted-foreground space-y-1.5">
             <PackageCheck className="w-8 h-8 mx-auto opacity-30 text-muted-foreground" />
-            <div className="text-xs font-semibold">No items added to quote yet</div>
+            <div className="text-xs font-semibold">
+              {isService ? 'No service square footage entered yet' : 'No items added to quote yet'}
+            </div>
             <p className="text-[11px] text-muted-foreground/80 max-w-xs mx-auto">
-              Configure glass specs on the left and click &quot;Add to Quote&quot; to compute exact pricing.
+              {isService
+                ? 'Enter total service square footage above or configure glass units on the left to compute pricing.'
+                : 'Configure glass specs on the left and click "Add to Quote" to compute exact pricing.'}
             </p>
           </div>
         ) : (
@@ -139,20 +146,20 @@ export function SealedUnitQuoteSummaryCard({
                   {/* Service Labour on Total Sqft */}
                   <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
                     <span className="text-muted-foreground font-medium">
-                      Service Labour ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                      Service Labour ({(totals.totalSqft || 0).toFixed(2)} sq ft @ ${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
                     </span>
                     <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                      ${(totals.serviceLabourTotal ?? (totals.combinedLabourTotal || ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                      ${(totals.serviceLabourTotal ?? ((totals.totalSqft || 0) * (totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40))).toFixed(2)}
                     </span>
                   </div>
 
                   {/* Service Misc on Total Sqft */}
                   <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
                     <span className="text-muted-foreground font-medium">
-                      Service Materials &amp; Misc ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
+                      Service Materials &amp; Misc ({(totals.totalSqft || 0).toFixed(2)} sq ft @ ${(totals.effectiveMiscRate || labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
                     </span>
                     <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                      +${totals.miscTotal.toFixed(2)}
+                      +${(totals.miscTotal || 0).toFixed(2)}
                     </span>
                   </div>
                 </>

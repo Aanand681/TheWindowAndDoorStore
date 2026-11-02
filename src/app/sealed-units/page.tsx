@@ -121,8 +121,19 @@ export default function SealedUnitsCalculatorPage() {
   const isInstallation = sealedUnitMode === 'installation';
   const isSupplyOnly = sealedUnitMode === 'supply_only';
   const isServiceOnly = sealedUnitMode === 'service_only';
+  const [serviceSqftInput, setServiceSqftInput] = useState<string>('');
+  const [serviceLabourRateInput, setServiceLabourRateInput] = useState<string>('');
+  const [serviceMiscRateInput, setServiceMiscRateInput] = useState<string>('');
+
+  const handleSetSealedUnitMode = (newMode: 'installation' | 'supply_only' | 'service_only') => {
+    setSealedUnitMode(newMode);
+    if (newMode === 'service_only') {
+      setHstRate(13); // Tax is strictly 13% for on-site services
+    }
+  };
+
   const setIsInstallation = (val: boolean) => {
-    setSealedUnitMode(val ? 'installation' : 'supply_only');
+    handleSetSealedUnitMode(val ? 'installation' : 'supply_only');
   };
   const [travelFeeType, setTravelFeeType] = useState<'none' | 'far_std' | 'far_small' | 'custom'>('none');
   const [customTravelFee, setCustomTravelFee] = useState<string>('');
@@ -368,18 +379,33 @@ export default function SealedUnitsCalculatorPage() {
   // --- Aggregate Financial Calculations ---
   const totals = useMemo(() => {
     const totalUnits = lineItems.reduce((acc, item) => acc + item.quantity, 0);
-    // User Rule: use ACTUAL unrounded sq ft for labour & tax
-    const totalSqft = lineItems.reduce((acc, item) => acc + item.actualSqft * item.quantity, 0);
+    // Actual square footage calculated from added line items
+    const itemsSqft = lineItems.reduce((acc, item) => acc + item.actualSqft * item.quantity, 0);
     const totalBillableSqft = lineItems.reduce((acc, item) => acc + item.billableSqft * item.quantity, 0);
 
-    // Glass calculation breakdown
-    const glassBefore8PercentTotal = lineItems.reduce((acc, item) => acc + item.multipliedTotal, 0);
-    const glass8PercentSurchargeTotal = lineItems.reduce((acc, item) => acc + item.surcharge8PercentTotal, 0);
-    const glassSupplyTotal = lineItems.reduce((acc, item) => acc + item.lineGlassTotal, 0);
+    const effectiveLabourRate = serviceLabourRateInput !== ''
+      ? (parseFloat(serviceLabourRateInput) || 0)
+      : (labour.labourRatePerSqft || 14.40);
+
+    const effectiveMiscRate = serviceMiscRateInput !== ''
+      ? (parseFloat(serviceMiscRateInput) || 0)
+      : (labour.miscRatePerSqft || 2.40);
+
+    // If service sqft is entered directly, use it; otherwise fallback to itemsSqft
+    const effectiveServiceSqft = isServiceOnly && serviceSqftInput.trim() !== ''
+      ? (parseFloat(serviceSqftInput) || 0)
+      : itemsSqft;
+
+    const totalSqft = isServiceOnly ? effectiveServiceSqft : itemsSqft;
+
+    // Glass calculation breakdown: strictly $0.00 in Service Only mode
+    const glassBefore8PercentTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.multipliedTotal, 0);
+    const glass8PercentSurchargeTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.surcharge8PercentTotal, 0);
+    const glassSupplyTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.lineGlassTotal, 0);
 
     // Service Only calculation (user rule: labour of total sqft + misc for that, subtotal, 13% hst, total)
     const serviceLabourTotal = isServiceOnly
-      ? Math.round(totalSqft * (labour.labourRatePerSqft || 14.40) * 100) / 100
+      ? Math.round(effectiveServiceSqft * effectiveLabourRate * 100) / 100
       : 0;
 
     // Installation Labour & Misc (calculated on actual unrounded sq ft)
@@ -390,7 +416,7 @@ export default function SealedUnitsCalculatorPage() {
     const miscTotal = isInstallation
       ? lineItems.reduce((acc, item) => acc + item.totalMisc, 0)
       : isServiceOnly
-      ? Math.round(totalSqft * (labour.miscRatePerSqft || 2.40) * 100) / 100
+      ? Math.round(effectiveServiceSqft * effectiveMiscRate * 100) / 100
       : 0;
 
     // Fixed Base Setup Fee: strictly $140 only when isInstallation === true, else $0
@@ -435,9 +461,6 @@ export default function SealedUnitsCalculatorPage() {
 
     // Exact Shop Tax Options:
     // In Service Only: strictly 13% HST (no point-of-sale material exemption rebate)
-    // 13: 13% HST on full subtotal
-    // 8: 8% Exempt on Materials: 5% GST on materials, 13% HST on labour and services
-    // 0: No Tax (0%)
     let hstAmount = 0;
     if (isServiceOnly) {
       hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100;
@@ -458,6 +481,7 @@ export default function SealedUnitsCalculatorPage() {
     return {
       totalUnits,
       totalSqft,
+      itemsSqft,
       totalBillableSqft,
       glassBefore8PercentTotal,
       glass8PercentSurchargeTotal,
@@ -475,12 +499,18 @@ export default function SealedUnitsCalculatorPage() {
       subtotalPreTax,
       hstAmount,
       grandTotal,
+      effectiveLabourRate,
+      effectiveMiscRate,
+      isServiceOnly,
     };
   }, [
     lineItems,
     sealedUnitMode,
     isInstallation,
     isServiceOnly,
+    serviceSqftInput,
+    serviceLabourRateInput,
+    serviceMiscRateInput,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
@@ -515,6 +545,9 @@ export default function SealedUnitsCalculatorPage() {
       } else if (d.isInstallation !== undefined) {
         setIsInstallation(d.isInstallation);
       }
+      if (d.serviceSqftInput !== undefined) setServiceSqftInput(d.serviceSqftInput);
+      if (d.serviceLabourRateInput !== undefined) setServiceLabourRateInput(d.serviceLabourRateInput);
+      if (d.serviceMiscRateInput !== undefined) setServiceMiscRateInput(d.serviceMiscRateInput);
       if (d.travelFeeType !== undefined) setTravelFeeType(d.travelFeeType);
       if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee);
       if (d.showOutTownTravel !== undefined) setShowOutTownTravel(d.showOutTownTravel);
@@ -532,6 +565,9 @@ export default function SealedUnitsCalculatorPage() {
         lineItems: d.lineItems || [],
         sealedUnitMode: d.sealedUnitMode || (d.isInstallation ? 'installation' : 'supply_only'),
         isInstallation: Boolean(d.isInstallation),
+        serviceSqftInput: d.serviceSqftInput || '',
+        serviceLabourRateInput: d.serviceLabourRateInput || '',
+        serviceMiscRateInput: d.serviceMiscRateInput || '',
         travelFeeType: d.travelFeeType,
         customTravelFee: d.customTravelFee,
         showOutTownTravel: d.showOutTownTravel,
@@ -555,16 +591,17 @@ export default function SealedUnitsCalculatorPage() {
       .map((l) => `${l.paneType === 'triple' ? 'Triple' : 'Dual'} Pane`)
       .slice(0, 3)
       .join(', ');
-    const summaryTypeDesc =
-      lineItems.length > 0
-        ? `${lineItems.length} Sealed Units (${panesCount}${lineItems.length > 3 ? '...' : ''})`
-        : '0 Sealed Units';
+    const summaryTypeDesc = isServiceOnly
+      ? `Service Only (${(totals.totalSqft || 0).toFixed(1)} sq ft)`
+      : lineItems.length > 0
+      ? `${lineItems.length} Sealed Units (${panesCount}${lineItems.length > 3 ? '...' : ''})`
+      : '0 Sealed Units';
 
     saveQuoteDraft({
       type: 'sealed_unit',
       quoteNumber: effectiveQuoteNumber,
       customerName: customerName.trim() || 'Unnamed Customer',
-      itemCount: lineItems.reduce((acc, it) => acc + it.quantity, 0),
+      itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.reduce((acc, it) => acc + it.quantity, 0),
       subtotal: totals.subtotalPreTax || 0,
       grandTotal: totals.grandTotal || 0,
       summaryLabel: summaryTypeDesc,
@@ -575,6 +612,9 @@ export default function SealedUnitsCalculatorPage() {
         lineItems,
         sealedUnitMode,
         isInstallation,
+        serviceSqftInput,
+        serviceLabourRateInput,
+        serviceMiscRateInput,
         travelFeeType,
         customTravelFee,
         showOutTownTravel,
@@ -584,7 +624,7 @@ export default function SealedUnitsCalculatorPage() {
         hstRate,
         subtotal: totals.subtotalPreTax || 0,
         grandTotal: totals.grandTotal || 0,
-        itemCount: lineItems.length,
+        itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
         totals: totals,
       },
     });
@@ -605,6 +645,9 @@ export default function SealedUnitsCalculatorPage() {
       lineItems,
       sealedUnitMode,
       isInstallation,
+      serviceSqftInput,
+      serviceLabourRateInput,
+      serviceMiscRateInput,
       travelFeeType,
       customTravelFee,
       showOutTownTravel,
@@ -621,7 +664,12 @@ export default function SealedUnitsCalculatorPage() {
     lineItems,
     totals,
     quoteNotes,
+    sealedUnitMode,
     isInstallation,
+    isServiceOnly,
+    serviceSqftInput,
+    serviceLabourRateInput,
+    serviceMiscRateInput,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
@@ -671,7 +719,7 @@ export default function SealedUnitsCalculatorPage() {
 
   // Debounced auto-save effect
   useEffect(() => {
-    const hasContent = lineItems.length > 0 || customerName.trim() !== '';
+    const hasContent = lineItems.length > 0 || (isServiceOnly && (totals.totalSqft || 0) > 0) || customerName.trim() !== '';
     if (!hasContent) return;
 
     // Check if state is identical to last explicitly saved or loaded snapshot
@@ -681,6 +729,9 @@ export default function SealedUnitsCalculatorPage() {
       lineItems,
       sealedUnitMode,
       isInstallation,
+      serviceSqftInput,
+      serviceLabourRateInput,
+      serviceMiscRateInput,
       travelFeeType,
       customTravelFee,
       showOutTownTravel,
@@ -699,12 +750,16 @@ export default function SealedUnitsCalculatorPage() {
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
+      const summaryLabel = isServiceOnly
+        ? `Service Only (${(totals.totalSqft || 0).toFixed(1)} sq ft)`
+        : `${lineItems.length} Sealed Units`;
+
       saveActiveAutoSave('sealed_unit', {
         quoteNumber: quoteNumber || 'Draft',
         customerName: customerName || '',
-        itemCount: lineItems.length,
+        itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
         grandTotal: totals.grandTotal || 0,
-        summaryLabel: `${lineItems.length} Sealed Units`,
+        summaryLabel,
         data: {
           quoteNumber,
           customerName,
@@ -712,6 +767,9 @@ export default function SealedUnitsCalculatorPage() {
           lineItems,
           sealedUnitMode,
           isInstallation,
+          serviceSqftInput,
+          serviceLabourRateInput,
+          serviceMiscRateInput,
           travelFeeType,
           customTravelFee,
           showOutTownTravel,
@@ -721,7 +779,7 @@ export default function SealedUnitsCalculatorPage() {
           hstRate,
           subtotal: totals.subtotalPreTax || 0,
           grandTotal: totals.grandTotal || 0,
-          itemCount: lineItems.length,
+          itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
           totals: totals,
         },
       });
@@ -739,6 +797,10 @@ export default function SealedUnitsCalculatorPage() {
     quoteNotes,
     sealedUnitMode,
     isInstallation,
+    isServiceOnly,
+    serviceSqftInput,
+    serviceLabourRateInput,
+    serviceMiscRateInput,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
@@ -750,16 +812,16 @@ export default function SealedUnitsCalculatorPage() {
   ]);
 
   const handlePrint = () => {
-    if (lineItems.length === 0) {
-      toast.error('Add at least one line item before printing.');
+    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
+      toast.error('Add at least one line item or enter service sq ft before printing.');
       return;
     }
     window.print();
   };
 
   const handleAttachToWindowQuote = () => {
-    if (lineItems.length === 0) {
-      toast.error('Add at least one sealed unit before attaching to a window quote.');
+    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
+      toast.error('Add at least one sealed unit or enter service sq ft before attaching to a window quote.');
       return;
     }
     handleSaveDraft();
@@ -774,8 +836,8 @@ export default function SealedUnitsCalculatorPage() {
       toast.error('Please enter Customer Name and Quote Number before submitting!');
       return;
     }
-    if (lineItems.length === 0) {
-      toast.error('Please add at least one sealed unit to the quote before submitting!');
+    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
+      toast.error('Please add at least one sealed unit or enter service sq ft before submitting!');
       return;
     }
 
@@ -794,6 +856,27 @@ export default function SealedUnitsCalculatorPage() {
 
     setSubmittingQuote(true);
     try {
+      const effectiveLineItems = lineItems.length > 0 ? lineItems : [
+        {
+          id: 'service-unit-1',
+          combinationName: 'On-Site Sealed Unit Glazing Service',
+          paneType: 'dual',
+          treatment: 'annealed',
+          thicknessMm: 0,
+          widthIn: 0,
+          heightIn: 0,
+          actualSqft: totals.totalSqft,
+          billableSqft: Math.ceil(totals.totalSqft),
+          quantity: 1,
+          finalUnitPrice: 0,
+          multipliedAmount: 0,
+          multipliedTotal: 0,
+          lineGlassTotal: 0,
+          totalLabour: totals.serviceLabourTotal,
+          totalMisc: totals.miscTotal,
+        } as any,
+      ];
+
       const res = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -805,7 +888,7 @@ export default function SealedUnitsCalculatorPage() {
           odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
           preparerNotes,
           quoteNotes,
-          windows: lineItems,
+          windows: effectiveLineItems,
           taxTotals: {
             isSupplyOnly: !isInstallation,
             subtotalPreTax: totals.subtotalPreTax,
@@ -1076,7 +1159,7 @@ export default function SealedUnitsCalculatorPage() {
             <div className="lg:col-span-7 space-y-3">
               <SealedUnitLabourTravelCard
                 mode={sealedUnitMode}
-                setMode={setSealedUnitMode}
+                setMode={handleSetSealedUnitMode}
                 isInstallation={isInstallation}
                 setIsInstallation={setIsInstallation}
                 labour={labour}
@@ -1092,6 +1175,13 @@ export default function SealedUnitsCalculatorPage() {
                 setCrewHours={setCrewHours}
                 crewSize={crewSize}
                 setCrewSize={setCrewSize}
+                serviceSqftInput={serviceSqftInput}
+                setServiceSqftInput={setServiceSqftInput}
+                serviceLabourRateInput={serviceLabourRateInput}
+                setServiceLabourRateInput={setServiceLabourRateInput}
+                serviceMiscRateInput={serviceMiscRateInput}
+                setServiceMiscRateInput={setServiceMiscRateInput}
+                itemsSqft={totals.itemsSqft || 0}
                 totals={totals}
               />
 
@@ -1114,8 +1204,8 @@ export default function SealedUnitsCalculatorPage() {
                     toast.error('Please enter a Customer Name and Quote Number before submitting!');
                     return;
                   }
-                  if (lineItems.length === 0) {
-                    toast.error('Add at least one line item to the quote before submitting!');
+                  if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
+                    toast.error('Add at least one line item or enter service sq ft before submitting!');
                     return;
                   }
                   const otherReviewers = staffList.filter(
@@ -1147,6 +1237,9 @@ export default function SealedUnitsCalculatorPage() {
           <SealedUnitLineItemsTable
             lineItems={lineItems}
             isInstallation={isInstallation}
+            mode={sealedUnitMode}
+            labourRate={totals.effectiveLabourRate}
+            miscRate={totals.effectiveMiscRate}
             onRemoveItem={handleRemoveItem}
             onResetQuote={handleResetQuote}
           />

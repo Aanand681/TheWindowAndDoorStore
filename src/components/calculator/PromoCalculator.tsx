@@ -290,9 +290,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
     if (attachedSealedUnit && quoteResult) {
       const suTotals = attachedSealedUnit.totals || {};
-      const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-      const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-      const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+      const isAttachedSUService =
+        attachedSealedUnit.sealedUnitMode === 'service_only' ||
+        attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+        Boolean(suTotals.isServiceOnly);
+      const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+      const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+      const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
       const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
       const windowBaseCents = quoteResult.base || 0;
@@ -504,9 +508,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
       if (attachedSealedUnit && quoteResult) {
         const suTotals = attachedSealedUnit.totals || {};
-        const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-        const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-        const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+        const isAttachedSUService =
+          attachedSealedUnit.sealedUnitMode === 'service_only' ||
+          attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+          Boolean(suTotals.isServiceOnly);
+        const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+        const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+        const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
         const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
         const windowBaseCents = quoteResult.base || 0;

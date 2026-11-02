@@ -386,10 +386,14 @@ export default function QuoteInvoice({
   // Combined Sealed Unit Calculations (if attachedSealedUnit is present)
   const hasAttachedSU = Boolean(attachedSealedUnit && attachedSealedUnit.totals);
   const suTotals = attachedSealedUnit?.totals || {};
+  const isAttachedSUService =
+    attachedSealedUnit?.sealedUnitMode === 'service_only' ||
+    attachedSealedUnit?.data?.sealedUnitMode === 'service_only' ||
+    Boolean(suTotals.isServiceOnly);
   const suLineItems: any[] = attachedSealedUnit?.lineItems || [];
-  const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-  const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-  const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+  const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+  const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+  const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
   const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
   const effectiveMiscTotalCents = taxMiscCents + (hasAttachedSU ? suMiscCents : 0);
@@ -443,7 +447,12 @@ export default function QuoteInvoice({
 
   // Sealed Unit Summary Sentence for Line 2
   let suSummarySentence = 'Sealed Unit';
-  if (suLineItems.length > 0) {
+  if (isAttachedSUService) {
+    const suSqft = Number(suTotals.totalSqft || 0);
+    suSummarySentence = suSqft > 0
+      ? `Sealed Unit On-Site Service (${suSqft.toFixed(1)} sq ft)`
+      : 'Sealed Unit Service Only';
+  } else if (suLineItems.length > 0) {
     const totalSUQty = suLineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
     const paneTypes = Array.from(new Set(suLineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual'))));
     suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit${totalSUQty > 1 ? 's' : ''}`;
@@ -570,18 +579,33 @@ export default function QuoteInvoice({
   };
 
   const renderSealedUnitsTable = (theme: 'modern' | 'executive' | 'cards') => {
-    if (!hasAttachedSU || suLineItems.length === 0) return null;
+    if (!hasAttachedSU || (suLineItems.length === 0 && !(isAttachedSUService && (suTotals.totalSqft || 0) > 0))) return null;
 
     const isModern = theme === 'modern';
     const isExecutive = theme === 'executive';
     const isCards = theme === 'cards';
+    const effectiveSULineItems = suLineItems.length > 0 ? suLineItems : [
+      {
+        id: 'su-service-1',
+        widthIn: 'Custom Area',
+        heightIn: '',
+        paneType: 'dual',
+        combinationName: 'On-Site Sealed Unit Service & Glazing',
+        shapeDescription: 'On-Site Service',
+        grillDescription: 'No Grills',
+        quantity: 1,
+        multipliedAmount: 0,
+        multipliedTotal: 0,
+        actualSqft: suTotals.totalSqft || 0,
+      }
+    ];
 
     return (
       <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
         <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
           <div className="flex items-center gap-2">
             <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
-              Sealed Glass Units
+              {isAttachedSUService ? 'Sealed Unit Service Work' : 'Sealed Glass Units'}
             </span>
             {attachedSealedUnit.quoteNumber && (
               <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
@@ -590,7 +614,7 @@ export default function QuoteInvoice({
             )}
           </div>
           <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
-            {suLineItems.length} item{suLineItems.length > 1 ? 's' : ''}
+            {effectiveSULineItems.length} item{effectiveSULineItems.length > 1 ? 's' : ''}
           </span>
         </div>
 
@@ -598,7 +622,7 @@ export default function QuoteInvoice({
           <thead>
             <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
               <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
-              <th className="py-1 px-1.5 text-left font-bold w-[25%]">Dimensions</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[25%]">{isAttachedSUService ? 'Dimensions / Scope' : 'Dimensions'}</th>
               <th className="py-1 px-1.5 text-left font-bold w-[34%]">Glass Specification</th>
               <th className="py-1 px-1.5 text-left font-bold w-[18%]">Shape &amp; Grills</th>
               <th className="py-1 px-1.5 text-center font-bold w-[6%]">Qty</th>
@@ -606,10 +630,10 @@ export default function QuoteInvoice({
             </tr>
           </thead>
           <tbody style={{ fontSize: `${bodyFs}px` }}>
-            {suLineItems.map((item: any, idx: number) => {
+            {effectiveSULineItems.map((item: any, idx: number) => {
               const qty = Number(item.quantity) || 1;
-              const unitPrice = item.multipliedAmount || 0;
-              const lineTotal = item.multipliedTotal || (unitPrice * qty);
+              const unitPrice = isAttachedSUService ? 0 : (item.multipliedAmount || 0);
+              const lineTotal = isAttachedSUService ? 0 : (item.multipliedTotal || (unitPrice * qty));
               const paneLabel = item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane';
               const glassSpec = item.combinationName || `${paneLabel} · ${item.treatment || 'Cardinal 366'}`;
               const shapeText = item.shapeDescription || item.shape || 'Standard (Rectangle)';
@@ -621,10 +645,10 @@ export default function QuoteInvoice({
                     {idx + 1}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
-                    {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                    {item.widthIn === 'Custom Area' ? `${(item.actualSqft || 0).toFixed(2)} sq ft total` : `${item.widthIn}" wide × ${item.heightIn}" high`}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#1e293b]">
-                    <span className="font-semibold">{paneLabel}</span>
+                    <span className="font-semibold">{isAttachedSUService ? 'On-Site Service' : paneLabel}</span>
                     <span className="text-[#475569] text-xs block">{glassSpec}</span>
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155]">
@@ -639,11 +663,19 @@ export default function QuoteInvoice({
                     {qty}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
-                    <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
-                    {qty > 1 && (
-                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
-                        ({formatMoney(Math.round(unitPrice * 100))} ea)
+                    {isAttachedSUService ? (
+                      <span className="text-xs text-blue-700 font-medium font-sans">
+                        Service Labour
                       </span>
+                    ) : (
+                      <>
+                        <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
+                        {qty > 1 && (
+                          <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
+                            ({formatMoney(Math.round(unitPrice * 100))} ea)
+                          </span>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

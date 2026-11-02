@@ -37,6 +37,8 @@ export interface SealedUnitPrintInvoiceProps {
     subtotalPreTax: number;
     hstAmount: number;
     grandTotal: number;
+    effectiveLabourRate?: number;
+    effectiveMiscRate?: number;
   };
 }
 
@@ -192,109 +194,138 @@ export function SealedUnitPrintInvoice({
             </tr>
           </thead>
           <tbody>
-            {lineItems.map((item, idx) => {
-              const grillText =
-                item.rawGrillCost > 0
-                  ? item.grill?.type === 'grid' && item.grill.colsCount && item.grill.rowsCount
-                    ? `(${item.grill.colsCount}×${item.grill.rowsCount}) (${item.grill.color || 'White'})`
-                    : item.grill?.type === '3_burst'
-                    ? `(3 Burst) (${item.grill.color || 'White'})`
-                    : item.grill?.type === '5_burst'
-                    ? `(5 Burst) (${item.grill.color || 'White'})`
-                    : item.grill?.type === 'customer_own'
-                    ? '(Customer Own)'
-                    : `(${item.grill?.color || 'Grills'})`
-                  : null;
+            {lineItems.length === 0 && isService ? (
+              <tr className="border-b border-gray-300 break-inside-avoid leading-tight">
+                <td className="py-1.5 px-1.5 border-r border-gray-300 text-center text-gray-600 font-mono text-[8pt]">
+                  1
+                </td>
+                <td className="py-1.5 px-1.5 border-r border-gray-300">
+                  <span className="font-bold text-gray-900">On-Site Sealed Unit Service &amp; Glazing</span>{' '}
+                  <span className="text-[7.5pt] text-gray-600">
+                    (Glazing labour &amp; service materials on total area)
+                  </span>
+                </td>
+                <td className="py-1.5 px-1.5 border-r border-gray-300 font-mono text-[8pt]">
+                  Custom / Direct Entry
+                </td>
+                <td className="py-1.5 px-1.5 border-r border-gray-300 text-center text-[8pt] text-gray-400">
+                  —
+                </td>
+                <td className="py-1.5 px-1.5 border-r border-gray-300 text-[8pt] text-gray-400">
+                  —
+                </td>
+                <td className="py-1.5 px-1.5 border-r border-gray-300 text-center font-mono font-bold text-gray-900">
+                  1
+                </td>
+                <td className="py-1.5 px-1.5 text-right font-mono text-gray-900 font-bold">
+                  {(totals.totalSqft || 0).toFixed(2)} sqft
+                </td>
+              </tr>
+            ) : (
+              lineItems.map((item, idx) => {
+                const grillText =
+                  item.rawGrillCost > 0
+                    ? item.grill?.type === 'grid' && item.grill.colsCount && item.grill.rowsCount
+                      ? `(${item.grill.colsCount}×${item.grill.rowsCount}) (${item.grill.color || 'White'})`
+                      : item.grill?.type === '3_burst'
+                      ? `(3 Burst) (${item.grill.color || 'White'})`
+                      : item.grill?.type === '5_burst'
+                      ? `(5 Burst) (${item.grill.color || 'White'})`
+                      : item.grill?.type === 'customer_own'
+                      ? '(Customer Own)'
+                      : `(${item.grill?.color || 'Grills'})`
+                    : null;
 
-              const shapeText =
-                item.rawShapeCost > 0
-                  ? item.shape === 'rakehead_triangle'
-                    ? 'Rake / Triangle'
-                    : item.shape === 'roundtop_circle_octagon'
-                    ? 'Round / Circle'
-                    : 'Custom'
-                  : null;
+                const shapeText =
+                  item.rawShapeCost > 0
+                    ? item.shape === 'rakehead_triangle'
+                      ? 'Rake / Triangle'
+                      : item.shape === 'roundtop_circle_octagon'
+                      ? 'Round / Circle'
+                      : 'Custom'
+                    : null;
 
-              return (
-                <tr key={item.id} className="border-b border-gray-300 break-inside-avoid leading-tight">
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center text-gray-600 font-mono text-[8pt]">
-                    {idx + 1}
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300">
-                    <span className="font-bold text-gray-900">{item.combinationName}</span>{' '}
-                    <span className="text-[7.5pt] text-gray-600 capitalize">
-                      ({item.paneType === 'triple' ? 'Triple' : 'Dual'} • {item.thicknessMm}mm)
-                    </span>
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 font-mono text-[8pt] whitespace-nowrap">
-                    {item.widthIn}&quot; wide × {item.heightIn}&quot; high
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center text-[8pt]">
-                    {shapeText ? (
-                      <span className="font-semibold text-gray-900">{shapeText}</span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-[8pt]">
-                    {grillText ? (
-                      <span className="font-semibold text-gray-900">{grillText}</span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono font-bold text-gray-900">
-                    {item.quantity}
-                  </td>
-                  {!isService && (
-                    <td
-                      className={`py-1 px-1.5 ${
-                        isInstallation ? 'border-r border-gray-300' : ''
-                      } text-right`}
-                    >
-                      <div className="font-mono font-bold text-gray-900">
-                        ${item.multipliedAmount.toFixed(2)}
-                      </div>
-                      {item.quantity > 1 && (
-                        <div className="text-[6.5pt] text-gray-500 font-sans">
-                          total: ${item.multipliedTotal.toFixed(2)}
-                        </div>
+                return (
+                  <tr key={item.id} className="border-b border-gray-300 break-inside-avoid leading-tight">
+                    <td className="py-1 px-1.5 border-r border-gray-300 text-center text-gray-600 font-mono text-[8pt]">
+                      {idx + 1}
+                    </td>
+                    <td className="py-1 px-1.5 border-r border-gray-300">
+                      <span className="font-bold text-gray-900">{item.combinationName}</span>{' '}
+                      <span className="text-[7.5pt] text-gray-600 capitalize">
+                        ({item.paneType === 'triple' ? 'Triple' : 'Dual'} • {item.thicknessMm}mm)
+                      </span>
+                    </td>
+                    <td className="py-1 px-1.5 border-r border-gray-300 font-mono text-[8pt] whitespace-nowrap">
+                      {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                    </td>
+                    <td className="py-1 px-1.5 border-r border-gray-300 text-center text-[8pt]">
+                      {shapeText ? (
+                        <span className="font-semibold text-gray-900">{shapeText}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
                       )}
                     </td>
-                  )}
-                  {isInstallation && (
-                    <>
-                      <td className="py-1 px-1.5 border-r border-gray-300 text-right">
-                        <div className="font-mono text-gray-900">${item.unitLabour.toFixed(2)}</div>
+                    <td className="py-1 px-1.5 border-r border-gray-300 text-[8pt]">
+                      {grillText ? (
+                        <span className="font-semibold text-gray-900">{grillText}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono font-bold text-gray-900">
+                      {item.quantity}
+                    </td>
+                    {!isService && (
+                      <td
+                        className={`py-1 px-1.5 ${
+                          isInstallation ? 'border-r border-gray-300' : ''
+                        } text-right`}
+                      >
+                        <div className="font-mono font-bold text-gray-900">
+                          ${item.multipliedAmount.toFixed(2)}
+                        </div>
                         {item.quantity > 1 && (
                           <div className="text-[6.5pt] text-gray-500 font-sans">
-                            total: ${item.totalLabour.toFixed(2)}
+                            total: ${item.multipliedTotal.toFixed(2)}
                           </div>
                         )}
                       </td>
-                      <td className="py-1 px-1.5 text-right">
-                        <div className="font-mono text-gray-900">${item.unitMisc.toFixed(2)}</div>
+                    )}
+                    {isInstallation && (
+                      <>
+                        <td className="py-1 px-1.5 border-r border-gray-300 text-right">
+                          <div className="font-mono text-gray-900">${item.unitLabour.toFixed(2)}</div>
+                          {item.quantity > 1 && (
+                            <div className="text-[6.5pt] text-gray-500 font-sans">
+                              total: ${item.totalLabour.toFixed(2)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-1 px-1.5 text-right">
+                          <div className="font-mono text-gray-900">${item.unitMisc.toFixed(2)}</div>
+                          {item.quantity > 1 && (
+                            <div className="text-[6.5pt] text-gray-500 font-sans">
+                              total: ${item.totalMisc.toFixed(2)}
+                            </div>
+                          )}
+                        </td>
+                      </>
+                    )}
+                    {isService && (
+                      <td className="py-1 px-1.5 text-right font-mono text-gray-900">
+                        <div>{(item.actualSqft * item.quantity).toFixed(2)} sqft</div>
                         {item.quantity > 1 && (
                           <div className="text-[6.5pt] text-gray-500 font-sans">
-                            total: ${item.totalMisc.toFixed(2)}
+                            {item.actualSqft.toFixed(2)} sqft/unit
                           </div>
                         )}
                       </td>
-                    </>
-                  )}
-                  {isService && (
-                    <td className="py-1 px-1.5 text-right font-mono text-gray-900">
-                      <div>{(item.actualSqft * item.quantity).toFixed(2)} sqft</div>
-                      {item.quantity > 1 && (
-                        <div className="text-[6.5pt] text-gray-500 font-sans">
-                          {item.actualSqft.toFixed(2)} sqft/unit
-                        </div>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
+                    )}
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -308,64 +339,96 @@ export function SealedUnitPrintInvoice({
             <span className="font-mono text-[7pt] text-gray-500 font-normal">Internal Calculation</span>
           </div>
 
-          {/* Compact arithmetic stack: exactly 2 calculations in a row */}
-          <div className="grid grid-cols-2 gap-1.5">
-            {lineItems.map((item, idx) => {
-              const grillCost = item.rawGrillCost > 0 ? item.rawGrillCost.toFixed(2) : null;
-              const shapeCost = item.rawShapeCost > 0 ? item.rawShapeCost.toFixed(2) : null;
-              return (
-                <div
-                  key={item.id}
-                  className="border border-gray-300 bg-white rounded p-1 font-mono text-[7.5pt] leading-tight text-right shadow-2xs"
-                >
-                  <div className="font-sans font-bold text-[7pt] text-gray-800 border-b border-gray-200 pb-0.5 mb-0.5 text-left truncate">
-                    #{idx + 1} ({item.widthIn}&quot;×{item.heightIn}&quot;)
-                  </div>
-
-                  {/* Math Stack Notation */}
-                  <div className="pr-0.5">{item.billableSqft}</div>
-                  <div className="text-gray-700 pr-0.5">×{item.rateWithArgon.toFixed(2)}</div>
-                  <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                    {item.rawGlassCost.toFixed(2)}
-                  </div>
-                  {grillCost && (
-                    <>
-                      <div className="text-amber-900 pr-0.5">
-                        +{grillCost} <span className="text-[6.5pt] font-sans">Grills</span>
-                      </div>
-                      <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                        {item.rawPrice.toFixed(2)}
-                      </div>
-                    </>
-                  )}
-                  {shapeCost && !grillCost && (
-                    <>
-                      <div className="text-amber-900 pr-0.5">
-                        +{shapeCost} <span className="text-[6.5pt] font-sans">Shape</span>
-                      </div>
-                      <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                        {item.rawPrice.toFixed(2)}
-                      </div>
-                    </>
-                  )}
-                  <div className="text-gray-700 pr-0.5">27%</div>
-                  <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                    {item.subtotalAfterSurcharge.toFixed(2)}
-                  </div>
-                  <div className="text-gray-700 pr-0.5">2.5</div>
-                  <div className="border-t-2 border-black my-0.5 pt-0.5 font-bold text-black text-[8pt] pr-0.5">
-                    ${item.multipliedAmount.toFixed(2)}
-                  </div>
-                  <div className="text-[6pt] text-gray-500 font-sans text-right">(Unit Price)</div>
-                  {item.quantity > 1 && (
-                    <div className="border-t border-gray-300 mt-0.5 pt-0.5 font-bold text-black text-[7pt] pr-0.5">
-                      ×{item.quantity} = ${item.multipliedTotal.toFixed(2)}
+          {isService ? (
+            <div className="border border-blue-400 bg-white rounded p-1.5 text-[7.5pt] font-mono space-y-1 leading-snug">
+              <div className="font-bold text-gray-900 border-b border-gray-200 pb-0.5 text-[7pt] uppercase font-sans flex justify-between">
+                <span>On-Site Service Breakdown</span>
+                <span className="text-blue-700 font-bold">13% HST</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-sans">Total Service Area:</span>
+                <span className="font-bold text-gray-900">{(totals.totalSqft || 0).toFixed(2)} sq ft</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-sans">Labour Rate:</span>
+                <span>${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t border-gray-200 pt-0.5">
+                <span className="font-sans">Labour Subtotal:</span>
+                <span className="text-gray-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-sans">Misc / Materials Rate:</span>
+                <span>${(totals.effectiveMiscRate || labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t border-gray-200 pt-0.5">
+                <span className="font-sans">Misc Subtotal:</span>
+                <span className="text-gray-900">${(totals.miscTotal || 0).toFixed(2)}</span>
+              </div>
+              <div className="border-t-2 border-black pt-0.5 flex justify-between font-bold text-black text-[8pt]">
+                <span className="font-sans">Pre-Tax Service:</span>
+                <span>${(totals.subtotalPreTax || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5">
+              {lineItems.map((item, idx) => {
+                const grillCost = item.rawGrillCost > 0 ? item.rawGrillCost.toFixed(2) : null;
+                const shapeCost = item.rawShapeCost > 0 ? item.rawShapeCost.toFixed(2) : null;
+                return (
+                  <div
+                    key={item.id}
+                    className="border border-gray-300 bg-white rounded p-1 font-mono text-[7.5pt] leading-tight text-right shadow-2xs"
+                  >
+                    <div className="font-sans font-bold text-[7pt] text-gray-800 border-b border-gray-200 pb-0.5 mb-0.5 text-left truncate">
+                      #{idx + 1} ({item.widthIn}&quot;×{item.heightIn}&quot;)
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+
+                    {/* Math Stack Notation */}
+                    <div className="pr-0.5">{item.billableSqft}</div>
+                    <div className="text-gray-700 pr-0.5">×{item.rateWithArgon.toFixed(2)}</div>
+                    <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                      {item.rawGlassCost.toFixed(2)}
+                    </div>
+                    {grillCost && (
+                      <>
+                        <div className="text-amber-900 pr-0.5">
+                          +{grillCost} <span className="text-[6.5pt] font-sans">Grills</span>
+                        </div>
+                        <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                          {item.rawPrice.toFixed(2)}
+                        </div>
+                      </>
+                    )}
+                    {shapeCost && !grillCost && (
+                      <>
+                        <div className="text-amber-900 pr-0.5">
+                          +{shapeCost} <span className="text-[6.5pt] font-sans">Shape</span>
+                        </div>
+                        <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                          {item.rawPrice.toFixed(2)}
+                        </div>
+                      </>
+                    )}
+                    <div className="text-gray-700 pr-0.5">27%</div>
+                    <div className="border-t border-gray-400 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                      {item.subtotalAfterSurcharge.toFixed(2)}
+                    </div>
+                    <div className="text-gray-700 pr-0.5">2.5</div>
+                    <div className="border-t-2 border-black my-0.5 pt-0.5 font-bold text-black text-[8pt] pr-0.5">
+                      ${item.multipliedAmount.toFixed(2)}
+                    </div>
+                    <div className="text-[6pt] text-gray-500 font-sans text-right">(Unit Price)</div>
+                    {item.quantity > 1 && (
+                      <div className="border-t border-gray-300 mt-0.5 pt-0.5 font-bold text-black text-[7pt] pr-0.5">
+                        ×{item.quantity} = ${item.multipliedTotal.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN (7 cols): Strict Sequence Quotation Summary + Special Notes */}
