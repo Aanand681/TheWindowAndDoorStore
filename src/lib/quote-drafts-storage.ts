@@ -38,6 +38,7 @@ export interface SealedUnitQuoteDraftPayload {
   quoteNotes: string;
   lineItems: any[];
   isInstallation: boolean;
+  sealedUnitMode?: 'installation' | 'supply_only' | 'service_only';
   travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;

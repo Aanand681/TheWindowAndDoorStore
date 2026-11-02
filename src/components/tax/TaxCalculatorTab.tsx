@@ -80,14 +80,7 @@ export default function TaxCalculatorTab({
     { crewSize: '4', hourlyRate: 500 }
   ]);
 
-  const [activeMode, setActiveMode] = useState<'installation' | 'supply_only' | 'service_only'>(() => {
-    if (isServiceOnlyProp || savedTaxTotals?.isServiceOnly) return 'service_only';
-    if (isSupplyOnlyProp || savedTaxTotals?.isSupplyOnly) return 'supply_only';
-    return 'installation';
-  });
-
-  const isSupplyOnly = activeMode === 'supply_only';
-  const isServiceOnly = activeMode === 'service_only';
+  const isSupplyOnly = Boolean(isSupplyOnlyProp || savedTaxTotals?.isSupplyOnly);
 
   const [addons, setAddons] = useState<Record<string, string>>({});
   
@@ -101,12 +94,12 @@ export default function TaxCalculatorTab({
 
   // Jambs & Casing:
   // Installation mode defaults to 4 1/2" ('j3') & Vinyl Casing ('vinyl')
-  // Supply Only & Service Only default to 'none' ($0.00)
-  const [jambId, setJambId] = useState<string>(() => (activeMode === 'installation' && !savedTaxTotals ? 'j3' : 'none'));
+  // Supply Only defaults to 'none' ($0.00)
+  const [jambId, setJambId] = useState<string>(() => (!isSupplyOnly && !savedTaxTotals ? 'j3' : 'none'));
   const [jambName, setJambName] = useState('');
   const [jambRate, setJambRate] = useState('');
   
-  const [casingId, setCasingId] = useState<string>(() => (activeMode === 'installation' && !savedTaxTotals ? 'vinyl' : 'none'));
+  const [casingId, setCasingId] = useState<string>(() => (!isSupplyOnly && !savedTaxTotals ? 'vinyl' : 'none'));
   const [casingName, setCasingName] = useState('');
   const [casingRate, setCasingRate] = useState('');
 
@@ -117,29 +110,6 @@ export default function TaxCalculatorTab({
   const [includeLabour, setIncludeLabour] = useState(true);
   const [includeMisc, setIncludeMisc] = useState(true);
   const [includeJC, setIncludeJC] = useState(true);
-
-  const handleModeSelect = (mode: 'installation' | 'supply_only' | 'service_only') => {
-    setActiveMode(mode);
-    if (mode === 'installation') {
-      setJambId('j3');
-      setCasingId('vinyl');
-      onModeChange?.('installation');
-    } else if (mode === 'supply_only') {
-      setJambId('none');
-      setCasingId('none');
-      setSetupFee('0');
-      setManualKm('0');
-      setManualHours('0');
-      setTravelInfo(null);
-      setCrew('none');
-      onModeChange?.('supply_only');
-    } else if (mode === 'service_only') {
-      setJambId('none');
-      setCasingId('none');
-      setHstOn(true);
-      onModeChange?.('service_only');
-    }
-  };
 
   const handleRegionSelect = (regId: string, currentRegions = regions) => {
     setSelectedRegionId(regId);
@@ -365,6 +335,13 @@ export default function TaxCalculatorTab({
   const region = regions.find(r => r._id === selectedRegionId);
   const effectiveIsSupplyOnly = isSupplyOnly || Boolean(isSupplyOnlyProp || region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
 
+  useEffect(() => {
+    if (effectiveIsSupplyOnly) {
+      setJambId('none');
+      setCasingId('none');
+    }
+  }, [effectiveIsSupplyOnly]);
+
   const calculate = () => {
     if (!region) return null;
     let sq = 0, ln = 0, wLab = 0, wMisc = 0;
@@ -374,16 +351,16 @@ export default function TaxCalculatorTab({
       const unitSq = (W * H) / 144;
       const sqft = unitSq * q;
       const lin = ((W * 2 + H * 2) / 12) * q + q * (Number(region.extraLinPerWindow) || 0);
-      const labRaw = isSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
-      const miscRaw = isSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
-      const lab = isSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
-      const misc = isSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
+      const labRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
+      const miscRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
+      const lab = effectiveIsSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
+      const misc = effectiveIsSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
       sq += sqft; ln += lin; wLab += lab; wMisc += misc;
       return { sqft, lin, lab, misc };
     });
 
     let aLab = 0, aMisc = 0;
-    if (!isSupplyOnly) {
+    if (!effectiveIsSupplyOnly) {
       dbAddons.forEach(a => {
         const q = Number(addons[a.id]) || 0;
         aLab += q * a.lab;
@@ -391,10 +368,9 @@ export default function TaxCalculatorTab({
       });
     }
 
-    const isSupply = activeMode === 'supply_only';
-    const isService = activeMode === 'service_only';
+    const isSupply = effectiveIsSupplyOnly;
 
-    const labourWindows = (isSupply || isService) ? 0 : (wLab + aLab);
+    const labourWindows = isSupply ? 0 : (wLab + aLab);
     const miscTotal = isSupply ? 0 : (wMisc + aMisc);
 
     const km = isSupply ? 0 : (Number(manualKm) || 0);
@@ -412,20 +388,20 @@ export default function TaxCalculatorTab({
     const jRate = jambId === 'none' ? 0 : (jambId === 'custom' ? Number(jambRate) || 0 : (dbJambs.find(j => j.id === jambId)?.rate || 0));
     const cRate = casingId === 'none' ? 0 : (casingId === 'custom' ? Number(casingRate) || 0 : (dbCasings.find(c => c.id === casingId)?.rate || 0));
     
-    const jambTot = jambId === 'none' ? 0 : ln * jRate;
-    const casingTot = casingId === 'none' ? 0 : ln * cRate;
+    // On Supply Only: jambs and casing are strictly $0 unless explicitly selected or custom
+    const jambTot = (isSupply || jambId === 'none') ? 0 : ln * jRate;
+    const casingTot = (isSupply || casingId === 'none') ? 0 : ln * cRate;
     const jc = jambTot + casingTot;
 
-    const labourTotal = (isSupply || isService) ? extras : (labourWindows + extras);
+    const labourTotal = isSupply ? extras : (labourWindows + extras);
     
     const finalLabour = (includeLabour && !isSupply) ? labourTotal : 0;
     const finalMisc = (includeMisc && !isSupply) ? miscTotal : 0;
-    const finalJC = includeJC ? jc : 0;
+    const finalJC = (includeJC && !isSupply) ? jc : 0;
     
     const disc = Number(discount) || 0;
     const subtotal = finalLabour + finalMisc + finalJC - disc;
-    // In Service Only: strictly fixed 13% HST (no point of sale rebate on service)
-    const hst = (isService || hstOn) ? subtotal * 0.13 : 0;
+    const hst = hstOn ? subtotal * 0.13 : 0;
     const total = subtotal + hst;
 
     const selectedAddonsList = isSupply ? [] : dbAddons
@@ -441,14 +417,14 @@ export default function TaxCalculatorTab({
         };
       });
 
-    const selectedJambObj = jambId !== 'none' ? {
+    const selectedJambObj = (jambId !== 'none' && !isSupply) ? {
       id: jambId,
       name: jambId === 'custom' ? (jambName || 'Custom Jamb') : (dbJambs.find(j => j.id === jambId)?.label || 'Jamb'),
       rate: jRate,
       total: jambTot
     } : null;
 
-    const selectedCasingObj = casingId !== 'none' ? {
+    const selectedCasingObj = (casingId !== 'none' && !isSupply) ? {
       id: casingId,
       name: casingId === 'custom' ? (casingName || 'Custom Casing') : (dbCasings.find(c => c.id === casingId)?.label || 'Casing'),
       rate: cRate,
@@ -457,7 +433,7 @@ export default function TaxCalculatorTab({
 
     return { 
       sq, ln, wLab, wMisc, aLab, aMisc,
-      labourWindows: (isSupply || isService) ? 0 : labourWindows,
+      labourWindows: isSupply ? 0 : labourWindows,
       miscTotal, vehicle, crewTravel, extras, jc, labourTotal, finalLabour, finalMisc, finalJC, subtotal, hst, total, lines,
       km,
       hrs,
@@ -466,26 +442,23 @@ export default function TaxCalculatorTab({
       vehicleRate: dbVehicleRate,
       setup,
       setupFee,
-      fixedSetupFee: (isSupply || isService) ? 0 : region.fixedSetupFee,
-      baseTravelFee: (isSupply || isService) ? 0 : (region.baseTravelFee || 0),
       isSupplyOnly: isSupply,
-      isServiceOnly: isService,
-      quoteMode: activeMode,
+      isServiceOnly: false,
       selectedAddons: selectedAddonsList,
       addonsMap: addons,
       dbAddons,
       selectedRegionId,
       coords,
-      jambId,
-      jambRate: jRate,
-      jambName: selectedJambObj?.name || jambName,
-      casingId,
-      casingRate: cRate,
-      casingName: selectedCasingObj?.name || casingName,
+      jambId: isSupply ? 'none' : jambId,
+      jambRate: isSupply ? 0 : jRate,
+      jambName: selectedJambObj?.name || (isSupply ? '' : jambName),
+      casingId: isSupply ? 'none' : casingId,
+      casingRate: isSupply ? 0 : cRate,
+      casingName: selectedCasingObj?.name || (isSupply ? '' : casingName),
       selectedJamb: selectedJambObj,
       selectedCasing: selectedCasingObj,
       discount: disc,
-      hstOn: isService ? true : hstOn,
+      hstOn: Boolean(hstOn),
       includeLabour,
       includeMisc,
       includeJC,
@@ -498,7 +471,7 @@ export default function TaxCalculatorTab({
     };
   };
 
-  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly]);
+  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly, effectiveIsSupplyOnly]);
 
   useEffect(() => {
     if (onCalculated && c) {
@@ -578,50 +551,14 @@ export default function TaxCalculatorTab({
           <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-base sm:text-lg">Region &amp; Quoting Mode</CardTitle>
-                <CardDescription className="text-xs">Select your order mode and regional travel zone.</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Region Profile</CardTitle>
+                <CardDescription className="text-xs">Select your regional travel and service profile.</CardDescription>
               </div>
 
-              {/* 3-way Mode Toggle */}
-              {!readOnly && (
-                <div className="flex items-center p-1 bg-muted/80 rounded-xl border border-border shadow-xs shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleModeSelect('installation')}
-                    className={cn(
-                      "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                      activeMode === 'installation'
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Installation
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleModeSelect('supply_only')}
-                    className={cn(
-                      "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                      activeMode === 'supply_only'
-                        ? "bg-amber-600 text-white shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Supply Only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleModeSelect('service_only')}
-                    className={cn(
-                      "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                      activeMode === 'service_only'
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Service Only
-                  </button>
-                </div>
+              {effectiveIsSupplyOnly && (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                  Supply Only Mode Active
+                </span>
               )}
             </div>
           </CardHeader>
@@ -638,24 +575,17 @@ export default function TaxCalculatorTab({
                 </SelectContent>
               </Select>
 
-              {activeMode === 'installation' && (
+              {!effectiveIsSupplyOnly && (
                 <span className="text-xs text-muted-foreground">
                   Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft. Default 4 1/2" Jamb &amp; Vinyl Casing active.
                 </span>
               )}
             </div>
 
-            {activeMode === 'supply_only' && (
+            {effectiveIsSupplyOnly && (
               <div className="mt-2.5 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                 <span className="font-bold text-xs sm:text-sm">⚡ Supply Only Order:</span>
                 <span>Installation labour, travel fees, and setup fees are $0.00. Optional Jamb &amp; Casing defaults to $0.00.</span>
-              </div>
-            )}
-
-            {activeMode === 'service_only' && (
-              <div className="mt-2.5 p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                <span className="font-bold text-xs sm:text-sm">🔧 Service Only Quote:</span>
-                <span>Window base price is $0.00. Enter sealed unit repair sizes, Labour, and Misc. Fixed 13% HST applies (no 8% rebate on service work).</span>
               </div>
             )}
           </CardContent>

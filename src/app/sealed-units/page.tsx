@@ -117,7 +117,13 @@ export default function SealedUnitsCalculatorPage() {
 
   // Quote State
   const [lineItems, setLineItems] = useState<SealedUnitLineItem[]>([]);
-  const [isInstallation, setIsInstallation] = useState<boolean>(true); // Supply Only vs Installation
+  const [sealedUnitMode, setSealedUnitMode] = useState<'installation' | 'supply_only' | 'service_only'>('installation');
+  const isInstallation = sealedUnitMode === 'installation';
+  const isSupplyOnly = sealedUnitMode === 'supply_only';
+  const isServiceOnly = sealedUnitMode === 'service_only';
+  const setIsInstallation = (val: boolean) => {
+    setSealedUnitMode(val ? 'installation' : 'supply_only');
+  };
   const [travelFeeType, setTravelFeeType] = useState<'none' | 'far_std' | 'far_small' | 'custom'>('none');
   const [customTravelFee, setCustomTravelFee] = useState<string>('');
   const [showOutTownTravel, setShowOutTownTravel] = useState<boolean>(false);
@@ -162,16 +168,16 @@ export default function SealedUnitsCalculatorPage() {
 
     // Reviewer and Clerk lists
     Promise.all([
-      fetch(`/api/users?reviewersOnly=true&t=${Date.now()}`, { cache: 'no-store' }).then((r) =>
+      fetch(`/api/users?t=${Date.now()}`, { cache: 'no-store' }).then((r) =>
         r.ok ? r.json() : []
       ),
       fetch(`/api/users?assignees=true&t=${Date.now()}`, { cache: 'no-store' }).then((r) =>
         r.ok ? r.json() : []
       ),
     ])
-      .then(([reviewers, assignees]) => {
-        if (Array.isArray(reviewers)) {
-          const eligible = reviewers.filter(
+      .then(([allUsers, assignees]) => {
+        if (Array.isArray(allUsers)) {
+          const eligible = allUsers.filter(
             (d: any) =>
               d.role !== 'SUPERADMIN' &&
               d.role !== 'superadmin' &&
@@ -371,6 +377,11 @@ export default function SealedUnitsCalculatorPage() {
     const glass8PercentSurchargeTotal = lineItems.reduce((acc, item) => acc + item.surcharge8PercentTotal, 0);
     const glassSupplyTotal = lineItems.reduce((acc, item) => acc + item.lineGlassTotal, 0);
 
+    // Service Only calculation (user rule: labour of total sqft + misc for that, subtotal, 13% hst, total)
+    const serviceLabourTotal = isServiceOnly
+      ? Math.round(totalSqft * (labour.labourRatePerSqft || 14.40) * 100) / 100
+      : 0;
+
     // Installation Labour & Misc (calculated on actual unrounded sq ft)
     const unitLabourSum = isInstallation
       ? lineItems.reduce((acc, item) => acc + item.totalLabour, 0)
@@ -378,6 +389,8 @@ export default function SealedUnitsCalculatorPage() {
 
     const miscTotal = isInstallation
       ? lineItems.reduce((acc, item) => acc + item.totalMisc, 0)
+      : isServiceOnly
+      ? Math.round(totalSqft * (labour.miscRatePerSqft || 2.40) * 100) / 100
       : 0;
 
     // Fixed Base Setup Fee: strictly $140 only when isInstallation === true, else $0
@@ -410,16 +423,25 @@ export default function SealedUnitsCalculatorPage() {
 
     const totalAdditionalTravel = additionalFarFee + vehicleTravelFee + crewTravelFee;
     const totalTravelAndSetup = isInstallation ? (baseSetupFee + totalAdditionalTravel) : 0;
-    const combinedLabourTotal = isInstallation ? (unitLabourSum + totalTravelAndSetup) : 0;
+    const combinedLabourTotal = isInstallation
+      ? (unitLabourSum + totalTravelAndSetup)
+      : isServiceOnly
+      ? serviceLabourTotal
+      : 0;
 
-    const subtotalPreTax = glassSupplyTotal + (isInstallation ? (combinedLabourTotal + miscTotal) : 0);
+    const subtotalPreTax = isServiceOnly
+      ? Math.round((serviceLabourTotal + miscTotal) * 100) / 100
+      : Math.round((glassSupplyTotal + (isInstallation ? (combinedLabourTotal + miscTotal) : 0)) * 100) / 100;
 
     // Exact Shop Tax Options:
+    // In Service Only: strictly 13% HST (no point-of-sale material exemption rebate)
     // 13: 13% HST on full subtotal
     // 8: 8% Exempt on Materials: 5% GST on materials, 13% HST on labour and services
     // 0: No Tax (0%)
     let hstAmount = 0;
-    if (hstRate === 13) {
+    if (isServiceOnly) {
+      hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100;
+    } else if (hstRate === 13) {
       hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100;
     } else if (hstRate === 8) {
       const materialAmount = glassSupplyTotal;
@@ -440,6 +462,7 @@ export default function SealedUnitsCalculatorPage() {
       glassBefore8PercentTotal,
       glass8PercentSurchargeTotal,
       glassSupplyTotal,
+      serviceLabourTotal,
       unitLabourSum,
       baseSetupFee,
       additionalFarFee,
@@ -455,7 +478,9 @@ export default function SealedUnitsCalculatorPage() {
     };
   }, [
     lineItems,
+    sealedUnitMode,
     isInstallation,
+    isServiceOnly,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
@@ -485,7 +510,11 @@ export default function SealedUnitsCalculatorPage() {
       if (d.customerName !== undefined) setCustomerName(d.customerName);
       if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
       if (Array.isArray(d.lineItems)) setLineItems(d.lineItems);
-      if (d.isInstallation !== undefined) setIsInstallation(d.isInstallation);
+      if (d.sealedUnitMode) {
+        setSealedUnitMode(d.sealedUnitMode);
+      } else if (d.isInstallation !== undefined) {
+        setIsInstallation(d.isInstallation);
+      }
       if (d.travelFeeType !== undefined) setTravelFeeType(d.travelFeeType);
       if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee);
       if (d.showOutTownTravel !== undefined) setShowOutTownTravel(d.showOutTownTravel);
@@ -501,6 +530,7 @@ export default function SealedUnitsCalculatorPage() {
         quoteNumber: d.quoteNumber || '',
         customerName: (d.customerName || '').trim(),
         lineItems: d.lineItems || [],
+        sealedUnitMode: d.sealedUnitMode || (d.isInstallation ? 'installation' : 'supply_only'),
         isInstallation: Boolean(d.isInstallation),
         travelFeeType: d.travelFeeType,
         customTravelFee: d.customTravelFee,
@@ -543,6 +573,7 @@ export default function SealedUnitsCalculatorPage() {
         customerName: customerName.trim(),
         quoteNotes,
         lineItems,
+        sealedUnitMode,
         isInstallation,
         travelFeeType,
         customTravelFee,
@@ -572,6 +603,7 @@ export default function SealedUnitsCalculatorPage() {
       quoteNumber: effectiveQuoteNumber,
       customerName: customerName.trim(),
       lineItems,
+      sealedUnitMode,
       isInstallation,
       travelFeeType,
       customTravelFee,
@@ -647,6 +679,7 @@ export default function SealedUnitsCalculatorPage() {
       quoteNumber: quoteNumber.trim(),
       customerName: customerName.trim(),
       lineItems,
+      sealedUnitMode,
       isInstallation,
       travelFeeType,
       customTravelFee,
@@ -677,6 +710,7 @@ export default function SealedUnitsCalculatorPage() {
           customerName,
           quoteNotes,
           lineItems,
+          sealedUnitMode,
           isInstallation,
           travelFeeType,
           customTravelFee,
@@ -703,6 +737,7 @@ export default function SealedUnitsCalculatorPage() {
     customerName,
     quoteNumber,
     quoteNotes,
+    sealedUnitMode,
     isInstallation,
     travelFeeType,
     customTravelFee,
@@ -1031,12 +1066,17 @@ export default function SealedUnitsCalculatorPage() {
                 activeGrillPreview={activeGrillPreview}
                 grills={grills}
                 onAddItem={handleAddItem}
+                onSaveDraft={handleSaveDraft}
+                onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
+                savedDraftsCount={savedDraftsCount}
               />
             </div>
 
             {/* RIGHT COLUMN (7 cols): Installation/Travel & Quote Summary */}
             <div className="lg:col-span-7 space-y-3">
               <SealedUnitLabourTravelCard
+                mode={sealedUnitMode}
+                setMode={setSealedUnitMode}
                 isInstallation={isInstallation}
                 setIsInstallation={setIsInstallation}
                 labour={labour}
@@ -1058,6 +1098,7 @@ export default function SealedUnitsCalculatorPage() {
               <SealedUnitQuoteSummaryCard
                 lineItems={lineItems}
                 lineItemsCount={lineItems.length}
+                mode={sealedUnitMode}
                 isInstallation={isInstallation}
                 labour={labour}
                 hstRate={hstRate}
@@ -1184,6 +1225,7 @@ export default function SealedUnitsCalculatorPage() {
       {/* DEDICATED CLEAN PRINTABLE QUOTE INVOICE (Visible ONLY during print/PDF) */}
       <SealedUnitPrintInvoice
         lineItems={lineItems}
+        mode={sealedUnitMode}
         isInstallation={isInstallation}
         labour={labour}
         hstRate={hstRate}

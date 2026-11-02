@@ -9,6 +9,7 @@ import {
 
 export interface SealedUnitPrintInvoiceProps {
   lineItems: SealedUnitLineItem[];
+  mode?: 'installation' | 'supply_only' | 'service_only';
   isInstallation: boolean;
   labour: SealedUnitLabourSettings;
   hstRate: number;
@@ -32,6 +33,7 @@ export interface SealedUnitPrintInvoiceProps {
     totalTravelAndSetup: number;
     combinedLabourTotal: number;
     miscTotal: number;
+    serviceLabourTotal?: number;
     subtotalPreTax: number;
     hstAmount: number;
     grandTotal: number;
@@ -40,7 +42,9 @@ export interface SealedUnitPrintInvoiceProps {
 
 export function SealedUnitPrintInvoice({
   lineItems,
+  mode = 'installation',
   isInstallation,
+  labour,
   totals,
   hstRate,
   customerName,
@@ -48,6 +52,7 @@ export function SealedUnitPrintInvoice({
   quoteNotes,
   preparedBy,
 }: SealedUnitPrintInvoiceProps) {
+  const isService = mode === 'service_only';
   const [quoteDate, setQuoteDate] = useState<string>('');
 
   useEffect(() => {
@@ -138,7 +143,11 @@ export function SealedUnitPrintInvoice({
             <div>
               <span className="text-gray-600 uppercase font-bold text-[8.5px] mr-1">Scope:</span>
               <span className="font-bold text-black">
-                {isInstallation ? 'Full Installation & Setup' : 'Supply Only'}
+                {isService
+                  ? 'Service Only'
+                  : isInstallation
+                  ? 'Full Installation & Setup'
+                  : 'Supply Only'}
               </span>
             </div>
           </div>
@@ -162,18 +171,23 @@ export function SealedUnitPrintInvoice({
               <th className="py-1 px-1.5 border-r border-gray-300 text-center">Shape</th>
               <th className="py-1 px-1.5 border-r border-gray-300">Interior Grills</th>
               <th className="py-1 px-1.5 border-r border-gray-300 text-center w-8">Qty</th>
-              <th
-                className={`py-1 px-1.5 ${
-                  isInstallation ? 'border-r border-gray-300' : ''
-                } text-right`}
-              >
-                Base Price
-              </th>
+              {!isService && (
+                <th
+                  className={`py-1 px-1.5 ${
+                    isInstallation ? 'border-r border-gray-300' : ''
+                  } text-right`}
+                >
+                  Base Price
+                </th>
+              )}
               {isInstallation && (
                 <>
                   <th className="py-1 px-1.5 border-r border-gray-300 text-right">Labour</th>
                   <th className="py-1 px-1.5 text-right">Misc</th>
                 </>
+              )}
+              {isService && (
+                <th className="py-1 px-1.5 text-right">Service Sqft</th>
               )}
             </tr>
           </thead>
@@ -232,20 +246,22 @@ export function SealedUnitPrintInvoice({
                   <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono font-bold text-gray-900">
                     {item.quantity}
                   </td>
-                  <td
-                    className={`py-1 px-1.5 ${
-                      isInstallation ? 'border-r border-gray-300' : ''
-                    } text-right`}
-                  >
-                    <div className="font-mono font-bold text-gray-900">
-                      ${item.multipliedAmount.toFixed(2)}
-                    </div>
-                    {item.quantity > 1 && (
-                      <div className="text-[6.5pt] text-gray-500 font-sans">
-                        total: ${item.multipliedTotal.toFixed(2)}
+                  {!isService && (
+                    <td
+                      className={`py-1 px-1.5 ${
+                        isInstallation ? 'border-r border-gray-300' : ''
+                      } text-right`}
+                    >
+                      <div className="font-mono font-bold text-gray-900">
+                        ${item.multipliedAmount.toFixed(2)}
                       </div>
-                    )}
-                  </td>
+                      {item.quantity > 1 && (
+                        <div className="text-[6.5pt] text-gray-500 font-sans">
+                          total: ${item.multipliedTotal.toFixed(2)}
+                        </div>
+                      )}
+                    </td>
+                  )}
                   {isInstallation && (
                     <>
                       <td className="py-1 px-1.5 border-r border-gray-300 text-right">
@@ -265,6 +281,16 @@ export function SealedUnitPrintInvoice({
                         )}
                       </td>
                     </>
+                  )}
+                  {isService && (
+                    <td className="py-1 px-1.5 text-right font-mono text-gray-900">
+                      <div>{(item.actualSqft * item.quantity).toFixed(2)} sqft</div>
+                      {item.quantity > 1 && (
+                        <div className="text-[6.5pt] text-gray-500 font-sans">
+                          {item.actualSqft.toFixed(2)} sqft/unit
+                        </div>
+                      )}
+                    </td>
                   )}
                 </tr>
               );
@@ -350,45 +376,71 @@ export function SealedUnitPrintInvoice({
             </div>
 
             <div className="space-y-0.5 font-mono text-[7.5pt]">
-              {/* 1. Unified Glass Summary Sentence */}
-              <div className="flex justify-between items-baseline py-0.5">
-                <span className="font-sans text-gray-900 font-medium capitalize truncate pr-1">
-                  {formatSealedUnitSummarySentence(lineItems)}
-                </span>
-                <span className="font-bold text-gray-900 whitespace-nowrap shrink-0">
-                  ${totals.glassBefore8PercentTotal.toFixed(2)}
-                </span>
-              </div>
+              {isService ? (
+                <>
+                  {/* Service Labour (total actual unrounded sqft * labour rate) */}
+                  <div className="flex justify-between items-baseline py-0.5">
+                    <span className="font-sans text-gray-900 font-medium truncate pr-1">
+                      Service Labour ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                    </span>
+                    <span className="font-bold text-gray-900 whitespace-nowrap shrink-0">
+                      ${(totals.serviceLabourTotal ?? (totals.combinedLabourTotal || ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                    </span>
+                  </div>
 
-              {/* 2. Labour (includes all the labour and travel charges) */}
-              {isInstallation && (
-                <div className="flex justify-between items-baseline py-0.5">
-                  <span className="font-sans text-gray-900 pr-1">
-                    Labour (includes all the labour and travel charges)
-                  </span>
-                  <span className="font-semibold text-gray-900 whitespace-nowrap shrink-0">
-                    +${totals.combinedLabourTotal.toFixed(2)}
-                  </span>
-                </div>
+                  {/* Service Materials & Misc */}
+                  <div className="flex justify-between items-baseline py-0.5">
+                    <span className="font-sans text-gray-900 pr-1">
+                      Service Materials &amp; Misc ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
+                    </span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                      +${totals.miscTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* 1. Unified Glass Summary Sentence */}
+                  <div className="flex justify-between items-baseline py-0.5">
+                    <span className="font-sans text-gray-900 font-medium capitalize truncate pr-1">
+                      {formatSealedUnitSummarySentence(lineItems)}
+                    </span>
+                    <span className="font-bold text-gray-900 whitespace-nowrap shrink-0">
+                      ${totals.glassBefore8PercentTotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* 2. Labour (includes all the labour and travel charges) */}
+                  {isInstallation && (
+                    <div className="flex justify-between items-baseline py-0.5">
+                      <span className="font-sans text-gray-900 pr-1">
+                        Labour (includes all the labour and travel charges)
+                      </span>
+                      <span className="font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                        +${totals.combinedLabourTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 3. Misc */}
+                  {isInstallation && (
+                    <div className="flex justify-between items-baseline py-0.5">
+                      <span className="font-sans text-gray-900">Misc</span>
+                      <span className="font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                        +${totals.miscTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 4. Surcharge (8% Glass Surcharge) */}
+                  <div className="flex justify-between items-baseline py-0.5 text-gray-900">
+                    <span className="font-sans">Surcharge</span>
+                    <span className="font-semibold whitespace-nowrap shrink-0">
+                      +${totals.glass8PercentSurchargeTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </>
               )}
-
-              {/* 3. Misc */}
-              {isInstallation && (
-                <div className="flex justify-between items-baseline py-0.5">
-                  <span className="font-sans text-gray-900">Misc</span>
-                  <span className="font-semibold text-gray-900 whitespace-nowrap shrink-0">
-                    +${totals.miscTotal.toFixed(2)}
-                  </span>
-                </div>
-              )}
-
-              {/* 4. Surcharge (8% Glass Surcharge) */}
-              <div className="flex justify-between items-baseline py-0.5 text-gray-900">
-                <span className="font-sans">Surcharge</span>
-                <span className="font-semibold whitespace-nowrap shrink-0">
-                  +${totals.glass8PercentSurchargeTotal.toFixed(2)}
-                </span>
-              </div>
 
               {/* 5. Subtotal */}
               <div className="flex justify-between items-baseline border-t border-gray-300 pt-0.5 font-bold text-gray-900">
@@ -401,7 +453,9 @@ export function SealedUnitPrintInvoice({
               {/* 6. Tax */}
               <div className="flex justify-between items-baseline py-0.5 text-gray-700">
                 <span className="font-sans">
-                  {hstRate === 8
+                  {isService
+                    ? 'Tax (13% HST)'
+                    : hstRate === 8
                     ? 'Tax (8% First Nations)'
                     : hstRate === 0
                     ? 'No Tax'

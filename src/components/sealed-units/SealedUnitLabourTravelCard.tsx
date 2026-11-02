@@ -13,7 +13,11 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
 
+export type SealedUnitMode = 'installation' | 'supply_only' | 'service_only';
+
 export interface SealedUnitLabourTravelCardProps {
+  mode?: SealedUnitMode;
+  setMode?: (val: SealedUnitMode) => void;
   isInstallation: boolean;
   setIsInstallation: (val: boolean) => void;
   labour: SealedUnitLabourSettings;
@@ -30,6 +34,7 @@ export interface SealedUnitLabourTravelCardProps {
   crewSize: '2' | '3';
   setCrewSize: (val: '2' | '3') => void;
   totals: {
+    totalSqft?: number;
     unitLabourSum: number;
     baseSetupFee: number;
     additionalFarFee: number;
@@ -39,10 +44,16 @@ export interface SealedUnitLabourTravelCardProps {
     totalTravelAndSetup: number;
     combinedLabourTotal: number;
     miscTotal: number;
+    serviceLabourTotal?: number;
+    subtotalPreTax?: number;
+    hstAmount?: number;
+    grandTotal?: number;
   };
 }
 
 export function SealedUnitLabourTravelCard({
+  mode = 'installation',
+  setMode,
   isInstallation,
   setIsInstallation,
   labour,
@@ -60,6 +71,16 @@ export function SealedUnitLabourTravelCard({
   setCrewSize,
   totals,
 }: SealedUnitLabourTravelCardProps) {
+  const currentMode = setMode ? mode : (isInstallation ? 'installation' : 'supply_only');
+
+  const handleSelectMode = (m: SealedUnitMode) => {
+    if (setMode) {
+      setMode(m);
+    } else {
+      setIsInstallation(m === 'installation');
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl shadow-xl overflow-hidden">
       <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20">
@@ -70,18 +91,18 @@ export function SealedUnitLabourTravelCard({
               <span>Installation &amp; Labour Settings</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-              Installation labour and travel surcharges.
+              Order scope, installation labour, and service parameters.
             </p>
           </div>
-          {/* Scope Selector */}
+          {/* 3-Way Scope Selector */}
           <div className="flex items-center gap-1 p-0.5 bg-muted rounded-lg border border-border text-xs">
             <button
               type="button"
-              onClick={() => setIsInstallation(false)}
+              onClick={() => handleSelectMode('supply_only')}
               className={cn(
                 'px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-xs',
-                !isInstallation
-                  ? 'bg-background text-foreground shadow-xs'
+                currentMode === 'supply_only'
+                  ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -89,10 +110,10 @@ export function SealedUnitLabourTravelCard({
             </button>
             <button
               type="button"
-              onClick={() => setIsInstallation(true)}
+              onClick={() => handleSelectMode('installation')}
               className={cn(
                 'px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
-                isInstallation
+                currentMode === 'installation'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
@@ -100,11 +121,23 @@ export function SealedUnitLabourTravelCard({
               <Wrench className="w-3 h-3" />
               <span>Installation</span>
             </button>
+            <button
+              type="button"
+              onClick={() => handleSelectMode('service_only')}
+              className={cn(
+                'px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
+                currentMode === 'service_only'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span>Service Only</span>
+            </button>
           </div>
         </div>
       </div>
       <div className="p-3 sm:p-3.5 space-y-3">
-        {isInstallation ? (
+        {currentMode === 'installation' ? (
           <>
             {/* Travel / Far Area Surcharge Presets */}
             <div className="space-y-2">
@@ -282,6 +315,48 @@ export function SealedUnitLabourTravelCard({
               )}
             </div>
           </>
+        ) : currentMode === 'service_only' ? (
+          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-blue-500/20">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-blue-600 text-white">
+                  <Wrench className="w-3.5 h-3.5" />
+                </span>
+                <div>
+                  <div className="font-bold text-xs text-foreground">Service Only Mode Active</div>
+                  <p className="text-[11px] text-muted-foreground">Labour &amp; misc service charged on total square footage.</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
+                {(totals.totalSqft || 0).toFixed(2)} sq ft total
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="bg-background/80 p-2.5 rounded-lg border border-border/60">
+                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
+                  Service Labour (${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                </div>
+                <div className="text-sm font-bold font-mono text-primary">
+                  ${((totals.serviceLabourTotal ?? ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="bg-background/80 p-2.5 rounded-lg border border-border/60">
+                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
+                  Service Materials &amp; Misc (${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
+                </div>
+                <div className="text-sm font-bold font-mono text-foreground">
+                  ${((totals.miscTotal ?? ((totals.totalSqft || 0) * (labour.miscRatePerSqft || 2.40)))).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-blue-500/20 text-muted-foreground">
+              <span>Tax status:</span>
+              <span className="font-bold text-foreground">Strictly 13% HST (Material Exemption Inapplicable)</span>
+            </div>
+          </div>
         ) : (
           <div className="p-4 rounded-xl bg-muted/20 border border-border/60 text-center space-y-1.5">
             <span className="inline-block p-2 rounded-full bg-muted text-muted-foreground">

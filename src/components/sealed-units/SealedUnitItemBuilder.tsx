@@ -6,6 +6,8 @@ import {
   Plus,
   Grid,
   Shapes,
+  Bookmark,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +67,10 @@ export interface SealedUnitItemBuilderProps {
   grills: SealedUnitGrillSettings;
   // Submit
   onAddItem: (e: React.FormEvent) => void;
+  // Draft Actions
+  onSaveDraft?: () => void;
+  onOpenSavedQuotes?: () => void;
+  savedDraftsCount?: number;
 }
 
 export function SealedUnitItemBuilder({
@@ -107,6 +113,9 @@ export function SealedUnitItemBuilder({
   activeGrillPreview,
   grills,
   onAddItem,
+  onSaveDraft,
+  onOpenSavedQuotes,
+  savedDraftsCount,
 }: SealedUnitItemBuilderProps) {
   const widthRef = useRef<HTMLInputElement>(null);
 
@@ -131,16 +140,47 @@ export function SealedUnitItemBuilder({
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl shadow-xl overflow-hidden">
-      {/* Header with zero extra gap */}
+      {/* Header with Save Draft & Saved Quotes on the side */}
       <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
             <Layers className="w-4 h-4 text-primary" />
             <span>Unit Specifications &amp; Glass Config</span>
           </div>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            Step 1
-          </span>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onSaveDraft && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSaveDraft}
+                className="h-7 px-2.5 text-[11px] font-semibold cursor-pointer gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
+                title="Save sealed unit quote to drafts"
+              >
+                <Bookmark className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                <span>Save Draft</span>
+              </Button>
+            )}
+            {onOpenSavedQuotes && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenSavedQuotes}
+                className="h-7 px-2.5 text-[11px] font-semibold cursor-pointer gap-1 border-border hover:bg-muted shadow-xs"
+                title="Open saved quotes"
+              >
+                <FolderOpen className="w-3 h-3 text-muted-foreground" />
+                <span>Saved Quotes</span>
+                {savedDraftsCount !== undefined && savedDraftsCount > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-primary/10 text-primary">
+                    {savedDraftsCount}
+                  </span>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
           Select treatment, combo, shape, and dimensions with live fraction parsing.

@@ -221,21 +221,49 @@ export default function QuoteInvoice({
     });
   }
 
+  const isSupplyOnly = Boolean(
+    isSupplyOnlyProp !== undefined
+      ? isSupplyOnlyProp
+      : (taxTotals?.isSupplyOnly ||
+         regionName?.toLowerCase().includes('supply') ||
+         taxTotals?.regionName?.toLowerCase().includes('supply'))
+  );
+
+  const hasSupplyJamb = Boolean(
+    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
+    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
+    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
+    (taxTotals?.jambId && taxTotals.jambId !== 'none')
+  );
+  const hasSupplyCasing = Boolean(
+    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
+    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
+    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
+    (taxTotals?.casingId && taxTotals.casingId !== 'none')
+  );
+  const isLooseSupplyJC = Boolean(isSupplyOnly && (hasSupplyJamb || hasSupplyCasing));
+
   // Effective costs with manual override support (respects 0 without falling back to taxTotals)
   const taxJCCents = includeJCInPromo
-    ? (effectiveJC !== undefined
-        ? effectiveJC
-        : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100))
+    ? (isSupplyOnly && !isLooseSupplyJC && effectiveJC === undefined
+        ? 0
+        : (effectiveJC !== undefined
+            ? effectiveJC
+            : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100)))
     : 0;
   const taxMiscCents = includeMiscInPromo
-    ? (effectiveMisc !== undefined
-        ? effectiveMisc
-        : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100))
+    ? (isSupplyOnly && effectiveMisc === undefined
+        ? 0
+        : (effectiveMisc !== undefined
+            ? effectiveMisc
+            : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100)))
     : 0;
   const taxLabourCents = includeLabourInPromo
-    ? (effectiveLabour !== undefined
-        ? effectiveLabour
-        : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100))
+    ? (isSupplyOnly && effectiveLabour === undefined
+        ? 0
+        : (effectiveLabour !== undefined
+            ? effectiveLabour
+            : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100)))
     : 0;
 
   // Jamb and casing items - only present if taxJCCents > 0
@@ -421,31 +449,8 @@ export default function QuoteInvoice({
     suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit${totalSUQty > 1 ? 's' : ''}`;
   }
 
-  const isSupplyOnly = Boolean(
-    isSupplyOnlyProp !== undefined
-      ? isSupplyOnlyProp
-      : (taxTotals?.isSupplyOnly ||
-         regionName?.toLowerCase().includes('supply') ||
-         taxTotals?.regionName?.toLowerCase().includes('supply'))
-  );
-
-  const hasJambs = Boolean(
-    taxJCCents > 0 && (
-      (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
-      (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
-      (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
-      (taxTotals?.jambId && taxTotals.jambId !== 'none')
-    )
-  );
-
-  const hasCasing = Boolean(
-    taxJCCents > 0 && (
-      (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
-      (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
-      (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
-      (taxTotals?.casingId && taxTotals.casingId !== 'none')
-    )
-  );
+  const hasJambs = Boolean(taxJCCents > 0 && hasSupplyJamb);
+  const hasCasing = Boolean(taxJCCents > 0 && hasSupplyCasing);
 
   const jcLabel = (() => {
     if (hasJambs && !hasCasing) {
@@ -1060,22 +1065,22 @@ export default function QuoteInvoice({
       {/* ============================================================== */}
       {template === 'executive' && (
         <>
-          {/* Executive Header: Navy Corporate Header */}
-          <div className="bg-[#0f172a] text-white p-3 rounded-t-lg mb-2.5 shadow-xs">
+          {/* Executive Header: Ink-Saving Architectural Corporate Header */}
+          <div className="bg-white border-y-2 border-[#0f172a] py-2 px-1 mb-2.5">
             <div className="flex justify-between items-baseline">
               <div>
-                <h1 style={{ fontSize: `${titleFs}px` }} className="font-black tracking-wider text-white m-0 uppercase leading-none">
+                <h1 style={{ fontSize: `${titleFs}px` }} className="font-black tracking-wider text-[#0f172a] m-0 uppercase leading-none">
                   The Window &amp; Door Store
                 </h1>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-amber-400 font-bold uppercase tracking-widest mt-1">
+                <div style={{ fontSize: `${smallFs}px` }} className="text-amber-800 font-bold uppercase tracking-widest mt-1">
                   <span>{isSupplyOnly ? 'Executive Supply Quotation' : 'Executive Installation & Supply Quote'}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-bold text-white">
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-bold text-[#0f172a]">
                   {quoteNumber || 'REF-QUOTE'}
                 </div>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-slate-300 font-medium" suppressHydrationWarning>
+                <div style={{ fontSize: `${smallFs}px` }} className="text-slate-600 font-medium" suppressHydrationWarning>
                   {currentDate}
                 </div>
               </div>
@@ -1083,25 +1088,25 @@ export default function QuoteInvoice({
 
             {/* Compact Inline Customer & Region Bar */}
             {(customerName || regionName || preparedBy) && (
-              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1.5 pt-1.5 border-t border-slate-700 flex justify-between items-center text-white flex-wrap gap-2">
+              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1.5 pt-1.5 border-t border-slate-300 flex justify-between items-center text-slate-800 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   {customerName && (
                     <div>
-                      <span className="text-slate-400 uppercase font-bold text-[9px] mr-1">Client:</span>
-                      <span className="font-bold text-white">{customerName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Client:</span>
+                      <span className="font-bold text-[#0f172a]">{customerName}</span>
                     </div>
                   )}
                   {regionName && (
                     <div>
-                      <span className="text-slate-400 uppercase font-bold text-[9px] mr-1">Region:</span>
-                      <span className="font-semibold text-slate-200">{regionName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Region:</span>
+                      <span className="font-semibold text-slate-700">{regionName}</span>
                     </div>
                   )}
                 </div>
                 {preparedBy && (
                   <div>
-                    <span className="text-slate-400 uppercase font-bold text-[9px] mr-1">Prepared By:</span>
-                    <span className="font-semibold text-slate-200">{preparedBy}</span>
+                    <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Prepared By:</span>
+                    <span className="font-semibold text-slate-700">{preparedBy}</span>
                   </div>
                 )}
               </div>

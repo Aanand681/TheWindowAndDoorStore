@@ -1133,18 +1133,17 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         if (err?.message?.includes('401')) router.replace('/login');
       });
 
-    // Reviewer and Clerk lists: employees can assign to ANY employee
+    // Reviewer and Clerk lists: employees can assign to ANY employee (sales, estimators, clerks, managers, admins)
     Promise.all([
-      fetch(`/api/users?reviewersOnly=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/users?t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
       fetch(`/api/users?assignees=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
     ])
-      .then(([reviewers, assignees]) => {
-        const combined = Array.isArray(assignees) && assignees.length > 0 ? assignees : (Array.isArray(reviewers) ? reviewers : []);
-        const eligible = combined.filter((d: any) =>
+      .then(([allUsers, assignees]) => {
+        const eligible = Array.isArray(allUsers) ? allUsers.filter((d: any) =>
           d.role !== 'SUPERADMIN' && d.role !== 'superadmin' &&
           d.username?.toLowerCase() !== 'cheeku' &&
           !d.username?.toLowerCase().includes('superadmin')
-        );
+        ) : [];
         setStaffList(eligible);
         if (eligible.length > 0) {
           setAssignedReviewer(eligible[0].username);
@@ -1645,6 +1644,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           preparedBy={reviewQuote?.preparedBy || user?.username || ''}
           attachedUpgrade={attachedUpgrade}
           attachedSealedUnit={attachedSealedUnit}
+          isSupplyOnly={isSupplyOnly}
         />
       )}
 

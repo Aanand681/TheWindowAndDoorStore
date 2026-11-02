@@ -25,6 +25,7 @@ import {
 export interface SealedUnitQuoteSummaryCardProps {
   lineItems: SealedUnitLineItem[];
   lineItemsCount: number;
+  mode?: 'installation' | 'supply_only' | 'service_only';
   isInstallation: boolean;
   labour: SealedUnitLabourSettings;
   hstRate: number;
@@ -45,6 +46,7 @@ export interface SealedUnitQuoteSummaryCardProps {
     totalTravelAndSetup: number;
     combinedLabourTotal: number;
     miscTotal: number;
+    serviceLabourTotal?: number;
     subtotalPreTax: number;
     hstAmount: number;
     grandTotal: number;
@@ -64,6 +66,7 @@ export interface SealedUnitQuoteSummaryCardProps {
 export function SealedUnitQuoteSummaryCard({
   lineItems,
   lineItemsCount,
+  mode = 'installation',
   isInstallation,
   labour,
   hstRate,
@@ -80,6 +83,8 @@ export function SealedUnitQuoteSummaryCard({
   onSaveDraft,
   onOpenSavedQuotes,
 }: SealedUnitQuoteSummaryCardProps) {
+  const isService = mode === 'service_only';
+
   // 50/50 Deposit Schedule (Matching Promo Calculator)
   const firstPayment = Math.floor((totals.grandTotal / 2) * 100) / 100;
   const secondPayment = Math.round((totals.grandTotal - firstPayment) * 100) / 100;
@@ -94,15 +99,21 @@ export function SealedUnitQuoteSummaryCard({
             <span>Official Quote Breakdown</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <select
-              value={hstRate}
-              onChange={(e) => setHstRate(Number(e.target.value))}
-              className="h-7 px-2 rounded-lg border border-input bg-background text-[11px] font-semibold cursor-pointer shadow-xs text-foreground"
-            >
-              <option value={13}>13% HST</option>
-              <option value={8}>8% First Nations Material Exemption</option>
-              <option value={0}>No Tax</option>
-            </select>
+            {isService ? (
+              <span className="h-7 px-2.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center shadow-xs">
+                13% HST (Fixed on Service)
+              </span>
+            ) : (
+              <select
+                value={hstRate}
+                onChange={(e) => setHstRate(Number(e.target.value))}
+                className="h-7 px-2 rounded-lg border border-input bg-background text-[11px] font-semibold cursor-pointer shadow-xs text-foreground"
+              >
+                <option value={13}>13% HST</option>
+                <option value={8}>8% First Nations Material Exemption</option>
+                <option value={0}>No Tax</option>
+              </select>
+            )}
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground leading-tight mt-0.5" suppressHydrationWarning>
@@ -123,45 +134,71 @@ export function SealedUnitQuoteSummaryCard({
           <div className="space-y-3 text-xs">
             {/* Strict Sequence - Styled exactly like Promo Summary without bullets */}
             <div className="space-y-1.5 pb-2.5 border-b border-border/50">
-              {/* 1. Unified Glass Summary Sentence */}
-              <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
-                <span className="text-muted-foreground font-medium capitalize truncate">
-                  {formatSealedUnitSummarySentence(lineItems)}
-                </span>
-                <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                  ${totals.glassBefore8PercentTotal.toFixed(2)}
-                </span>
-              </div>
+              {isService ? (
+                <>
+                  {/* Service Labour on Total Sqft */}
+                  <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground font-medium">
+                      Service Labour ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                    </span>
+                    <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                      ${(totals.serviceLabourTotal ?? (totals.combinedLabourTotal || ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                    </span>
+                  </div>
 
-              {/* 2. Labour (includes all the labour and travel charges) */}
-              {isInstallation && (
-                <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                  <span className="text-muted-foreground">
-                    Labour (includes all the labour and the travel charges)
-                  </span>
-                  <span className="font-mono text-foreground font-semibold whitespace-nowrap shrink-0">
-                    +${totals.combinedLabourTotal.toFixed(2)}
-                  </span>
-                </div>
+                  {/* Service Misc on Total Sqft */}
+                  <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground font-medium">
+                      Service Materials &amp; Misc ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft)
+                    </span>
+                    <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                      +${totals.miscTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* 1. Unified Glass Summary Sentence */}
+                  <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground font-medium capitalize truncate">
+                      {formatSealedUnitSummarySentence(lineItems)}
+                    </span>
+                    <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                      ${totals.glassBefore8PercentTotal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* 2. Labour (includes all the labour and travel charges) */}
+                  {isInstallation && (
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                      <span className="text-muted-foreground">
+                        Labour (includes all the labour and the travel charges)
+                      </span>
+                      <span className="font-mono text-foreground font-semibold whitespace-nowrap shrink-0">
+                        +${totals.combinedLabourTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 3. Misc */}
+                  {isInstallation && (
+                    <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                      <span className="text-muted-foreground">Misc</span>
+                      <span className="font-mono text-foreground font-semibold whitespace-nowrap shrink-0">
+                        +${totals.miscTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 4. Surcharge (8% Glass Surcharge) */}
+                  <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                    <span className="text-muted-foreground">Surcharge</span>
+                    <span className="font-mono text-muted-foreground font-semibold whitespace-nowrap shrink-0">
+                      +${totals.glass8PercentSurchargeTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </>
               )}
-
-              {/* 3. Misc */}
-              {isInstallation && (
-                <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                  <span className="text-muted-foreground">Misc</span>
-                  <span className="font-mono text-foreground font-semibold whitespace-nowrap shrink-0">
-                    +${totals.miscTotal.toFixed(2)}
-                  </span>
-                </div>
-              )}
-
-              {/* 4. Surcharge (8% Glass Surcharge) */}
-              <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                <span className="text-muted-foreground">Surcharge</span>
-                <span className="font-mono text-muted-foreground font-semibold whitespace-nowrap shrink-0">
-                  +${totals.glass8PercentSurchargeTotal.toFixed(2)}
-                </span>
-              </div>
             </div>
 
             {/* 5. Subtotal of this amount */}
@@ -291,38 +328,6 @@ export function SealedUnitQuoteSummaryCard({
                   <span>Reset</span>
                 </Button>
               </div>
-
-              {(onSaveDraft || onOpenSavedQuotes) && (
-                <div className="flex items-center gap-2 pt-1">
-                  {onSaveDraft && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={onSaveDraft}
-                      disabled={lineItemsCount === 0}
-                      className="flex-1 h-9 text-xs font-semibold cursor-pointer gap-1.5 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-                      title="Save sealed unit quote to drafts"
-                    >
-                      <Bookmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>Save Draft</span>
-                    </Button>
-                  )}
-                  {onOpenSavedQuotes && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={onOpenSavedQuotes}
-                      className="flex-1 h-9 text-xs font-semibold cursor-pointer gap-1.5 border-border hover:bg-muted"
-                      title="Open saved quotes"
-                    >
-                      <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>Saved Quotes</span>
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
