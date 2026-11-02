@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/promo-logic';
 export interface SubmitReviewStaffItem {
   _id?: string;
   username: string;
+  name?: string;
   department?: string;
 }
 
@@ -161,11 +162,14 @@ export function SubmitReviewModal({
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
             >
               {clerkList.length > 0 ? (
-                clerkList.map(c => (
-                  <option key={c._id || c.username} value={c.username}>
-                    {c.username} {c.department ? `(${c.department})` : ''}
-                  </option>
-                ))
+                clerkList.map(c => {
+                  const displayName = c.name || (c.username ? (c.username.charAt(0).toUpperCase() + c.username.slice(1)) : 'Clerk');
+                  return (
+                    <option key={c._id || c.username} value={c.username}>
+                      {displayName}
+                    </option>
+                  );
+                })
               ) : (
                 <option value="">No clerks available</option>
               )}
@@ -179,9 +183,7 @@ export function SubmitReviewModal({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="reviewerSelect" className="text-xs font-semibold">
-                {isAdmin
-                  ? 'Select Another Admin / Manager'
-                  : 'Assign Team Member / Reviewer'}
+                Assign Staff Member / Reviewer
               </Label>
               {isAdmin && (
                 <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Self excluded</span>
@@ -194,11 +196,14 @@ export function SubmitReviewModal({
                 onChange={e => setAssignedReviewer(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
               >
-                {eligibleReviewers.map(s => (
-                  <option key={s._id || s.username} value={s.username}>
-                    {s.username} {s.department ? `(${s.department})` : ''}
-                  </option>
-                ))}
+                {eligibleReviewers.map(s => {
+                  const displayName = s.name || (s.username ? (s.username.charAt(0).toUpperCase() + s.username.slice(1)) : 'Staff');
+                  return (
+                    <option key={s._id || s.username} value={s.username}>
+                      {displayName}
+                    </option>
+                  );
+                })}
               </select>
             ) : (
               <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">

@@ -159,7 +159,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'annealed'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -171,7 +171,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'tempered'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -211,7 +211,7 @@ export function SealedUnitItemBuilder({
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   !hasDualPane && 'opacity-40 cursor-not-allowed line-through',
                   selectedPane === 'dual'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -223,7 +223,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   selectedPane === 'triple'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -245,7 +245,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rectangle'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -258,7 +258,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rakehead_triangle'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -273,7 +273,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'roundtop_circle_octagon'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -350,7 +350,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'none'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -362,7 +362,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'grid'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -374,7 +374,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '3_burst'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -389,7 +389,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '5_burst'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -401,7 +401,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'customer_own'
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -455,7 +455,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'pattern'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-sky-100 text-sky-900 font-bold dark:bg-sky-950/70 dark:text-sky-200'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -468,7 +468,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'manual'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-sky-100 text-sky-900 font-bold dark:bg-sky-950/70 dark:text-sky-200'
                             : 'text-muted-foreground'
                         )}
                       >

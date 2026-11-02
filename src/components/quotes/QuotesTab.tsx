@@ -1482,10 +1482,10 @@ export default function QuotesTab({ currentUser, onOpenQuote, onQuotesCountChang
               >
                 <option value="">-- Select Odoo Clerk (Required) --</option>
                 {staffList.map((s: any) => {
-                  const displayName = s.username ? (s.username.charAt(0).toUpperCase() + s.username.slice(1)) : 'Staff';
+                  const displayName = s.name || (s.username ? (s.username.charAt(0).toUpperCase() + s.username.slice(1)) : 'Staff');
                   return (
                     <option key={s._id || s.username} value={s.username}>
-                      {displayName} {s.department ? `(${s.department})` : ''}
+                      {displayName}
                     </option>
                   );
                 })}
