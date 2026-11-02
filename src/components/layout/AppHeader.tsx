@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Component, Calculator, Inbox, ShieldCheck } from 'lucide-react';
+import { Component, Calculator, Inbox, ShieldCheck, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
@@ -10,6 +10,7 @@ import NotificationBell from '@/components/shared/NotificationBell';
 import UserProfileMenu from '@/components/shared/UserProfileMenu';
 import QuotesBinPill from '@/components/quotes/QuotesBinPill';
 import ToolsMenu from './ToolsMenu';
+import { EstimatorGuideModal } from '@/components/calculator/EstimatorGuideModal';
 import { useSession } from 'next-auth/react';
 
 import { cachedFetch, getCachedData } from '@/lib/client-cache';
@@ -20,6 +21,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps) {
+  const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const sessionResult = useSession();
   const sessionUser = sessionResult?.data?.user as any;
   const [profileUser, setProfileUser] = React.useState<any>(
@@ -89,6 +91,20 @@ export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps)
 
         <ToolsMenu currentPath={currentPath} />
 
+        {/* Estimator Workflow Guide Button */}
+        <button
+          type="button"
+          onClick={() => setIsGuideOpen(true)}
+          className={cn(
+            buttonVariants({ variant: 'outline', size: 'sm' }),
+            'gap-1.5 rounded-full text-xs font-semibold bg-card/50 backdrop-blur border-border/60 hover:bg-muted/30 text-muted-foreground hover:text-foreground cursor-pointer shadow-xs'
+          )}
+          title="Open Estimator & Quoting Workflow Guide"
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-primary" />
+          <span>Guide</span>
+        </button>
+
         {canAccessAdmin && (
           <Link
             href="/admin"
@@ -109,6 +125,11 @@ export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps)
         <ThemeToggle />
         <UserProfileMenu user={user} />
       </div>
+
+      <EstimatorGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </header>
   );
 }

@@ -85,12 +85,12 @@ export default function TaxCalculatorTab({
   const [crew, setCrew] = useState('3');
   const [setupFee, setSetupFee] = useState('0');
 
-  // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 4 1/2 and Vinyl casing charge)
-  const [jambId, setJambId] = useState('j3');
+  // Jambs & Casing (defaults to 'none' - no auto-selection)
+  const [jambId, setJambId] = useState('none');
   const [jambName, setJambName] = useState('');
   const [jambRate, setJambRate] = useState('');
   
-  const [casingId, setCasingId] = useState('vinyl');
+  const [casingId, setCasingId] = useState('none');
   const [casingName, setCasingName] = useState('');
   const [casingRate, setCasingRate] = useState('');
 
@@ -165,8 +165,6 @@ export default function TaxCalculatorTab({
         }
         if (d.jambs?.length) {
           setDbJambs(d.jambs);
-          const targetJamb = d.jambs.find((j: any) => j.id === 'j3' || j.label?.includes('3/4 x 4 1/2'));
-          if (targetJamb && !savedTaxTotals) setJambId(targetJamb.id);
         }
         if (d.casings?.length) setDbCasings(d.casings);
         if (d.vehicleRate !== undefined) setDbVehicleRate(d.vehicleRate);
@@ -195,13 +193,8 @@ export default function TaxCalculatorTab({
         setIncludeLabour(true);
         setIncludeMisc(true);
         setIncludeJC(true);
-        if (isSupplyOnly) {
-          setJambId('none');
-          setCasingId('none');
-        } else {
-          setJambId('j3');
-          setCasingId('vinyl');
-        }
+        setJambId('none');
+        setCasingId('none');
       }
       return;
     }

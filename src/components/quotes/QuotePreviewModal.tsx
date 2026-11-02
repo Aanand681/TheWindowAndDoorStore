@@ -59,6 +59,9 @@ export default function QuotePreviewModal({
       if (saved && ['modern', 'executive', 'cards'].includes(saved)) {
         setDefaultTemplate(saved);
         onTemplateChange(saved);
+      } else {
+        setDefaultTemplate('cards');
+        onTemplateChange('cards');
       }
       // 2. Sync from database profile
       fetch('/api/profile')

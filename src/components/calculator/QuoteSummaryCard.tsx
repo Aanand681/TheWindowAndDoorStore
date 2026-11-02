@@ -26,6 +26,9 @@ import {
   Bookmark,
   FolderOpen,
   Paperclip,
+  Pencil,
+  X,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMoney, toCents } from '@/lib/promo-logic';
@@ -176,6 +179,150 @@ export function QuoteSummaryCard({
   const effectiveJCCents = customJC !== '' ? toCents(customJC) : (taxJC || 0);
   const effectiveMiscCents = customMisc !== '' ? toCents(customMisc) : (taxMisc || 0);
   const effectiveLabourCents = customLabour !== '' ? toCents(customLabour) : (taxLabour || 0);
+
+  const [editingField, setEditingField] = React.useState<'jc' | 'labour' | 'misc' | null>(null);
+  const [tempEditVal, setTempEditVal] = React.useState<string>('');
+
+  const hasAnyOverrides = customJC !== '' || customLabour !== '' || customMisc !== '';
+
+  const handleResetAllOverrides = () => {
+    setCustomJC('');
+    setCustomLabour('');
+    setCustomMisc('');
+    setEditingField(null);
+    setTempEditVal('');
+    toast.success('Reset Jambs & Casing, Labour, and Misc to default pricing');
+  };
+
+  const renderEditableRow = (
+    field: 'jc' | 'labour' | 'misc',
+    label: string,
+    amountCents: number,
+    customVal: string,
+    defaultCents: number,
+    setter: (val: string) => void,
+    suffix?: string
+  ) => {
+    const isEditing = editingField === field;
+    const isCustom = customVal !== '';
+    const defaultDollars = (defaultCents / 100).toFixed(2);
+
+    if (isEditing) {
+      return (
+        <div key={field} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-primary/10 border border-primary/30 my-1 animate-in fade-in duration-150">
+          <span className="font-semibold text-primary text-[11px] shrink-0">
+            Edit {label}:
+          </span>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-xs font-mono text-muted-foreground">$</span>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={tempEditVal}
+              onChange={(e) => setTempEditVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setter(tempEditVal);
+                  setEditingField(null);
+                  toast.success(`Updated ${label} to $${Number(tempEditVal || 0).toFixed(2)}`);
+                } else if (e.key === 'Escape') {
+                  setEditingField(null);
+                }
+              }}
+              className="h-6 w-24 text-xs font-mono text-right px-1.5 py-0 bg-background"
+              autoFocus
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() => {
+                setter(tempEditVal);
+                setEditingField(null);
+                toast.success(`Updated ${label} to $${Number(tempEditVal || 0).toFixed(2)}`);
+              }}
+              className="h-6 px-2 text-[10px] font-bold cursor-pointer"
+            >
+              Save
+            </Button>
+            {isCustom && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setter('');
+                  setEditingField(null);
+                  toast.info(`Reset ${label} to default ($${defaultDollars})`);
+                }}
+                className="h-6 px-1.5 text-[10px] cursor-pointer"
+                title="Reset to default calculated price"
+              >
+                Reset
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditingField(null)}
+              className="h-6 px-1 text-[10px] cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={field} className="flex items-center justify-between text-xs sm:text-sm py-0.5 group">
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">
+            {label} {suffix && <span className="text-[10px] text-muted-foreground/70">{suffix}</span>}
+          </span>
+          {isCustom && (
+            <span className="text-[9px] bg-primary/15 text-primary font-bold px-1.5 py-0.2 rounded">
+              custom
+            </span>
+          )}
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingField(field);
+                setTempEditVal(isCustom ? customVal : (amountCents / 100).toFixed(2));
+              }}
+              className="opacity-40 group-hover:opacity-100 hover:text-primary transition-opacity p-0.5 cursor-pointer text-muted-foreground"
+              title={`Edit ${label} price`}
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
+          {isCustom && !isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setter('');
+                toast.info(`Reset ${label} to default ($${defaultDollars})`);
+              }}
+              className="text-[10px] text-muted-foreground hover:text-destructive underline ml-0.5 cursor-pointer"
+              title="Reset to default calculated price"
+            >
+              reset
+            </button>
+          )}
+        </div>
+        <span className={cn(
+          "font-mono whitespace-nowrap shrink-0",
+          isCustom ? "font-bold text-primary" : "text-foreground font-medium"
+        )}>
+          +{formatMoney(amountCents)}
+        </span>
+      </div>
+    );
+  };
 
   const jcSummaryLabel = React.useMemo(() => {
     const hasJamb = Boolean(taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.total) > 0 || Number(taxTotals.selectedJamb.rate) > 0));
@@ -338,40 +485,110 @@ export function QuoteSummaryCard({
                       </span>
                     </div>
 
-                    {/* Jambs & Casing (Window only, if exists) */}
-                    {combinedData.effectiveJCCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          {jcSummaryLabel} <span className="text-[10px] text-muted-foreground/70">(window only)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.effectiveJCCents)}
-                        </span>
+                    {/* Custom Overrides Reset Banner */}
+                    {hasAnyOverrides && !isReadOnly && (
+                      <div className="flex items-center justify-between p-1.5 px-2 bg-primary/10 rounded-lg border border-primary/20 text-[11px] font-medium text-primary my-1">
+                        <span>Custom pricing overrides active</span>
+                        <button
+                          type="button"
+                          onClick={handleResetAllOverrides}
+                          className="flex items-center gap-1 font-bold hover:underline cursor-pointer text-primary"
+                          title="Reset Jambs, Labour and Misc to defaults"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset to defaults</span>
+                        </button>
                       </div>
+                    )}
+
+                    {/* Jambs & Casing (Window only) */}
+                    {(combinedData.effectiveJCCents > 0 || customJC !== '') ? (
+                      renderEditableRow(
+                        'jc',
+                        jcSummaryLabel,
+                        combinedData.effectiveJCCents,
+                        customJC,
+                        taxJC,
+                        (val) => setCustomJC(val),
+                        '(window only)'
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">{jcSummaryLabel}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('jc');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Jambs &amp; Casing</span>
+                          </button>
+                        </div>
+                      )
                     )}
 
                     {/* Misc (Window + Sealed Unit) */}
-                    {combinedData.combinedMiscCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          Miscellaneous <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.combinedMiscCents)}
-                        </span>
-                      </div>
+                    {(combinedData.combinedMiscCents > 0 || customMisc !== '') ? (
+                      renderEditableRow(
+                        'misc',
+                        'Miscellaneous',
+                        combinedData.combinedMiscCents,
+                        customMisc,
+                        taxMisc,
+                        (val) => setCustomMisc(val),
+                        '(window + SU)'
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">Miscellaneous</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('misc');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Misc</span>
+                          </button>
+                        </div>
+                      )
                     )}
 
                     {/* Labour (Window + Sealed Unit) */}
-                    {combinedData.combinedLabourCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          Labour <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.combinedLabourCents)}
-                        </span>
-                      </div>
+                    {(combinedData.combinedLabourCents > 0 || customLabour !== '') ? (
+                      renderEditableRow(
+                        'labour',
+                        'Labour',
+                        combinedData.combinedLabourCents,
+                        customLabour,
+                        taxLabour,
+                        (val) => setCustomLabour(val),
+                        '(window + SU)'
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">Labour</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('labour');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Labour</span>
+                          </button>
+                        </div>
+                      )
                     )}
 
                     {/* Surcharge (Window + Sealed Unit 8%) */}
@@ -495,34 +712,107 @@ export function QuoteSummaryCard({
                         <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
                       </div>
                     )}
-                    {/* Jambs & Casing (or Jambs Only / Casing Only) */}
-                    {effectiveJCCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          {jcSummaryLabel}
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveJCCents)}
-                        </span>
+                    {/* Custom Overrides Reset Banner */}
+                    {hasAnyOverrides && !isReadOnly && (
+                      <div className="flex items-center justify-between p-1.5 px-2 bg-primary/10 rounded-lg border border-primary/20 text-[11px] font-medium text-primary my-1">
+                        <span>Custom pricing overrides active</span>
+                        <button
+                          type="button"
+                          onClick={handleResetAllOverrides}
+                          className="flex items-center gap-1 font-bold hover:underline cursor-pointer text-primary"
+                          title="Reset Jambs, Labour and Misc to defaults"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset to defaults</span>
+                        </button>
                       </div>
                     )}
 
-                    {/* Labour and Misc: ONLY shown if NOT supply only */}
-                    {!isSupplyOnly && effectiveLabourCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">Labour</span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveLabourCents)}
-                        </span>
-                      </div>
+                    {/* Jambs & Casing */}
+                    {(effectiveJCCents > 0 || customJC !== '') ? (
+                      renderEditableRow(
+                        'jc',
+                        jcSummaryLabel,
+                        effectiveJCCents,
+                        customJC,
+                        taxJC,
+                        (val) => setCustomJC(val)
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">{jcSummaryLabel}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('jc');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Jambs &amp; Casing</span>
+                          </button>
+                        </div>
+                      )
                     )}
-                    {!isSupplyOnly && effectiveMiscCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">Miscellaneous</span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveMiscCents)}
-                        </span>
-                      </div>
+
+                    {/* Labour */}
+                    {(!isSupplyOnly || customLabour !== '' || effectiveLabourCents > 0) ? (
+                      renderEditableRow(
+                        'labour',
+                        'Labour',
+                        effectiveLabourCents,
+                        customLabour,
+                        taxLabour,
+                        (val) => setCustomLabour(val)
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">Labour <span className="text-[10px]">(supply only: $0)</span></span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('labour');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Labour</span>
+                          </button>
+                        </div>
+                      )
+                    )}
+
+                    {/* Miscellaneous */}
+                    {(effectiveMiscCents > 0 || customMisc !== '' || !isSupplyOnly) ? (
+                      renderEditableRow(
+                        'misc',
+                        'Miscellaneous',
+                        effectiveMiscCents,
+                        customMisc,
+                        taxMisc,
+                        (val) => setCustomMisc(val)
+                      )
+                    ) : (
+                      !isReadOnly && (
+                        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+                          <span className="text-muted-foreground/70">Miscellaneous</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingField('misc');
+                              setTempEditVal('0');
+                            }}
+                            className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Add Misc</span>
+                          </button>
+                        </div>
+                      )
                     )}
 
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">

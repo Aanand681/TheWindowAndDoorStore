@@ -38,6 +38,7 @@ export interface QuoteInvoiceProps {
   orientation?: 'portrait' | 'landscape';
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   attachedSealedUnit?: any | null;
+  isSupplyOnly?: boolean;
 }
 
 function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
@@ -173,6 +174,7 @@ export default function QuoteInvoice({
   orientation = 'portrait',
   attachedUpgrade = null,
   attachedSealedUnit = null,
+  isSupplyOnly: isSupplyOnlyProp,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
 
@@ -219,19 +221,45 @@ export default function QuoteInvoice({
     });
   }
 
-  // Jamb and casing items
+  // Effective costs with manual override support (respects 0 without falling back to taxTotals)
+  const taxJCCents = includeJCInPromo
+    ? (effectiveJC !== undefined
+        ? effectiveJC
+        : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100))
+    : 0;
+  const taxMiscCents = includeMiscInPromo
+    ? (effectiveMisc !== undefined
+        ? effectiveMisc
+        : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100))
+    : 0;
+  const taxLabourCents = includeLabourInPromo
+    ? (effectiveLabour !== undefined
+        ? effectiveLabour
+        : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100))
+    : 0;
+
+  // Jamb and casing items - only present if taxJCCents > 0
   const jcItems: { label: string; amount: number }[] = [];
-  if (taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0)) {
-    jcItems.push({
-      label: taxTotals.selectedJamb.name,
-      amount: (taxTotals.selectedJamb.total || 0) * 100,
-    });
-  }
-  if (taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0)) {
-    jcItems.push({
-      label: taxTotals.selectedCasing.name,
-      amount: (taxTotals.selectedCasing.total || 0) * 100,
-    });
+  if (taxJCCents > 0) {
+    if (taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0)) {
+      jcItems.push({
+        label: taxTotals.selectedJamb.name,
+        amount: (taxTotals.selectedJamb.total || 0) * 100,
+      });
+    }
+    if (taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0)) {
+      jcItems.push({
+        label: taxTotals.selectedCasing.name,
+        amount: (taxTotals.selectedCasing.total || 0) * 100,
+      });
+    }
+    // If taxJCCents > 0 but no named jamb/casing item was in taxTotals:
+    if (jcItems.length === 0) {
+      jcItems.push({
+        label: 'Jambs & Casings (Custom)',
+        amount: taxJCCents,
+      });
+    }
   }
 
   // Extras / Add-ons - only if qty > 0
@@ -288,22 +316,6 @@ export default function QuoteInvoice({
       });
     }
   });
-
-  const taxJCCents = includeJCInPromo
-    ? (effectiveJC !== undefined && effectiveJC > 0
-        ? effectiveJC
-        : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100))
-    : 0;
-  const taxMiscCents = includeMiscInPromo
-    ? (effectiveMisc !== undefined && effectiveMisc > 0
-        ? effectiveMisc
-        : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100))
-    : 0;
-  const taxLabourCents = includeLabourInPromo
-    ? (effectiveLabour !== undefined && effectiveLabour > 0
-        ? effectiveLabour
-        : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100))
-    : 0;
   const promoDiscountCents = activePromo?.discount || 0;
   const monthlyDiscountCents = Math.round((taxTotals?.discount || 0) * 100);
 
@@ -410,23 +422,29 @@ export default function QuoteInvoice({
   }
 
   const isSupplyOnly = Boolean(
-    taxTotals?.isSupplyOnly ||
-    regionName?.toLowerCase().includes('supply') ||
-    taxTotals?.regionName?.toLowerCase().includes('supply')
+    isSupplyOnlyProp !== undefined
+      ? isSupplyOnlyProp
+      : (taxTotals?.isSupplyOnly ||
+         regionName?.toLowerCase().includes('supply') ||
+         taxTotals?.regionName?.toLowerCase().includes('supply'))
   );
 
   const hasJambs = Boolean(
-    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
-    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
-    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
-    (taxTotals?.jambId && taxTotals.jambId !== 'none')
+    taxJCCents > 0 && (
+      (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
+      (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
+      (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
+      (taxTotals?.jambId && taxTotals.jambId !== 'none')
+    )
   );
 
   const hasCasing = Boolean(
-    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
-    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
-    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
-    (taxTotals?.casingId && taxTotals.casingId !== 'none')
+    taxJCCents > 0 && (
+      (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
+      (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
+      (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
+      (taxTotals?.casingId && taxTotals.casingId !== 'none')
+    )
   );
 
   const jcLabel = (() => {
@@ -1351,31 +1369,69 @@ export default function QuoteInvoice({
                   const totalItemBaseCents = toCents(w.base);
                   const itemLabDollars = line?.lab ?? 0;
                   const itemMiscDollars = line?.misc ?? 0;
+                  const cardRowPy = windows.length <= 2
+                    ? Math.max(8, rowPy * 1.5)
+                    : (windows.length <= 4 ? Math.max(6, rowPy * 1.1) : rowPy * 0.75);
 
                   return (
                     <tr key={w.id || i} className={`border-b border-[#cbd5e1] ${i % 2 === 1 ? 'bg-[#fcfdfd]' : 'bg-white'}`}>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
                         {String(i + 1).padStart(2, '0')}
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 border-r border-[#cbd5e1]">
-                        <span className="font-bold text-[#0f172a] leading-tight">
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 border-r border-[#cbd5e1]">
+                        <div className="font-bold text-[#0f172a] leading-tight">
                           {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}
-                        </span>
+                        </div>
+                        {/* Architectural specification badges */}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5" style={{ fontSize: `${microFs}px` }}>
+                          {w.color && (
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-medium">
+                              {w.color}
+                            </span>
+                          )}
+                          {(Number(w.triple) > 0 || toCents(w.triple) > 0) ? (
+                            <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-800 font-semibold">
+                              Triple Pane
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded bg-slate-50 text-slate-600 font-medium">
+                              Dual Pane
+                            </span>
+                          )}
+                          {(Number(w.solar) > 0 || toCents(w.solar) > 0) && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 font-medium">
+                              Solar Shield
+                            </span>
+                          )}
+                          {(Number(w.argon) > 0 || toCents(w.argon) > 0) && (
+                            <span className="px-1.5 py-0.2 rounded bg-cyan-50 text-cyan-800 font-medium">
+                              Argon Gas
+                            </span>
+                          )}
+                          {isSupplyOnly && (
+                            <span className="text-[#64748b] italic">Supply Only</span>
+                          )}
+                        </div>
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
                         <span className="px-1.5 py-0.5 rounded bg-[#f1f5f9] text-[#0f172a] font-mono text-[11px]">
                           {qty}
                         </span>
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        {formatMoney(totalItemBaseCents)}
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
+                        <div>{formatMoney(totalItemBaseCents)}</div>
+                        {qty > 1 && (
+                          <div style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-normal font-sans">
+                            ({formatMoney(Math.round(totalItemBaseCents / qty))} ea)
+                          </div>
+                        )}
                       </td>
                       {!isSupplyOnly && (
                         <>
-                          <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1]">
+                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1]">
                             {formatMoney(itemLabDollars * 100)}
                           </td>
-                          <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono text-[#0f172a]">
+                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a]">
                             {formatMoney(itemMiscDollars * 100)}
                           </td>
                         </>
@@ -1482,6 +1538,23 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Supply Only Order Terms & Quality Specifications */}
+              {isSupplyOnly && (
+                <div className="border border-[#cbd5e1] rounded p-2.5 bg-[#f8fafc]/70">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-1 pb-0.5 border-b border-[#cbd5e1] flex items-center justify-between">
+                    <span>Supply Only Order Specifications</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Factory Direct</span>
+                  </div>
+                  <ul className="space-y-1 text-slate-700 list-disc pl-3.5" style={{ fontSize: `${microFs}px` }}>
+                    <li><strong>Custom Manufacturing:</strong> Built to supplied rough opening and frame dimensions.</li>
+                    <li><strong>Multi-Chamber Vinyl:</strong> Premium fusion-welded frame and sashes for long-term thermal efficiency.</li>
+                    <li><strong>Glazing:</strong> Insulated glass unit with warm-edge spacer technology.</li>
+                    <li><strong>Site Verification:</strong> Purchaser/contractor is responsible for final field dimensions, installation, and egress compliance.</li>
+                    <li><strong>Receipt &amp; Handling:</strong> Inspect all units upon delivery/pickup. Standard manufacturer warranty covers frame &amp; glass.</li>
+                  </ul>
+                </div>
+              )}
+
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded space-y-0.5">
                   <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
@@ -1520,6 +1593,22 @@ export default function QuoteInvoice({
                   <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
                   <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Acceptance & Sign-off Block */}
+          <div className="mt-3 pt-2 border-t-2 border-[#0f172a] bg-white rounded p-2.5 border border-[#cbd5e1]">
+            <div className="flex justify-between items-center text-[10px] uppercase font-bold text-[#0f172a] mb-1">
+              <span>Client Acceptance &amp; Authorization</span>
+              <span className="text-[#64748b] font-normal normal-case">Signature authorizes order placement and acknowledges listed specifications.</span>
+            </div>
+            <div className="grid grid-cols-[1.5fr_1fr] gap-6 pt-3 pb-1">
+              <div className="border-b border-[#0f172a] flex justify-between items-end pb-0.5">
+                <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-semibold uppercase">Authorized Client Signature</span>
+              </div>
+              <div className="border-b border-[#0f172a] flex justify-between items-end pb-0.5">
+                <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-semibold uppercase">Date</span>
               </div>
             </div>
           </div>

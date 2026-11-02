@@ -82,7 +82,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
   const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('cards');
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
 
@@ -1658,6 +1658,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveLabour={effectiveLabour}
         attachedUpgrade={attachedUpgrade}
         attachedSealedUnit={attachedSealedUnit}
+        isSupplyOnly={isSupplyOnly}
       />
 
       {/* Submit for Review / Direct Approve Modal */}
