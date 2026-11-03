@@ -106,15 +106,15 @@ export function SealedUnitLabourTravelCard({
             </p>
           </div>
 
-          {/* Unified Professional Segmented Control */}
-          <div className="inline-flex p-1 bg-muted/60 rounded-xl border border-border/60 text-xs">
+          {/* Distinct Scope Selector Badges */}
+          <div className="inline-flex p-1 bg-muted/60 rounded-xl border border-border/60 text-xs gap-1">
             <button
               type="button"
               onClick={() => handleSelectMode('supply_only')}
               className={cn(
-                'px-3 py-1 rounded-lg font-medium transition-all cursor-pointer text-xs',
+                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer text-xs',
                 currentMode === 'supply_only'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -124,22 +124,22 @@ export function SealedUnitLabourTravelCard({
               type="button"
               onClick={() => handleSelectMode('installation')}
               className={cn(
-                'px-3 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 text-xs',
+                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
                 currentMode === 'installation'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Wrench className="w-3 h-3 text-muted-foreground" />
+              <Wrench className="w-3 h-3" />
               <span>Installation</span>
             </button>
             <button
               type="button"
               onClick={() => handleSelectMode('service_only')}
               className={cn(
-                'px-3 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 text-xs',
+                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
                 currentMode === 'service_only'
-                  ? 'bg-background text-foreground shadow-xs font-semibold'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -237,19 +237,6 @@ export function SealedUnitLabourTravelCard({
           </>
         ) : currentMode === 'service_only' ? (
           <div className="space-y-3">
-            {/* Clean Professional Scope Notice (No duplicate sqft inputs or duplicate financial cards) */}
-            <div className="p-2.5 rounded-xl bg-muted/20 border border-border/60 flex items-center justify-between text-xs">
-              <div className="space-y-0.5">
-                <span className="font-semibold text-foreground">Service &amp; Repair Work</span>
-                <p className="text-[11px] text-muted-foreground">
-                  Glass manufacturing base is $0.00. Labour and travel are calculated directly in the official breakdown.
-                </p>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-muted text-muted-foreground border border-border/80">
-                13% HST
-              </span>
-            </div>
-
             {/* Travel Calculator for Service Work */}
             <SealedUnitTravelCalculator
               labour={labour}

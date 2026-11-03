@@ -281,7 +281,6 @@ export function SealedUnitQuoteSummaryCard({
                 rows={2}
                 value={quoteNotes}
                 onChange={(e) => setQuoteNotes(e.target.value)}
-                placeholder="e.g. Special grid pattern specs, site measurement notes, safety glass location..."
                 className="text-xs bg-background resize-none border-border/80 focus-visible:ring-1"
               />
             </div>

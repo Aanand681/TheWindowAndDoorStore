@@ -112,7 +112,7 @@ export function SealedUnitLineItemsTable({
                         <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
                           <span className="capitalize font-semibold">{item.treatment}</span>
                           <span>•</span>
-                          <span className="uppercase font-semibold text-primary">{item.paneType}</span>
+                          <span className="uppercase font-semibold text-foreground">{item.paneType}</span>
                           <span>•</span>
                           <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px] text-foreground">
                             {item.thicknessMm}mm
@@ -163,7 +163,7 @@ export function SealedUnitLineItemsTable({
                         </>
                       ) : (
                         <>
-                          <td className="py-3 px-3 text-right text-primary font-bold">
+                          <td className="py-3 px-3 text-right text-foreground font-bold">
                             ${lineServiceLabour.toFixed(2)}
                           </td>
                           <td className="py-3 px-3 text-right text-muted-foreground">

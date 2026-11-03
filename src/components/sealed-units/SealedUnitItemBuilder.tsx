@@ -134,7 +134,7 @@ export function SealedUnitItemBuilder({
   const handleResetInputs = () => {
     setWidthInput('');
     setHeightInput('');
-    setQtyInput('1');
+    setQtyInput('');
     widthRef.current?.focus();
   };
 
@@ -199,7 +199,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'annealed'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -211,7 +211,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'tempered'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -251,7 +251,7 @@ export function SealedUnitItemBuilder({
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   !hasDualPane && 'opacity-40 cursor-not-allowed line-through',
                   selectedPane === 'dual'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -263,7 +263,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   selectedPane === 'triple'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -285,7 +285,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rectangle'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -298,7 +298,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rakehead_triangle'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -313,7 +313,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'roundtop_circle_octagon'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -335,7 +335,6 @@ export function SealedUnitItemBuilder({
                 ref={widthRef}
                 id="widthInput"
                 type="text"
-                placeholder='e.g. 30 1/2"'
                 value={widthInput}
                 onChange={(e) => setWidthInput(e.target.value)}
                 className="h-8 text-xs font-mono font-bold"
@@ -349,7 +348,6 @@ export function SealedUnitItemBuilder({
               <Input
                 id="heightInput"
                 type="text"
-                placeholder='e.g. 40"'
                 value={heightInput}
                 onChange={(e) => setHeightInput(e.target.value)}
                 className="h-8 text-xs font-mono font-bold"
@@ -390,7 +388,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'none'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -402,7 +400,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'grid'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -414,7 +412,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '3_burst'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -429,7 +427,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '5_burst'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -441,7 +439,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'customer_own'
-                    ? 'bg-sky-100 text-sky-900 border-sky-400 font-bold shadow-xs dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-700'
+                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -495,7 +493,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'pattern'
-                            ? 'bg-sky-100 text-sky-900 font-bold dark:bg-sky-950/70 dark:text-sky-200'
+                            ? 'bg-zinc-800 text-white font-bold dark:bg-zinc-100 dark:text-zinc-900'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -508,7 +506,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'manual'
-                            ? 'bg-sky-100 text-sky-900 font-bold dark:bg-sky-950/70 dark:text-sky-200'
+                            ? 'bg-zinc-800 text-white font-bold dark:bg-zinc-100 dark:text-zinc-900'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -520,7 +518,7 @@ export function SealedUnitItemBuilder({
                   {grillPatternMode === 'pattern' ? (
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-0.5">
-                        <Label className="text-[10px] text-muted-foreground">Columns (e.g. 3)</Label>
+                        <Label className="text-[10px] text-muted-foreground">Columns</Label>
                         <Input
                           type="number"
                           min="1"
@@ -530,7 +528,7 @@ export function SealedUnitItemBuilder({
                         />
                       </div>
                       <div className="space-y-0.5">
-                        <Label className="text-[10px] text-muted-foreground">Rows (e.g. 5)</Label>
+                        <Label className="text-[10px] text-muted-foreground">Rows</Label>
                         <Input
                           type="number"
                           min="1"
@@ -593,7 +591,6 @@ export function SealedUnitItemBuilder({
                       value={grillBentHubs}
                       onChange={(e) => setGrillBentHubs(e.target.value)}
                       className="h-8 text-xs font-mono font-bold"
-                      placeholder="0"
                     />
                   </div>
                 </div>

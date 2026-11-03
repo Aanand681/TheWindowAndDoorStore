@@ -101,20 +101,20 @@ export default function SealedUnitsCalculatorPage() {
   const [selectedComboId, setSelectedComboId] = useState<string>('ann_clear');
   const [selectedPane, setSelectedPane] = useState<PaneType>('dual');
   const [shape, setShape] = useState<GlassShape>('rectangle');
-  const [widthInput, setWidthInput] = useState<string>('30');
-  const [heightInput, setHeightInput] = useState<string>('40');
-  const [qtyInput, setQtyInput] = useState<string>('1');
+  const [widthInput, setWidthInput] = useState<string>('');
+  const [heightInput, setHeightInput] = useState<string>('');
+  const [qtyInput, setQtyInput] = useState<string>('');
 
   // Interior Grill Builder State
   const [grillType, setGrillType] = useState<GrillType>('none');
   const [grillProfile, setGrillProfile] = useState<GrillProfile>('5/8" x 1/4"');
   const [grillColor, setGrillColor] = useState<string>('White');
   const [grillPatternMode, setGrillPatternMode] = useState<'pattern' | 'manual'>('pattern');
-  const [grillCols, setGrillCols] = useState<string>('3');
-  const [grillRows, setGrillRows] = useState<string>('5');
-  const [grillSquares, setGrillSquares] = useState<string>('15');
-  const [grillTIntersections, setGrillTIntersections] = useState<string>('8');
-  const [grillBentHubs, setGrillBentHubs] = useState<string>('0');
+  const [grillCols, setGrillCols] = useState<string>('');
+  const [grillRows, setGrillRows] = useState<string>('');
+  const [grillSquares, setGrillSquares] = useState<string>('');
+  const [grillTIntersections, setGrillTIntersections] = useState<string>('');
+  const [grillBentHubs, setGrillBentHubs] = useState<string>('');
 
   // Quote State
   const [lineItems, setLineItems] = useState<SealedUnitLineItem[]>([]);
@@ -139,8 +139,8 @@ export default function SealedUnitsCalculatorPage() {
   const [travelFeeType, setTravelFeeType] = useState<'none' | 'far_std' | 'far_small' | 'custom'>('none');
   const [customTravelFee, setCustomTravelFee] = useState<string>('');
   const [showOutTownTravel, setShowOutTownTravel] = useState<boolean>(false);
-  const [travelKm, setTravelKm] = useState<string>('0');
-  const [crewHours, setCrewHours] = useState<string>('0');
+  const [travelKm, setTravelKm] = useState<string>('');
+  const [crewHours, setCrewHours] = useState<string>('');
   const [crewSize, setCrewSize] = useState<'2' | '3'>('3');
   const [hstRate, setHstRate] = useState<number>(13); // 13% HST, 8% Exempt on Materials, 0% Tax Exempt
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
@@ -158,9 +158,6 @@ export default function SealedUnitsCalculatorPage() {
 
   // Fetch live settings and reviewer/clerk lists from database on mount
   useEffect(() => {
-    // Generate initial unique 6-digit quote number on client mount to eliminate SSR hydration mismatch
-    setQuoteNumber((prev) => prev || Math.floor(100000 + Math.random() * 900000).toString());
-
     fetch('/api/sealed-units/settings')
       .then((res) => res.json())
       .then((data) => {
@@ -971,7 +968,6 @@ export default function SealedUnitsCalculatorPage() {
                 <Input
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Jason Schram"
                   className="h-9 text-xs sm:text-sm bg-background shadow-xs font-medium"
                 />
               </div>
@@ -998,7 +994,6 @@ export default function SealedUnitsCalculatorPage() {
                     suppressHydrationWarning
                     value={quoteNumber}
                     onChange={(e) => setQuoteNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                    placeholder="e.g. 518492"
                     className="h-9 text-xs sm:text-sm font-mono font-bold bg-background shadow-xs text-foreground tracking-wider pl-8"
                   />
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground font-mono font-bold text-xs pointer-events-none">
@@ -1011,8 +1006,8 @@ export default function SealedUnitsCalculatorPage() {
 
           {/* Main 2-Column Responsive Workspace */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-            {/* LEFT COLUMN (5 cols): Item Builder & Glass Specs */}
-            <div className="lg:col-span-5 space-y-3">
+            {/* LEFT COLUMN (7 cols): Item Builder & Added Line Items Table */}
+            <div className="lg:col-span-7 space-y-3.5">
               <SealedUnitItemBuilder
                 treatment={treatment}
                 setTreatment={setTreatment}
@@ -1057,10 +1052,20 @@ export default function SealedUnitsCalculatorPage() {
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                 savedDraftsCount={savedDraftsCount}
               />
+
+              <SealedUnitLineItemsTable
+                lineItems={lineItems}
+                isInstallation={isInstallation}
+                mode={sealedUnitMode}
+                labourRate={totals.effectiveLabourRate}
+                miscRate={totals.effectiveMiscRate}
+                onRemoveItem={handleRemoveItem}
+                onResetQuote={handleResetQuote}
+              />
             </div>
 
-            {/* RIGHT COLUMN (7 cols): Installation/Travel & Quote Summary */}
-            <div className="lg:col-span-7 space-y-3">
+            {/* RIGHT COLUMN (5 cols, sticky): Installation/Travel & Quote Summary */}
+            <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-4">
               <SealedUnitLabourTravelCard
                 mode={sealedUnitMode}
                 setMode={handleSetSealedUnitMode}
@@ -1136,17 +1141,6 @@ export default function SealedUnitsCalculatorPage() {
               />
             </div>
           </div>
-
-          {/* BOTTOM SECTION: Added Line Items Table */}
-          <SealedUnitLineItemsTable
-            lineItems={lineItems}
-            isInstallation={isInstallation}
-            mode={sealedUnitMode}
-            labourRate={totals.effectiveLabourRate}
-            miscRate={totals.effectiveMiscRate}
-            onRemoveItem={handleRemoveItem}
-            onResetQuote={handleResetQuote}
-          />
         </div>
       </div>
 
