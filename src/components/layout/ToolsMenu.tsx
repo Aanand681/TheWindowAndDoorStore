@@ -10,9 +10,11 @@ import {
   ArrowRight,
   ShieldCheck,
   Layers,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
+import { EstimatorGuideModal } from '@/components/calculator/EstimatorGuideModal';
 
 export interface ToolsMenuProps {
   currentPath: string;
@@ -21,6 +23,7 @@ export interface ToolsMenuProps {
 
 export default function ToolsMenu({ currentPath, className }: ToolsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -201,9 +204,29 @@ export default function ToolsMenu({ currentPath, className }: ToolsMenuProps) {
                 </p>
               </div>
             </div>
+
+            {/* Estimator Guide Quick Action */}
+            <div className="pt-1 border-t border-border/60">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsGuideOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4 text-primary shrink-0" />
+                <span>Workflow &amp; PDF Guide</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <EstimatorGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </div>
   );
 }

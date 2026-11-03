@@ -26,6 +26,9 @@ import {
   Bookmark,
   FolderOpen,
   Paperclip,
+  Pencil,
+  X,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatMoney, toCents } from '@/lib/promo-logic';
@@ -177,6 +180,155 @@ export function QuoteSummaryCard({
   const effectiveMiscCents = customMisc !== '' ? toCents(customMisc) : (taxMisc || 0);
   const effectiveLabourCents = customLabour !== '' ? toCents(customLabour) : (taxLabour || 0);
 
+  const [editingField, setEditingField] = React.useState<'jc' | 'labour' | 'misc' | null>(null);
+  const [tempEditVal, setTempEditVal] = React.useState<string>('');
+
+  const hasAnyOverrides = customJC !== '' || customLabour !== '' || customMisc !== '';
+
+  const handleResetAllOverrides = () => {
+    setCustomJC('');
+    setCustomLabour('');
+    setCustomMisc('');
+    setEditingField(null);
+    setTempEditVal('');
+    toast.success('Reset Jambs & Casing, Labour, and Misc to default pricing');
+  };
+
+  const renderEditableRow = (
+    field: 'jc' | 'labour' | 'misc',
+    label: string,
+    amountCents: number,
+    customVal: string,
+    defaultCents: number,
+    setter: (val: string) => void,
+    suffix?: string
+  ) => {
+    const isEditing = editingField === field;
+    const isCustom = customVal !== '';
+    const defaultDollars = (defaultCents / 100).toFixed(2);
+
+    if (isEditing) {
+      return (
+        <div key={field} className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-primary/10 border border-primary/30 my-1 animate-in fade-in duration-150">
+          <span className="font-semibold text-primary text-[11px] shrink-0">
+            Edit {label}:
+          </span>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-xs font-mono text-muted-foreground">$</span>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={tempEditVal}
+              onChange={(e) => setTempEditVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setter(tempEditVal);
+                  setEditingField(null);
+                  toast.success(`Updated ${label} to $${Number(tempEditVal || 0).toFixed(2)}`);
+                } else if (e.key === 'Escape') {
+                  setEditingField(null);
+                }
+              }}
+              className="h-6 w-24 text-xs font-mono text-right px-1.5 py-0 bg-background"
+              autoFocus
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() => {
+                setter(tempEditVal);
+                setEditingField(null);
+                toast.success(`Updated ${label} to $${Number(tempEditVal || 0).toFixed(2)}`);
+              }}
+              className="h-6 px-2 text-[10px] font-bold cursor-pointer"
+            >
+              Save
+            </Button>
+            {isCustom && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setter('');
+                  setEditingField(null);
+                  toast.info(`Reset ${label} to default ($${defaultDollars})`);
+                }}
+                className="h-6 px-1.5 text-[10px] cursor-pointer"
+                title="Reset to default calculated price"
+              >
+                Reset
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditingField(null)}
+              className="h-6 px-1 text-[10px] cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={field} className="flex items-center justify-between text-xs sm:text-sm py-0.5 group">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-muted-foreground truncate">
+            {label} {suffix && <span className="text-[10px] text-muted-foreground/70">{suffix}</span>}
+          </span>
+          {isCustom && (
+            <span className="text-[9px] bg-primary/15 text-primary font-bold px-1.5 py-0.5 rounded shrink-0">
+              custom
+            </span>
+          )}
+          {isCustom && !isReadOnly && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setter('');
+                toast.info(`Reset ${label} to default ($${defaultDollars})`);
+              }}
+              className="h-5 px-1.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+              title="Reset to default calculated price"
+            >
+              <RotateCcw className="w-2.5 h-2.5 mr-0.5" />
+              Reset
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={cn(
+            "font-mono whitespace-nowrap",
+            amountCents === 0 ? "text-muted-foreground text-xs" : (isCustom ? "font-bold text-primary" : "text-foreground font-medium")
+          )}>
+            {amountCents > 0 ? `+${formatMoney(amountCents)}` : '$0.00'}
+          </span>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingField(field);
+                setTempEditVal(isCustom ? customVal : (amountCents / 100).toFixed(2));
+              }}
+              className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              title={`Edit ${label} price`}
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const jcSummaryLabel = React.useMemo(() => {
     const hasJamb = Boolean(taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.total) > 0 || Number(taxTotals.selectedJamb.rate) > 0));
     const hasCasing = Boolean(taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.total) > 0 || Number(taxTotals.selectedCasing.rate) > 0));
@@ -187,16 +339,20 @@ export function QuoteSummaryCard({
 
   // Combined Financials Ledger when attachedSealedUnit exists
   const combinedData = React.useMemo(() => {
-    if (!attachedSealedUnit || !quoteResult) return null;
+    if (!attachedSealedUnit) return null;
     const suTotals = attachedSealedUnit.totals || {};
-    const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-    const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-    const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+    const isAttachedSUService =
+      attachedSealedUnit.sealedUnitMode === 'service_only' ||
+      attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+      Boolean(suTotals.isServiceOnly);
+    const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+    const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+    const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
     const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
-    const windowBaseCents = quoteResult.base || 0;
-    const windowSurchargeCents = quoteResult.surcharge || 0;
-    const windowDiscountCents = quoteResult.promoDiscount || 0;
+    const windowBaseCents = quoteResult?.base || 0;
+    const windowSurchargeCents = quoteResult?.surcharge || 0;
+    const windowDiscountCents = quoteResult?.promoDiscount || 0;
 
     const combinedMiscCents = effectiveMiscCents + suMiscCents;
     const combinedLabourCents = effectiveLabourCents + suLabourCents;
@@ -234,7 +390,12 @@ export function QuoteSummaryCard({
     // Format sealed unit summary sentence
     const lineItems = attachedSealedUnit.lineItems || [];
     let suSummarySentence = 'Sealed Unit';
-    if (lineItems.length > 0) {
+    if (isAttachedSUService) {
+      const suSqft = Number(suTotals.totalSqft || 0);
+      suSummarySentence = suSqft > 0
+        ? `Sealed Unit On-Site Service (${suSqft.toFixed(1)} sq ft)`
+        : 'Sealed Unit Service Only';
+    } else if (lineItems.length > 0) {
       const totalSUQty = lineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
       const paneTypes = Array.from(
         new Set(lineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual')))
@@ -246,6 +407,7 @@ export function QuoteSummaryCard({
       windowBaseCents,
       suGlassCents,
       suSummarySentence,
+      isAttachedSUService,
       effectiveJCCents,
       combinedMiscCents,
       combinedLabourCents,
@@ -266,6 +428,17 @@ export function QuoteSummaryCard({
     hstRate,
   ]);
 
+  const hasActiveQuoteData = Boolean(
+    (quoteResult && ((quoteResult.base || 0) > 0 || (quoteResult.total || 0) > 0)) ||
+    effectiveJCCents > 0 ||
+    effectiveLabourCents > 0 ||
+    effectiveMiscCents > 0 ||
+    attachedSealedUnit ||
+    customJC !== '' ||
+    customLabour !== '' ||
+    customMisc !== ''
+  );
+
   return (
     <div className="lg:col-span-4 space-y-6 sticky top-8 h-fit pb-12">
       <Card className="bg-card/80 border-border backdrop-blur-xl shadow-xl overflow-hidden relative py-0 gap-0 [--card-spacing:0px]">
@@ -276,7 +449,7 @@ export function QuoteSummaryCard({
               <Calculator className="w-5 h-5 text-primary" />
               <span>Promo Summary</span>
             </CardTitle>
-            {quoteResult?.promoName && quoteResult.promoDiscount > 0 && (
+            {quoteResult?.promoName && (quoteResult.promoDiscount || 0) > 0 && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                 {quoteResult.promoName}
               </span>
@@ -284,7 +457,7 @@ export function QuoteSummaryCard({
           </div>
         </CardHeader>
         <CardContent className="space-y-4 pt-3.5 px-5 sm:px-6 pb-5">
-          {quoteResult ? (
+          {hasActiveQuoteData ? (
             <>
               {/* Attached Sealed Unit Badge */}
               {attachedSealedUnit && (
@@ -330,48 +503,52 @@ export function QuoteSummaryCard({
 
                     {/* Sealed unit glass price */}
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                      <span className="text-muted-foreground font-medium text-emerald-700 dark:text-emerald-400">
+                      <span className={cn(
+                        "font-medium truncate",
+                        combinedData.isAttachedSUService
+                          ? "text-blue-700 dark:text-blue-400"
+                          : "text-emerald-700 dark:text-emerald-400"
+                      )}>
                         {combinedData.suSummarySentence}
                       </span>
                       <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                        +{formatMoney(combinedData.suGlassCents)}
+                        {combinedData.isAttachedSUService && combinedData.suGlassCents === 0
+                          ? '$0.00 (Labour below)'
+                          : `+${formatMoney(combinedData.suGlassCents)}`}
                       </span>
                     </div>
 
-                    {/* Jambs & Casing (Window only, if exists) */}
-                    {combinedData.effectiveJCCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          {jcSummaryLabel} <span className="text-[10px] text-muted-foreground/70">(window only)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.effectiveJCCents)}
-                        </span>
-                      </div>
+                    {/* Jambs & Casing (Window only) */}
+                    {renderEditableRow(
+                      'jc',
+                      jcSummaryLabel,
+                      combinedData.effectiveJCCents,
+                      customJC,
+                      taxJC,
+                      (val) => setCustomJC(val),
+                      '(window only)'
                     )}
 
-                    {/* Misc (Window + Sealed Unit) */}
-                    {combinedData.combinedMiscCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          Miscellaneous <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.combinedMiscCents)}
-                        </span>
-                      </div>
+                    {/* Misc (Window + Sealed Unit) - Hidden on Supply Only */}
+                    {!isSupplyOnly && renderEditableRow(
+                      'misc',
+                      'Miscellaneous',
+                      combinedData.combinedMiscCents,
+                      customMisc,
+                      taxMisc,
+                      (val) => setCustomMisc(val),
+                      '(window + SU)'
                     )}
 
-                    {/* Labour (Window + Sealed Unit) */}
-                    {combinedData.combinedLabourCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          Labour <span className="text-[10px] text-muted-foreground/70">(window + SU)</span>
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(combinedData.combinedLabourCents)}
-                        </span>
-                      </div>
+                    {/* Labour (Window + Sealed Unit) - Hidden on Supply Only */}
+                    {!isSupplyOnly && renderEditableRow(
+                      'labour',
+                      'Labour',
+                      combinedData.combinedLabourCents,
+                      customLabour,
+                      taxLabour,
+                      (val) => setCustomLabour(val),
+                      '(window + SU)'
                     )}
 
                     {/* Surcharge (Window + Sealed Unit 8%) */}
@@ -492,50 +669,50 @@ export function QuoteSummaryCard({
                     ) : (
                       <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                         <span className="text-muted-foreground font-medium">Base window price</span>
-                        <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult.base)}</span>
+                        <span className="font-mono font-semibold whitespace-nowrap shrink-0">{formatMoney(quoteResult?.base || 0)}</span>
                       </div>
                     )}
-                    {/* Jambs & Casing (or Jambs Only / Casing Only) */}
-                    {effectiveJCCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">
-                          {jcSummaryLabel}
-                        </span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveJCCents)}
-                        </span>
-                      </div>
+                    {/* Jambs & Casing */}
+                    {renderEditableRow(
+                      'jc',
+                      jcSummaryLabel,
+                      effectiveJCCents,
+                      customJC,
+                      taxJC,
+                      (val) => setCustomJC(val)
                     )}
 
-                    {/* Labour and Misc: ONLY shown if NOT supply only */}
-                    {!isSupplyOnly && effectiveLabourCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">Labour</span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveLabourCents)}
-                        </span>
-                      </div>
+                    {/* Labour - Completely hidden on Supply Only */}
+                    {!isSupplyOnly && renderEditableRow(
+                      'labour',
+                      'Labour',
+                      effectiveLabourCents,
+                      customLabour,
+                      taxLabour,
+                      (val) => setCustomLabour(val)
                     )}
-                    {!isSupplyOnly && effectiveMiscCents > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">Miscellaneous</span>
-                        <span className="font-mono text-foreground font-medium whitespace-nowrap shrink-0">
-                          +{formatMoney(effectiveMiscCents)}
-                        </span>
-                      </div>
+
+                    {/* Miscellaneous - Completely hidden on Supply Only */}
+                    {!isSupplyOnly && renderEditableRow(
+                      'misc',
+                      'Miscellaneous',
+                      effectiveMiscCents,
+                      customMisc,
+                      taxMisc,
+                      (val) => setCustomMisc(val)
                     )}
 
                     <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
                       <span className="text-muted-foreground">Surcharge ({surchargeRate}%)</span>
-                      <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult.surcharge)}</span>
+                      <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">+{formatMoney(quoteResult?.surcharge || 0)}</span>
                     </div>
-                    {quoteResult.promoDiscount > 0 && (
+                    {(quoteResult?.promoDiscount || 0) > 0 && (
                       <>
                         <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
                           <span>Promo discount</span>
-                          <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult.promoDiscount)}</span>
+                          <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(quoteResult?.promoDiscount || 0)}</span>
                         </div>
-                        {quoteResult.text && (
+                        {quoteResult?.text && (
                           <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 my-1.5 bg-muted/50 p-2.5 rounded-lg border border-border/60">
                             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
                             <span>{quoteResult.text}</span>
@@ -592,7 +769,7 @@ export function QuoteSummaryCard({
                         {formatMoney(
                           hstRate === 8
                             ? (total - afterDiscount)
-                            : Math.round(Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, (quoteResult.base + quoteResult.surcharge - (quoteResult?.promoDiscount || 0)) + effectiveJCCents))) * 0.13)
+                            : Math.round(Math.max(0, ((quoteResult?.base || 0) + (quoteResult?.surcharge || 0) - (quoteResult?.promoDiscount || 0)) + effectiveJCCents) * 0.05 + Math.max(0, afterDiscount - (Math.max(0, ((quoteResult?.base || 0) + (quoteResult?.surcharge || 0) - (quoteResult?.promoDiscount || 0)) + effectiveJCCents))) * 0.13)
                         )}
                       </span>
                     </div>
@@ -978,7 +1155,7 @@ export function QuoteSummaryCard({
             </>
           ) : (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              Enter valid window base prices to see the summary.
+              Enter window prices, add Jambs &amp; Casing, or enter Service specifications to view summary.
             </div>
           )}
         </CardContent>

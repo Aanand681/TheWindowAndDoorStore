@@ -79,11 +79,14 @@ export function OdooActionModals({
                   className="w-full text-sm bg-background border border-input rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-primary cursor-pointer"
                 >
                   <option value="">-- Select Odoo Clerk (Required) --</option>
-                  {(clerkList.length > 0 ? clerkList : staffList).map((member: any) => (
-                    <option key={member._id || member.username} value={member.username}>
-                      {member.name ? `${member.name} (${member.username})` : member.username} {member.department ? `(${member.department})` : (member.role ? `• ${member.role}` : '')}
-                    </option>
-                  ))}
+                  {(clerkList.length > 0 ? clerkList : staffList).map((member: any) => {
+                    const displayName = member.name || (member.username ? (member.username.charAt(0).toUpperCase() + member.username.slice(1)) : 'Staff');
+                    return (
+                      <option key={member._id || member.username} value={member.username}>
+                        {displayName}
+                      </option>
+                    );
+                  })}
                 </select>
                 <p className="text-[11px] text-muted-foreground">
                   The assigned clerk will receive an instant notification and view-only access to preview and print the quote.

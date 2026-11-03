@@ -23,6 +23,11 @@ export default function LoginPage() {
   // If already authenticated, redirect to app automatically (unless session just expired)
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('vwd_last_active_time');
+        sessionStorage.removeItem('vwd_tab_init_time');
+      } catch (e) {}
+
       const params = new URLSearchParams(window.location.search);
       if (params.get('expired') === 'true') {
         setExpiredNotice(true);
@@ -62,6 +67,13 @@ export default function LoginPage() {
       }
       setLoading(false);
     } else {
+      // Immediately prime active session timestamps to prevent premature inactivity logout
+      try {
+        const now = Date.now();
+        localStorage.setItem('vwd_last_active_time', String(now));
+        sessionStorage.setItem('vwd_tab_init_time', String(now));
+      } catch (err) {}
+
       let targetUrl = '/';
       try {
         const profRes = await fetch('/api/profile');

@@ -38,6 +38,7 @@ export interface QuoteInvoiceProps {
   orientation?: 'portrait' | 'landscape';
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   attachedSealedUnit?: any | null;
+  isSupplyOnly?: boolean;
 }
 
 function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
@@ -173,6 +174,7 @@ export default function QuoteInvoice({
   orientation = 'portrait',
   attachedUpgrade = null,
   attachedSealedUnit = null,
+  isSupplyOnly: isSupplyOnlyProp,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
 
@@ -219,19 +221,73 @@ export default function QuoteInvoice({
     });
   }
 
-  // Jamb and casing items
+  const isSupplyOnly = Boolean(
+    isSupplyOnlyProp !== undefined
+      ? isSupplyOnlyProp
+      : (taxTotals?.isSupplyOnly ||
+         regionName?.toLowerCase().includes('supply') ||
+         taxTotals?.regionName?.toLowerCase().includes('supply'))
+  );
+
+  const hasSupplyJamb = Boolean(
+    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
+    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
+    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
+    (taxTotals?.jambId && taxTotals.jambId !== 'none')
+  );
+  const hasSupplyCasing = Boolean(
+    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
+    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
+    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
+    (taxTotals?.casingId && taxTotals.casingId !== 'none')
+  );
+  const isLooseSupplyJC = Boolean(isSupplyOnly && (hasSupplyJamb || hasSupplyCasing));
+
+  // Effective costs with manual override support (respects 0 without falling back to taxTotals)
+  const taxJCCents = includeJCInPromo
+    ? (isSupplyOnly && !isLooseSupplyJC && effectiveJC === undefined
+        ? 0
+        : (effectiveJC !== undefined
+            ? effectiveJC
+            : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100)))
+    : 0;
+  const taxMiscCents = includeMiscInPromo
+    ? (isSupplyOnly && effectiveMisc === undefined
+        ? 0
+        : (effectiveMisc !== undefined
+            ? effectiveMisc
+            : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100)))
+    : 0;
+  const taxLabourCents = includeLabourInPromo
+    ? (isSupplyOnly && effectiveLabour === undefined
+        ? 0
+        : (effectiveLabour !== undefined
+            ? effectiveLabour
+            : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100)))
+    : 0;
+
+  // Jamb and casing items - only present if taxJCCents > 0
   const jcItems: { label: string; amount: number }[] = [];
-  if (taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0)) {
-    jcItems.push({
-      label: taxTotals.selectedJamb.name,
-      amount: (taxTotals.selectedJamb.total || 0) * 100,
-    });
-  }
-  if (taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0)) {
-    jcItems.push({
-      label: taxTotals.selectedCasing.name,
-      amount: (taxTotals.selectedCasing.total || 0) * 100,
-    });
+  if (taxJCCents > 0) {
+    if (taxTotals?.selectedJamb && (taxTotals.selectedJamb.total > 0 || taxTotals.selectedJamb.rate > 0)) {
+      jcItems.push({
+        label: taxTotals.selectedJamb.name,
+        amount: (taxTotals.selectedJamb.total || 0) * 100,
+      });
+    }
+    if (taxTotals?.selectedCasing && (taxTotals.selectedCasing.total > 0 || taxTotals.selectedCasing.rate > 0)) {
+      jcItems.push({
+        label: taxTotals.selectedCasing.name,
+        amount: (taxTotals.selectedCasing.total || 0) * 100,
+      });
+    }
+    // If taxJCCents > 0 but no named jamb/casing item was in taxTotals:
+    if (jcItems.length === 0) {
+      jcItems.push({
+        label: 'Jambs & Casings (Custom)',
+        amount: taxJCCents,
+      });
+    }
   }
 
   // Extras / Add-ons - only if qty > 0
@@ -288,22 +344,6 @@ export default function QuoteInvoice({
       });
     }
   });
-
-  const taxJCCents = includeJCInPromo
-    ? (effectiveJC !== undefined && effectiveJC > 0
-        ? effectiveJC
-        : Math.round(Number(taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0) * 100))
-    : 0;
-  const taxMiscCents = includeMiscInPromo
-    ? (effectiveMisc !== undefined && effectiveMisc > 0
-        ? effectiveMisc
-        : Math.round(Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100))
-    : 0;
-  const taxLabourCents = includeLabourInPromo
-    ? (effectiveLabour !== undefined && effectiveLabour > 0
-        ? effectiveLabour
-        : Math.round(Number(taxTotals?.finalLabour ?? taxTotals?.labourTotal ?? taxTotals?.labourWindows ?? 0) * 100))
-    : 0;
   const promoDiscountCents = activePromo?.discount || 0;
   const monthlyDiscountCents = Math.round((taxTotals?.discount || 0) * 100);
 
@@ -346,10 +386,14 @@ export default function QuoteInvoice({
   // Combined Sealed Unit Calculations (if attachedSealedUnit is present)
   const hasAttachedSU = Boolean(attachedSealedUnit && attachedSealedUnit.totals);
   const suTotals = attachedSealedUnit?.totals || {};
+  const isAttachedSUService =
+    attachedSealedUnit?.sealedUnitMode === 'service_only' ||
+    attachedSealedUnit?.data?.sealedUnitMode === 'service_only' ||
+    Boolean(suTotals.isServiceOnly);
   const suLineItems: any[] = attachedSealedUnit?.lineItems || [];
-  const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-  const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-  const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+  const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+  const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+  const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
   const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
   const effectiveMiscTotalCents = taxMiscCents + (hasAttachedSU ? suMiscCents : 0);
@@ -403,31 +447,19 @@ export default function QuoteInvoice({
 
   // Sealed Unit Summary Sentence for Line 2
   let suSummarySentence = 'Sealed Unit';
-  if (suLineItems.length > 0) {
+  if (isAttachedSUService) {
+    const suSqft = Number(suTotals.totalSqft || 0);
+    suSummarySentence = suSqft > 0
+      ? `Sealed Unit On-Site Service (${suSqft.toFixed(1)} sq ft)`
+      : 'Sealed Unit Service Only';
+  } else if (suLineItems.length > 0) {
     const totalSUQty = suLineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
     const paneTypes = Array.from(new Set(suLineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual'))));
     suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit${totalSUQty > 1 ? 's' : ''}`;
   }
 
-  const isSupplyOnly = Boolean(
-    taxTotals?.isSupplyOnly ||
-    regionName?.toLowerCase().includes('supply') ||
-    taxTotals?.regionName?.toLowerCase().includes('supply')
-  );
-
-  const hasJambs = Boolean(
-    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
-    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
-    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
-    (taxTotals?.jambId && taxTotals.jambId !== 'none')
-  );
-
-  const hasCasing = Boolean(
-    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
-    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
-    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
-    (taxTotals?.casingId && taxTotals.casingId !== 'none')
-  );
+  const hasJambs = Boolean(taxJCCents > 0 && hasSupplyJamb);
+  const hasCasing = Boolean(taxJCCents > 0 && hasSupplyCasing);
 
   const jcLabel = (() => {
     if (hasJambs && !hasCasing) {
@@ -547,18 +579,33 @@ export default function QuoteInvoice({
   };
 
   const renderSealedUnitsTable = (theme: 'modern' | 'executive' | 'cards') => {
-    if (!hasAttachedSU || suLineItems.length === 0) return null;
+    if (!hasAttachedSU || (suLineItems.length === 0 && !(isAttachedSUService && (suTotals.totalSqft || 0) > 0))) return null;
 
     const isModern = theme === 'modern';
     const isExecutive = theme === 'executive';
     const isCards = theme === 'cards';
+    const effectiveSULineItems = suLineItems.length > 0 ? suLineItems : [
+      {
+        id: 'su-service-1',
+        widthIn: 'Custom Area',
+        heightIn: '',
+        paneType: 'dual',
+        combinationName: 'On-Site Sealed Unit Service & Glazing',
+        shapeDescription: 'On-Site Service',
+        grillDescription: 'No Grills',
+        quantity: 1,
+        multipliedAmount: 0,
+        multipliedTotal: 0,
+        actualSqft: suTotals.totalSqft || 0,
+      }
+    ];
 
     return (
       <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
         <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
           <div className="flex items-center gap-2">
             <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
-              Sealed Glass Units
+              {isAttachedSUService ? 'Sealed Unit Service Work' : 'Sealed Glass Units'}
             </span>
             {attachedSealedUnit.quoteNumber && (
               <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
@@ -567,7 +614,7 @@ export default function QuoteInvoice({
             )}
           </div>
           <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
-            {suLineItems.length} item{suLineItems.length > 1 ? 's' : ''}
+            {effectiveSULineItems.length} item{effectiveSULineItems.length > 1 ? 's' : ''}
           </span>
         </div>
 
@@ -575,7 +622,7 @@ export default function QuoteInvoice({
           <thead>
             <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
               <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
-              <th className="py-1 px-1.5 text-left font-bold w-[25%]">Dimensions</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[25%]">{isAttachedSUService ? 'Dimensions / Scope' : 'Dimensions'}</th>
               <th className="py-1 px-1.5 text-left font-bold w-[34%]">Glass Specification</th>
               <th className="py-1 px-1.5 text-left font-bold w-[18%]">Shape &amp; Grills</th>
               <th className="py-1 px-1.5 text-center font-bold w-[6%]">Qty</th>
@@ -583,10 +630,10 @@ export default function QuoteInvoice({
             </tr>
           </thead>
           <tbody style={{ fontSize: `${bodyFs}px` }}>
-            {suLineItems.map((item: any, idx: number) => {
+            {effectiveSULineItems.map((item: any, idx: number) => {
               const qty = Number(item.quantity) || 1;
-              const unitPrice = item.multipliedAmount || 0;
-              const lineTotal = item.multipliedTotal || (unitPrice * qty);
+              const unitPrice = isAttachedSUService ? 0 : (item.multipliedAmount || 0);
+              const lineTotal = isAttachedSUService ? 0 : (item.multipliedTotal || (unitPrice * qty));
               const paneLabel = item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane';
               const glassSpec = item.combinationName || `${paneLabel} · ${item.treatment || 'Cardinal 366'}`;
               const shapeText = item.shapeDescription || item.shape || 'Standard (Rectangle)';
@@ -598,10 +645,10 @@ export default function QuoteInvoice({
                     {idx + 1}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
-                    {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                    {item.widthIn === 'Custom Area' ? `${(item.actualSqft || 0).toFixed(2)} sq ft total` : `${item.widthIn}" wide × ${item.heightIn}" high`}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#1e293b]">
-                    <span className="font-semibold">{paneLabel}</span>
+                    <span className="font-semibold">{isAttachedSUService ? 'On-Site Service' : paneLabel}</span>
                     <span className="text-[#475569] text-xs block">{glassSpec}</span>
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155]">
@@ -616,11 +663,19 @@ export default function QuoteInvoice({
                     {qty}
                   </td>
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
-                    <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
-                    {qty > 1 && (
-                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
-                        ({formatMoney(Math.round(unitPrice * 100))} ea)
+                    {isAttachedSUService ? (
+                      <span className="text-xs text-blue-700 font-medium font-sans">
+                        Service Labour
                       </span>
+                    ) : (
+                      <>
+                        <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
+                        {qty > 1 && (
+                          <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
+                            ({formatMoney(Math.round(unitPrice * 100))} ea)
+                          </span>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>
@@ -637,7 +692,7 @@ export default function QuoteInvoice({
     return (
       <>
         {/* Line 1: [Qty] [Pane] [Color] Window (Window base glass total) */}
-        {renderWindowBasePriceRows(textColor)}
+        {((Array.isArray(windows) && windows.length > 0) || totalWindowBaseCents > 0) && renderWindowBasePriceRows(textColor)}
 
         {/* Line 2: [Qty] [Pane] Sealed Unit (Sealed unit glass total pre-8%) */}
         {hasAttachedSU && suGlassCents > 0 && (
@@ -798,22 +853,22 @@ export default function QuoteInvoice({
       {/* ============================================================== */}
       {template === 'modern' && (
         <>
-          {/* Header: Standardized Architectural Header */}
-          <div className="border-t-2 border-b-2 border-[#0f172a] py-2 mb-2.5">
+          {/* Header: Modern Minimalist Header */}
+          <div className="border-t-4 border-indigo-600 border-b border-slate-300 py-2.5 mb-3 bg-slate-50/50 px-2 rounded-t">
             <div className="flex justify-between items-baseline">
               <div>
-                <h1 style={{ fontSize: `${titleFs}px` }} className="font-black tracking-tight text-[#0f172a] m-0 uppercase leading-none">
+                <h1 style={{ fontSize: `${titleFs}px` }} className="font-extrabold tracking-tight text-slate-900 m-0 uppercase leading-none">
                   The Window &amp; Door Store
                 </h1>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-[#334155] font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap">
+                <div style={{ fontSize: `${smallFs}px` }} className="text-indigo-600 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap">
                   <span>{isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote'}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-black text-[#0f172a]">
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-bold text-slate-900">
                   {quoteNumber || 'REF-QUOTE'}
                 </div>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-[#334155] font-semibold" suppressHydrationWarning>
+                <div style={{ fontSize: `${smallFs}px` }} className="text-slate-500 font-medium" suppressHydrationWarning>
                   {currentDate}
                 </div>
               </div>
@@ -821,25 +876,25 @@ export default function QuoteInvoice({
 
             {/* Compact Inline Customer & Region Bar */}
             {(customerName || regionName || preparedBy) && (
-              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 pt-1 border-t border-[#cbd5e1] flex justify-between items-center text-[#0f172a] flex-wrap gap-2">
+              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 pt-1 border-t border-slate-200 flex justify-between items-center text-[#0f172a] flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   {customerName && (
                     <div>
-                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Client:</span>
-                      <span className="font-black text-[#0f172a]">{customerName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Client:</span>
+                      <span className="font-bold text-slate-900">{customerName}</span>
                     </div>
                   )}
                   {regionName && (
                     <div>
-                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Region:</span>
-                      <span className="font-bold text-[#0f172a]">{regionName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Region:</span>
+                      <span className="font-semibold text-slate-800">{regionName}</span>
                     </div>
                   )}
                 </div>
                 {preparedBy && (
                   <div>
-                    <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Prepared By:</span>
-                    <span className="font-bold text-[#0f172a]">{preparedBy}</span>
+                    <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Prepared By:</span>
+                    <span className="font-semibold text-slate-800">{preparedBy}</span>
                   </div>
                 )}
               </div>
@@ -1042,22 +1097,22 @@ export default function QuoteInvoice({
       {/* ============================================================== */}
       {template === 'executive' && (
         <>
-          {/* Executive Header: Compact, Architectural Office Ledger */}
-          <div className="border-t-2 border-b-2 border-[#0f172a] py-2 mb-2.5">
+          {/* Executive Header: Ink-Saving Architectural Corporate Header */}
+          <div className="bg-white border-y-2 border-[#0f172a] py-2 px-1 mb-2.5">
             <div className="flex justify-between items-baseline">
               <div>
-                <h1 style={{ fontSize: `${titleFs}px` }} className="font-black tracking-tight text-[#0f172a] m-0 uppercase leading-none">
+                <h1 style={{ fontSize: `${titleFs}px` }} className="font-black tracking-wider text-[#0f172a] m-0 uppercase leading-none">
                   The Window &amp; Door Store
                 </h1>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-[#334155] font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>{isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote'}</span>
+                <div style={{ fontSize: `${smallFs}px` }} className="text-amber-800 font-bold uppercase tracking-widest mt-1">
+                  <span>{isSupplyOnly ? 'Executive Supply Quotation' : 'Executive Installation & Supply Quote'}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-black text-[#0f172a]">
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-mono font-bold text-[#0f172a]">
                   {quoteNumber || 'REF-QUOTE'}
                 </div>
-                <div style={{ fontSize: `${smallFs}px` }} className="text-[#334155] font-semibold" suppressHydrationWarning>
+                <div style={{ fontSize: `${smallFs}px` }} className="text-slate-600 font-medium" suppressHydrationWarning>
                   {currentDate}
                 </div>
               </div>
@@ -1065,25 +1120,25 @@ export default function QuoteInvoice({
 
             {/* Compact Inline Customer & Region Bar */}
             {(customerName || regionName || preparedBy) && (
-              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1 pt-1 border-t border-[#cbd5e1] flex justify-between items-center text-[#0f172a] flex-wrap gap-2">
+              <div style={{ fontSize: `${bodyFs}px` }} className="mt-1.5 pt-1.5 border-t border-slate-300 flex justify-between items-center text-slate-800 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   {customerName && (
                     <div>
-                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Client:</span>
-                      <span className="font-black text-[#0f172a]">{customerName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Client:</span>
+                      <span className="font-bold text-[#0f172a]">{customerName}</span>
                     </div>
                   )}
                   {regionName && (
                     <div>
-                      <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Region:</span>
-                      <span className="font-bold text-[#0f172a]">{regionName}</span>
+                      <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Region:</span>
+                      <span className="font-semibold text-slate-700">{regionName}</span>
                     </div>
                   )}
                 </div>
                 {preparedBy && (
                   <div>
-                    <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">Prepared By:</span>
-                    <span className="font-bold text-[#0f172a]">{preparedBy}</span>
+                    <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">Prepared By:</span>
+                    <span className="font-semibold text-slate-700">{preparedBy}</span>
                   </div>
                 )}
               </div>
@@ -1149,31 +1204,14 @@ export default function QuoteInvoice({
           {renderSealedUnitsTable('executive')}
 
           {/* Bottom Grid: Same Compact Scope & Accounting as Modern List, Distinct Ledger Design */}
-          <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
-            {/* Left: Project Specifications & Scope */}
-            <div className="space-y-2">
-              {travelItems.length > 0 && (
-                <div>
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Travel &amp; Logistics Details
-                  </div>
-                  <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
-                    <tbody>
-                      {travelItems.map((item, idx) => (
-                        <tr key={idx} className="border-b border-[#e2e8f0]">
-                          <td className="py-0.5 text-[#1e293b] font-medium">{item.label}</td>
-                          <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
+          {/* Executive Bottom: Adaptive Full-Width for Supply Only vs Two-Column */}
+          {isSupplyOnly || (!travelItems.length && !wantsUpgrade && !quoteNotes.trim() && !detailedExtrasList.length) ? (
+            <div className="space-y-2 border-t-2 border-[#0f172a] pt-2">
               {jcItems.length > 0 && (
-                <div>
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Jambs &amp; Casing
+                <div className="border border-[#cbd5e1] rounded p-2 bg-white">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1] flex justify-between items-center">
+                    <span>Jambs &amp; Casing Specifications</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Supply Only</span>
                   </div>
                   <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
                     <tbody>
@@ -1188,89 +1226,156 @@ export default function QuoteInvoice({
                 </div>
               )}
 
-              {detailedExtrasList.length > 0 && (
-                <div>
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Extras &amp; Add-ons
-                  </div>
-                  <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
-                    <tbody>
-                      {detailedExtrasList.map((item) => (
-                        <tr key={item.key} className="border-b border-[#e2e8f0]">
-                          <td className="py-0.5 text-[#1e293b] font-medium">{item.label} (×{item.qty})</td>
-                          <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Exact Financial Summary Full Width */}
+              <div className="border border-[#cbd5e1] rounded p-2.5 bg-white">
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
+                  Summary
                 </div>
-              )}
-
-              {wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly && (
-                <div className="p-2 bg-white border border-emerald-600 rounded text-[#0f172a]">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
-                    <span>Optional 5-Year Labour Upgrade</span>
-                    <span className="font-mono text-emerald-700 font-bold">+{formatMoney(shownUpgrade)}</span>
-                  </div>
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
-                    Optional extended labour warranty coverage. Not included in quote total.
-                  </div>
+                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+                  <tbody>
+                    {renderSummaryRows('text-[#0f172a]')}
+                  </tbody>
+                </table>
+                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
+                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
+                  <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
                 </div>
-              )}
-
-              {/* Optional Window Upgrade Offer */}
-              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
-                <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
-                    <span>Optional Upgrade Offer</span>
-                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
                   </div>
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
-                    {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                   </div>
-                </div>
-              )}
-
-              {quoteNotes && quoteNotes.trim() && (
-                <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Special Instructions &amp; Project Notes
-                  </div>
-                  {renderFormattedNotes(quoteNotes, smallFs)}
-                </div>
-              )}
-            </div>
-
-            {/* Right: Exact Financial Summary */}
-            <div>
-              <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
-                Summary
-              </div>
-              <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
-                <tbody>
-                  {renderSummaryRows('text-[#0f172a]')}
-                </tbody>
-              </table>
-
-              {/* Total Banner */}
-              <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
-                <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
-              </div>
-
-              {/* Deposit Terms */}
-              <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-                <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
-                </div>
-                <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
+              {/* Left: Project Specifications & Scope */}
+              <div className="space-y-2">
+                {travelItems.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Travel &amp; Logistics Details
+                    </div>
+                    <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
+                      <tbody>
+                        {travelItems.map((item, idx) => (
+                          <tr key={idx} className="border-b border-[#e2e8f0]">
+                            <td className="py-0.5 text-[#1e293b] font-medium">{item.label}</td>
+                            <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {jcItems.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Jambs &amp; Casing
+                    </div>
+                    <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
+                      <tbody>
+                        {jcItems.map((item, idx) => (
+                          <tr key={idx} className="border-b border-[#e2e8f0]">
+                            <td className="py-0.5 text-[#1e293b] font-medium">{item.label}</td>
+                            <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {detailedExtrasList.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Extras &amp; Add-ons
+                    </div>
+                    <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
+                      <tbody>
+                        {detailedExtrasList.map((item) => (
+                          <tr key={item.key} className="border-b border-[#e2e8f0]">
+                            <td className="py-0.5 text-[#1e293b] font-medium">{item.label} (×{item.qty})</td>
+                            <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly && (
+                  <div className="p-2 bg-white border border-emerald-600 rounded text-[#0f172a]">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                      <span>Optional 5-Year Labour Upgrade</span>
+                      <span className="font-mono text-emerald-700 font-bold">+{formatMoney(shownUpgrade)}</span>
+                    </div>
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                      Optional extended labour warranty coverage. Not included in quote total.
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional Window Upgrade Offer */}
+                {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                  <div className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                      <span>Optional Upgrade Offer</span>
+                      <span className="font-mono text-[#b45309] font-bold">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                    </div>
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                      {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                    </div>
+                  </div>
+                )}
+
+                {quoteNotes && quoteNotes.trim() && (
+                  <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Special Instructions &amp; Project Notes
+                    </div>
+                    {renderFormattedNotes(quoteNotes, smallFs)}
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Exact Financial Summary */}
+              <div>
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
+                  Summary
+                </div>
+                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+                  <tbody>
+                    {renderSummaryRows('text-[#0f172a]')}
+                  </tbody>
+                </table>
+
+                {/* Total Banner */}
+                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
+                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
+                  <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
+                </div>
+
+                {/* Deposit Terms */}
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1333,13 +1438,13 @@ export default function QuoteInvoice({
               <thead>
                 <tr className="bg-[#f8fafc] border-b-2 border-[#0f172a] text-[#0f172a] uppercase font-bold" style={{ fontSize: `${thFs}px` }}>
                   <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 w-[5%] text-center border-r border-[#cbd5e1]">#</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window Size (W × H)</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
+                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[72%]' : 'w-[56%]'}`}>Window Size (W × H)</th>
+                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[8%]' : 'w-[7%]'}`}>Qty</th>
+                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[15%]' : 'w-[13%]'}`}>Base Price</th>
                   {!isSupplyOnly && (
                     <>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono border-r border-[#cbd5e1] w-[19%]">Labour</th>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono w-[19%]">Misc</th>
+                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono border-r border-[#cbd5e1] w-[11%]">Labour</th>
+                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono w-[10%]">Misc</th>
                     </>
                   )}
                 </tr>
@@ -1351,32 +1456,50 @@ export default function QuoteInvoice({
                   const totalItemBaseCents = toCents(w.base);
                   const itemLabDollars = line?.lab ?? 0;
                   const itemMiscDollars = line?.misc ?? 0;
+                  const cardRowPy = windows.length <= 2
+                    ? Math.max(7, rowPy * 1.3)
+                    : (windows.length <= 4 ? Math.max(5, rowPy * 1.0) : rowPy * 0.75);
 
                   return (
                     <tr key={w.id || i} className={`border-b border-[#cbd5e1] ${i % 2 === 1 ? 'bg-[#fcfdfd]' : 'bg-white'}`}>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
                         {String(i + 1).padStart(2, '0')}
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 border-r border-[#cbd5e1]">
-                        <span className="font-bold text-[#0f172a] leading-tight">
-                          {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}
-                        </span>
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 border-r border-[#cbd5e1]">
+                        <div className="font-bold text-[#0f172a] leading-tight flex items-center gap-2">
+                          <span>{w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}</span>
+                          {w.color && w.color.toLowerCase() === 'painted' && (
+                            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                              Painted
+                            </span>
+                          )}
+                          {(Number(w.triple) > 0 || toCents(w.triple) > 0) && (
+                            <span className="text-[10px] font-semibold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded">
+                              Triple
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
                         <span className="px-1.5 py-0.5 rounded bg-[#f1f5f9] text-[#0f172a] font-mono text-[11px]">
                           {qty}
                         </span>
                       </td>
-                      <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        {formatMoney(totalItemBaseCents)}
+                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] whitespace-nowrap ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
+                        <div>{formatMoney(totalItemBaseCents)}</div>
+                        {qty > 1 && (
+                          <div style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-normal font-sans">
+                            ({formatMoney(Math.round(totalItemBaseCents / qty))} ea)
+                          </div>
+                        )}
                       </td>
                       {!isSupplyOnly && (
                         <>
-                          <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1]">
-                            {formatMoney(itemLabDollars * 100)}
+                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1] whitespace-nowrap">
+                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
                           </td>
-                          <td style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono text-[#0f172a]">
-                            {formatMoney(itemMiscDollars * 100)}
+                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] whitespace-nowrap">
+                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
                           </td>
                         </>
                       )}
@@ -1419,59 +1542,32 @@ export default function QuoteInvoice({
             </div>
           )}
 
-          {/* Bottom Grid: Project Specifications & Financial Summary */}
-          <div className="grid grid-cols-[1.1fr_1.15fr] items-start border-t-2 border-[#0f172a]" style={{ gap: `${cardGap * 1.5}px`, paddingTop: `${rowPy}px` }}>
-            {/* Left: Materials, Travel & Instructions */}
-            <div className="space-y-2">
+          {/* Bottom Section: Adaptive Full-Width for Supply Only / Small Quotes vs Balanced Two-Column */}
+          {isSupplyOnly || (!travelItems.length && !wantsUpgrade && !quoteNotes.trim()) ? (
+            <div className="space-y-2 border-t-2 border-[#0f172a]" style={{ paddingTop: `${rowPy}px` }}>
+              {/* Jamb & Casing Specifications (Matched to table width) */}
               {jcItems.length > 0 && (
-                <div className="border border-[#cbd5e1] rounded p-2 bg-white">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    {isSupplyOnly ? 'Jamb & Casing Materials' : 'Jamb & Casing Specification'}
+                <div className="border border-[#cbd5e1] rounded p-2.5 bg-white">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-1 pb-0.5 border-b border-[#cbd5e1] flex justify-between items-center">
+                    <span>{isSupplyOnly ? 'Jamb & Casing Materials' : 'Jamb & Casing Specifications'}</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Loose Supply Items</span>
                   </div>
                   <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
                     <tbody>
                       {jcItems.map((j, idx) => (
                         <tr key={idx} className="border-b border-[#f1f5f9] last:border-0">
-                          <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-[#1e293b] font-medium">{j.label}</td>
-                          <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(j.amount)}</td>
+                          <td style={{ paddingTop: `${rowPy * 0.4}px`, paddingBottom: `${rowPy * 0.4}px` }} className="text-[#1e293b] font-medium">{j.label}</td>
+                          <td style={{ paddingTop: `${rowPy * 0.4}px`, paddingBottom: `${rowPy * 0.4}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(j.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
-
-              {travelItems.length > 0 && !isSupplyOnly && (
-                <div className="border border-[#cbd5e1] rounded p-2 bg-white">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Travel &amp; Logistics
-                  </div>
-                  <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
-                    <tbody>
-                      {travelItems.map((t, idx) => (
-                        <tr key={idx} className="border-b border-[#f1f5f9] last:border-0">
-                          <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-[#1e293b] font-medium">{t.label}</td>
-                          <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(t.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly && (
-                <div className="p-1.5 bg-white border border-emerald-500 rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
-                  <div>
-                    <span className="font-bold text-[#0f172a] block">Optional 5-Year Labour Warranty Upgrade:</span>
-                    <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b]">(Optional — not included in quote total)</span>
-                  </div>
-                  <span className="font-mono font-black text-emerald-700">+{formatMoney(shownUpgrade)}</span>
                 </div>
               )}
 
               {/* Optional Window Upgrade Offer */}
               {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
-                <div className="p-1.5 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                <div className="p-2 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
                   <div>
                     <span className="font-bold text-[#0f172a] block">Optional Upgrade Offer:</span>
                     <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
@@ -1482,47 +1578,152 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Special Instructions & Project Notes */}
               {quoteNotes && quoteNotes.trim() && (
-                <div className="p-2 bg-white border border-[#cbd5e1] rounded space-y-0.5">
+                <div className="p-2.5 bg-white border border-[#cbd5e1] rounded space-y-0.5">
                   <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
                     Special Instructions &amp; Project Notes
                   </div>
                   {renderFormattedNotes(quoteNotes, smallFs)}
                 </div>
               )}
-            </div>
 
-            {/* Right: Financial Summary */}
-            <div className="border border-[#cbd5e1] rounded bg-white shadow-sm" style={{ padding: `${rowPy * 1.25}px` }}>
-              <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
-                Summary
-              </div>
-
-              <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
-                <tbody>
-                  {renderSummaryRows('text-[#0f172a]', rowPy * 0.6)}
-                </tbody>
-              </table>
-
-              {/* Total Banner - Clean Ink-Saving Architectural Border */}
-              <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
-                <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
-              </div>
-
-              {/* Deposit Terms */}
-              <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-                <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
+              {/* Financial Summary Card (Matches table width so it doesn't float on half sheet) */}
+              <div className="border border-[#cbd5e1] rounded bg-white shadow-sm" style={{ padding: `${rowPy * 1.25}px` }}>
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
+                  Summary
                 </div>
-                <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                  <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
+
+                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+                  <tbody>
+                    {renderSummaryRows('text-[#0f172a]', rowPy * 0.6)}
+                  </tbody>
+                </table>
+
+                {/* Total Banner */}
+                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
+                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
+                  <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
+                </div>
+
+                {/* Deposit Terms */}
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-[1.1fr_1.15fr] items-start border-t-2 border-[#0f172a]" style={{ gap: `${cardGap * 1.5}px`, paddingTop: `${rowPy}px` }}>
+              {/* Left Column: Materials, Travel & Instructions */}
+              <div className="space-y-2">
+                {jcItems.length > 0 && (
+                  <div className="border border-[#cbd5e1] rounded p-2 bg-white">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Jamb &amp; Casing Specifications
+                    </div>
+                    <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
+                      <tbody>
+                        {jcItems.map((j, idx) => (
+                          <tr key={idx} className="border-b border-[#f1f5f9] last:border-0">
+                            <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-[#1e293b] font-medium">{j.label}</td>
+                            <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(j.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {travelItems.length > 0 && !isSupplyOnly && (
+                  <div className="border border-[#cbd5e1] rounded p-2 bg-white">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Travel &amp; Logistics
+                    </div>
+                    <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
+                      <tbody>
+                        {travelItems.map((t, idx) => (
+                          <tr key={idx} className="border-b border-[#f1f5f9] last:border-0">
+                            <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-[#1e293b] font-medium">{t.label}</td>
+                            <td style={{ paddingTop: `${rowPy * 0.5}px`, paddingBottom: `${rowPy * 0.5}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(t.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly && (
+                  <div className="p-1.5 bg-white border border-emerald-500 rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                    <div>
+                      <span className="font-bold text-[#0f172a] block">Optional 5-Year Labour Warranty Upgrade:</span>
+                      <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b]">(Optional — not included in quote total)</span>
+                    </div>
+                    <span className="font-mono font-black text-emerald-700">+{formatMoney(shownUpgrade)}</span>
+                  </div>
+                )}
+
+                {/* Optional Window Upgrade Offer */}
+                {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+                  <div className="p-1.5 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                    <div>
+                      <span className="font-bold text-[#0f172a] block">Optional Upgrade Offer:</span>
+                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
+                        {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
+                      </span>
+                    </div>
+                    <span className="font-mono font-black text-[#b45309]">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
+                  </div>
+                )}
+
+                {quoteNotes && quoteNotes.trim() && (
+                  <div className="p-2 bg-white border border-[#cbd5e1] rounded space-y-0.5">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
+                      Special Instructions &amp; Project Notes
+                    </div>
+                    {renderFormattedNotes(quoteNotes, smallFs)}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Financial Summary */}
+              <div className="border border-[#cbd5e1] rounded bg-white shadow-sm" style={{ padding: `${rowPy * 1.25}px` }}>
+                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
+                  Summary
+                </div>
+
+                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+                  <tbody>
+                    {renderSummaryRows('text-[#0f172a]', rowPy * 0.6)}
+                  </tbody>
+                </table>
+
+                {/* Total Banner - Clean Ink-Saving Architectural Border */}
+                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
+                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
+                  <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
+                </div>
+
+                {/* Deposit Terms */}
+                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
+                  </div>
+                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
+                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -569,7 +569,16 @@ export function QuoteComparisonModal({
     };
   }, [optionBFinancials, afterDiscountA, totalA]);
 
-  // Auto-detect upgrade title for PDF invoice
+  // Auto-detect upgrade title for PDF invoice with custom override support
+  const [customUpgradeTitle, setCustomUpgradeTitle] = useState<string>('');
+
+  const UPGRADE_PRESETS = [
+    'Triple Pane Upgrade',
+    'Triple Pane (Solar Shield)',
+    'Triple Pane (Solar Gain / Tempered)',
+    'Brick Mould Upgrade',
+  ];
+
   const detectedUpgradeTitle = useMemo(() => {
     if (!effectiveOptionBWindows) return 'Upgrade to Premium Windows';
     let tripleDiff = 0;
@@ -591,6 +600,26 @@ export function QuoteComparisonModal({
     return 'Optional Window Upgrade';
   }, [effectiveOptionBWindows, currentWindows]);
 
+  const effectiveUpgradeTitle = useMemo(() => {
+    return customUpgradeTitle.trim() || detectedUpgradeTitle;
+  }, [customUpgradeTitle, detectedUpgradeTitle]);
+
+  useEffect(() => {
+    if (attachedUpgrade?.title) {
+      setCustomUpgradeTitle(attachedUpgrade.title);
+    }
+  }, [attachedUpgrade]);
+
+  const handleUpgradeTitleChange = (newTitle: string) => {
+    setCustomUpgradeTitle(newTitle);
+    if (attachedUpgrade && delta && delta.preTax > 0) {
+      onAttachUpgrade({
+        title: newTitle.trim() || detectedUpgradeTitle,
+        amountPreTaxCents: delta.preTax,
+      });
+    }
+  };
+
   const handleToggleAttachUpgrade = () => {
     if (!delta || delta.preTax <= 0) {
       toast.error('Optional upgrade can only be attached when there is an upgrade price difference.');
@@ -602,10 +631,10 @@ export function QuoteComparisonModal({
       toast.info('Removed optional upgrade offer from quote PDF.');
     } else {
       onAttachUpgrade({
-        title: detectedUpgradeTitle,
+        title: effectiveUpgradeTitle,
         amountPreTaxCents: delta.preTax,
       });
-      toast.success(`Attached "${detectedUpgradeTitle} adds ${formatMoney(delta.preTax)}" to quote PDF!`);
+      toast.success(`Attached "${effectiveUpgradeTitle} adds ${formatMoney(delta.preTax)}" to quote PDF!`);
     }
   };
 
@@ -710,15 +739,44 @@ export function QuoteComparisonModal({
                   </div>
                 </div>
 
-                {/* Attach to Quote PDF Action */}
+                {/* Attach to Quote PDF Action & Editable Upgrade Description */}
                 {delta.preTax > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-3 w-full sm:w-auto">
+                    <div className="flex flex-col gap-1 w-full sm:w-80">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="upgradeTitleInput" className="text-[11px] font-semibold text-muted-foreground">
+                          Upgrade Description on Quote PDF
+                        </Label>
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Editable</span>
+                      </div>
+                      <Input
+                        id="upgradeTitleInput"
+                        value={customUpgradeTitle || detectedUpgradeTitle}
+                        onChange={(e) => handleUpgradeTitleChange(e.target.value)}
+                        placeholder="e.g. Triple Pane (Solar Shield), Brick Mould..."
+                        className="h-8 text-xs bg-background font-medium"
+                      />
+                      {/* Quick Presets */}
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {UPGRADE_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => handleUpgradeTitleChange(preset)}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border cursor-pointer transition-colors"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <Button
                       variant={attachedUpgrade ? 'default' : 'outline'}
                       size="sm"
                       onClick={handleToggleAttachUpgrade}
                       className={cn(
-                        'gap-1.5 text-xs font-bold shadow-xs cursor-pointer',
+                        'gap-1.5 text-xs font-bold shadow-xs cursor-pointer h-8 shrink-0',
                         attachedUpgrade
                           ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                           : 'border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500'

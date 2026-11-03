@@ -11,10 +11,12 @@ import {
   Calculator, 
   Inbox, 
   ChevronDown,
-  Settings
+  Settings,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cachedFetch, getCachedData } from '@/lib/client-cache';
+import { EstimatorGuideModal } from '@/components/calculator/EstimatorGuideModal';
 
 export interface UserProfileMenuProps {
   user?: {
@@ -32,6 +34,7 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
     propUser || getCachedData('/api/profile') || null
   );
   const [isOpen, setIsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -174,6 +177,18 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
               <Calculator className="w-4 h-4 text-primary" />
               <span>Quote Calculator</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setIsGuideOpen(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted/70 transition-colors text-left cursor-pointer"
+            >
+              <HelpCircle className="w-4 h-4 text-primary" />
+              <span>Estimator Workflow Guide</span>
+            </button>
           </div>
 
           {/* Sign Out Footer */}
@@ -189,6 +204,11 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
           </div>
         </div>
       )}
+
+      <EstimatorGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </div>
   );
 }

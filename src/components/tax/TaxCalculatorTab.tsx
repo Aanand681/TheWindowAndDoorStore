@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { MapPin, Calculator, Plus, Trash2, Lock, Eye, Printer, Download } from 'lucide-react';
 import { formatMoney } from '@/lib/promo-logic';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 import dynamic from 'next/dynamic';
@@ -51,6 +52,8 @@ export default function TaxCalculatorTab({
   readOnly = false,
   onOpenPreview,
   isSupplyOnly: isSupplyOnlyProp = false,
+  isServiceOnly: isServiceOnlyProp = false,
+  onModeChange,
   summarySlot,
 }: { 
   windows: any[], 
@@ -60,6 +63,8 @@ export default function TaxCalculatorTab({
   readOnly?: boolean,
   onOpenPreview?: () => void,
   isSupplyOnly?: boolean,
+  isServiceOnly?: boolean,
+  onModeChange?: (mode: 'installation' | 'supply_only' | 'service_only') => void,
   summarySlot?: React.ReactNode,
 }) {
   const [regions, setRegions] = useState<any[]>([]);
@@ -75,6 +80,8 @@ export default function TaxCalculatorTab({
     { crewSize: '4', hourlyRate: 500 }
   ]);
 
+  const isSupplyOnly = Boolean(isSupplyOnlyProp || savedTaxTotals?.isSupplyOnly);
+
   const [addons, setAddons] = useState<Record<string, string>>({});
   
   // Travel state
@@ -85,12 +92,14 @@ export default function TaxCalculatorTab({
   const [crew, setCrew] = useState('3');
   const [setupFee, setSetupFee] = useState('0');
 
-  // Jambs & Casing (defaults: Vinyl Wrapped Jamb 3/4 x 4 1/2 and Vinyl casing charge)
-  const [jambId, setJambId] = useState('j3');
+  // Jambs & Casing:
+  // Installation mode defaults to 4 1/2" ('j3') & Vinyl Casing ('vinyl')
+  // Supply Only defaults to 'none' ($0.00)
+  const [jambId, setJambId] = useState<string>(() => (!isSupplyOnly && !savedTaxTotals ? 'j3' : 'none'));
   const [jambName, setJambName] = useState('');
   const [jambRate, setJambRate] = useState('');
   
-  const [casingId, setCasingId] = useState('vinyl');
+  const [casingId, setCasingId] = useState<string>(() => (!isSupplyOnly && !savedTaxTotals ? 'vinyl' : 'none'));
   const [casingName, setCasingName] = useState('');
   const [casingRate, setCasingRate] = useState('');
 
@@ -165,8 +174,6 @@ export default function TaxCalculatorTab({
         }
         if (d.jambs?.length) {
           setDbJambs(d.jambs);
-          const targetJamb = d.jambs.find((j: any) => j.id === 'j3' || j.label?.includes('3/4 x 4 1/2'));
-          if (targetJamb && !savedTaxTotals) setJambId(targetJamb.id);
         }
         if (d.casings?.length) setDbCasings(d.casings);
         if (d.vehicleRate !== undefined) setDbVehicleRate(d.vehicleRate);
@@ -195,13 +202,8 @@ export default function TaxCalculatorTab({
         setIncludeLabour(true);
         setIncludeMisc(true);
         setIncludeJC(true);
-        if (isSupplyOnly) {
-          setJambId('none');
-          setCasingId('none');
-        } else {
-          setJambId('j3');
-          setCasingId('vinyl');
-        }
+        setJambId('none');
+        setCasingId('none');
       }
       return;
     }
@@ -331,7 +333,14 @@ export default function TaxCalculatorTab({
   }, [savedTaxTotals, regions]);
 
   const region = regions.find(r => r._id === selectedRegionId);
-  const isSupplyOnly = Boolean(isSupplyOnlyProp || region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
+  const effectiveIsSupplyOnly = isSupplyOnly || Boolean(isSupplyOnlyProp || region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
+
+  useEffect(() => {
+    if (effectiveIsSupplyOnly) {
+      setJambId('none');
+      setCasingId('none');
+    }
+  }, [effectiveIsSupplyOnly]);
 
   const calculate = () => {
     if (!region) return null;
@@ -342,16 +351,16 @@ export default function TaxCalculatorTab({
       const unitSq = (W * H) / 144;
       const sqft = unitSq * q;
       const lin = ((W * 2 + H * 2) / 12) * q + q * (Number(region.extraLinPerWindow) || 0);
-      const labRaw = isSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
-      const miscRaw = isSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
-      const lab = isSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
-      const misc = isSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
+      const labRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
+      const miscRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
+      const lab = effectiveIsSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
+      const misc = effectiveIsSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
       sq += sqft; ln += lin; wLab += lab; wMisc += misc;
       return { sqft, lin, lab, misc };
     });
 
     let aLab = 0, aMisc = 0;
-    if (!isSupplyOnly) {
+    if (!effectiveIsSupplyOnly) {
       dbAddons.forEach(a => {
         const q = Number(addons[a.id]) || 0;
         aLab += q * a.lab;
@@ -359,40 +368,43 @@ export default function TaxCalculatorTab({
       });
     }
 
-    const labourWindows = isSupplyOnly ? 0 : (wLab + aLab);
-    const miscTotal = isSupplyOnly ? 0 : (wMisc + aMisc);
+    const isSupply = effectiveIsSupplyOnly;
 
-    const km = isSupplyOnly ? 0 : (Number(manualKm) || 0);
-    const hrs = isSupplyOnly ? 0 : (Number(manualHours) || 0);
+    const labourWindows = isSupply ? 0 : (wLab + aLab);
+    const miscTotal = isSupply ? 0 : (wMisc + aMisc);
+
+    const km = isSupply ? 0 : (Number(manualKm) || 0);
+    const hrs = isSupply ? 0 : (Number(manualHours) || 0);
     
     // Find dynamic crew rate based on selected crew size
     const crewObj = dbCrewRates.find(c => c.crewSize === crew);
-    const crewRate = isSupplyOnly ? 0 : (crewObj ? crewObj.hourlyRate : 0);
+    const crewRate = isSupply ? 0 : (crewObj ? crewObj.hourlyRate : 0);
     
-    const vehicle = isSupplyOnly ? 0 : (km * dbVehicleRate);
-    const crewTravel = isSupplyOnly ? 0 : (hrs * crewRate);
-    const setup = isSupplyOnly ? 0 : (Number(setupFee) || 0);
-    const extras = isSupplyOnly ? 0 : (vehicle + crewTravel + setup + (region.fixedSetupFee || 0) + (region.baseTravelFee || 0));
+    const vehicle = isSupply ? 0 : (km * dbVehicleRate);
+    const crewTravel = isSupply ? 0 : (hrs * crewRate);
+    const setup = isSupply ? 0 : (Number(setupFee) || 0);
+    const extras = isSupply ? 0 : (vehicle + crewTravel + setup + (region.fixedSetupFee || 0) + (region.baseTravelFee || 0));
 
     const jRate = jambId === 'none' ? 0 : (jambId === 'custom' ? Number(jambRate) || 0 : (dbJambs.find(j => j.id === jambId)?.rate || 0));
     const cRate = casingId === 'none' ? 0 : (casingId === 'custom' ? Number(casingRate) || 0 : (dbCasings.find(c => c.id === casingId)?.rate || 0));
     
-    const jambTot = jambId === 'none' ? 0 : ln * jRate;
-    const casingTot = casingId === 'none' ? 0 : ln * cRate;
+    // On Supply Only: jambs and casing are strictly $0 unless explicitly selected or custom
+    const jambTot = (isSupply || jambId === 'none') ? 0 : ln * jRate;
+    const casingTot = (isSupply || casingId === 'none') ? 0 : ln * cRate;
     const jc = jambTot + casingTot;
 
-    const labourTotal = isSupplyOnly ? 0 : (labourWindows + extras);
+    const labourTotal = isSupply ? extras : (labourWindows + extras);
     
-    const finalLabour = (includeLabour && !isSupplyOnly) ? labourTotal : 0;
-    const finalMisc = (includeMisc && !isSupplyOnly) ? miscTotal : 0;
-    const finalJC = includeJC ? jc : 0;
+    const finalLabour = (includeLabour && !isSupply) ? labourTotal : 0;
+    const finalMisc = (includeMisc && !isSupply) ? miscTotal : 0;
+    const finalJC = (includeJC && !isSupply) ? jc : 0;
     
     const disc = Number(discount) || 0;
     const subtotal = finalLabour + finalMisc + finalJC - disc;
     const hst = hstOn ? subtotal * 0.13 : 0;
     const total = subtotal + hst;
 
-    const selectedAddonsList = isSupplyOnly ? [] : dbAddons
+    const selectedAddonsList = isSupply ? [] : dbAddons
       .filter(a => Number(addons[a.id]) > 0)
       .map(a => {
         const q = Number(addons[a.id]);
@@ -405,14 +417,14 @@ export default function TaxCalculatorTab({
         };
       });
 
-    const selectedJambObj = jambId !== 'none' ? {
+    const selectedJambObj = (jambId !== 'none' && !isSupply) ? {
       id: jambId,
       name: jambId === 'custom' ? (jambName || 'Custom Jamb') : (dbJambs.find(j => j.id === jambId)?.label || 'Jamb'),
       rate: jRate,
       total: jambTot
     } : null;
 
-    const selectedCasingObj = casingId !== 'none' ? {
+    const selectedCasingObj = (casingId !== 'none' && !isSupply) ? {
       id: casingId,
       name: casingId === 'custom' ? (casingName || 'Custom Casing') : (dbCasings.find(c => c.id === casingId)?.label || 'Casing'),
       rate: cRate,
@@ -420,7 +432,9 @@ export default function TaxCalculatorTab({
     } : null;
 
     return { 
-      sq, ln, wLab, wMisc, aLab, aMisc, labourWindows, miscTotal, vehicle, crewTravel, extras, jc, labourTotal, finalLabour, finalMisc, finalJC, subtotal, hst, total, lines,
+      sq, ln, wLab, wMisc, aLab, aMisc,
+      labourWindows: isSupply ? 0 : labourWindows,
+      miscTotal, vehicle, crewTravel, extras, jc, labourTotal, finalLabour, finalMisc, finalJC, subtotal, hst, total, lines,
       km,
       hrs,
       crew,
@@ -428,24 +442,23 @@ export default function TaxCalculatorTab({
       vehicleRate: dbVehicleRate,
       setup,
       setupFee,
-      fixedSetupFee: isSupplyOnly ? 0 : region.fixedSetupFee,
-      baseTravelFee: isSupplyOnly ? 0 : (region.baseTravelFee || 0),
-      isSupplyOnly,
+      isSupplyOnly: isSupply,
+      isServiceOnly: false,
       selectedAddons: selectedAddonsList,
       addonsMap: addons,
       dbAddons,
       selectedRegionId,
       coords,
-      jambId,
-      jambRate: jRate,
-      jambName: selectedJambObj?.name || jambName,
-      casingId,
-      casingRate: cRate,
-      casingName: selectedCasingObj?.name || casingName,
+      jambId: isSupply ? 'none' : jambId,
+      jambRate: isSupply ? 0 : jRate,
+      jambName: selectedJambObj?.name || (isSupply ? '' : jambName),
+      casingId: isSupply ? 'none' : casingId,
+      casingRate: isSupply ? 0 : cRate,
+      casingName: selectedCasingObj?.name || (isSupply ? '' : casingName),
       selectedJamb: selectedJambObj,
       selectedCasing: selectedCasingObj,
       discount: disc,
-      hstOn,
+      hstOn: Boolean(hstOn),
       includeLabour,
       includeMisc,
       includeJC,
@@ -458,7 +471,7 @@ export default function TaxCalculatorTab({
     };
   };
 
-  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly]);
+  const c = useMemo(() => calculate(), [windows, region, addons, manualKm, manualHours, crew, setupFee, jambId, jambRate, casingId, casingRate, discount, hstOn, includeLabour, includeMisc, includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly, effectiveIsSupplyOnly]);
 
   useEffect(() => {
     if (onCalculated && c) {
@@ -533,31 +546,47 @@ export default function TaxCalculatorTab({
       )}
       <div className="lg:col-span-8 space-y-4 sm:space-y-5">
         
-        {/* Region Profile */}
+        {/* Region Profile & Quoting Mode */}
         <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
           <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
-            <CardTitle className="text-base sm:text-lg">Region Profile</CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base sm:text-lg">Region Profile</CardTitle>
+                <CardDescription className="text-xs">Select your regional travel and service profile.</CardDescription>
+              </div>
+
+              {effectiveIsSupplyOnly && (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                  Supply Only Mode Active
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-5">
-            <Select disabled={readOnly} value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
-              <SelectTrigger className="w-full sm:w-[300px] h-9 text-xs sm:text-sm">
-                <SelectValue placeholder="Select Region">
-                  {regions.find(r => r._id === selectedRegionId)?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {regions.map(r => <SelectItem key={r._id} value={r._id}>{r.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {isSupplyOnly ? (
-              <div className="mt-2.5 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-xs text-amber-500 font-medium">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Select disabled={readOnly} value={selectedRegionId || undefined} onValueChange={val => handleRegionSelect(val ?? '')}>
+                <SelectTrigger className="w-full sm:w-[300px] h-9 text-xs sm:text-sm">
+                  <SelectValue placeholder="Select Region">
+                    {regions.find(r => r._id === selectedRegionId)?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map(r => <SelectItem key={r._id} value={r._id}>{r.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              {!effectiveIsSupplyOnly && (
+                <span className="text-xs text-muted-foreground">
+                  Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft. Default 4 1/2" Jamb &amp; Vinyl Casing active.
+                </span>
+              )}
+            </div>
+
+            {effectiveIsSupplyOnly && (
+              <div className="mt-2.5 p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                 <span className="font-bold text-xs sm:text-sm">⚡ Supply Only Order:</span>
-                <span>Installation labour, travel fees, and setup fees are $0.00. Optional Jamb &amp; Casing apply normally.</span>
+                <span>Installation labour, travel fees, and setup fees are $0.00. Optional Jamb &amp; Casing defaults to $0.00.</span>
               </div>
-            ) : (
-              <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-                Free travel within: {region.freeCities.join(', ')}. Base labour ${region.labourPerSqft.toFixed(2)}/sqft.
-              </p>
             )}
           </CardContent>
         </Card>

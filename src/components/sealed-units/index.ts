@@ -3,3 +3,5 @@ export * from './SealedUnitLabourTravelCard';
 export * from './SealedUnitQuoteSummaryCard';
 export * from './SealedUnitLineItemsTable';
 export * from './SealedUnitPrintInvoice';
+export * from './SealedUnitPreviewModal';
+export * from './SealedUnitOfficePricingCard';

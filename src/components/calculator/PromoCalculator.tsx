@@ -82,7 +82,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
   const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('cards');
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
 
@@ -108,8 +108,9 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     summaryWindowGroups,
   } = useCalculatorWindows();
 
-  // Supply Only: State
+  // Supply Only & Service Only State
   const [isSupplyOnly, setIsSupplyOnly] = useState<boolean>(false);
+  const [isServiceOnly, setIsServiceOnly] = useState<boolean>(false);
   const [supplyJambId, setSupplyJambId] = useState<string>('none');
   const [supplyJambName, setSupplyJambName] = useState<string>('');
   const [supplyJambRate, setSupplyJambRate] = useState<string>('');
@@ -289,9 +290,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
     if (attachedSealedUnit && quoteResult) {
       const suTotals = attachedSealedUnit.totals || {};
-      const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-      const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-      const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+      const isAttachedSUService =
+        attachedSealedUnit.sealedUnitMode === 'service_only' ||
+        attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+        Boolean(suTotals.isServiceOnly);
+      const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+      const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+      const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
       const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
       const windowBaseCents = quoteResult.base || 0;
@@ -468,12 +473,15 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   useEffect(() => {
     if (initialReviewQuoteId) return;
 
-    const hasContent =
-      windows.some((w) => (w.base && parseFloat(w.base) > 0) || w.w || w.h) ||
-      customerName.trim() !== '' ||
-      quoteNumber.trim() !== '';
+    const validWindows = windows.filter(
+      (w) => (w.base && parseFloat(w.base) > 0) || (w.w && w.w.trim() !== '') || (w.h && w.h.trim() !== '')
+    );
+    const hasContent = validWindows.length > 0 || customerName.trim() !== '';
 
-    if (!hasContent) return;
+    if (!hasContent) {
+      clearActiveAutoSave('window');
+      return;
+    }
 
     // Check if state is identical to last explicitly saved or loaded snapshot
     const currentSnapshot = JSON.stringify({
@@ -503,9 +511,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
 
       if (attachedSealedUnit && quoteResult) {
         const suTotals = attachedSealedUnit.totals || {};
-        const suGlassCents = Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-        const suSurchargeCents = Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-        const suLabourCents = Math.round((suTotals.combinedLabourTotal || 0) * 100);
+        const isAttachedSUService =
+          attachedSealedUnit.sealedUnitMode === 'service_only' ||
+          attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
+          Boolean(suTotals.isServiceOnly);
+        const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
+        const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
+        const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
         const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
 
         const windowBaseCents = quoteResult.base || 0;
@@ -545,9 +557,9 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       saveActiveAutoSave('window', {
         quoteNumber: quoteNumber || 'Draft',
         customerName: customerName || '',
-        itemCount: windows.length,
+        itemCount: validWindows.length,
         grandTotal: autoGrandTotalDollars,
-        summaryLabel: `${windows.length} Windows`,
+        summaryLabel: `${validWindows.length} Windows`,
         data: {
           quoteNumber,
           customerName,
@@ -614,6 +626,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const handleToggleSupplyOnly = (isSupply: boolean) => {
     setIsSupplyOnly(isSupply);
     if (isSupply) {
+      setIsServiceOnly(false);
       setCustomJC('');
       setSupplyJambId('none');
       setSupplyCasingId('none');
@@ -622,10 +635,11 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       setSupplyCasingName('');
       setSupplyCasingRate('');
       setTaxTotals((prev: any) => {
-        if (!prev) return { isSupplyOnly: true, jc: 0, finalJC: 0, jcLabourCents: 0 };
+        if (!prev) return { isSupplyOnly: true, isServiceOnly: false, jc: 0, finalJC: 0, jcLabourCents: 0 };
         return {
           ...prev,
           isSupplyOnly: true,
+          isServiceOnly: false,
           standardLabourCents: 0,
           miscLabourCents: 0,
           finalLabour: 0,
@@ -653,6 +667,23 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         delete next.isSupplyOnly;
         return next;
       });
+    }
+  };
+
+  const handleModeChange = (mode: 'installation' | 'supply_only' | 'service_only') => {
+    if (mode === 'supply_only') {
+      handleToggleSupplyOnly(true);
+    } else if (mode === 'service_only') {
+      setIsSupplyOnly(false);
+      setIsServiceOnly(true);
+      setHstRate(13); // Fixed 13% on service work (no 8% rebate)
+      setTaxTotals((prev: any) => {
+        if (!prev) return { isSupplyOnly: false, isServiceOnly: true, jc: 0, finalJC: 0 };
+        return { ...prev, isSupplyOnly: false, isServiceOnly: true };
+      });
+    } else {
+      setIsServiceOnly(false);
+      handleToggleSupplyOnly(false);
     }
   };
 
@@ -1113,32 +1144,30 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         if (err?.message?.includes('401')) router.replace('/login');
       });
 
-    // Reviewer and Clerk lists
+    // Reviewer and Clerk lists: employees can assign to ANY employee (sales, estimators, clerks, managers, admins)
     Promise.all([
-      fetch(`/api/users?reviewersOnly=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch(`/api/users?t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
       fetch(`/api/users?assignees=true&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
     ])
-      .then(([reviewers, assignees]) => {
-        if (Array.isArray(reviewers)) {
-          const eligible = reviewers.filter((d: any) =>
-            d.role !== 'SUPERADMIN' && d.role !== 'superadmin' &&
-            d.username?.toLowerCase() !== 'cheeku' &&
-            !d.username?.toLowerCase().includes('superadmin')
-          );
-          setStaffList(eligible);
-          if (eligible.length > 0) {
-            setAssignedReviewer(eligible[0].username);
-            setReassignTo(eligible[0].username);
-          }
+      .then(([allUsers, assignees]) => {
+        const eligible = Array.isArray(allUsers) ? allUsers.filter((d: any) =>
+          d.role !== 'SUPERADMIN' && d.role !== 'superadmin' &&
+          d.username?.toLowerCase() !== 'cheeku' &&
+          !d.username?.toLowerCase().includes('superadmin')
+        ) : [];
+        setStaffList(eligible);
+        if (eligible.length > 0) {
+          setAssignedReviewer(eligible[0].username);
+          setReassignTo(eligible[0].username);
         }
         if (Array.isArray(assignees)) {
-          const eligible = assignees.filter((d: any) =>
+          const eligibleClerks = assignees.filter((d: any) =>
             d.role !== 'SUPERADMIN' && d.role !== 'superadmin' &&
             d.username?.toLowerCase() !== 'cheeku' &&
             !d.username?.toLowerCase().includes('superadmin')
           );
-          setClerkList(eligible);
-          const defaultClerk = eligible.find((c: any) => c.department === 'CLERK') || eligible[0];
+          setClerkList(eligibleClerks);
+          const defaultClerk = eligibleClerks.find((c: any) => c.department === 'CLERK') || eligibleClerks[0];
           if (defaultClerk) setSelectedOdooClerk(defaultClerk.username);
         }
       })
@@ -1483,11 +1512,23 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
               key={taxCalcKey}
               windows={windows}
               onWindowsChange={setWindows}
-              onCalculated={setTaxTotals}
+              onCalculated={(totals) => {
+                setTaxTotals(totals);
+                if (totals?.isServiceOnly) {
+                  setIsServiceOnly(true);
+                  setIsSupplyOnly(false);
+                  setHstRate(13);
+                } else if (totals?.isSupplyOnly) {
+                  setIsSupplyOnly(true);
+                  setIsServiceOnly(false);
+                }
+              }}
               savedTaxTotals={reviewQuote?.taxTotals || null}
               readOnly={isReadOnly}
               onOpenPreview={() => setIsPreviewOpen(true)}
               isSupplyOnly={isSupplyOnly}
+              isServiceOnly={isServiceOnly}
+              onModeChange={handleModeChange}
               summarySlot={
                 <QuoteSummaryCard
                   quoteResult={quoteResult}
@@ -1614,6 +1655,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           preparedBy={reviewQuote?.preparedBy || user?.username || ''}
           attachedUpgrade={attachedUpgrade}
           attachedSealedUnit={attachedSealedUnit}
+          isSupplyOnly={isSupplyOnly}
         />
       )}
 
@@ -1658,6 +1700,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveLabour={effectiveLabour}
         attachedUpgrade={attachedUpgrade}
         attachedSealedUnit={attachedSealedUnit}
+        isSupplyOnly={isSupplyOnly}
       />
 
       {/* Submit for Review / Direct Approve Modal */}

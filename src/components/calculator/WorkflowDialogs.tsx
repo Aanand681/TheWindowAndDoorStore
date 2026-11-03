@@ -8,6 +8,7 @@ import { Share2, RotateCcw, AlertCircle } from 'lucide-react';
 export interface WorkflowStaffItem {
   _id?: string;
   username: string;
+  name?: string;
   department?: string;
 }
 
@@ -101,11 +102,14 @@ export function WorkflowDialogs({
                   onChange={e => setReassignTo(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                 >
-                  {eligibleStaff.map(s => (
+                {eligibleStaff.map(s => {
+                  const displayName = s.name || (s.username ? (s.username.charAt(0).toUpperCase() + s.username.slice(1)) : 'Staff');
+                  return (
                     <option key={s._id || s.username} value={s.username}>
-                      {s.username} {s.department ? `(${s.department})` : ''}
+                      {displayName}
                     </option>
-                  ))}
+                  );
+                })}
                 </select>
               ) : (
                 <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">
