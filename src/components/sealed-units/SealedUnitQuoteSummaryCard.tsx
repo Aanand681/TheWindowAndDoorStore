@@ -311,28 +311,15 @@ export function SealedUnitQuoteSummaryCard({
                 </Button>
               )}
 
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={onPrint}
-                  disabled={lineItemsCount === 0}
-                  className="gap-1.5 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md cursor-pointer flex-1 h-9"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Preview &amp; Print Quote</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onResetQuote}
-                  disabled={lineItemsCount === 0}
-                  className="gap-1.5 text-xs cursor-pointer h-9 text-muted-foreground hover:text-foreground"
-                  title="Reset Quote"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </Button>
-              </div>
+              <Button
+                type="button"
+                onClick={onPrint}
+                disabled={lineItemsCount === 0}
+                className="w-full gap-1.5 text-xs font-bold bg-black hover:bg-zinc-800 text-white shadow-md cursor-pointer h-9 transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Preview &amp; Print Quote</span>
+              </Button>
             </div>
           </div>
         )}

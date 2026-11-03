@@ -147,6 +147,126 @@ function TopSpecBadges({ lineItems }: { lineItems: SealedUnitLineItem[] }) {
   );
 }
 
+/**
+ * REUSABLE COMMON SUMMARY LEDGER
+ * Displays identical rows across all 3 templates:
+ * 1. Glass Summary line (e.g. "1 dual pane su with grills") -> totals.glassBefore8PercentTotal
+ * 2. Labour -> totals.combinedLabourTotal (if installation)
+ * 3. Miscellaneous -> totals.miscTotal (if installation)
+ * 4. Surcharge -> totals.glass8PercentSurchargeTotal
+ * 5. Subtotal -> totals.subtotalPreTax
+ * 6. Tax -> totals.hstAmount
+ * 7. Total -> totals.grandTotal
+ * 8. 50/50 Deposit Schedule
+ */
+interface CommonSummaryLedgerProps {
+  lineItems: SealedUnitLineItem[];
+  totals: any;
+  isInstallation: boolean;
+  isService: boolean;
+  hstRate: number;
+  firstPayment: number;
+  secondPayment: number;
+  textColor?: string;
+  subtextColor?: string;
+  borderColor?: string;
+  totalBorderColor?: string;
+}
+
+function CommonSummaryLedger({
+  lineItems,
+  totals,
+  isInstallation,
+  isService,
+  hstRate,
+  firstPayment,
+  secondPayment,
+  textColor = 'text-gray-900',
+  subtextColor = 'text-gray-700',
+  borderColor = 'border-gray-300',
+  totalBorderColor = 'border-gray-600',
+}: CommonSummaryLedgerProps) {
+  return (
+    <div className={`space-y-1 font-mono text-[7.5pt] ${textColor}`}>
+      {!isService ? (
+        <>
+          {/* 1. Unified Glass Summary Sentence */}
+          <div className="flex justify-between items-baseline py-0.5">
+            <span className="font-sans font-medium capitalize">
+              {formatSealedUnitSummarySentence(lineItems)}
+            </span>
+            <span className="font-bold">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
+          </div>
+
+          {/* 2. Labour (installation) */}
+          {isInstallation && (
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="font-sans">Labour</span>
+              <span className="font-semibold">+${totals.combinedLabourTotal.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* 3. Miscellaneous */}
+          {isInstallation && (
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="font-sans">Miscellaneous</span>
+              <span className="font-semibold">+${totals.miscTotal.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* 4. Surcharge (8%) */}
+          <div className="flex justify-between items-baseline py-0.5">
+            <span className="font-sans">Surcharge</span>
+            <span className="font-semibold">+${totals.glass8PercentSurchargeTotal.toFixed(2)}</span>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Service Mode */}
+          <div className="flex justify-between items-baseline py-0.5">
+            <span className="font-sans font-medium">Labour</span>
+            <span className="font-bold">${totals.combinedLabourTotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-baseline py-0.5">
+            <span className="font-sans">Miscellaneous</span>
+            <span className="font-semibold">+${(totals.miscTotal || 0).toFixed(2)}</span>
+          </div>
+        </>
+      )}
+
+      {/* 5. Subtotal */}
+      <div className={`flex justify-between items-baseline border-t ${borderColor} pt-0.5 font-bold`}>
+        <span className="font-sans">Subtotal</span>
+        <span>${totals.subtotalPreTax.toFixed(2)}</span>
+      </div>
+
+      {/* 6. Tax */}
+      <div className={`flex justify-between items-baseline py-0.5 ${subtextColor}`}>
+        <span className="font-sans">Tax</span>
+        <span>${totals.hstAmount.toFixed(2)}</span>
+      </div>
+
+      {/* 7. Total */}
+      <div className={`flex justify-between items-baseline border-t-2 ${totalBorderColor} pt-0.5 font-black text-[9pt]`}>
+        <span className="font-sans uppercase">Total:</span>
+        <span>${totals.grandTotal.toFixed(2)}</span>
+      </div>
+
+      {/* 8. 50/50 Deposit */}
+      <div className={`grid grid-cols-2 gap-1.5 pt-1 mt-0.5 border-t ${borderColor} font-sans text-center text-[7pt]`}>
+        <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
+          <span className="text-gray-500 uppercase block font-bold text-[6pt]">First 50%</span>
+          <span className="font-mono font-bold">${firstPayment.toFixed(2)}</span>
+        </div>
+        <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
+          <span className="text-gray-500 uppercase block font-bold text-[6pt]">Final 50%</span>
+          <span className="font-mono font-bold">${secondPayment.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SealedUnitPrintInvoice({
   lineItems,
   mode = 'installation',
@@ -359,8 +479,8 @@ export function SealedUnitPrintInvoice({
 
           {/* FULL-WIDTH QUOTATION SUMMARY CARD */}
           <div className="border border-slate-300 rounded p-2.5 bg-slate-50/50 space-y-2">
-            <div className="text-[8pt] font-black uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 flex justify-between">
-              <span>Customer Quotation Summary</span>
+            <div className="text-[8pt] font-black uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 flex justify-between font-sans">
+              <span>Summary</span>
               <span className="font-mono text-[7.5pt] font-bold text-slate-600">
                 {isService ? 'Service Pricing' : `${lineItems.reduce((acc, i) => acc + i.quantity, 0)} Units Total`}
               </span>
@@ -368,83 +488,20 @@ export function SealedUnitPrintInvoice({
 
             <div className="grid grid-cols-12 gap-3 items-start">
               {/* Financial Lines Ledger (Left 7 cols) */}
-              <div className="col-span-7 space-y-1 font-mono text-[8pt]">
-                {!isService ? (
-                  <>
-                    <div className="flex justify-between items-baseline py-0.5">
-                      <span className="font-sans text-slate-900 font-medium">
-                        {formatSealedUnitSummarySentence(lineItems)}
-                      </span>
-                      <span className="font-bold text-slate-900">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-baseline py-0.5 text-slate-700">
-                      <span className="font-sans">Vitro Glass Surcharge (8%)</span>
-                      <span className="font-semibold">+${totals.glass8PercentSurchargeTotal.toFixed(2)}</span>
-                    </div>
-
-                    {isInstallation && (
-                      <>
-                        <div className="flex justify-between items-baseline py-0.5">
-                          <span className="font-sans text-slate-900 font-medium">Installation Glazing Labour &amp; Travel</span>
-                          <span className="font-semibold text-slate-900">+${totals.combinedLabourTotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-baseline py-0.5 text-slate-700">
-                          <span className="font-sans">Glazing Supplies &amp; Misc Materials</span>
-                          <span className="font-semibold">+${totals.miscTotal.toFixed(2)}</span>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-baseline py-0.5">
-                      <span className="font-sans text-slate-900 font-medium">
-                        Service Labour ({(totals.totalSqft || 0).toFixed(1)} sqft @ ${(totals.effectiveLabourRate || 14.40).toFixed(2)})
-                      </span>
-                      <span className="font-bold text-slate-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</span>
-                    </div>
-                    {totals.totalTravelAndSetup > 0 && (
-                      <div className="flex justify-between items-baseline py-0.5 text-slate-700">
-                        <span className="font-sans">Travel &amp; Setup Surcharge</span>
-                        <span className="font-semibold">+${totals.totalTravelAndSetup.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-baseline py-0.5 text-slate-700">
-                      <span className="font-sans">Service Materials &amp; Misc</span>
-                      <span className="font-semibold">+${(totals.miscTotal || 0).toFixed(2)}</span>
-                    </div>
-                  </>
-                )}
-
-                <div className="border-t border-slate-300 pt-1 flex justify-between font-bold text-slate-900">
-                  <span className="font-sans">Subtotal:</span>
-                  <span>${totals.subtotalPreTax.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between py-0.5 text-slate-700">
-                  <span className="font-sans">
-                    {isService ? 'HST (13% Service Tax)' : hstRate === 8 ? 'HST (8% Exempt on Materials)' : hstRate === 0 ? 'Tax (0% Exempt)' : 'HST (13%)'}
-                  </span>
-                  <span>${totals.hstAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="border-t-2 border-slate-600 pt-1 flex justify-between font-black text-slate-950 text-[9.5pt]">
-                  <span className="font-sans uppercase">Total Proposal Amount:</span>
-                  <span>${totals.grandTotal.toFixed(2)}</span>
-                </div>
-
-                {/* Deposit Schedule */}
-                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200 text-center font-sans">
-                  <div className="border border-slate-200 bg-white rounded p-1">
-                    <span className="text-[6.5pt] uppercase font-bold text-slate-500 block">First 50% Deposit</span>
-                    <span className="font-mono font-bold text-slate-900">${firstPayment.toFixed(2)}</span>
-                  </div>
-                  <div className="border border-slate-200 bg-white rounded p-1">
-                    <span className="text-[6.5pt] uppercase font-bold text-slate-500 block">Final 50% on Completion</span>
-                    <span className="font-mono font-bold text-slate-900">${secondPayment.toFixed(2)}</span>
-                  </div>
-                </div>
+              <div className="col-span-7">
+                <CommonSummaryLedger
+                  lineItems={lineItems}
+                  totals={totals}
+                  isInstallation={isInstallation}
+                  isService={isService}
+                  hstRate={hstRate}
+                  firstPayment={firstPayment}
+                  secondPayment={secondPayment}
+                  textColor="text-slate-900"
+                  subtextColor="text-slate-700"
+                  borderColor="border-slate-300"
+                  totalBorderColor="border-slate-600"
+                />
               </div>
 
               {/* Rich Customer Notes (Right 5 cols) */}
@@ -565,82 +622,25 @@ export function SealedUnitPrintInvoice({
           {/* FULL-WIDTH QUOTATION SUMMARY CARD */}
           <div className="border border-gray-400 rounded p-2 bg-gray-50/50 space-y-2">
             <div className="text-[8pt] font-bold uppercase tracking-wider text-gray-900 border-b border-gray-300 pb-0.5 flex justify-between font-sans">
-              <span>Quotation Summary</span>
+              <span>Summary</span>
               <span className="font-mono text-[7pt] text-gray-500 font-normal">Customer Financial Record</span>
             </div>
 
             <div className="grid grid-cols-12 gap-3 items-start">
-              <div className="col-span-7 space-y-1 font-mono text-[7.5pt]">
-                {!isService ? (
-                  <>
-                    <div className="flex justify-between items-baseline py-0.5">
-                      <span className="font-sans text-gray-900 font-medium">{formatSealedUnitSummarySentence(lineItems)}</span>
-                      <span className="font-bold text-gray-900">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
-                    </div>
-                    {isInstallation && (
-                      <>
-                        <div className="flex justify-between items-baseline py-0.5">
-                          <span className="font-sans text-gray-900">Labour (installation &amp; setup)</span>
-                          <span className="font-semibold text-gray-900">+${totals.combinedLabourTotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-baseline py-0.5">
-                          <span className="font-sans text-gray-900">Misc Supplies</span>
-                          <span className="font-semibold text-gray-900">+${totals.miscTotal.toFixed(2)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between items-baseline py-0.5 text-gray-900">
-                      <span className="font-sans">Surcharge (8%)</span>
-                      <span className="font-semibold">+${totals.glass8PercentSurchargeTotal.toFixed(2)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-baseline py-0.5">
-                      <span className="font-sans text-gray-900 font-medium">Service Glazing Labour</span>
-                      <span className="font-bold text-gray-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</span>
-                    </div>
-                    {totals.totalTravelAndSetup > 0 && (
-                      <div className="flex justify-between items-baseline py-0.5">
-                        <span className="font-sans text-gray-700">Travel Surcharge</span>
-                        <span>+${totals.totalTravelAndSetup.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-baseline py-0.5">
-                      <span className="font-sans text-gray-700">Misc Service Supplies</span>
-                      <span>+${(totals.miscTotal || 0).toFixed(2)}</span>
-                    </div>
-                  </>
-                )}
-
-                <div className="flex justify-between items-baseline border-t border-gray-300 pt-0.5 font-bold text-gray-900">
-                  <span className="font-sans">Subtotal</span>
-                  <span>${totals.subtotalPreTax.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-baseline py-0.5 text-gray-700">
-                  <span className="font-sans">
-                    {isService ? 'Tax (13% HST)' : hstRate === 8 ? 'Tax (8% Exempt on Materials)' : hstRate === 0 ? 'No Tax' : 'Tax (13% HST)'}
-                  </span>
-                  <span>${totals.hstAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-baseline border-t-2 border-gray-600 pt-0.5 font-black text-black text-[9pt]">
-                  <span className="font-sans uppercase">Total:</span>
-                  <span>${totals.grandTotal.toFixed(2)}</span>
-                </div>
-
-                {/* 50/50 Deposit */}
-                <div className="grid grid-cols-2 gap-1.5 pt-1 mt-0.5 border-t border-gray-200 font-sans text-center text-[7pt]">
-                  <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
-                    <span className="text-gray-500 uppercase block font-bold text-[6pt]">First 50%</span>
-                    <span className="font-mono font-bold text-black">${firstPayment.toFixed(2)}</span>
-                  </div>
-                  <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
-                    <span className="text-gray-500 uppercase block font-bold text-[6pt]">Final 50%</span>
-                    <span className="font-mono font-bold text-black">${secondPayment.toFixed(2)}</span>
-                  </div>
-                </div>
+              <div className="col-span-7">
+                <CommonSummaryLedger
+                  lineItems={lineItems}
+                  totals={totals}
+                  isInstallation={isInstallation}
+                  isService={isService}
+                  hstRate={hstRate}
+                  firstPayment={firstPayment}
+                  secondPayment={secondPayment}
+                  textColor="text-gray-900"
+                  subtextColor="text-gray-700"
+                  borderColor="border-gray-300"
+                  totalBorderColor="border-gray-600"
+                />
               </div>
 
               {/* Special Notes & Instructions (Right 5 cols) */}
@@ -761,58 +761,13 @@ export function SealedUnitPrintInvoice({
           {/* FULL-WIDTH COMMERCIAL QUOTATION SUMMARY */}
           <div className="border border-zinc-300 rounded p-2 bg-zinc-50/70 space-y-2">
             <div className="text-[7.5pt] font-bold uppercase tracking-wider text-zinc-900 border-b border-zinc-300 pb-0.5 flex justify-between font-sans">
-              <span>Commercial Quotation &amp; Field Instructions</span>
+              <span>Summary</span>
               <span className="font-mono text-[7pt] text-zinc-600">Client Billing Record</span>
             </div>
 
             <div className="grid grid-cols-12 gap-3 items-start">
-              <div className="col-span-7 space-y-1 font-mono text-[7.5pt]">
-                <div className="flex justify-between items-baseline py-0.5">
-                  <span className="font-sans text-zinc-800">Glass Manufacturing Supply Total</span>
-                  <span className="font-bold text-zinc-950">${totals.glassSupplyTotal.toFixed(2)}</span>
-                </div>
-                {isInstallation && (
-                  <div className="flex justify-between items-baseline py-0.5">
-                    <span className="font-sans text-zinc-800">Glazing Installation Labour &amp; Setup</span>
-                    <span className="font-semibold text-zinc-950">+${(totals.combinedLabourTotal + totals.miscTotal).toFixed(2)}</span>
-                  </div>
-                )}
-                {isService && (
-                  <div className="flex justify-between items-baseline py-0.5">
-                    <span className="font-sans text-zinc-800">Service Labour &amp; Travel</span>
-                    <span className="font-bold text-zinc-950">${totals.combinedLabourTotal.toFixed(2)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-baseline border-t border-zinc-300 pt-0.5 font-bold text-zinc-900">
-                  <span className="font-sans">Pre-Tax Subtotal</span>
-                  <span>${totals.subtotalPreTax.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-baseline py-0.5 text-zinc-700">
-                  <span className="font-sans">HST ({hstRate}%)</span>
-                  <span>${totals.hstAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-baseline border-t-2 border-zinc-600 pt-0.5 font-black text-zinc-950 text-[9pt]">
-                  <span className="font-sans uppercase">Total Amount:</span>
-                  <span>${totals.grandTotal.toFixed(2)}</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5 pt-1 mt-0.5 border-t border-zinc-200 text-center text-[7pt] font-sans">
-                  <div className="border border-zinc-300 rounded p-1 bg-white">
-                    <span className="text-[6pt] text-zinc-500 font-bold uppercase block">Deposit (50%)</span>
-                    <span className="font-mono font-bold text-zinc-900">${firstPayment.toFixed(2)}</span>
-                  </div>
-                  <div className="border border-zinc-300 rounded p-1 bg-white">
-                    <span className="text-[6pt] text-zinc-500 font-bold uppercase block">Balance on Delivery</span>
-                    <span className="font-mono font-bold text-zinc-900">${secondPayment.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Special Field Notes */}
-              <div className="col-span-5 border-l border-zinc-300 pl-3">
+              {/* Special Notes & Site Instructions (LEFT 5 cols) */}
+              <div className="col-span-5 border-r border-zinc-300 pr-3">
                 <span className="text-[7pt] uppercase font-bold text-zinc-500 block mb-1 font-sans">
                   Special Notes &amp; Site Instructions
                 </span>
@@ -821,6 +776,23 @@ export function SealedUnitPrintInvoice({
                 ) : (
                   <span className="text-zinc-400 text-[7pt] italic">No special instructions recorded.</span>
                 )}
+              </div>
+
+              {/* Financial Lines Ledger (RIGHT 7 cols) */}
+              <div className="col-span-7 pl-1">
+                <CommonSummaryLedger
+                  lineItems={lineItems}
+                  totals={totals}
+                  isInstallation={isInstallation}
+                  isService={isService}
+                  hstRate={hstRate}
+                  firstPayment={firstPayment}
+                  secondPayment={secondPayment}
+                  textColor="text-zinc-900"
+                  subtextColor="text-zinc-700"
+                  borderColor="border-zinc-300"
+                  totalBorderColor="border-zinc-600"
+                />
               </div>
             </div>
           </div>
@@ -965,16 +937,12 @@ function OfficePricingReferenceCard({
                   ${item.subtotalAfterSurcharge.toFixed(2)}
                 </div>
                 <div className="text-gray-600 pr-0.5">×2.5 multiplier</div>
-                <div className="border-t border-gray-300 my-0.5 pt-0.5 font-bold text-gray-950 pr-0.5">
-                  ${item.multipliedAmount.toFixed(2)}
-                </div>
-                <div className="text-gray-600 pr-0.5">+8% addon (${item.surcharge8PercentAmount.toFixed(2)})</div>
                 <div className="border-t-2 border-gray-600 my-0.5 pt-0.5 font-black text-black text-[7.5pt] pr-0.5">
-                  ${item.finalUnitPrice.toFixed(2)} ea
+                  ${item.multipliedAmount.toFixed(2)} ea
                 </div>
                 {item.quantity > 1 && (
                   <div className="border-t border-gray-300 mt-0.5 pt-0.5 font-bold text-black text-[7pt] pr-0.5">
-                    ×{item.quantity} = ${item.lineGlassTotal.toFixed(2)}
+                    ×{item.quantity} = ${(item.multipliedAmount * item.quantity).toFixed(2)}
                   </div>
                 )}
               </div>

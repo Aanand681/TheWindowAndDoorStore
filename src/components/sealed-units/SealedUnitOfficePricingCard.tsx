@@ -163,13 +163,9 @@ export function SealedUnitOfficePricingCard({
                     <span className="font-sans">× 2.5 Pricing Multiplier:</span>
                     <span className="text-foreground">${multipliedPre8.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between py-0.5 text-muted-foreground">
-                    <span className="font-sans">+ 8% Final Surcharge:</span>
-                    <span className="text-foreground">+${surcharge8Amount.toFixed(2)}</span>
-                  </div>
                   <div className="flex justify-between py-1 border-t border-border/50 text-foreground font-bold text-xs">
-                    <span className="font-sans">Billable Glass Total:</span>
-                    <span className="text-primary">${totals.glassSupplyTotal.toFixed(2)}</span>
+                    <span className="font-sans">Sealed Unit Total:</span>
+                    <span className="text-primary">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
                   </div>
                 </div>
               )}

@@ -140,47 +140,11 @@ export function SealedUnitItemBuilder({
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl shadow-xl overflow-hidden">
-      {/* Header with Save Draft & Saved Quotes on the side */}
+      {/* Header */}
       <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
-            <Layers className="w-4 h-4 text-primary" />
-            <span>Unit Specifications &amp; Glass Config</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onSaveDraft && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onSaveDraft}
-                className="h-7 px-2.5 text-[11px] font-semibold cursor-pointer gap-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs"
-                title="Save sealed unit quote to drafts"
-              >
-                <Bookmark className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                <span>Save Draft</span>
-              </Button>
-            )}
-            {onOpenSavedQuotes && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onOpenSavedQuotes}
-                className="h-7 px-2.5 text-[11px] font-semibold cursor-pointer gap-1 border-border hover:bg-muted shadow-xs"
-                title="Open saved quotes"
-              >
-                <FolderOpen className="w-3 h-3 text-muted-foreground" />
-                <span>Saved Quotes</span>
-                {savedDraftsCount !== undefined && savedDraftsCount > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-primary/10 text-primary">
-                    {savedDraftsCount}
-                  </span>
-                )}
-              </Button>
-            )}
-          </div>
+        <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+          <Layers className="w-4 h-4 text-primary" />
+          <span>Unit Specifications &amp; Glass Config</span>
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
           Select treatment, combo, shape, and dimensions with live fraction parsing.
@@ -619,7 +583,7 @@ export function SealedUnitItemBuilder({
           <div className="flex gap-2 pt-0.5">
             <Button
               type="submit"
-              className="flex-1 h-9 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer gap-1.5"
+              className="flex-1 h-9 text-xs font-bold bg-black hover:bg-zinc-800 text-white shadow-sm cursor-pointer gap-1.5 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add to Quote</span>
