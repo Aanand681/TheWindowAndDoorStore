@@ -169,7 +169,7 @@ export function SealedUnitLineItemsTable({
                           <td className="py-3 px-3 text-right text-muted-foreground">
                             ${lineServiceMisc.toFixed(2)}
                           </td>
-                          <td className="py-3 px-3 text-right font-black text-blue-600 dark:text-blue-400">
+                          <td className="py-3 px-3 text-right font-bold font-mono text-foreground">
                             ${lineServiceTotal.toFixed(2)}
                           </td>
                         </>

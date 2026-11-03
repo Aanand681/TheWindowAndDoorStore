@@ -340,10 +340,10 @@ export function SealedUnitPrintInvoice({
           </div>
 
           {isService ? (
-            <div className="border border-blue-400 bg-white rounded p-1.5 text-[7.5pt] font-mono space-y-1 leading-snug">
+            <div className="border border-gray-300 bg-white rounded p-1.5 text-[7.5pt] font-mono space-y-1 leading-snug">
               <div className="font-bold text-gray-900 border-b border-gray-200 pb-0.5 text-[7pt] uppercase font-sans flex justify-between">
                 <span>On-Site Service Breakdown</span>
-                <span className="text-blue-700 font-bold">13% HST</span>
+                <span className="text-gray-900 font-bold">13% HST</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 font-sans">Total Service Area:</span>

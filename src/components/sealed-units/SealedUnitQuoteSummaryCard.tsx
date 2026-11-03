@@ -103,8 +103,8 @@ export function SealedUnitQuoteSummaryCard({
           </div>
           <div className="flex items-center gap-1.5">
             {isService ? (
-              <span className="h-7 px-2.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-[11px] font-semibold text-blue-600 dark:text-blue-400 flex items-center shadow-xs">
-                13% HST (Fixed on Service)
+              <span className="h-7 px-2.5 rounded-lg border border-border/80 bg-muted/60 text-[11px] font-semibold text-foreground flex items-center shadow-xs">
+                13% HST (Service Rate)
               </span>
             ) : (
               <select
