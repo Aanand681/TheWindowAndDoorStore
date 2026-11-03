@@ -143,13 +143,13 @@ export function SealedUnitQuoteSummaryCard({
             <div className="space-y-1.5 pb-2.5 border-b border-border/50">
               {isService ? (
                 <>
-                  {/* Service Labour on Total Sqft */}
+                  {/* Service Labour on Total Sqft (includes travel setup charges) */}
                   <div className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
                     <span className="text-muted-foreground font-medium">
-                      Service Labour ({(totals.totalSqft || 0).toFixed(2)} sq ft @ ${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                      Service Labour {totals.totalTravelAndSetup > 0 ? '(includes travel & setup charges)' : `(${(totals.totalSqft || 0).toFixed(2)} sq ft @ $${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)`}
                     </span>
                     <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                      ${(totals.serviceLabourTotal ?? ((totals.totalSqft || 0) * (totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40))).toFixed(2)}
+                      ${totals.combinedLabourTotal.toFixed(2)}
                     </span>
                   </div>
 

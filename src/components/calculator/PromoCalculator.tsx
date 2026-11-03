@@ -473,12 +473,15 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   useEffect(() => {
     if (initialReviewQuoteId) return;
 
-    const hasContent =
-      windows.some((w) => (w.base && parseFloat(w.base) > 0) || w.w || w.h) ||
-      customerName.trim() !== '' ||
-      quoteNumber.trim() !== '';
+    const validWindows = windows.filter(
+      (w) => (w.base && parseFloat(w.base) > 0) || (w.w && w.w.trim() !== '') || (w.h && w.h.trim() !== '')
+    );
+    const hasContent = validWindows.length > 0 || customerName.trim() !== '';
 
-    if (!hasContent) return;
+    if (!hasContent) {
+      clearActiveAutoSave('window');
+      return;
+    }
 
     // Check if state is identical to last explicitly saved or loaded snapshot
     const currentSnapshot = JSON.stringify({
@@ -554,9 +557,9 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
       saveActiveAutoSave('window', {
         quoteNumber: quoteNumber || 'Draft',
         customerName: customerName || '',
-        itemCount: windows.length,
+        itemCount: validWindows.length,
         grandTotal: autoGrandTotalDollars,
-        summaryLabel: `${windows.length} Windows`,
+        summaryLabel: `${validWindows.length} Windows`,
         data: {
           quoteNumber,
           customerName,

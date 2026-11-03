@@ -354,8 +354,18 @@ export function SealedUnitPrintInvoice({
                 <span>${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft</span>
               </div>
               <div className="flex justify-between font-semibold border-t border-gray-200 pt-0.5">
-                <span className="font-sans">Labour Subtotal:</span>
+                <span className="font-sans">Service Labour (Sqft):</span>
                 <span className="text-gray-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</span>
+              </div>
+              {totals.totalTravelAndSetup > 0 && (
+                <div className="flex justify-between text-gray-700">
+                  <span className="font-sans">Travel &amp; Setup Surcharge:</span>
+                  <span>+${totals.totalTravelAndSetup.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold border-t border-gray-200 pt-0.5">
+                <span className="font-sans">Total Labour (with Travel):</span>
+                <span className="text-gray-900">${totals.combinedLabourTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 font-sans">Misc / Materials Rate:</span>
@@ -441,13 +451,13 @@ export function SealedUnitPrintInvoice({
             <div className="space-y-0.5 font-mono text-[7.5pt]">
               {isService ? (
                 <>
-                  {/* Service Labour (total actual unrounded sqft * labour rate) */}
+                  {/* Service Labour (includes travel & setup charges) */}
                   <div className="flex justify-between items-baseline py-0.5">
                     <span className="font-sans text-gray-900 font-medium truncate pr-1">
-                      Service Labour ({totals.totalSqft.toFixed(2)} sq ft @ ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)
+                      Service Labour {totals.totalTravelAndSetup > 0 ? '(includes travel & setup charges)' : `(${(totals.totalSqft || 0).toFixed(2)} sq ft @ $${(totals.effectiveLabourRate || labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft)`}
                     </span>
                     <span className="font-bold text-gray-900 whitespace-nowrap shrink-0">
-                      ${(totals.serviceLabourTotal ?? (totals.combinedLabourTotal || ((totals.totalSqft || 0) * (labour.labourRatePerSqft || 14.40)))).toFixed(2)}
+                      ${totals.combinedLabourTotal.toFixed(2)}
                     </span>
                   </div>
 

@@ -292,7 +292,39 @@ export function saveActiveAutoSave(
 }
 
 /**
- * Get active live workspace draft if one exists.
+ * Validates whether an active autosave draft actually contains user-entered content.
+ * Prevents phantom "Unsaved Session" prompts when the user hasn't entered any items or values.
+ */
+function isDraftMeaningful(type: QuoteType, draft: ActiveAutoSaveDraft): boolean {
+  if (!draft || !draft.data) return false;
+  const custName = (draft.customerName || (draft.data as any).customerName || '').trim();
+  if (custName.length > 0) return true;
+
+  if (type === 'window') {
+    const windows = (draft.data as WindowQuoteDraftPayload).windows || [];
+    return windows.some(
+      (w) =>
+        (w.base && parseFloat(w.base) > 0) ||
+        (w.w && w.w.trim() !== '') ||
+        (w.h && w.h.trim() !== '')
+    );
+  }
+
+  if (type === 'sealed_unit') {
+    const suData = draft.data as SealedUnitQuoteDraftPayload;
+    const lineItems = suData.lineItems || [];
+    if (lineItems.length > 0) return true;
+    if (suData.sealedUnitMode === 'service_only' && suData.serviceSqftInput?.trim()) {
+      return (parseFloat(suData.serviceSqftInput) || 0) > 0;
+    }
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Get active live workspace draft if one exists and contains meaningful content.
  */
 export function getActiveAutoSave(type: QuoteType): ActiveAutoSaveDraft | null {
   if (typeof window === 'undefined') return null;
@@ -302,6 +334,10 @@ export function getActiveAutoSave(type: QuoteType): ActiveAutoSaveDraft | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.data) return null;
+    if (!isDraftMeaningful(type, parsed)) {
+      localStorage.removeItem(key);
+      return null;
+    }
     return parsed;
   } catch (err) {
     console.error('Failed to get auto-save draft:', err);

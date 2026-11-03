@@ -23,9 +23,18 @@ export function SessionTimeoutWatcher() {
 
     const now = Date.now();
     const existing = Number(localStorage.getItem(STORAGE_KEY));
-    if (existing && !isNaN(existing) && existing > 0) {
+
+    // Check if this browser tab was freshly opened or authenticated within the last 60 seconds
+    const tabInitTime = Number(sessionStorage.getItem('vwd_tab_init_time'));
+    const isFreshTab = !tabInitTime || (now - tabInitTime < 60000);
+    if (!tabInitTime) {
+      sessionStorage.setItem('vwd_tab_init_time', String(now));
+    }
+
+    if (existing && !isNaN(existing) && existing > 0 && !isFreshTab) {
       lastActivityRef.current = existing;
     } else {
+      // Fresh tab or newly authenticated: reset the activity timer to right now
       lastActivityRef.current = now;
       localStorage.setItem(STORAGE_KEY, String(now));
     }
@@ -36,6 +45,7 @@ export function SessionTimeoutWatcher() {
       isLoggingOutRef.current = true;
       try {
         localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem('vwd_tab_init_time');
         await signOut({ redirect: false });
       } catch (err) {
         console.warn('[SessionTimeoutWatcher] signOut error:', err);
@@ -52,8 +62,10 @@ export function SessionTimeoutWatcher() {
       }
     };
 
-    // Immediate check on mount
-    checkExpiration();
+    // Immediate check on mount (only for ongoing sessions, not fresh logins)
+    if (!isFreshTab) {
+      checkExpiration();
+    }
 
     let lastRecord = 0;
     const handleUserActivity = () => {

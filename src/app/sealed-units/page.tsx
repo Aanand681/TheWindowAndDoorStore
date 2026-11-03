@@ -64,6 +64,7 @@ import {
   SealedUnitLineItemsTable,
   SealedUnitPrintInvoice,
 } from '@/components/sealed-units';
+import { calculateSealedUnitTotals } from '@/lib/sealed-units/calculations';
 
 export default function SealedUnitsCalculatorPage() {
   const { data: session } = useSession();
@@ -378,135 +379,29 @@ export default function SealedUnitsCalculatorPage() {
 
   // --- Aggregate Financial Calculations ---
   const totals = useMemo(() => {
-    const totalUnits = lineItems.reduce((acc, item) => acc + item.quantity, 0);
-    // Actual square footage calculated from added line items
-    const itemsSqft = lineItems.reduce((acc, item) => acc + item.actualSqft * item.quantity, 0);
-    const totalBillableSqft = lineItems.reduce((acc, item) => acc + item.billableSqft * item.quantity, 0);
-
-    const effectiveLabourRate = serviceLabourRateInput !== ''
-      ? (parseFloat(serviceLabourRateInput) || 0)
-      : (labour.labourRatePerSqft || 14.40);
-
-    const effectiveMiscRate = serviceMiscRateInput !== ''
-      ? (parseFloat(serviceMiscRateInput) || 0)
-      : (labour.miscRatePerSqft || 2.40);
-
-    // If service sqft is entered directly, use it; otherwise fallback to itemsSqft
-    const effectiveServiceSqft = isServiceOnly && serviceSqftInput.trim() !== ''
-      ? (parseFloat(serviceSqftInput) || 0)
-      : itemsSqft;
-
-    const totalSqft = isServiceOnly ? effectiveServiceSqft : itemsSqft;
-
-    // Glass calculation breakdown: strictly $0.00 in Service Only mode
-    const glassBefore8PercentTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.multipliedTotal, 0);
-    const glass8PercentSurchargeTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.surcharge8PercentTotal, 0);
-    const glassSupplyTotal = isServiceOnly ? 0 : lineItems.reduce((acc, item) => acc + item.lineGlassTotal, 0);
-
-    // Service Only calculation (user rule: labour of total sqft + misc for that, subtotal, 13% hst, total)
-    const serviceLabourTotal = isServiceOnly
-      ? Math.round(effectiveServiceSqft * effectiveLabourRate * 100) / 100
-      : 0;
-
-    // Installation Labour & Misc (calculated on actual unrounded sq ft)
-    const unitLabourSum = isInstallation
-      ? lineItems.reduce((acc, item) => acc + item.totalLabour, 0)
-      : 0;
-
-    const miscTotal = isInstallation
-      ? lineItems.reduce((acc, item) => acc + item.totalMisc, 0)
-      : isServiceOnly
-      ? Math.round(effectiveServiceSqft * effectiveMiscRate * 100) / 100
-      : 0;
-
-    // Fixed Base Setup Fee: strictly $140 only when isInstallation === true, else $0
-    const baseSetupFee = isInstallation ? (labour.setupFeeDefault || 140.0) : 0;
-
-    // Additional Far Area / Travel Surcharge on top of $140
-    let additionalFarFee = 0;
-    if (isInstallation) {
-      if (travelFeeType === 'far_std') {
-        additionalFarFee = labour.setupFeeFarStandard || 727.5;
-      } else if (travelFeeType === 'far_small') {
-        additionalFarFee = labour.setupFeeFarSmall || 363.5;
-      } else if (travelFeeType === 'custom') {
-        additionalFarFee = Math.max(0, Number(customTravelFee) || 0);
-      }
-    }
-
-    // Out-of-town vehicle & crew travel
-    let vehicleTravelFee = 0;
-    let crewTravelFee = 0;
-    if (isInstallation && showOutTownTravel) {
-      const km = Number(travelKm) || 0;
-      vehicleTravelFee = Math.round(km * (labour.vehicleRatePerKm || 0.98) * 100) / 100;
-
-      const hrs = Number(crewHours) || 0;
-      const hourlyRate =
-        crewSize === '2' ? labour.crewHourly2Men || 150 : labour.crewHourly3Men || 200;
-      crewTravelFee = Math.round(hrs * hourlyRate * 100) / 100;
-    }
-
-    const totalAdditionalTravel = additionalFarFee + vehicleTravelFee + crewTravelFee;
-    const totalTravelAndSetup = isInstallation ? (baseSetupFee + totalAdditionalTravel) : 0;
-    const combinedLabourTotal = isInstallation
-      ? (unitLabourSum + totalTravelAndSetup)
-      : isServiceOnly
-      ? serviceLabourTotal
-      : 0;
-
-    const subtotalPreTax = isServiceOnly
-      ? Math.round((serviceLabourTotal + miscTotal) * 100) / 100
-      : Math.round((glassSupplyTotal + (isInstallation ? (combinedLabourTotal + miscTotal) : 0)) * 100) / 100;
-
-    // Exact Shop Tax Options:
-    // In Service Only: strictly 13% HST (no point-of-sale material exemption rebate)
-    let hstAmount = 0;
-    if (isServiceOnly) {
-      hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100;
-    } else if (hstRate === 13) {
-      hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100;
-    } else if (hstRate === 8) {
-      const materialAmount = glassSupplyTotal;
-      const serviceAmount = isInstallation ? (combinedLabourTotal + miscTotal) : 0;
-      const materialTax = Math.round(materialAmount * 0.05 * 100) / 100;
-      const serviceTax = Math.round(serviceAmount * 0.13 * 100) / 100;
-      hstAmount = Math.round((materialTax + serviceTax) * 100) / 100;
-    } else {
-      hstAmount = 0;
-    }
-
-    const grandTotal = Math.round((subtotalPreTax + hstAmount) * 100) / 100;
+    const calc = calculateSealedUnitTotals({
+      lineItems,
+      sealedUnitMode,
+      serviceSqftInput,
+      serviceLabourRateInput,
+      serviceMiscRateInput,
+      travelFeeType,
+      customTravelFee,
+      showOutTownTravel,
+      travelKm,
+      crewHours,
+      crewSize,
+      hstRate,
+      labour,
+    });
 
     return {
-      totalUnits,
-      totalSqft,
-      itemsSqft,
-      totalBillableSqft,
-      glassBefore8PercentTotal,
-      glass8PercentSurchargeTotal,
-      glassSupplyTotal,
-      serviceLabourTotal,
-      unitLabourSum,
-      baseSetupFee,
-      additionalFarFee,
-      vehicleTravelFee,
-      crewTravelFee,
-      totalAdditionalTravel,
-      totalTravelAndSetup,
-      combinedLabourTotal,
-      miscTotal,
-      subtotalPreTax,
-      hstAmount,
-      grandTotal,
-      effectiveLabourRate,
-      effectiveMiscRate,
+      ...calc,
       isServiceOnly,
     };
   }, [
     lineItems,
     sealedUnitMode,
-    isInstallation,
     isServiceOnly,
     serviceSqftInput,
     serviceLabourRateInput,
@@ -517,8 +412,8 @@ export default function SealedUnitsCalculatorPage() {
     travelKm,
     crewHours,
     crewSize,
-    labour,
     hstRate,
+    labour,
   ]);
 
   const loadDraftIntoWorkspace = useCallback(
@@ -719,8 +614,15 @@ export default function SealedUnitsCalculatorPage() {
 
   // Debounced auto-save effect
   useEffect(() => {
-    const hasContent = lineItems.length > 0 || (isServiceOnly && (totals.totalSqft || 0) > 0) || customerName.trim() !== '';
-    if (!hasContent) return;
+    const hasMeaningfulContent =
+      lineItems.length > 0 ||
+      (isServiceOnly && (serviceSqftInput.trim() !== '' || (totals.totalSqft || 0) > 0)) ||
+      customerName.trim() !== '';
+
+    if (!hasMeaningfulContent) {
+      clearActiveAutoSave('sealed_unit');
+      return;
+    }
 
     // Check if state is identical to last explicitly saved or loaded snapshot
     const currentSnapshot = JSON.stringify({
@@ -757,7 +659,7 @@ export default function SealedUnitsCalculatorPage() {
       saveActiveAutoSave('sealed_unit', {
         quoteNumber: quoteNumber || 'Draft',
         customerName: customerName || '',
-        itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
+        itemCount: isServiceOnly ? ((totals.totalSqft || 0) > 0 ? 1 : 0) : lineItems.length,
         grandTotal: totals.grandTotal || 0,
         summaryLabel,
         data: {
@@ -997,12 +899,14 @@ export default function SealedUnitsCalculatorPage() {
                   </span>
                 )}
               </Button>
-              <Link href="/admin/sealed-units">
-                <Button variant="outline" size="sm" className="h-7 text-xs cursor-pointer gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>Manage Price Sheets</span>
-                </Button>
-              </Link>
+              {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN' || Boolean(user?.canAccessAdmin)) && (
+                <Link href="/admin/sealed-units">
+                  <Button variant="outline" size="sm" className="h-7 text-xs cursor-pointer gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>Manage Price Sheets</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
 

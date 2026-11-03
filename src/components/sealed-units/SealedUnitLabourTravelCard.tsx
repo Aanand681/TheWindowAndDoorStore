@@ -3,18 +3,14 @@
 import React from 'react';
 import {
   Wrench,
-  Truck,
   DollarSign,
   ChevronDown,
   ChevronUp,
-  Layers,
-  RefreshCw,
-  Calculator,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
+import { SealedUnitTravelCalculator } from './SealedUnitTravelCalculator';
+import { SealedUnitServiceCard } from './SealedUnitServiceCard';
 
 export type SealedUnitMode = 'installation' | 'supply_only' | 'service_only';
 
@@ -92,6 +88,7 @@ export function SealedUnitLabourTravelCard({
   totals,
 }: SealedUnitLabourTravelCardProps) {
   const currentMode = setMode ? mode : (isInstallation ? 'installation' : 'supply_only');
+  const [showLabourBreakdown, setShowLabourBreakdown] = React.useState(false);
 
   const handleSelectMode = (m: SealedUnitMode) => {
     if (setMode) {
@@ -111,7 +108,7 @@ export function SealedUnitLabourTravelCard({
               <span>Installation &amp; Labour Settings</span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-              Order scope, installation labour, and service parameters.
+              Order scope, installation labour, travel setup, and service parameters.
             </p>
           </div>
           {/* 3-Way Scope Selector */}
@@ -156,336 +153,132 @@ export function SealedUnitLabourTravelCard({
           </div>
         </div>
       </div>
+
       <div className="p-3 sm:p-3.5 space-y-3">
         {currentMode === 'installation' ? (
           <>
-            {/* Travel / Far Area Surcharge Presets */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-primary" />
-                  <span>Travel &amp; Far Area Fee</span>
-                </Label>
-                <span className="text-[10px] text-muted-foreground">Optional add-on</span>
+            {/* Installation Labour Info Header */}
+            <div className="flex items-center justify-between p-2.5 bg-muted/30 rounded-xl border border-border/60">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-foreground">On-Site Installation Labour</span>
+                <p className="text-[11px] text-muted-foreground">
+                  Base unit labour (${totals.unitLabourSum.toFixed(2)}) + travel setup (${totals.totalTravelAndSetup.toFixed(2)})
+                </p>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTravelFeeType('none')}
-                  className={cn(
-                    'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                    travelFeeType === 'none'
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-                  )}
-                >
-                  <span className="text-xs font-bold">Local</span>
-                  <span className="text-[11px] font-mono opacity-90">$0.00</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTravelFeeType('far_small')}
-                  className={cn(
-                    'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                    travelFeeType === 'far_small'
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-                  )}
-                >
-                  <span className="text-xs font-bold">Far Small</span>
-                  <span className="text-[11px] font-mono opacity-90">
-                    +${(labour.setupFeeFarSmall || 363.5).toFixed(2)}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTravelFeeType('far_std')}
-                  className={cn(
-                    'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                    travelFeeType === 'far_std'
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-                  )}
-                >
-                  <span className="text-xs font-bold">Far Standard</span>
-                  <span className="text-[11px] font-mono opacity-90">
-                    +${(labour.setupFeeFarStandard || 727.5).toFixed(2)}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTravelFeeType('custom')}
-                  className={cn(
-                    'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-                    travelFeeType === 'custom'
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-                  )}
-                >
-                  <span className="text-xs font-bold">Custom Fee</span>
-                  <span className="text-[11px] font-mono opacity-90">Manual</span>
-                </button>
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  ${totals.combinedLabourTotal.toFixed(2)}
+                </span>
+                <span className="block text-[10px] text-muted-foreground">Total Labour</span>
               </div>
-
-              {travelFeeType === 'custom' && (
-                <div className="pt-2">
-                  <Label htmlFor="customTravelInput" className="text-xs font-semibold text-muted-foreground">
-                    Custom Travel Fee ($)
-                  </Label>
-                  <Input
-                    id="customTravelInput"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter custom surcharge..."
-                    value={customTravelFee}
-                    onChange={(e) => setCustomTravelFee(e.target.value)}
-                    className="h-9 text-xs font-mono font-bold mt-1"
-                  />
-                </div>
-              )}
             </div>
 
-            {/* Out of Town Travel Expandable Section */}
-            <div className="border border-border/70 rounded-xl overflow-hidden">
+            {/* Travel & Out-of-Town Calculator */}
+            <SealedUnitTravelCalculator
+              labour={labour}
+              travelFeeType={travelFeeType}
+              setTravelFeeType={setTravelFeeType}
+              customTravelFee={customTravelFee}
+              setCustomTravelFee={setCustomTravelFee}
+              showOutTownTravel={showOutTownTravel}
+              setShowOutTownTravel={setShowOutTownTravel}
+              travelKm={travelKm}
+              setTravelKm={setTravelKm}
+              crewHours={crewHours}
+              setCrewHours={setCrewHours}
+              crewSize={crewSize}
+              setCrewSize={setCrewSize}
+              baseSetupFee={totals.baseSetupFee}
+              totalTravelAndSetup={totals.totalTravelAndSetup}
+              contextMode="installation"
+            />
+
+            {/* Collapsible Detailed Breakdown */}
+            <div className="pt-1">
               <button
                 type="button"
-                onClick={() => setShowOutTownTravel((prev) => !prev)}
-                className="w-full px-3 py-2 bg-muted/20 hover:bg-muted/40 transition-colors flex items-center justify-between text-xs font-semibold text-foreground cursor-pointer"
+                onClick={() => setShowLabourBreakdown(!showLabourBreakdown)}
+                className="text-[11px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2">
-                  <Truck className="w-3.5 h-3.5 text-primary" />
-                  <span>Out-of-Town Vehicle &amp; Crew Travel Calculator</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  {totals.vehicleTravelFee + totals.crewTravelFee > 0 && (
-                    <span className="font-mono text-emerald-600 font-bold">
-                      +${(totals.vehicleTravelFee + totals.crewTravelFee).toFixed(2)}
-                    </span>
-                  )}
-                  {showOutTownTravel ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </div>
+                {showLabourBreakdown ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                <span>{showLabourBreakdown ? 'Hide Fee Breakdown' : 'View Detailed Labour & Travel Breakdown'}</span>
               </button>
 
-              {showOutTownTravel && (
-                <div className="p-3 bg-muted/10 border-t border-border/60 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="travelKmInput" className="text-[11px] font-semibold text-muted-foreground">
-                        Distance (km @ ${(labour.vehicleRatePerKm || 0.98).toFixed(2)}/km)
-                      </Label>
-                      <Input
-                        id="travelKmInput"
-                        type="number"
-                        min="0"
-                        value={travelKm}
-                        onChange={(e) => setTravelKm(e.target.value)}
-                        className="h-8 text-xs font-mono font-bold"
-                      />
+              {showLabourBreakdown && (
+                <div className="mt-2 p-2.5 bg-muted/20 rounded-xl border border-border/40 text-xs space-y-1 animate-in fade-in duration-150">
+                  <div className="flex justify-between py-0.5 text-muted-foreground">
+                    <span>Base Setup Fee (Local Standard):</span>
+                    <span className="font-mono text-foreground">${totals.baseSetupFee.toFixed(2)}</span>
+                  </div>
+                  {totals.additionalFarFee > 0 && (
+                    <div className="flex justify-between py-0.5 text-muted-foreground">
+                      <span>Far Area Setup Surcharge:</span>
+                      <span className="font-mono text-foreground">+${totals.additionalFarFee.toFixed(2)}</span>
                     </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="crewHoursInput" className="text-[11px] font-semibold text-muted-foreground">
-                        Travel Hours
-                      </Label>
-                      <Input
-                        id="crewHoursInput"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={crewHours}
-                        onChange={(e) => setCrewHours(e.target.value)}
-                        className="h-8 text-xs font-mono font-bold"
-                      />
+                  )}
+                  {totals.vehicleTravelFee > 0 && (
+                    <div className="flex justify-between py-0.5 text-muted-foreground">
+                      <span>Vehicle KM Travel Fee ({travelKm} km @ ${(labour.vehicleRatePerKm || 0.98).toFixed(2)}):</span>
+                      <span className="font-mono text-foreground">+${totals.vehicleTravelFee.toFixed(2)}</span>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-muted-foreground">Crew Size</Label>
-                      <div className="grid grid-cols-2 gap-1 h-8">
-                        <button
-                          type="button"
-                          onClick={() => setCrewSize('2')}
-                          className={cn(
-                            'rounded border text-[11px] font-bold cursor-pointer transition-all',
-                            crewSize === '2'
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-background hover:bg-muted text-muted-foreground'
-                          )}
-                        >
-                          2 Men (${labour.crewHourly2Men || 150}/h)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCrewSize('3')}
-                          className={cn(
-                            'rounded border text-[11px] font-bold cursor-pointer transition-all',
-                            crewSize === '3'
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-background hover:bg-muted text-muted-foreground'
-                          )}
-                        >
-                          3 Men (${labour.crewHourly3Men || 200}/h)
-                        </button>
-                      </div>
+                  )}
+                  {totals.crewTravelFee > 0 && (
+                    <div className="flex justify-between py-0.5 text-muted-foreground">
+                      <span>Crew Travel Labour ({crewHours} hrs @ {crewSize === '2' ? `$${(labour.crewHourly2Men || 150).toFixed(0)}/hr` : `$${(labour.crewHourly3Men || 200).toFixed(0)}/hr`}):</span>
+                      <span className="font-mono text-foreground">+${totals.crewTravelFee.toFixed(2)}</span>
                     </div>
+                  )}
+                  <div className="flex justify-between py-0.5 text-muted-foreground">
+                    <span>Unit Glazing Labour (Line items sum):</span>
+                    <span className="font-mono text-foreground">${totals.unitLabourSum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-0.5 text-muted-foreground border-t border-border/40 pt-1 font-bold">
+                    <span className="text-foreground">Total Combined Installation Labour:</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400">${totals.combinedLabourTotal.toFixed(2)}</span>
                   </div>
                 </div>
               )}
             </div>
           </>
         ) : currentMode === 'service_only' ? (
-          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-blue-500/20">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-blue-600 text-white shrink-0">
-                  <Wrench className="w-4 h-4" />
-                </span>
-                <div>
-                  <div className="font-bold text-xs text-foreground flex items-center gap-2">
-                    <span>Service Only Mode Active</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-600 text-white font-mono font-bold">
-                      {(totals.totalSqft || 0).toFixed(2)} sq ft
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Glazing service &amp; repair on total square footage. Glass manufacturing base is $0.00.
-                  </p>
-                </div>
-              </div>
-              {itemsSqft > 0 && setServiceSqftInput && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (serviceSqftInput) {
-                      setServiceSqftInput('');
-                    } else {
-                      setServiceSqftInput(itemsSqft.toFixed(2));
-                    }
-                  }}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
-                  title="Toggle between direct square footage input and sum of added glass items"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>{serviceSqftInput ? `Reset to Items (${itemsSqft.toFixed(2)} sq ft)` : `Items: ${itemsSqft.toFixed(2)} sq ft`}</span>
-                </button>
-              )}
-            </div>
+          <div className="space-y-3">
+            {/* Service Only Controls */}
+            <SealedUnitServiceCard
+              labour={labour}
+              itemsSqft={itemsSqft}
+              serviceSqftInput={serviceSqftInput}
+              setServiceSqftInput={setServiceSqftInput}
+              serviceLabourRateInput={serviceLabourRateInput}
+              setServiceLabourRateInput={setServiceLabourRateInput}
+              serviceMiscRateInput={serviceMiscRateInput}
+              setServiceMiscRateInput={setServiceMiscRateInput}
+              serviceLabourTotal={totals.serviceLabourTotal || 0}
+              totalTravelAndSetup={totals.totalTravelAndSetup}
+              miscTotal={totals.miscTotal}
+              subtotalPreTax={totals.subtotalPreTax || 0}
+              hstAmount={totals.hstAmount || 0}
+              grandTotal={totals.grandTotal || 0}
+            />
 
-            {/* Direct Square Footage & Rate Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="serviceSqft" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                    <span>Total Service Sq Ft</span>
-                  </Label>
-                  {serviceSqftInput && (
-                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase">Override</span>
-                  )}
-                </div>
-                <Input
-                  id="serviceSqft"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder={itemsSqft > 0 ? itemsSqft.toFixed(2) : 'e.g. 24.50'}
-                  value={serviceSqftInput}
-                  onChange={(e) => setServiceSqftInput && setServiceSqftInput(e.target.value)}
-                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
-                />
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  {itemsSqft > 0 && !serviceSqftInput
-                    ? `Auto-synced from ${itemsSqft.toFixed(2)} sq ft of added glass.`
-                    : 'Enter custom sq ft or add items below.'}
-                </p>
-              </div>
-
-              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
-                <Label htmlFor="serviceLabourRate" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Calculator className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  <span>Labour Rate ($/sqft)</span>
-                </Label>
-                <Input
-                  id="serviceLabourRate"
-                  type="number"
-                  step="0.10"
-                  min="0"
-                  placeholder={(labour.labourRatePerSqft || 14.40).toFixed(2)}
-                  value={serviceLabourRateInput}
-                  onChange={(e) => setServiceLabourRateInput && setServiceLabourRateInput(e.target.value)}
-                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
-                />
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  Default ${(labour.labourRatePerSqft || 14.40).toFixed(2)}/sqft.
-                </p>
-              </div>
-
-              <div className="bg-background/90 p-2.5 rounded-xl border border-border/70 space-y-1">
-                <Label htmlFor="serviceMiscRate" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Calculator className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  <span>Misc / Materials ($/sqft)</span>
-                </Label>
-                <Input
-                  id="serviceMiscRate"
-                  type="number"
-                  step="0.10"
-                  min="0"
-                  placeholder={(labour.miscRatePerSqft || 2.40).toFixed(2)}
-                  value={serviceMiscRateInput}
-                  onChange={(e) => setServiceMiscRateInput && setServiceMiscRateInput(e.target.value)}
-                  className="h-8 font-mono text-xs font-bold text-foreground bg-muted/20"
-                />
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  Default ${(labour.miscRatePerSqft || 2.40).toFixed(2)}/sqft.
-                </p>
-              </div>
-            </div>
-
-            {/* Live Financial Breakdown Tiles */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
-                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Service Labour
-                </div>
-                <div className="text-sm font-bold font-mono text-primary">
-                  ${(totals.serviceLabourTotal || 0).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
-                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Materials &amp; Misc
-                </div>
-                <div className="text-sm font-bold font-mono text-foreground">
-                  ${(totals.miscTotal || 0).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
-                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Subtotal (Pre-Tax)
-                </div>
-                <div className="text-sm font-bold font-mono text-foreground">
-                  ${(totals.subtotalPreTax || 0).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="bg-background/80 p-2 rounded-lg border border-border/60">
-                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
-                  Grand Total (13% HST)
-                </div>
-                <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  ${(totals.grandTotal || 0).toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-blue-500/20 text-muted-foreground">
-              <span>Tax status:</span>
-              <span className="font-bold text-foreground">Strictly 13% HST (Material Exemption Inapplicable)</span>
-            </div>
+            {/* Travel Calculator in Service Only mode */}
+            <SealedUnitTravelCalculator
+              labour={labour}
+              travelFeeType={travelFeeType}
+              setTravelFeeType={setTravelFeeType}
+              customTravelFee={customTravelFee}
+              setCustomTravelFee={setCustomTravelFee}
+              showOutTownTravel={showOutTownTravel}
+              setShowOutTownTravel={setShowOutTownTravel}
+              travelKm={travelKm}
+              setTravelKm={setTravelKm}
+              crewHours={crewHours}
+              setCrewHours={setCrewHours}
+              crewSize={crewSize}
+              setCrewSize={setCrewSize}
+              baseSetupFee={totals.baseSetupFee}
+              totalTravelAndSetup={totals.totalTravelAndSetup}
+              contextMode="service_only"
+            />
           </div>
         ) : (
           <div className="p-4 rounded-xl bg-muted/20 border border-border/60 text-center space-y-1.5">
@@ -502,3 +295,4 @@ export function SealedUnitLabourTravelCard({
     </div>
   );
 }
+export default SealedUnitLabourTravelCard;
