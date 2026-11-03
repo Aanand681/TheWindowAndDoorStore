@@ -57,11 +57,14 @@ import {
   calculateSealedUnitItem,
 } from '@/lib/sealed-units-logic';
 import { toast } from 'sonner';
+import QuotePreviewModal from '@/components/quotes/QuotePreviewModal';
+import { QuoteTemplateType } from '@/components/quotes/QuoteInvoice';
 import {
   SealedUnitItemBuilder,
   SealedUnitLabourTravelCard,
   SealedUnitQuoteSummaryCard,
   SealedUnitLineItemsTable,
+  SealedUnitOfficePricingCard,
   SealedUnitPrintInvoice,
 } from '@/components/sealed-units';
 import { calculateSealedUnitTotals } from '@/lib/sealed-units/calculations';
@@ -77,6 +80,12 @@ export default function SealedUnitsCalculatorPage() {
   const [quoteNumber, setQuoteNumber] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [quoteNotes, setQuoteNotes] = useState<string>('');
+
+  // Interactive Print Preview & Document Studio Modal State
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('modern');
+  const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
+  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
 
   // Submit for Review / Approval Workflow State
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
@@ -712,10 +721,10 @@ export default function SealedUnitsCalculatorPage() {
 
   const handlePrint = () => {
     if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
-      toast.error('Add at least one line item or enter service sq ft before printing.');
+      toast.error('Add at least one line item or enter service sq ft before previewing or printing.');
       return;
     }
-    window.print();
+    setIsPreviewOpen(true);
   };
 
   const handleAttachToWindowQuote = () => {
@@ -1004,10 +1013,9 @@ export default function SealedUnitsCalculatorPage() {
             </div>
           </div>
 
-          {/* Main 2-Column Responsive Workspace */}
+          {/* ROW 1: Glass Configurator (7 cols) + Labour & Travel Settings (5 cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-            {/* LEFT COLUMN (7 cols): Item Builder & Added Line Items Table */}
-            <div className="lg:col-span-7 space-y-3.5">
+            <div className="lg:col-span-7">
               <SealedUnitItemBuilder
                 treatment={treatment}
                 setTreatment={setTreatment}
@@ -1052,20 +1060,9 @@ export default function SealedUnitsCalculatorPage() {
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                 savedDraftsCount={savedDraftsCount}
               />
-
-              <SealedUnitLineItemsTable
-                lineItems={lineItems}
-                isInstallation={isInstallation}
-                mode={sealedUnitMode}
-                labourRate={totals.effectiveLabourRate}
-                miscRate={totals.effectiveMiscRate}
-                onRemoveItem={handleRemoveItem}
-                onResetQuote={handleResetQuote}
-              />
             </div>
 
-            {/* RIGHT COLUMN (5 cols, sticky): Installation/Travel & Quote Summary */}
-            <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-4">
+            <div className="lg:col-span-5">
               <SealedUnitLabourTravelCard
                 mode={sealedUnitMode}
                 setMode={handleSetSealedUnitMode}
@@ -1093,54 +1090,80 @@ export default function SealedUnitsCalculatorPage() {
                 itemsSqft={totals.itemsSqft || 0}
                 totals={totals}
               />
-
-              <SealedUnitQuoteSummaryCard
-                lineItems={lineItems}
-                lineItemsCount={lineItems.length}
-                mode={sealedUnitMode}
-                isInstallation={isInstallation}
-                labour={labour}
-                hstRate={hstRate}
-                setHstRate={setHstRate}
-                totals={totals}
-                customerName={customerName}
-                quoteNumber={quoteNumber}
-                quoteNotes={quoteNotes}
-                setQuoteNotes={setQuoteNotes}
-                user={user}
-                onOpenSubmitModal={() => {
-                  if (!quoteNumber.trim() || !customerName.trim()) {
-                    toast.error('Please enter a Customer Name and Quote Number before submitting!');
-                    return;
-                  }
-                  if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
-                    toast.error('Add at least one line item or enter service sq ft before submitting!');
-                    return;
-                  }
-                  const otherReviewers = staffList.filter(
-                    (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
-                  );
-                  if (
-                    otherReviewers.length > 0 &&
-                    (!assignedReviewer ||
-                      assignedReviewer.toLowerCase() === user?.username?.toLowerCase() ||
-                      assignedReviewer === 'Admin')
-                  ) {
-                    setAssignedReviewer(otherReviewers[0].username);
-                  }
-                  if (!selectedOdooClerk && clerkList.length > 0) {
-                    const defaultClerk = clerkList.find((c) => c.department === 'CLERK') || clerkList[0];
-                    if (defaultClerk) setSelectedOdooClerk(defaultClerk.username);
-                  }
-                  setShowSubmitModal(true);
-                }}
-                onPrint={handlePrint}
-                onResetQuote={handleResetQuote}
-                onSaveDraft={handleSaveDraft}
-                onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
-              />
             </div>
           </div>
+
+          {/* ROW 2: Added Sealed Units Table (Full Width) */}
+          <SealedUnitLineItemsTable
+            lineItems={lineItems}
+            isInstallation={isInstallation}
+            mode={sealedUnitMode}
+            labourRate={totals.effectiveLabourRate}
+            miscRate={totals.effectiveMiscRate}
+            onRemoveItem={handleRemoveItem}
+            onResetQuote={handleResetQuote}
+          />
+
+          {/* ROW 3: Customer Quotation Summary (Full Width) */}
+          <SealedUnitQuoteSummaryCard
+            lineItems={lineItems}
+            lineItemsCount={lineItems.length}
+            mode={sealedUnitMode}
+            isInstallation={isInstallation}
+            labour={labour}
+            hstRate={hstRate}
+            setHstRate={setHstRate}
+            totals={totals}
+            customerName={customerName}
+            quoteNumber={quoteNumber}
+            quoteNotes={quoteNotes}
+            setQuoteNotes={setQuoteNotes}
+            user={user}
+            onOpenPreview={() => handlePrint()}
+            onOpenSubmitModal={() => {
+              if (!quoteNumber.trim() || !customerName.trim()) {
+                toast.error('Please enter a Customer Name and Quote Number before submitting!');
+                return;
+              }
+              if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
+                toast.error('Add at least one line item or enter service sq ft before submitting!');
+                return;
+              }
+              const otherReviewers = staffList.filter(
+                (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
+              );
+              if (
+                otherReviewers.length > 0 &&
+                (!assignedReviewer ||
+                  assignedReviewer.toLowerCase() === user?.username?.toLowerCase() ||
+                  assignedReviewer === 'Admin')
+              ) {
+                setAssignedReviewer(otherReviewers[0].username);
+              }
+              if (!selectedOdooClerk && clerkList.length > 0) {
+                const defaultClerk = clerkList.find((c) => c.department === 'CLERK') || clerkList[0];
+                if (defaultClerk) setSelectedOdooClerk(defaultClerk.username);
+              }
+              setShowSubmitModal(true);
+            }}
+            onPrint={handlePrint}
+            onResetQuote={handleResetQuote}
+            onSaveDraft={handleSaveDraft}
+            onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
+          />
+
+          {/* ROW 4: Office Pricing Reference & Internal Calculations (Full Width) */}
+          <SealedUnitOfficePricingCard
+            lineItems={lineItems}
+            totals={totals}
+            formula={formula}
+            labour={labour}
+            isInstallation={isInstallation}
+            isServiceOnly={isServiceOnly}
+            travelKm={travelKm}
+            crewHours={crewHours}
+            crewSize={crewSize}
+          />
         </div>
       </div>
 
@@ -1233,6 +1256,35 @@ export default function SealedUnitsCalculatorPage() {
         onClose={() => setIsSavedQuotesOpen(false)}
         defaultType="sealed_unit"
         onLoadQuote={loadDraftIntoWorkspace}
+      />
+
+      {/* Interactive Print Preview & Document Studio Modal */}
+      <QuotePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        template={quoteTemplate}
+        onTemplateChange={setQuoteTemplate}
+        fontSize={quoteFontSize}
+        onFontSizeChange={setQuoteFontSize}
+        spacing={quoteSpacing}
+        onSpacingChange={setQuoteSpacing}
+        quoteNotes={quoteNotes}
+        onQuoteNotesChange={setQuoteNotes}
+        preparedBy={user?.name || user?.username || ''}
+        customerName={customerName}
+        quoteNumber={quoteNumber}
+        windows={[]}
+        hstRate={hstRate}
+        isSupplyOnly={isSupplyOnly}
+        attachedSealedUnit={{
+          quoteNumber,
+          customerName,
+          lineItems,
+          totals,
+          sealedUnitMode,
+          isInstallation,
+          isServiceOnly,
+        }}
       />
     </>
   );

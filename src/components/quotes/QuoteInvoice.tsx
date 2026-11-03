@@ -186,7 +186,7 @@ export default function QuoteInvoice({
     }));
   }, []);
 
-  if (!taxTotals && windows.length === 0) return null;
+  if (!taxTotals && windows.length === 0 && !attachedSealedUnit) return null;
 
   // Travel items - only non-zero items that employee actually entered
   const travelItems: { label: string; amount: number }[] = [];
@@ -692,7 +692,7 @@ export default function QuoteInvoice({
     return (
       <>
         {/* Line 1: [Qty] [Pane] [Color] Window (Window base glass total) */}
-        {renderWindowBasePriceRows(textColor)}
+        {((Array.isArray(windows) && windows.length > 0) || totalWindowBaseCents > 0) && renderWindowBasePriceRows(textColor)}
 
         {/* Line 2: [Qty] [Pane] Sealed Unit (Sealed unit glass total pre-8%) */}
         {hasAttachedSU && suGlassCents > 0 && (
@@ -902,60 +902,62 @@ export default function QuoteInvoice({
           </div>
 
           {/* Windows Table (Single-line per window) */}
-          <div style={{ marginBottom: `${sectionMb}px` }}>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b-2 border-[#0f172a] uppercase tracking-wider text-[#0f172a] bg-white font-bold" style={{ fontSize: `${thFs}px` }}>
-                  <th className="py-1 px-1.5 text-left w-[5%]">#</th>
-                  <th className={`py-1 px-1.5 text-left ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window (Size W × H)</th>
-                  <th className={`py-1 px-1.5 text-center ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
-                  <th className={`py-1 px-1.5 text-right font-mono ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th className="py-1 px-1.5 text-right font-mono w-[19%]">Labour</th>
-                      <th className="py-1 px-1.5 text-right font-mono w-[19%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const unitBaseCents = qty > 0 ? Math.round(totalItemBaseCents / qty) : totalItemBaseCents;
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
+          {Array.isArray(windows) && windows.length > 0 && (
+            <div style={{ marginBottom: `${sectionMb}px` }}>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-[#0f172a] uppercase tracking-wider text-[#0f172a] bg-white font-bold" style={{ fontSize: `${thFs}px` }}>
+                    <th className="py-1 px-1.5 text-left w-[5%]">#</th>
+                    <th className={`py-1 px-1.5 text-left ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window (Size W × H)</th>
+                    <th className={`py-1 px-1.5 text-center ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
+                    <th className={`py-1 px-1.5 text-right font-mono ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
+                    {!isSupplyOnly && (
+                      <>
+                        <th className="py-1 px-1.5 text-right font-mono w-[19%]">Labour</th>
+                        <th className="py-1 px-1.5 text-right font-mono w-[19%]">Misc</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: `${bodyFs}px` }}>
+                  {windows.map((w, i) => {
+                    const line = taxTotals?.lines?.[i];
+                    const qty = Number(w.qty) || 1;
+                    const totalItemBaseCents = toCents(w.base);
+                    const unitBaseCents = qty > 0 ? Math.round(totalItemBaseCents / qty) : totalItemBaseCents;
+                    const itemLabDollars = line?.lab ?? 0;
+                    const itemMiscDollars = line?.misc ?? 0;
 
-                  return (
-                    <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">{i + 1}</td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
-                        {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Window'}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">{qty}</td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
-                        <span className="font-bold text-[#0f172a]">{formatMoney(totalItemBaseCents)}</span>
-                        {qty > 1 && (
-                          <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">({formatMoney(unitBaseCents)} ea)</span>
+                    return (
+                      <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">{i + 1}</td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                          {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Window'}
+                        </td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">{qty}</td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                          <span className="font-bold text-[#0f172a]">{formatMoney(totalItemBaseCents)}</span>
+                          {qty > 1 && (
+                            <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">({formatMoney(unitBaseCents)} ea)</span>
+                          )}
+                        </td>
+                        {!isSupplyOnly && (
+                          <>
+                            <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
+                              {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
+                            </td>
+                            <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
+                              {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
+                            </td>
+                          </>
                         )}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {renderSealedUnitsTable('modern')}
 
@@ -1146,60 +1148,62 @@ export default function QuoteInvoice({
           </div>
 
           {/* Itemized Windows Schedule - Compact Architectural Ledger Table */}
-          <div style={{ marginBottom: `${sectionMb}px` }}>
-            <table className="w-full border-collapse border border-[#cbd5e1]">
-              <thead>
-                <tr className="bg-white border-b-2 border-[#0f172a] text-[#0f172a] font-bold uppercase tracking-wider" style={{ fontSize: `${thFs}px` }}>
-                  <th className="py-1 px-2 text-left border-r border-[#cbd5e1] w-[5%]">#</th>
-                  <th className={`py-1 px-2 text-left border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window Size (W × H)</th>
-                  <th className={`py-1 px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
-                  <th className={`py-1 px-2 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono w-[19%]">Labour</th>
-                      <th className="py-1 px-2 text-right font-mono w-[19%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
+          {Array.isArray(windows) && windows.length > 0 && (
+            <div style={{ marginBottom: `${sectionMb}px` }}>
+              <table className="w-full border-collapse border border-[#cbd5e1]">
+                <thead>
+                  <tr className="bg-white border-b-2 border-[#0f172a] text-[#0f172a] font-bold uppercase tracking-wider" style={{ fontSize: `${thFs}px` }}>
+                    <th className="py-1 px-2 text-left border-r border-[#cbd5e1] w-[5%]">#</th>
+                    <th className={`py-1 px-2 text-left border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window Size (W × H)</th>
+                    <th className={`py-1 px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
+                    <th className={`py-1 px-2 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
+                    {!isSupplyOnly && (
+                      <>
+                        <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono w-[19%]">Labour</th>
+                        <th className="py-1 px-2 text-right font-mono w-[19%]">Misc</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: `${bodyFs}px` }}>
+                  {windows.map((w, i) => {
+                    const line = taxTotals?.lines?.[i];
+                    const qty = Number(w.qty) || 1;
+                    const totalItemBaseCents = toCents(w.base);
+                    const itemLabDollars = line?.lab ?? 0;
+                    const itemMiscDollars = line?.misc ?? 0;
 
-                  return (
-                    <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-[#334155] font-mono font-bold border-r border-[#cbd5e1]">
-                        {i + 1}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Standard'}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        {qty}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className={`px-2 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        {formatMoney(totalItemBaseCents)}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155] border-r border-[#cbd5e1]">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155]">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-[#334155] font-mono font-bold border-r border-[#cbd5e1]">
+                          {i + 1}
+                        </td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 font-bold text-[#0f172a] border-r border-[#cbd5e1]">
+                          {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Standard'}
+                        </td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
+                          {qty}
+                        </td>
+                        <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className={`px-2 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
+                          {formatMoney(totalItemBaseCents)}
+                        </td>
+                        {!isSupplyOnly && (
+                          <>
+                            <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155] border-r border-[#cbd5e1]">
+                              {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
+                            </td>
+                            <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155]">
+                              {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {renderSealedUnitsTable('executive')}
 
@@ -1433,82 +1437,84 @@ export default function QuoteInvoice({
           </div>
 
           {/* Itemized Window Specification Schedule */}
-          <div style={{ marginBottom: `${Math.max(6, sectionMb - 4)}px` }}>
-            <table className="w-full border-collapse border border-[#cbd5e1] text-left">
-              <thead>
-                <tr className="bg-[#f8fafc] border-b-2 border-[#0f172a] text-[#0f172a] uppercase font-bold" style={{ fontSize: `${thFs}px` }}>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 w-[5%] text-center border-r border-[#cbd5e1]">#</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[72%]' : 'w-[56%]'}`}>Window Size (W × H)</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[8%]' : 'w-[7%]'}`}>Qty</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[15%]' : 'w-[13%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono border-r border-[#cbd5e1] w-[11%]">Labour</th>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono w-[10%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
-                  const cardRowPy = windows.length <= 2
-                    ? Math.max(7, rowPy * 1.3)
-                    : (windows.length <= 4 ? Math.max(5, rowPy * 1.0) : rowPy * 0.75);
+          {Array.isArray(windows) && windows.length > 0 && (
+            <div style={{ marginBottom: `${Math.max(6, sectionMb - 4)}px` }}>
+              <table className="w-full border-collapse border border-[#cbd5e1] text-left">
+                <thead>
+                  <tr className="bg-[#f8fafc] border-b-2 border-[#0f172a] text-[#0f172a] uppercase font-bold" style={{ fontSize: `${thFs}px` }}>
+                    <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 w-[5%] text-center border-r border-[#cbd5e1]">#</th>
+                    <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[72%]' : 'w-[56%]'}`}>Window Size (W × H)</th>
+                    <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[8%]' : 'w-[7%]'}`}>Qty</th>
+                    <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[15%]' : 'w-[13%]'}`}>Base Price</th>
+                    {!isSupplyOnly && (
+                      <>
+                        <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono border-r border-[#cbd5e1] w-[11%]">Labour</th>
+                        <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono w-[10%]">Misc</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: `${bodyFs}px` }}>
+                  {windows.map((w, i) => {
+                    const line = taxTotals?.lines?.[i];
+                    const qty = Number(w.qty) || 1;
+                    const totalItemBaseCents = toCents(w.base);
+                    const itemLabDollars = line?.lab ?? 0;
+                    const itemMiscDollars = line?.misc ?? 0;
+                    const cardRowPy = windows.length <= 2
+                      ? Math.max(7, rowPy * 1.3)
+                      : (windows.length <= 4 ? Math.max(5, rowPy * 1.0) : rowPy * 0.75);
 
-                  return (
-                    <tr key={w.id || i} className={`border-b border-[#cbd5e1] ${i % 2 === 1 ? 'bg-[#fcfdfd]' : 'bg-white'}`}>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
-                        {String(i + 1).padStart(2, '0')}
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 border-r border-[#cbd5e1]">
-                        <div className="font-bold text-[#0f172a] leading-tight flex items-center gap-2">
-                          <span>{w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}</span>
-                          {w.color && w.color.toLowerCase() === 'painted' && (
-                            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
-                              Painted
-                            </span>
-                          )}
-                          {(Number(w.triple) > 0 || toCents(w.triple) > 0) && (
-                            <span className="text-[10px] font-semibold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded">
-                              Triple
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        <span className="px-1.5 py-0.5 rounded bg-[#f1f5f9] text-[#0f172a] font-mono text-[11px]">
-                          {qty}
-                        </span>
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] whitespace-nowrap ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        <div>{formatMoney(totalItemBaseCents)}</div>
-                        {qty > 1 && (
-                          <div style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-normal font-sans">
-                            ({formatMoney(Math.round(totalItemBaseCents / qty))} ea)
+                    return (
+                      <tr key={w.id || i} className={`border-b border-[#cbd5e1] ${i % 2 === 1 ? 'bg-[#fcfdfd]' : 'bg-white'}`}>
+                        <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
+                          {String(i + 1).padStart(2, '0')}
+                        </td>
+                        <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 border-r border-[#cbd5e1]">
+                          <div className="font-bold text-[#0f172a] leading-tight flex items-center gap-2">
+                            <span>{w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}</span>
+                            {w.color && w.color.toLowerCase() === 'painted' && (
+                              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                                Painted
+                              </span>
+                            )}
+                            {(Number(w.triple) > 0 || toCents(w.triple) > 0) && (
+                              <span className="text-[10px] font-semibold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded">
+                                Triple
+                              </span>
+                            )}
                           </div>
+                        </td>
+                        <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
+                          <span className="px-1.5 py-0.5 rounded bg-[#f1f5f9] text-[#0f172a] font-mono text-[11px]">
+                            {qty}
+                          </span>
+                        </td>
+                        <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] whitespace-nowrap ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
+                          <div>{formatMoney(totalItemBaseCents)}</div>
+                          {qty > 1 && (
+                            <div style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-normal font-sans">
+                              ({formatMoney(Math.round(totalItemBaseCents / qty))} ea)
+                            </div>
+                          )}
+                        </td>
+                        {!isSupplyOnly && (
+                          <>
+                            <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1] whitespace-nowrap">
+                              {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
+                            </td>
+                            <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] whitespace-nowrap">
+                              {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
+                            </td>
+                          </>
                         )}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1] whitespace-nowrap">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] whitespace-nowrap">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {renderSealedUnitsTable('cards')}
 
