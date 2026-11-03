@@ -1221,22 +1221,24 @@ export default function SealedUnitsCalculatorPage() {
         </div>
       )}
 
-      {/* DEDICATED CLEAN PRINTABLE QUOTE INVOICE (Visible ONLY during print/PDF) */}
-      <SealedUnitPrintInvoice
-        lineItems={lineItems}
-        mode={sealedUnitMode}
-        isInstallation={isInstallation}
-        labour={labour}
-        hstRate={hstRate}
-        customerName={customerName}
-        quoteNumber={quoteNumber}
-        quoteNotes={quoteNotes}
-        preparedBy={user?.name || user?.username || ''}
-        totals={totals}
-        template={quoteTemplate}
-        fontSize={quoteFontSize}
-        spacing={quoteSpacing}
-      />
+      {/* DEDICATED CLEAN PRINTABLE QUOTE INVOICE (Visible ONLY during print/PDF when preview modal is not active) */}
+      {!isPreviewOpen && (
+        <SealedUnitPrintInvoice
+          lineItems={lineItems}
+          mode={sealedUnitMode}
+          isInstallation={isInstallation}
+          labour={labour}
+          hstRate={hstRate}
+          customerName={customerName}
+          quoteNumber={quoteNumber}
+          quoteNotes={quoteNotes}
+          preparedBy={user?.name || user?.username || ''}
+          totals={totals}
+          template={quoteTemplate}
+          fontSize={quoteFontSize}
+          spacing={quoteSpacing}
+        />
+      )}
 
       {/* Interactive Print Preview Modal with 3 Templates, Sliders, and Notes */}
       <SealedUnitPreviewModal

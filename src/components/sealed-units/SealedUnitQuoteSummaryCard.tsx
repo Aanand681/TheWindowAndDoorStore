@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import QuoteNotesEditor from '@/components/quotes/QuoteNotesEditor';
 import { cn } from '@/lib/utils';
 import {
   SealedUnitLabourSettings,
@@ -276,12 +276,11 @@ export function SealedUnitQuoteSummaryCard({
                 </Label>
                 <span className="text-[10px] text-muted-foreground">Printed on PDF quotation</span>
               </div>
-              <Textarea
+              <QuoteNotesEditor
                 id="sealedUnitNotes"
-                rows={2}
                 value={quoteNotes}
-                onChange={(e) => setQuoteNotes(e.target.value)}
-                className="text-xs bg-background resize-none border-border/80 focus-visible:ring-1"
+                onChange={setQuoteNotes}
+                placeholder="Enter special site notes, instructions, or employee comments with bold text and bullets..."
               />
             </div>
 

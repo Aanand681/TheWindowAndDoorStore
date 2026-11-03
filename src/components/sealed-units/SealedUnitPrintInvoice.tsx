@@ -97,6 +97,56 @@ export function renderRichNotes(notes?: string, baseFs: number = 7.5) {
   );
 }
 
+/**
+ * REUSABLE TOP SPECIFICATION BADGES
+ * Displayed across all 3 templates with labels:
+ * Treatment, Pane, Glass Fill, Glazing Spacer
+ * Ink-friendly (white background, thin border, zero black ink block)
+ */
+function TopSpecBadges({ lineItems }: { lineItems: SealedUnitLineItem[] }) {
+  const treatments = Array.from(new Set(lineItems.map(it => it.treatment).filter(Boolean)));
+  const treatmentLabel = treatments.length > 1
+    ? 'Mixed'
+    : treatments[0] === 'tempered'
+      ? 'Tempered'
+      : treatments[0] === 'annealed'
+        ? 'Annealed'
+        : 'Standard';
+
+  const panes = Array.from(new Set(lineItems.map(it => it.paneType).filter(Boolean)));
+  const paneLabel = panes.length > 1
+    ? 'Mixed'
+    : panes[0] === 'triple'
+      ? 'Triple Pane'
+      : 'Dual Pane';
+
+  const glassFillLabel = 'Argon 90%';
+
+  const spacers = Array.from(new Set(lineItems.map(it => `${it.thicknessMm || 3}mm Intercept`).filter(Boolean)));
+  const spacerLabel = spacers.length > 1 ? spacers.join(', ') : (spacers[0] || '3mm Intercept');
+
+  return (
+    <div className="grid grid-cols-4 gap-1.5 text-center text-[7pt] font-mono">
+      <div className="border border-gray-300 rounded p-1 bg-white">
+        <span className="text-[6pt] text-gray-500 font-sans uppercase block">Treatment</span>
+        <span className="font-bold text-gray-900 uppercase">{treatmentLabel}</span>
+      </div>
+      <div className="border border-gray-300 rounded p-1 bg-white">
+        <span className="text-[6pt] text-gray-500 font-sans uppercase block">Pane</span>
+        <span className="font-bold text-gray-900 uppercase">{paneLabel}</span>
+      </div>
+      <div className="border border-gray-300 rounded p-1 bg-white">
+        <span className="text-[6pt] text-gray-500 font-sans uppercase block">Glass Fill</span>
+        <span className="font-bold text-gray-900">{glassFillLabel}</span>
+      </div>
+      <div className="border border-gray-300 rounded p-1 bg-white">
+        <span className="text-[6pt] text-gray-500 font-sans uppercase block">Glazing Spacer</span>
+        <span className="font-bold text-gray-900">{spacerLabel}</span>
+      </div>
+    </div>
+  );
+}
+
 export function SealedUnitPrintInvoice({
   lineItems,
   mode = 'installation',
@@ -130,12 +180,6 @@ export function SealedUnitPrintInvoice({
   const firstPayment = Math.floor((totals.grandTotal / 2) * 100) / 100;
   const secondPayment = Math.round((totals.grandTotal - firstPayment) * 100) / 100;
 
-  // Base raw material cost across units
-  const totalRawGlass = lineItems.reduce((acc, it) => acc + (it.rawGlassCost || 0) * it.quantity, 0);
-  const totalRawGrills = lineItems.reduce((acc, it) => acc + (it.rawGrillCost || 0) * it.quantity, 0);
-  const totalRawShapes = lineItems.reduce((acc, it) => acc + (it.rawShapeCost || 0) * it.quantity, 0);
-  const totalRawMaterialCost = totalRawGlass + totalRawGrills + totalRawShapes;
-
   // Dynamic style scaling
   const scaleStyle: React.CSSProperties = {
     fontSize: `${fontSize}pt`,
@@ -147,8 +191,8 @@ export function SealedUnitPrintInvoice({
       id="printable-invoice"
       className={
         isInteractivePreview
-          ? 'bg-white text-black font-sans p-4 sm:p-6 text-[8.5pt] leading-tight select-text w-full'
-          : 'su-print-only bg-white text-black font-sans p-4 text-[8.5pt] leading-tight'
+          ? 'bg-white text-black font-sans p-4 sm:p-6 text-[8.5pt] leading-tight select-text w-full print:p-0 print:m-0 print:border-none print:shadow-none'
+          : 'background-quote-invoice su-print-only bg-white text-black font-sans p-4 text-[8.5pt] leading-tight'
       }
       style={scaleStyle}
     >
@@ -158,7 +202,7 @@ export function SealedUnitPrintInvoice({
         @media print {
           @page {
             size: letter ${orientation};
-            margin: 0.2in;
+            margin: 0.25in;
           }
           html, body {
             width: ${orientation === 'landscape' ? '11in' : '8.5in'} !important;
@@ -174,10 +218,10 @@ export function SealedUnitPrintInvoice({
             display: block !important;
             visibility: visible !important;
             position: static !important;
-            width: ${orientation === 'landscape' ? '10.5in' : '8.1in'} !important;
-            max-width: ${orientation === 'landscape' ? '10.5in' : '8.1in'} !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
-            margin: 0 auto !important;
+            margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
             page-break-after: avoid !important;
@@ -193,38 +237,38 @@ export function SealedUnitPrintInvoice({
 
       {template === 'window_style' ? (
         /* =========================================================================
-           TEMPLATE 1: WINDOW STYLE PROPOSAL (Like the Window Calculator Proposal)
+           TEMPLATE 1: WINDOW STYLE PROPOSAL (INK-FRIENDLY ARCHITECTURAL)
            ========================================================================= */
-        <div className="space-y-3">
-          {/* Corporate Accent Header */}
-          <div className="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
+        <div className="space-y-2.5">
+          {/* Header */}
+          <div className="border-b-2 border-slate-600 pb-2 flex justify-between items-end">
             <div>
               <div className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Official Quotation Proposal</div>
               <h1 className="text-xl font-black tracking-tight text-slate-900 m-0 uppercase font-sans">
                 The Window &amp; Door Store
               </h1>
-              <p className="text-[9pt] text-slate-600 font-medium mt-0.5">
+              <p className="text-[8.5pt] text-slate-600 font-medium mt-0.5">
                 Precision Sealed Unit Fabrication &amp; Glazing Services
               </p>
             </div>
             <div className="text-right">
-              <div className="inline-block border border-slate-900 px-2.5 py-1 rounded bg-slate-50">
-                <div className="text-[7.5pt] uppercase font-bold text-slate-500">Quote Reference</div>
+              <div className="inline-block border border-slate-400 px-2.5 py-1 rounded bg-slate-50">
+                <div className="text-[7pt] uppercase font-bold text-slate-500">Quote Reference</div>
                 <div className="text-base font-mono font-black text-slate-900">
                   #{quoteNumber || '------'}
                 </div>
               </div>
-              <div className="text-[8pt] text-slate-600 font-semibold mt-1">
+              <div className="text-[7.5pt] text-slate-600 font-semibold mt-0.5">
                 Issued: {quoteDate}
               </div>
             </div>
           </div>
 
           {/* Client & Scope Metadata Card */}
-          <div className="grid grid-cols-12 gap-2 bg-slate-50/70 border border-slate-200 rounded p-2 text-[8pt]">
+          <div className="grid grid-cols-12 gap-2 bg-slate-50/70 border border-slate-300 rounded p-2 text-[8pt]">
             <div className="col-span-6 sm:col-span-5">
               <span className="text-slate-500 uppercase font-bold text-[7pt] block">Prepared For:</span>
-              <span className="text-slate-900 font-black text-[9.5pt] block">{customerName || 'Valued Customer'}</span>
+              <span className="text-slate-900 font-black text-[9pt] block">{customerName || 'Valued Customer'}</span>
             </div>
             <div className="col-span-3 sm:col-span-4">
               <span className="text-slate-500 uppercase font-bold text-[7pt] block">Service Scope:</span>
@@ -238,11 +282,14 @@ export function SealedUnitPrintInvoice({
             </div>
           </div>
 
-          {/* Line Items Table (1-4 Sealed Units) */}
+          {/* 4 Detail Cards: Treatment, Pane, Glass Fill, Glazing Spacer */}
+          <TopSpecBadges lineItems={lineItems} />
+
+          {/* Line Items Table (1-4 Sealed Units) - Ink-friendly headers */}
           <div className="border border-slate-300 rounded overflow-hidden">
             <table className="w-full text-left text-[8pt] border-collapse">
               <thead>
-                <tr className="bg-slate-900 text-white font-bold uppercase text-[7.5pt] tracking-wider">
+                <tr className="bg-slate-100 text-slate-900 border-b-2 border-slate-400 font-bold uppercase text-[7.5pt] tracking-wider">
                   <th className="py-1.5 px-2 text-center w-7">#</th>
                   <th className="py-1.5 px-2">Glass Combination &amp; Treatment</th>
                   <th className="py-1.5 px-2">Dimensions &amp; Area</th>
@@ -382,7 +429,7 @@ export function SealedUnitPrintInvoice({
                   <span>${totals.hstAmount.toFixed(2)}</span>
                 </div>
 
-                <div className="border-t-2 border-slate-900 pt-1 flex justify-between font-black text-slate-950 text-[9.5pt]">
+                <div className="border-t-2 border-slate-600 pt-1 flex justify-between font-black text-slate-950 text-[9.5pt]">
                   <span className="font-sans uppercase">Total Proposal Amount:</span>
                   <span>${totals.grandTotal.toFixed(2)}</span>
                 </div>
@@ -420,7 +467,6 @@ export function SealedUnitPrintInvoice({
             totals={totals}
             labour={labour}
             isService={isService}
-            totalRawMaterialCost={totalRawMaterialCost}
           />
         </div>
       ) : template === 'standard' ? (
@@ -429,19 +475,19 @@ export function SealedUnitPrintInvoice({
            ========================================================================= */
         <div className="space-y-2.5">
           {/* Header */}
-          <div className="border-t-2 border-b-2 border-black py-1.5">
+          <div className="border-t-2 border-b-2 border-gray-500 py-1.5">
             <div className="flex justify-between items-baseline">
               <div>
                 <h1 className="text-lg font-black tracking-tight text-black m-0 uppercase font-sans">
                   The Window &amp; Door Store
                 </h1>
-                <div className="text-[9pt] text-gray-700 font-bold uppercase tracking-wider">
+                <div className="text-[8.5pt] text-gray-700 font-bold uppercase tracking-wider">
                   {isInstallation ? 'Sealed Unit & Glazing Quotation' : 'Supply Only Sealed Unit Quotation'}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-sm font-mono font-black text-black">#{quoteNumber || '------'}</div>
-                <div className="text-[8pt] text-gray-700 font-semibold">{quoteDate}</div>
+                <div className="text-[7.5pt] text-gray-700 font-semibold">{quoteDate}</div>
               </div>
             </div>
 
@@ -465,10 +511,13 @@ export function SealedUnitPrintInvoice({
             </div>
           </div>
 
+          {/* 4 Detail Cards: Treatment, Pane, Glass Fill, Glazing Spacer */}
+          <TopSpecBadges lineItems={lineItems} />
+
           {/* Sealed Units Table */}
           <table className="w-full text-left text-[8pt] border border-gray-400 border-collapse">
             <thead>
-              <tr className="bg-gray-100 border-b-2 border-black font-bold text-gray-900 uppercase text-[7.5pt]">
+              <tr className="bg-gray-100 border-b-2 border-gray-400 font-bold text-gray-900 uppercase text-[7.5pt]">
                 <th className="py-1 px-1.5 border-r border-gray-300 w-6 text-center">#</th>
                 <th className="py-1 px-1.5 border-r border-gray-300">Glass Spec</th>
                 <th className="py-1 px-1.5 border-r border-gray-300">Dimensions</th>
@@ -576,7 +625,7 @@ export function SealedUnitPrintInvoice({
                   <span>${totals.hstAmount.toFixed(2)}</span>
                 </div>
 
-                <div className="flex justify-between items-baseline border-t-2 border-black pt-0.5 font-black text-black text-[9pt]">
+                <div className="flex justify-between items-baseline border-t-2 border-gray-600 pt-0.5 font-black text-black text-[9pt]">
                   <span className="font-sans uppercase">Total:</span>
                   <span>${totals.grandTotal.toFixed(2)}</span>
                 </div>
@@ -614,19 +663,18 @@ export function SealedUnitPrintInvoice({
             totals={totals}
             labour={labour}
             isService={isService}
-            totalRawMaterialCost={totalRawMaterialCost}
           />
         </div>
       ) : (
         /* =========================================================================
-           TEMPLATE 3: PRODUCTION & GLAZING WORK ORDER (BRAND NEW ENGINEERING VIEW)
+           TEMPLATE 3: PRODUCTION & GLAZING WORK ORDER (INK-FRIENDLY WORK ORDER)
            ========================================================================= */
-        <div className="space-y-3">
-          {/* Production Header with Job Spec Badges */}
-          <div className="border-b-2 border-zinc-900 pb-2">
+        <div className="space-y-2.5">
+          {/* Production Header */}
+          <div className="border-b-2 border-zinc-600 pb-2">
             <div className="flex justify-between items-start">
               <div>
-                <div className="inline-block bg-zinc-900 text-white font-mono text-[7pt] uppercase px-2 py-0.5 rounded font-bold mb-1">
+                <div className="inline-block border border-zinc-400 bg-zinc-50 text-zinc-900 font-mono text-[7pt] uppercase px-2 py-0.5 rounded font-bold mb-1">
                   Glazing &amp; Fabrication Work Order
                 </div>
                 <h1 className="text-lg font-black tracking-tight text-zinc-900 uppercase">
@@ -645,38 +693,17 @@ export function SealedUnitPrintInvoice({
               </div>
             </div>
 
-            {/* Spec Tag Matrix */}
-            <div className="grid grid-cols-4 gap-1.5 mt-2 text-center text-[7pt] font-mono">
-              <div className="border border-zinc-300 rounded p-1 bg-zinc-50">
-                <span className="text-[6pt] text-zinc-500 font-sans uppercase block">Treatment</span>
-                <span className="font-bold text-zinc-900 uppercase">
-                  {lineItems[0]?.treatment || 'Standard'}
-                </span>
-              </div>
-              <div className="border border-zinc-300 rounded p-1 bg-zinc-50">
-                <span className="text-[6pt] text-zinc-500 font-sans uppercase block">Glazing Cavity</span>
-                <span className="font-bold text-zinc-900 uppercase">
-                  {lineItems[0]?.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane'}
-                </span>
-              </div>
-              <div className="border border-zinc-300 rounded p-1 bg-zinc-50">
-                <span className="text-[6pt] text-zinc-500 font-sans uppercase block">Gas Fill</span>
-                <span className="font-bold text-zinc-900">Argon 90%</span>
-              </div>
-              <div className="border border-zinc-300 rounded p-1 bg-zinc-50">
-                <span className="text-[6pt] text-zinc-500 font-sans uppercase block">Glazing Spacer</span>
-                <span className="font-bold text-zinc-900">
-                  {lineItems[0]?.thicknessMm || 3}mm Intercept
-                </span>
-              </div>
+            {/* 4 Detail Cards: Treatment, Pane, Glass Fill, Glazing Spacer */}
+            <div className="mt-2">
+              <TopSpecBadges lineItems={lineItems} />
             </div>
           </div>
 
-          {/* Cutting Schedule Table */}
+          {/* Cutting Schedule Table - Ink friendly header */}
           <div className="border border-zinc-300 rounded overflow-hidden">
             <table className="w-full text-left text-[8pt] border-collapse">
               <thead>
-                <tr className="bg-zinc-800 text-white font-mono text-[7pt] uppercase tracking-wider">
+                <tr className="bg-zinc-100 text-zinc-900 border-b-2 border-zinc-400 font-mono text-[7pt] uppercase tracking-wider font-bold">
                   <th className="py-1 px-1.5 text-center w-7">Cut</th>
                   <th className="py-1 px-1.5">Glass Assembly</th>
                   <th className="py-1 px-1.5">Exact Dimensions</th>
@@ -767,7 +794,7 @@ export function SealedUnitPrintInvoice({
                   <span>${totals.hstAmount.toFixed(2)}</span>
                 </div>
 
-                <div className="flex justify-between items-baseline border-t-2 border-zinc-900 pt-0.5 font-black text-zinc-950 text-[9pt]">
+                <div className="flex justify-between items-baseline border-t-2 border-zinc-600 pt-0.5 font-black text-zinc-950 text-[9pt]">
                   <span className="font-sans uppercase">Total Amount:</span>
                   <span>${totals.grandTotal.toFixed(2)}</span>
                 </div>
@@ -804,7 +831,6 @@ export function SealedUnitPrintInvoice({
             totals={totals}
             labour={labour}
             isService={isService}
-            totalRawMaterialCost={totalRawMaterialCost}
           />
         </div>
       )}
@@ -815,13 +841,13 @@ export function SealedUnitPrintInvoice({
 /**
  * REUSABLE FULL-WIDTH OFFICE PRICING REFERENCE CARD
  * Spans 100% width down below the customer quotation summary across all 3 templates.
+ * Contains the clean Vitro line item math cards and service breakdown without bottom audit box.
  */
 interface OfficePricingReferenceCardProps {
   lineItems: SealedUnitLineItem[];
   totals: any;
   labour: SealedUnitLabourSettings;
   isService: boolean;
-  totalRawMaterialCost: number;
 }
 
 function OfficePricingReferenceCard({
@@ -829,7 +855,6 @@ function OfficePricingReferenceCard({
   totals,
   labour,
   isService,
-  totalRawMaterialCost,
 }: OfficePricingReferenceCardProps) {
   return (
     <div className="border border-gray-400 rounded p-2 bg-gray-50/70 text-[7.5pt] space-y-1.5 break-inside-avoid">
@@ -838,7 +863,7 @@ function OfficePricingReferenceCard({
           <span className="text-[7.5pt] font-black uppercase tracking-wider text-gray-900 font-sans">
             Office Pricing Reference &amp; Internal Calculations
           </span>
-          <span className="text-[6.5pt] px-1.5 py-0.2 rounded font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase">
+          <span className="text-[6.5pt] px-1.5 py-0.2 rounded font-bold bg-amber-50 text-amber-900 border border-amber-300 uppercase">
             Internal Office Reference
           </span>
         </div>
@@ -898,7 +923,7 @@ function OfficePricingReferenceCard({
               <span className="font-sans text-gray-600">Total Labour:</span>
               <span>${totals.combinedLabourTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between border-t border-black pt-0.5 font-black text-black">
+            <div className="flex justify-between border-t border-gray-600 pt-0.5 font-black text-black">
               <span className="font-sans">Pre-Tax Service:</span>
               <span>${totals.subtotalPreTax.toFixed(2)}</span>
             </div>
@@ -906,83 +931,55 @@ function OfficePricingReferenceCard({
         </div>
       ) : (
         /* Vitro Manufacturing Math Stack Cards across the full width */
-        <div className="space-y-1.5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            {lineItems.map((item, idx) => {
-              const grillCost = item.rawGrillCost > 0 ? item.rawGrillCost.toFixed(2) : null;
-              const shapeCost = item.rawShapeCost > 0 ? item.rawShapeCost.toFixed(2) : null;
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {lineItems.map((item, idx) => {
+            const grillCost = item.rawGrillCost > 0 ? item.rawGrillCost.toFixed(2) : null;
+            const shapeCost = item.rawShapeCost > 0 ? item.rawShapeCost.toFixed(2) : null;
 
-              return (
-                <div
-                  key={item.id}
-                  className="border border-gray-300 bg-white rounded p-1 font-mono text-[7pt] leading-tight text-right shadow-2xs"
-                >
-                  <div className="font-sans font-bold text-[6.5pt] text-gray-900 border-b border-gray-200 pb-0.5 mb-0.5 text-left truncate">
-                    #{idx + 1} ({item.widthIn}&quot;×{item.heightIn}&quot;)
-                  </div>
-
-                  <div className="pr-0.5">{item.billableSqft} sqft billed</div>
-                  <div className="text-gray-600 pr-0.5">× ${item.rateWithArgon.toFixed(2)} rate</div>
-                  <div className="border-t border-gray-300 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                    ${item.rawGlassCost.toFixed(2)}
-                  </div>
-                  {grillCost && (
-                    <div className="text-amber-900 pr-0.5">
-                      +${grillCost} <span className="text-[6pt] font-sans">Grills</span>
-                    </div>
-                  )}
-                  {shapeCost && (
-                    <div className="text-amber-900 pr-0.5">
-                      +${shapeCost} <span className="text-[6pt] font-sans">Shape</span>
-                    </div>
-                  )}
-                  <div className="text-gray-600 pr-0.5">+27% surcharge</div>
-                  <div className="border-t border-gray-300 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
-                    ${item.subtotalAfterSurcharge.toFixed(2)}
-                  </div>
-                  <div className="text-gray-600 pr-0.5">×2.5 multiplier</div>
-                  <div className="border-t border-gray-300 my-0.5 pt-0.5 font-bold text-gray-950 pr-0.5">
-                    ${item.multipliedAmount.toFixed(2)}
-                  </div>
-                  <div className="text-gray-600 pr-0.5">+8% addon (${item.surcharge8PercentAmount.toFixed(2)})</div>
-                  <div className="border-t-2 border-black my-0.5 pt-0.5 font-black text-black text-[7.5pt] pr-0.5">
-                    ${item.finalUnitPrice.toFixed(2)} ea
-                  </div>
-                  {item.quantity > 1 && (
-                    <div className="border-t border-gray-300 mt-0.5 pt-0.5 font-bold text-black text-[7pt] pr-0.5">
-                      ×{item.quantity} = ${item.lineGlassTotal.toFixed(2)}
-                    </div>
-                  )}
+            return (
+              <div
+                key={item.id}
+                className="border border-gray-300 bg-white rounded p-1 font-mono text-[7pt] leading-tight text-right shadow-2xs"
+              >
+                <div className="font-sans font-bold text-[6.5pt] text-gray-900 border-b border-gray-200 pb-0.5 mb-0.5 text-left truncate">
+                  #{idx + 1} ({item.widthIn}&quot;×{item.heightIn}&quot;)
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Bottom Financial Economics Audit Bar */}
-          <div className="bg-white border border-gray-300 rounded p-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[7pt] font-mono">
-            <div>
-              <span className="font-sans text-gray-500 uppercase text-[6pt] block">Total Square Footage</span>
-              <span className="font-bold text-gray-900">
-                {(totals.totalSqft || 0).toFixed(2)} actual / {(totals.totalBillableSqft || 0)} billed
-              </span>
-            </div>
-            <div>
-              <span className="font-sans text-gray-500 uppercase text-[6pt] block">Raw Vitro Factory Cost</span>
-              <span className="font-bold text-gray-900">${totalRawMaterialCost.toFixed(2)}</span>
-            </div>
-            <div>
-              <span className="font-sans text-gray-500 uppercase text-[6pt] block">Labour &amp; Travel Setup</span>
-              <span className="font-bold text-gray-900">
-                ${totals.combinedLabourTotal.toFixed(2)} (glaze + travel)
-              </span>
-            </div>
-            <div>
-              <span className="font-sans text-gray-500 uppercase text-[6pt] block">Gross Margin / Markup</span>
-              <span className="font-black text-emerald-700">
-                ${Math.max(0, totals.subtotalPreTax - totalRawMaterialCost).toFixed(2)}
-              </span>
-            </div>
-          </div>
+                <div className="pr-0.5">{item.billableSqft} sqft billed</div>
+                <div className="text-gray-600 pr-0.5">× ${item.rateWithArgon.toFixed(2)} rate</div>
+                <div className="border-t border-gray-300 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                  ${item.rawGlassCost.toFixed(2)}
+                </div>
+                {grillCost && (
+                  <div className="text-amber-900 pr-0.5">
+                    +${grillCost} <span className="text-[6pt] font-sans">Grills</span>
+                  </div>
+                )}
+                {shapeCost && (
+                  <div className="text-amber-900 pr-0.5">
+                    +${shapeCost} <span className="text-[6pt] font-sans">Shape</span>
+                  </div>
+                )}
+                <div className="text-gray-600 pr-0.5">+27% surcharge</div>
+                <div className="border-t border-gray-300 my-0.5 pt-0.5 font-semibold text-gray-900 pr-0.5">
+                  ${item.subtotalAfterSurcharge.toFixed(2)}
+                </div>
+                <div className="text-gray-600 pr-0.5">×2.5 multiplier</div>
+                <div className="border-t border-gray-300 my-0.5 pt-0.5 font-bold text-gray-950 pr-0.5">
+                  ${item.multipliedAmount.toFixed(2)}
+                </div>
+                <div className="text-gray-600 pr-0.5">+8% addon (${item.surcharge8PercentAmount.toFixed(2)})</div>
+                <div className="border-t-2 border-gray-600 my-0.5 pt-0.5 font-black text-black text-[7.5pt] pr-0.5">
+                  ${item.finalUnitPrice.toFixed(2)} ea
+                </div>
+                {item.quantity > 1 && (
+                  <div className="border-t border-gray-300 mt-0.5 pt-0.5 font-bold text-black text-[7pt] pr-0.5">
+                    ×{item.quantity} = ${item.lineGlassTotal.toFixed(2)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
