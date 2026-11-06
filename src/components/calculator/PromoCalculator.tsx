@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RotateCcw, Check, FolderOpen } from "lucide-react";
+import { Sparkles, RotateCcw, Check, FolderOpen, Paperclip, Bookmark } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { toCents, DBPromo, ILabourUpgradeTier } from '@/lib/promo-logic';
 import { cachedFetch } from '@/lib/client-cache';
@@ -16,7 +17,6 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import TaxCalculatorTab from '@/components/tax/TaxCalculatorTab';
 import QuotesTab, { QuotesSubTabType } from '@/components/quotes/QuotesTab';
 import QuoteInvoice, { QuoteTemplateType } from '@/components/quotes/QuoteInvoice';
-import QuotePreviewModal from '@/components/quotes/QuotePreviewModal';
 
 // Calculator modular sub-components
 import { ReviewWorkflowBar } from '@/components/calculator/ReviewWorkflowBar';
@@ -24,25 +24,10 @@ import { WindowConfigurationsCard } from '@/components/calculator/WindowConfigur
 import { SupplyJambCasingCard } from '@/components/calculator/SupplyJambCasingCard';
 import { PromoComparisonGrid } from '@/components/calculator/PromoComparisonGrid';
 import { QuoteSummaryCard } from '@/components/calculator/QuoteSummaryCard';
-import { SubmitReviewModal } from '@/components/calculator/SubmitReviewModal';
-import { WorkflowDialogs } from '@/components/calculator/WorkflowDialogs';
-import { OdooActionModals } from '@/components/calculator/OdooActionModals';
-import { QuoteComparisonModal } from '@/components/calculator/QuoteComparisonModal';
-import { SavedQuotesModal } from '@/components/calculator/SavedQuotesModal';
-import { AttachSealedUnitModal } from '@/components/calculator/AttachSealedUnitModal';
+import { CalculatorModalsContainer } from '@/components/calculator/modals/CalculatorModalsContainer';
 
-// Drafts & Auto-Recovery Storage
-import {
-  saveQuoteDraft,
-  saveActiveAutoSave,
-  getActiveAutoSave,
-  clearActiveAutoSave,
-  getSavedDrafts,
-  isAutoSaveAlreadySaved,
-  QuoteDraftItem,
-  ActiveAutoSaveDraft,
-  DRAFT_CHANGE_EVENT,
-} from '@/lib/quote-drafts-storage';
+import { useCalculatorAutoSave } from '@/hooks/calculator/useCalculatorAutoSave';
+import { useCalculatorDrafts } from '@/hooks/calculator/useCalculatorDrafts';
 
 // Custom Hooks
 import { useCalculatorWindows, generateId, UIWindowItem } from '@/hooks/useCalculatorWindows';
@@ -79,6 +64,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [baseWindowsA, setBaseWindowsA] = useState<UIWindowItem[] | null>(null);
   const [attachedUpgrade, setAttachedUpgrade] = useState<{ title: string; amountPreTaxCents: number } | null>(null);
   const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null);
+  const [attachedDoorQuote, setAttachedDoorQuote] = useState<any | null>(null);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isComparisonStaging, setIsComparisonStaging] = useState<boolean>(false);
   const [baseSnapshotA, setBaseSnapshotA] = useState<any | null>(null);
@@ -86,14 +72,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
 
-  // Saved Drafts & Auto-Recovery State
-  const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState(false);
-  const [savedDraftsCount, setSavedDraftsCount] = useState(0);
-  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
-  const [activeAutoSaveDraft, setActiveAutoSaveDraft] = useState<ActiveAutoSaveDraft | null>(null);
-  const [autoSaveRestoredOrDismissed, setAutoSaveRestoredOrDismissed] = useState(false);
-  const lastSavedSnapshotRef = useRef<string>('');
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Reset Modal State
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
 
   // Window Items & PDF Parser Hook
   const {
@@ -166,6 +146,122 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     resetPricingOverrides,
   } = useCalculatorPricing({ surchargeRate, labourUpgradeTiers: dbLabourUpgradeTiers });
 
+  const clearAutoSaveTimerRef = useRef<() => void>(() => {});
+  const setLastSavedAtRef = useRef<(time: string | null) => void>(() => {});
+
+  // Isolated Drafts & Auto-Recovery Hook
+  const {
+    savedDraftsCount,
+    loadedDraftId,
+    setLoadedDraftId,
+    loadedDraftTaxTotals,
+    isSavedQuotesOpen,
+    setIsSavedQuotesOpen,
+    initialLoadDone,
+    loadDraftIntoWorkspace,
+    restoreAutoSaveIntoWorkspace,
+    handleSaveDraft,
+    resetDraftState,
+  } = useCalculatorDrafts({
+    initialReviewQuoteId,
+    workspace: {
+      quoteNumber,
+      setQuoteNumber,
+      customerName,
+      setCustomerName,
+      quoteNotes,
+      setQuoteNotes,
+      surchargeRate,
+      setSurchargeRate,
+      windows,
+      setWindows,
+      activePromoId,
+      setActivePromoId,
+      isSupplyOnly,
+      setIsSupplyOnly,
+      supplyJambId,
+      setSupplyJambId,
+      supplyJambRate,
+      setSupplyJambRate,
+      supplyCasingId,
+      setSupplyCasingId,
+      supplyCasingRate,
+      setSupplyCasingRate,
+      customJC,
+      setCustomJC,
+      customMisc,
+      setCustomMisc,
+      customLabour,
+      setCustomLabour,
+      includeJCInPromo,
+      setIncludeJCInPromo,
+      includeMiscInPromo,
+      setIncludeMiscInPromo,
+      includeLabourInPromo,
+      setIncludeLabourInPromo,
+      hstRate,
+      setHstRate,
+      attachedUpgrade,
+      setAttachedUpgrade,
+      attachedSealedUnit,
+      setAttachedSealedUnit,
+      attachedDoorQuote,
+      setAttachedDoorQuote,
+      wantsUpgrade,
+      setWantsUpgrade,
+      taxTotals,
+      setTaxTotals,
+    },
+    financials: {
+      quoteResult,
+      effectiveMisc,
+      effectiveLabour,
+      effectiveJC,
+      afterDiscount,
+      total,
+    },
+    clearAutoSaveTimer: () => clearAutoSaveTimerRef.current(),
+    setLastSavedAt: (time) => setLastSavedAtRef.current(time),
+  });
+
+  // Isolated Auto-Save Hook (fingerprint-based, eliminates re-render thrashing)
+  const { lastSavedAt, setLastSavedAt, clearAutoSaveTimer } = useCalculatorAutoSave({
+    initialReviewQuoteId,
+    windows,
+    customerName,
+    quoteNumber,
+    quoteNotes,
+    surchargeRate,
+    activePromoId,
+    isSupplyOnly,
+    supplyJambId,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingRate,
+    customJC,
+    customMisc,
+    customLabour,
+    includeJCInPromo,
+    includeMiscInPromo,
+    includeLabourInPromo,
+    hstRate,
+    attachedUpgrade,
+    attachedSealedUnit,
+    attachedDoorQuote,
+    wantsUpgrade,
+    quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
+    afterDiscount,
+    total,
+    taxTotals,
+    enabled: initialLoadDone,
+  });
+
+  clearAutoSaveTimerRef.current = clearAutoSaveTimer;
+  setLastSavedAtRef.current = setLastSavedAt;
+
   const resetCalculatorDefaults = () => {
     setWindows([{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
     setCustomerName('');
@@ -183,449 +279,36 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     setBaseWindowsA(null);
     setAttachedUpgrade(null);
     setAttachedSealedUnit(null);
+    setAttachedDoorQuote(null);
     setIsComparisonStaging(false);
     setBaseSnapshotA(null);
     resetPricingOverrides();
-    setLoadedDraftId(null);
-    clearActiveAutoSave('window');
-    setActiveAutoSaveDraft(null);
-    setAutoSaveRestoredOrDismissed(true);
+    resetDraftState();
   };
 
-  const loadDraftIntoWorkspace = useCallback(
-    (draft: QuoteDraftItem) => {
-      if (draft.type === 'sealed_unit') {
-        if (autoSaveTimerRef.current) {
-          clearTimeout(autoSaveTimerRef.current);
-          autoSaveTimerRef.current = null;
-        }
-        clearActiveAutoSave('window');
-        router.push(`/sealed-units?loadDraftId=${draft.id}`);
-        return;
-      }
+  const handleConfirmReset = () => {
+    resetCalculatorDefaults();
+    setShowResetModal(false);
+    toast.success('Window quote reset. Workspace is fresh and ready.');
+  };
 
-      const d = draft.data as any;
-      if (!d) return;
-
-      setLoadedDraftId(draft.id);
-      if (d.quoteNumber) setQuoteNumber(d.quoteNumber);
-      if (d.customerName !== undefined) setCustomerName(d.customerName);
-      if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
-      if (d.surchargeRate !== undefined) setSurchargeRate(d.surchargeRate);
-      if (Array.isArray(d.windows) && d.windows.length > 0) setWindows(d.windows);
-      if (d.activePromoId) setActivePromoId(d.activePromoId);
-      if (d.isSupplyOnly !== undefined) setIsSupplyOnly(d.isSupplyOnly);
-      if (d.supplyJambId !== undefined) setSupplyJambId(d.supplyJambId);
-      if (d.supplyJambRate !== undefined) setSupplyJambRate(d.supplyJambRate);
-      if (d.supplyCasingId !== undefined) setSupplyCasingId(d.supplyCasingId);
-      if (d.supplyCasingRate !== undefined) setSupplyCasingRate(d.supplyCasingRate);
-      if (d.customJC !== undefined) setCustomJC(d.customJC !== '' && d.customJC !== null ? String(d.customJC) : '');
-      if (d.customMisc !== undefined) setCustomMisc(d.customMisc !== '' && d.customMisc !== null ? String(d.customMisc) : '');
-      if (d.customLabour !== undefined) setCustomLabour(d.customLabour !== '' && d.customLabour !== null ? String(d.customLabour) : '');
-      if (d.includeJCInPromo !== undefined) setIncludeJCInPromo(d.includeJCInPromo);
-      if (d.includeMiscInPromo !== undefined) setIncludeMiscInPromo(d.includeMiscInPromo);
-      if (d.includeLabourInPromo !== undefined) setIncludeLabourInPromo(d.includeLabourInPromo);
-      if (d.hstRate !== undefined) setHstRate(d.hstRate);
-      if (d.attachedUpgrade !== undefined) setAttachedUpgrade(d.attachedUpgrade);
-      if (d.attachedSealedUnit !== undefined) setAttachedSealedUnit(d.attachedSealedUnit);
-      else setAttachedSealedUnit(null);
-
-      clearActiveAutoSave('window');
-      setActiveAutoSaveDraft(null);
-      setAutoSaveRestoredOrDismissed(true);
-      lastSavedSnapshotRef.current = JSON.stringify({
-        quoteNumber: d.quoteNumber || '',
-        customerName: (d.customerName || '').trim(),
-        windows: d.windows || [],
-        surchargeRate: d.surchargeRate || 8,
-        activePromoId: d.activePromoId || 'none',
-        isSupplyOnly: Boolean(d.isSupplyOnly),
-        customJC: d.customJC || '',
-        customMisc: d.customMisc || '',
-        customLabour: d.customLabour || '',
-      });
-      toast.success(`Loaded Window Quote #${draft.quoteNumber}`);
-    },
-    [
-      router,
-      setQuoteNumber,
-      setCustomerName,
-      setQuoteNotes,
-      setSurchargeRate,
-      setWindows,
-      setActivePromoId,
-      setIsSupplyOnly,
-      setSupplyJambId,
-      setSupplyJambRate,
-      setSupplyCasingId,
-      setSupplyCasingRate,
-      setCustomJC,
-      setCustomMisc,
-      setCustomLabour,
-      setIncludeJCInPromo,
-      setIncludeMiscInPromo,
-      setIncludeLabourInPromo,
-      setHstRate,
-      setAttachedUpgrade,
-    ]
-  );
-
-  const handleSaveDraft = useCallback(() => {
-    const effectiveQuoteNumber = quoteNumber.trim() || Math.floor(100000 + Math.random() * 900000).toString();
-    if (!quoteNumber.trim()) {
-      setQuoteNumber(effectiveQuoteNumber);
-    }
-
-    const paintedCount = windows.filter((w) => w.color === 'Painted').length;
-    const summaryTypeDesc =
-      windows.length > 0
-        ? paintedCount > 0
-          ? `${windows.length} Windows (${paintedCount} Painted)`
-          : `${windows.length} Windows (White)`
-        : '0 Windows';
-
-    // Calculate dollar totals matching the quote summary card
-    let draftSubtotalDollars = 0;
-    let draftGrandTotalDollars = 0;
-
-    if (attachedSealedUnit && quoteResult) {
-      const suTotals = attachedSealedUnit.totals || {};
-      const isAttachedSUService =
-        attachedSealedUnit.sealedUnitMode === 'service_only' ||
-        attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
-        Boolean(suTotals.isServiceOnly);
-      const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-      const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-      const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
-      const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
-
-      const windowBaseCents = quoteResult.base || 0;
-      const windowSurchargeCents = quoteResult.surcharge || 0;
-      const windowDiscountCents = quoteResult.promoDiscount || 0;
-
-      const combinedMiscCents = effectiveMisc + suMiscCents;
-      const combinedLabourCents = effectiveLabour + suLabourCents;
-      const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
-
-      const combinedSubtotalCents =
-        windowBaseCents +
-        suGlassCents +
-        effectiveJC +
-        combinedMiscCents +
-        combinedLabourCents +
-        combinedSurchargeCents -
-        windowDiscountCents;
-
-      let combinedTaxCents = 0;
-      if (hstRate === 13) {
-        combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
-      } else if (hstRate === 8) {
-        const materialsCents = Math.max(
-          0,
-          windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
-        );
-        const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
-        combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
-      }
-
-      const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
-      draftSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
-      draftGrandTotalDollars = Math.round(combinedTotalCents) / 100;
-    } else {
-      draftSubtotalDollars = Math.round(afterDiscount || 0) / 100;
-      draftGrandTotalDollars = Math.round(total || 0) / 100;
-    }
-
-    const savedDraft = saveQuoteDraft({
-      id: loadedDraftId || undefined,
-      type: 'window',
-      quoteNumber: effectiveQuoteNumber,
-      customerName: customerName.trim() || 'Unnamed Customer',
-      itemCount: windows.length,
-      subtotal: draftSubtotalDollars,
-      grandTotal: draftGrandTotalDollars,
-      summaryLabel: summaryTypeDesc,
-      data: {
-        quoteNumber: effectiveQuoteNumber,
-        customerName: customerName.trim(),
-        quoteNotes,
-        surchargeRate,
-        windows,
-        activePromoId,
-        isSupplyOnly,
-        supplyJambId,
-        supplyJambRate,
-        supplyCasingId,
-        supplyCasingRate,
-        customJC: customJC !== '' ? parseFloat(customJC) : undefined,
-        customMisc: customMisc !== '' ? parseFloat(customMisc) : undefined,
-        customLabour: customLabour !== '' ? parseFloat(customLabour) : undefined,
-        includeJCInPromo,
-        includeMiscInPromo,
-        includeLabourInPromo,
-        hstRate,
-        attachedUpgrade,
-        attachedSealedUnit,
-        subtotal: draftSubtotalDollars,
-        grandTotal: draftGrandTotalDollars,
-        itemCount: windows.length,
-      },
-    });
-
-    setLoadedDraftId(savedDraft.id);
-
-    // Cancel any pending debounced auto-saver immediately
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-      autoSaveTimerRef.current = null;
-    }
-
-    // Mark as fully saved so auto-save won't falsely flag it as unsaved
-    clearActiveAutoSave('window');
-    setActiveAutoSaveDraft(null);
-    setAutoSaveRestoredOrDismissed(true);
-    lastSavedSnapshotRef.current = JSON.stringify({
-      quoteNumber: effectiveQuoteNumber,
-      customerName: customerName.trim(),
-      windows,
-      surchargeRate,
-      activePromoId,
-      isSupplyOnly,
-      customJC,
-      customMisc,
-      customLabour,
-    });
-
-    toast.success(`Quote #${effectiveQuoteNumber} saved to drafts!`);
-  }, [
-    quoteNumber,
-    customerName,
-    windows,
-    afterDiscount,
-    total,
-    quoteNotes,
-    surchargeRate,
-    activePromoId,
-    isSupplyOnly,
-    supplyJambId,
-    supplyJambRate,
-    supplyCasingId,
-    supplyCasingRate,
-    customJC,
-    customMisc,
-    customLabour,
-    includeJCInPromo,
-    includeMiscInPromo,
-    includeLabourInPromo,
-    hstRate,
-    attachedUpgrade,
-    attachedSealedUnit,
-    quoteResult,
-    effectiveMisc,
-    effectiveLabour,
-    effectiveJC,
-    loadedDraftId,
-    setQuoteNumber,
-  ]);
-
-  // Saved drafts count sync
-  useEffect(() => {
-    const updateCount = () => {
-      const all = getSavedDrafts();
-      setSavedDraftsCount(all.filter((d) => d.type === 'window').length);
-    };
-    updateCount();
-    window.addEventListener(DRAFT_CHANGE_EVENT, updateCount);
-    return () => window.removeEventListener(DRAFT_CHANGE_EVENT, updateCount);
-  }, []);
-
-  // Check URL query param and auto-save on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const draftId = urlParams.get('loadDraftId');
-      if (draftId) {
-        const allDrafts = getSavedDrafts();
-        const match = allDrafts.find((d) => d.id === draftId);
-        if (match && match.type === 'window') {
-          loadDraftIntoWorkspace(match);
-          window.history.replaceState({}, '', '/calculator');
-          return;
-        }
-      }
-    }
-
-    if (!initialReviewQuoteId) {
-      const recovered = getActiveAutoSave('window');
-      if (recovered && recovered.data && (recovered.itemCount > 0 || recovered.customerName)) {
-        // Crucial Check: If quote is already in saved drafts, it is NOT unsaved!
-        if (isAutoSaveAlreadySaved('window', recovered)) {
-          clearActiveAutoSave('window');
-          setActiveAutoSaveDraft(null);
-        } else {
-          setActiveAutoSaveDraft(recovered);
-        }
-      }
-    }
-  }, [initialReviewQuoteId, loadDraftIntoWorkspace]);
-
-  // Debounced auto-save effect
-  useEffect(() => {
-    if (initialReviewQuoteId) return;
-
-    const validWindows = windows.filter(
-      (w) => (w.base && parseFloat(w.base) > 0) || (w.w && w.w.trim() !== '') || (w.h && w.h.trim() !== '')
-    );
-    const hasContent = validWindows.length > 0 || customerName.trim() !== '';
-
-    if (!hasContent) {
-      clearActiveAutoSave('window');
-      return;
-    }
-
-    // Check if state is identical to last explicitly saved or loaded snapshot
-    const currentSnapshot = JSON.stringify({
-      quoteNumber: quoteNumber.trim(),
-      customerName: customerName.trim(),
-      windows,
-      surchargeRate,
-      activePromoId,
-      isSupplyOnly,
-      customJC,
-      customMisc,
-      customLabour,
-    });
-
-    if (currentSnapshot === lastSavedSnapshotRef.current) {
-      // Current workspace matches saved state exactly: not unsaved!
-      return;
-    }
-
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    autoSaveTimerRef.current = setTimeout(() => {
-      let autoSubtotalDollars = Math.round(afterDiscount || 0) / 100;
-      let autoGrandTotalDollars = Math.round(total || 0) / 100;
-
-      if (attachedSealedUnit && quoteResult) {
-        const suTotals = attachedSealedUnit.totals || {};
-        const isAttachedSUService =
-          attachedSealedUnit.sealedUnitMode === 'service_only' ||
-          attachedSealedUnit.data?.sealedUnitMode === 'service_only' ||
-          Boolean(suTotals.isServiceOnly);
-        const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-        const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-        const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
-        const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
-
-        const windowBaseCents = quoteResult.base || 0;
-        const windowSurchargeCents = quoteResult.surcharge || 0;
-        const windowDiscountCents = quoteResult.promoDiscount || 0;
-
-        const combinedMiscCents = effectiveMisc + suMiscCents;
-        const combinedLabourCents = effectiveLabour + suLabourCents;
-        const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents;
-
-        const combinedSubtotalCents =
-          windowBaseCents +
-          suGlassCents +
-          effectiveJC +
-          combinedMiscCents +
-          combinedLabourCents +
-          combinedSurchargeCents -
-          windowDiscountCents;
-
-        let combinedTaxCents = 0;
-        if (hstRate === 13) {
-          combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
-        } else if (hstRate === 8) {
-          const materialsCents = Math.max(
-            0,
-            windowBaseCents + windowSurchargeCents - windowDiscountCents + effectiveJC + suGlassCents + suSurchargeCents
-          );
-          const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
-          combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
-        }
-
-        const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
-        autoSubtotalDollars = Math.round(combinedSubtotalCents) / 100;
-        autoGrandTotalDollars = Math.round(combinedTotalCents) / 100;
-      }
-
-      saveActiveAutoSave('window', {
-        quoteNumber: quoteNumber || 'Draft',
-        customerName: customerName || '',
-        itemCount: validWindows.length,
-        grandTotal: autoGrandTotalDollars,
-        summaryLabel: `${validWindows.length} Windows`,
-        data: {
-          quoteNumber,
-          customerName,
-          quoteNotes,
-          surchargeRate,
-          windows,
-          activePromoId,
-          isSupplyOnly,
-          supplyJambId,
-          supplyJambRate,
-          supplyCasingId,
-          supplyCasingRate,
-          customJC: customJC !== '' ? parseFloat(customJC) : undefined,
-          customMisc: customMisc !== '' ? parseFloat(customMisc) : undefined,
-          customLabour: customLabour !== '' ? parseFloat(customLabour) : undefined,
-          includeJCInPromo,
-          includeMiscInPromo,
-          includeLabourInPromo,
-          hstRate,
-          attachedUpgrade,
-          attachedSealedUnit,
-          subtotal: autoSubtotalDollars,
-          grandTotal: autoGrandTotalDollars,
-          itemCount: windows.length,
-        },
-      });
-    }, 1500);
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [
-    windows,
-    customerName,
-    quoteNumber,
-    quoteNotes,
-    surchargeRate,
-    activePromoId,
-    isSupplyOnly,
-    supplyJambId,
-    supplyJambRate,
-    supplyCasingId,
-    supplyCasingRate,
-    customJC,
-    customMisc,
-    customLabour,
-    includeJCInPromo,
-    includeMiscInPromo,
-    includeLabourInPromo,
-    hstRate,
-    attachedUpgrade,
-    attachedSealedUnit,
-    quoteResult,
-    effectiveMisc,
-    effectiveLabour,
-    effectiveJC,
-    afterDiscount,
-    total,
-    initialReviewQuoteId,
-  ]);
+  const lastInstallJambRef = useRef<string>('j3');
+  const lastInstallCasingRef = useRef<string>('vinyl');
 
   const handleToggleSupplyOnly = (isSupply: boolean) => {
     setIsSupplyOnly(isSupply);
     if (isSupply) {
+      if (taxTotals?.selectedJamb?.id && taxTotals.selectedJamb.id !== 'none') {
+        lastInstallJambRef.current = taxTotals.selectedJamb.id;
+      } else if (taxTotals?.jambId && taxTotals.jambId !== 'none') {
+        lastInstallJambRef.current = taxTotals.jambId;
+      }
+      if (taxTotals?.selectedCasing?.id && taxTotals.selectedCasing.id !== 'none') {
+        lastInstallCasingRef.current = taxTotals.selectedCasing.id;
+      } else if (taxTotals?.casingId && taxTotals.casingId !== 'none') {
+        lastInstallCasingRef.current = taxTotals.casingId;
+      }
+
       setIsServiceOnly(false);
       setCustomJC('');
       setSupplyJambId('none');
@@ -665,6 +348,8 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         if (!prev) return prev;
         const next = { ...prev };
         delete next.isSupplyOnly;
+        next.jambId = lastInstallJambRef.current || 'j3';
+        next.casingId = lastInstallCasingRef.current || 'vinyl';
         return next;
       });
     }
@@ -696,8 +381,6 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     selectedCasing: any;
   }) => {
     if (!isSupplyOnly) return;
-    const dollars = data.jcTotalCents > 0 ? (data.jcTotalCents / 100).toFixed(2) : '';
-    setCustomJC(dollars);
     setTaxTotals((prev: any) => {
       if (
         prev?.isSupplyOnly &&
@@ -723,7 +406,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         selectedCasing: data.selectedCasing,
       };
     });
-  }, [isSupplyOnly, setCustomJC, setTaxTotals]);
+  }, [isSupplyOnly, setTaxTotals]);
 
   // Restore Supply Only state when opening a saved/reviewed quote
   useEffect(() => {
@@ -1056,6 +739,18 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
     includeLabourInPromo,
     setIncludeLabourInPromo,
     total,
+    attachedUpgrade,
+    setAttachedUpgrade,
+    attachedDoorQuote,
+    setAttachedDoorQuote,
+    attachedSealedUnit,
+    setAttachedSealedUnit,
+    wantsUpgrade,
+    setWantsUpgrade,
+    isSupplyOnly,
+    setIsSupplyOnly: handleToggleSupplyOnly,
+    isServiceOnly,
+    setIsServiceOnly,
     quotesSubTab,
     setQuotesSubTab,
     setActiveTab,
@@ -1242,55 +937,6 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           handleApproveReviewQuote={handleApproveReviewQuote}
         />
 
-        {/* Unsaved Draft Recovery Notification (Ultra-Slim Minimal Space) */}
-        {activeAutoSaveDraft && !autoSaveRestoredOrDismissed && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg py-1 px-3 flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-150">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-              <div className="text-xs text-foreground truncate">
-                <span className="font-semibold text-amber-700 dark:text-amber-400 mr-1">Unsaved Session:</span>
-                <span className="text-muted-foreground">{activeAutoSaveDraft.customerName || 'Customer'} (#{activeAutoSaveDraft.quoteNumber || 'Draft'} · {activeAutoSaveDraft.itemCount} items · ${activeAutoSaveDraft.grandTotal ? activeAutoSaveDraft.grandTotal.toFixed(2) : '0.00'})</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  loadDraftIntoWorkspace({
-                    id: 'autosave',
-                    type: 'window',
-                    quoteNumber: activeAutoSaveDraft.quoteNumber,
-                    customerName: activeAutoSaveDraft.customerName,
-                    createdAt: activeAutoSaveDraft.timestamp,
-                    updatedAt: activeAutoSaveDraft.timestamp,
-                    itemCount: activeAutoSaveDraft.itemCount,
-                    subtotal: (activeAutoSaveDraft.data as any).subtotal || 0,
-                    grandTotal: activeAutoSaveDraft.grandTotal,
-                    summaryLabel: activeAutoSaveDraft.summaryLabel,
-                    data: activeAutoSaveDraft.data,
-                  });
-                }}
-                className="h-5 px-2 text-[10px] font-bold cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Resume
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  clearActiveAutoSave('window');
-                  setActiveAutoSaveDraft(null);
-                  setAutoSaveRestoredOrDismissed(true);
-                }}
-                className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Dismiss
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Phase 3 Hybrid: Staging Mode Banner */}
         {isComparisonStaging && (
           <div className="bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/15 border border-amber-500/40 rounded-2xl p-3.5 px-4 sm:px-5 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-150">
@@ -1344,17 +990,94 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           </div>
         )}
 
-        {/* Tab Controls */}
+        {/* Tab Controls & Unified Action Bar */}
         <Tabs value={activeTab} onValueChange={(val) => switchTab(val as any)} className="w-full">
           {activeTab !== 'quotes' && (
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-4 sm:mb-5 bg-muted p-1 rounded-full border border-border/50 shadow-sm animate-in fade-in duration-200">
-              <TabsTrigger value="promo" className="rounded-full text-xs sm:text-sm font-semibold cursor-pointer">
-                Promo Calculator
-              </TabsTrigger>
-              <TabsTrigger value="tax" className="rounded-full text-xs sm:text-sm font-semibold cursor-pointer">
-                Tax &amp; Labour Calculator
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 sm:mb-5">
+              {/* Left Side: Segmented Tab Controls */}
+              <TabsList className="inline-flex bg-muted p-1 rounded-xl border border-border/50 shadow-xs h-9">
+                <TabsTrigger value="promo" className="rounded-lg text-xs font-semibold px-3 py-1 cursor-pointer">
+                  Promo Calculator
+                </TabsTrigger>
+                <TabsTrigger value="tax" className="rounded-lg text-xs font-semibold px-3 py-1 cursor-pointer">
+                  Tax &amp; Labour Calculator
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Right Side: Exact Sequence: Compare PDF, Attach Quote, Save Draft, Saved Quotes */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {lastSavedAt && (
+                  <span className="text-[11px] text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/50">
+                    Draft auto-saved {lastSavedAt}
+                  </span>
+                )}
+
+                {compareOptions.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCompareModalOpen(true)}
+                    className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                    title="Compare Promo Option A vs Option B"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Compare PDF</span>
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAttachModalOpen(true)}
+                  className={cn(
+                    'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
+                    attachedSealedUnit || attachedDoorQuote
+                      ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                      : 'border-border/80 hover:bg-muted text-foreground'
+                  )}
+                  title="Attach an existing quote (Sealed Units, Entry Doors, etc.) to this window quote"
+                >
+                  <Paperclip
+                    className={cn(
+                      'w-3.5 h-3.5',
+                      attachedSealedUnit || attachedDoorQuote ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'
+                    )}
+                  />
+                  <span>{attachedSealedUnit || attachedDoorQuote ? 'Quote Attached' : 'Attach Quote'}</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveDraft}
+                  className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
+                  title="Save current quote to drafts"
+                >
+                  <Bookmark className="w-3.5 h-3.5 text-primary" />
+                  <span>Save Draft</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSavedQuotesOpen(true)}
+                  className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
+                  title="View and load saved quotes"
+                >
+                  <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Saved Quotes</span>
+                  {typeof savedDraftsCount === 'number' && savedDraftsCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+                      {savedDraftsCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Tab 1: Promo Calculator */}
@@ -1378,6 +1101,7 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   }
                   handlePdfImportClick={handlePdfImportClick}
                   isReadOnly={isReadOnly}
+                  onResetQuote={() => setShowResetModal(true)}
                   handleWindowChange={handleWindowChange}
                   handleRemoveWindow={(id) => handleRemoveWindow(id, () => setLockedPromoId(null))}
                   handleAddWindow={() => handleAddWindow(() => setLockedPromoId(null))}
@@ -1391,10 +1115,15 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                     toast.info('Removed optional upgrade offer from quote.');
                   }}
                   attachedSealedUnit={attachedSealedUnit}
+                  attachedDoorQuote={attachedDoorQuote}
                   onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
                   onRemoveAttachedSealedUnit={() => {
                     setAttachedSealedUnit(null);
                     toast.info('Detached sealed units from quote.');
+                  }}
+                  onRemoveAttachedDoorQuote={() => {
+                    setAttachedDoorQuote(null);
+                    toast.info('Detached door quote from quote.');
                   }}
                   onSaveDraft={handleSaveDraft}
                   onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
@@ -1494,11 +1223,17 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                 setShowReassignModal={setShowReassignModal}
                 handleReturnReviewQuote={handleReturnReviewQuote}
                 isSupplyOnly={isSupplyOnly}
+                setIsSupplyOnly={handleToggleSupplyOnly}
                 attachedSealedUnit={attachedSealedUnit}
+                attachedDoorQuote={attachedDoorQuote}
                 onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
                 onRemoveAttachedSealedUnit={() => {
                   setAttachedSealedUnit(null);
                   toast.info('Detached sealed units from quote.');
+                }}
+                onRemoveAttachedDoorQuote={() => {
+                  setAttachedDoorQuote(null);
+                  toast.info('Detached door quote from quote.');
                 }}
                 onSaveDraft={handleSaveDraft}
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
@@ -1514,16 +1249,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
               onWindowsChange={setWindows}
               onCalculated={(totals) => {
                 setTaxTotals(totals);
-                if (totals?.isServiceOnly) {
+                if (totals?.isServiceOnly && !isServiceOnly) {
                   setIsServiceOnly(true);
                   setIsSupplyOnly(false);
                   setHstRate(13);
-                } else if (totals?.isSupplyOnly) {
-                  setIsSupplyOnly(true);
-                  setIsServiceOnly(false);
                 }
               }}
-              savedTaxTotals={reviewQuote?.taxTotals || null}
+              savedTaxTotals={reviewQuote?.taxTotals || loadedDraftTaxTotals || null}
               readOnly={isReadOnly}
               onOpenPreview={() => setIsPreviewOpen(true)}
               isSupplyOnly={isSupplyOnly}
@@ -1594,11 +1326,17 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
                   setShowReassignModal={setShowReassignModal}
                   handleReturnReviewQuote={handleReturnReviewQuote}
                   isSupplyOnly={isSupplyOnly}
+                  setIsSupplyOnly={handleToggleSupplyOnly}
                   attachedSealedUnit={attachedSealedUnit}
+                  attachedDoorQuote={attachedDoorQuote}
                   onOpenAttachSealedUnitModal={() => setIsAttachModalOpen(true)}
                   onRemoveAttachedSealedUnit={() => {
                     setAttachedSealedUnit(null);
                     toast.info('Detached sealed units from quote.');
+                  }}
+                  onRemoveAttachedDoorQuote={() => {
+                    setAttachedDoorQuote(null);
+                    toast.info('Detached door quote from quote.');
                   }}
                   onSaveDraft={handleSaveDraft}
                   onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
@@ -1655,32 +1393,32 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
           preparedBy={reviewQuote?.preparedBy || user?.username || ''}
           attachedUpgrade={attachedUpgrade}
           attachedSealedUnit={attachedSealedUnit}
+          attachedDoorQuote={attachedDoorQuote}
           isSupplyOnly={isSupplyOnly}
         />
       )}
 
-      {/* Quote Preview Modal */}
-      <QuotePreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        template={quoteTemplate}
-        onTemplateChange={setQuoteTemplate}
-        fontSize={quoteFontSize}
-        onFontSizeChange={setQuoteFontSize}
-        spacing={quoteSpacing}
-        onSpacingChange={setQuoteSpacing}
+      {/* Centralized Modals Container */}
+      <CalculatorModalsContainer
+        isPreviewOpen={isPreviewOpen}
+        setIsPreviewOpen={setIsPreviewOpen}
+        quoteTemplate={quoteTemplate}
+        setQuoteTemplate={setQuoteTemplate}
+        quoteFontSize={quoteFontSize}
+        setQuoteFontSize={setQuoteFontSize}
+        quoteSpacing={quoteSpacing}
+        setQuoteSpacing={setQuoteSpacing}
         quoteNotes={quoteNotes}
-        onQuoteNotesChange={isReadOnly ? undefined : setQuoteNotes}
+        setQuoteNotes={setQuoteNotes}
+        isReadOnly={isReadOnly}
         preparedBy={reviewQuote?.preparedBy || user?.username || ''}
         customerName={customerName}
         quoteNumber={quoteNumber}
         windows={windows}
         taxTotals={taxTotals}
         quoteResult={quoteResult}
-        activePromo={quoteResult && quoteResult.promoDiscount > 0 ? {
-          name: availablePromos.find(p => p._id === activePromoId || (p as any).id === activePromoId)?.name || 'Custom Promo',
-          discount: quoteResult.promoDiscount,
-        } : null}
+        availablePromos={availablePromos}
+        activePromoId={activePromoId}
         basePrice={quoteResult?.base || 0}
         surcharge={quoteResult?.surcharge || 0}
         wantsUpgrade={wantsUpgrade}
@@ -1691,7 +1429,6 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         afterDiscount={afterDiscount}
         firstPayment={firstPayment}
         secondPayment={secondPayment}
-        regionName={taxTotals?.regionName || taxTotals?.city}
         includeLabourInPromo={includeLabourInPromo}
         includeMiscInPromo={includeMiscInPromo}
         includeJCInPromo={includeJCInPromo}
@@ -1700,20 +1437,13 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         effectiveLabour={effectiveLabour}
         attachedUpgrade={attachedUpgrade}
         attachedSealedUnit={attachedSealedUnit}
+        attachedDoorQuote={attachedDoorQuote}
         isSupplyOnly={isSupplyOnly}
-      />
-
-      {/* Submit for Review / Direct Approve Modal */}
-      <SubmitReviewModal
-        isOpen={showSubmitModal}
-        onClose={() => setShowSubmitModal(false)}
+        showSubmitModal={showSubmitModal}
+        setShowSubmitModal={setShowSubmitModal}
         user={user}
         adminSubmitMode={adminSubmitMode}
         setAdminSubmitMode={setAdminSubmitMode}
-        quoteNumber={quoteNumber}
-        customerName={customerName}
-        windowsCount={windows.filter(w => Number(w.base) > 0 || Number(w.qty) > 0).length}
-        total={total}
         staffList={staffList}
         clerkList={clerkList}
         assignedReviewer={assignedReviewer}
@@ -1723,16 +1453,10 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         preparerNotes={preparerNotes}
         setPreparerNotes={setPreparerNotes}
         submittingQuote={submittingQuote}
-        onSubmit={handleSubmitForReview}
-      />
-
-      {/* Workflow Dialogs (Reassign, Return, Exit Review for PDF) */}
-      <WorkflowDialogs
+        handleSubmitForReview={handleSubmitForReview}
         showReassignModal={showReassignModal}
         setShowReassignModal={setShowReassignModal}
         reviewQuote={reviewQuote}
-        user={user}
-        staffList={staffList}
         reassignTo={reassignTo}
         setReassignTo={setReassignTo}
         reassignNotes={reassignNotes}
@@ -1747,98 +1471,42 @@ export function PromoCalculator({ initialReviewQuoteId, initialIsEditMode }: Pro
         setShowExitReviewForPdfModal={setShowExitReviewForPdfModal}
         handleExitReviewAndImportPdf={handleExitReviewAndImportPdf}
         reviewActionLoading={reviewActionLoading}
-      />
-
-      {/* Odoo Action Modals (Approve & Assign Clerk, Confirm SO#) */}
-      <OdooActionModals
         showApproveOdooModal={showApproveOdooModal}
         setShowApproveOdooModal={setShowApproveOdooModal}
         showCompleteOdooModal={showCompleteOdooModal}
         setShowCompleteOdooModal={setShowCompleteOdooModal}
-        reviewQuote={reviewQuote}
-        selectedOdooClerk={selectedOdooClerk}
-        setSelectedOdooClerk={setSelectedOdooClerk}
         odooOrderNumberInput={odooOrderNumberInput}
         setOdooOrderNumberInput={setOdooOrderNumberInput}
-        reviewActionLoading={reviewActionLoading}
-        clerkList={clerkList}
-        staffList={staffList}
         confirmApproveReviewQuote={confirmApproveReviewQuote}
         handleCompleteOdooEntry={handleCompleteOdooEntry}
-      />
-
-      {/* Phase 3: Dual PDF Upgrade & Option Comparison Modal */}
-      <QuoteComparisonModal
-        isOpen={isCompareModalOpen}
-        onClose={() => setIsCompareModalOpen(false)}
-        currentWindows={baseSnapshotA ? baseSnapshotA.windows : (appliedOption === 'B' && baseWindowsA ? baseWindowsA : windows)}
-        customerName={baseSnapshotA ? baseSnapshotA.customerName : customerName}
-        quoteNumber={baseSnapshotA ? baseSnapshotA.quoteNumber : quoteNumber}
-        surchargeRate={baseSnapshotA ? baseSnapshotA.surchargeRate : surchargeRate}
-        isSupplyOnly={baseSnapshotA ? baseSnapshotA.isSupplyOnly : isSupplyOnly}
-        supplyJambId={baseSnapshotA ? baseSnapshotA.supplyJambId : (isSupplyOnly ? supplyJambId : (taxTotals?.selectedJamb?.id || taxTotals?.jambId || 'none'))}
-        supplyJambName={baseSnapshotA ? baseSnapshotA.supplyJambName : (isSupplyOnly ? supplyJambName : (taxTotals?.selectedJamb?.name || taxTotals?.jambName || ''))}
-        supplyJambRate={baseSnapshotA ? baseSnapshotA.supplyJambRate : (isSupplyOnly ? supplyJambRate : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ''))}
-        supplyCasingId={baseSnapshotA ? baseSnapshotA.supplyCasingId : (isSupplyOnly ? supplyCasingId : (taxTotals?.selectedCasing?.id || taxTotals?.casingId || 'none'))}
-        supplyCasingName={baseSnapshotA ? baseSnapshotA.supplyCasingName : (isSupplyOnly ? supplyCasingName : (taxTotals?.selectedCasing?.name || taxTotals?.casingName || ''))}
-        supplyCasingRate={baseSnapshotA ? baseSnapshotA.supplyCasingRate : (isSupplyOnly ? supplyCasingRate : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ''))}
-        effectiveJC={baseSnapshotA ? (baseSnapshotA.taxTotals?.jcLabourCents ?? (baseSnapshotA.customJC ? toCents(baseSnapshotA.customJC) : 0)) : effectiveJC}
-        effectiveMisc={baseSnapshotA ? (baseSnapshotA.taxTotals?.miscLabourCents ?? (baseSnapshotA.customMisc ? toCents(baseSnapshotA.customMisc) : 0)) : effectiveMisc}
-        effectiveLabour={baseSnapshotA ? (baseSnapshotA.taxTotals?.standardLabourCents ?? (baseSnapshotA.customLabour ? toCents(baseSnapshotA.customLabour) : 0)) : effectiveLabour}
-        availablePromos={availablePromos}
-        activePromoId={baseSnapshotA ? baseSnapshotA.activePromoId : activePromoId}
-        hstRate={baseSnapshotA ? baseSnapshotA.hstRate : hstRate}
-        quoteResultA={baseSnapshotA ? baseSnapshotA.quoteResult : quoteResult}
-        afterDiscountA={baseSnapshotA ? baseSnapshotA.afterDiscount : afterDiscount}
-        totalA={baseSnapshotA ? baseSnapshotA.total : total}
-        firstPaymentA={baseSnapshotA ? baseSnapshotA.firstPayment : firstPayment}
-        secondPaymentA={baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment}
+        isCompareModalOpen={isCompareModalOpen}
+        setIsCompareModalOpen={setIsCompareModalOpen}
+        baseSnapshotA={baseSnapshotA}
         appliedOption={appliedOption}
+        baseWindowsA={baseWindowsA}
+        surchargeRate={surchargeRate}
+        supplyJambId={supplyJambId}
+        supplyJambName={supplyJambName}
+        supplyJambRate={supplyJambRate}
+        supplyCasingId={supplyCasingId}
+        supplyCasingName={supplyCasingName}
+        supplyCasingRate={supplyCasingRate}
+        customJC={customJC}
         isComparisonStaging={isComparisonStaging}
-        stagedOptionB={
-          isComparisonStaging && baseSnapshotA
-            ? {
-                windows,
-                quoteResult,
-                afterDiscount,
-                total,
-                firstPayment,
-                secondPayment,
-                effectiveJC: isSupplyOnly ? (customJC ? toCents(customJC) : 0) : effectiveJC,
-                effectiveMisc: isSupplyOnly ? 0 : effectiveMisc,
-                effectiveLabour: isSupplyOnly ? 0 : effectiveLabour,
-                activePromoId,
-                supplyJambId: isSupplyOnly ? supplyJambId : (taxTotals?.selectedJamb?.id || taxTotals?.jambId),
-                supplyJambName: isSupplyOnly ? supplyJambName : (taxTotals?.selectedJamb?.name || taxTotals?.jambName),
-                supplyJambRate: isSupplyOnly ? supplyJambRate : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ''),
-                supplyCasingId: isSupplyOnly ? supplyCasingId : (taxTotals?.selectedCasing?.id || taxTotals?.casingId),
-                supplyCasingName: isSupplyOnly ? supplyCasingName : (taxTotals?.selectedCasing?.name || taxTotals?.casingName),
-                supplyCasingRate: isSupplyOnly ? supplyCasingRate : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ''),
-                customerName,
-                quoteNumber,
-              }
-            : undefined
-        }
-        onApplyOption={handleApplyOption}
-        onApplyAndCustomize={handleApplyAndCustomize}
-        onKeepOptionB={handleKeepOptionB}
-        attachedUpgrade={attachedUpgrade}
-        onAttachUpgrade={setAttachedUpgrade}
-      />
-
-      <SavedQuotesModal
-        isOpen={isSavedQuotesOpen}
-        onClose={() => setIsSavedQuotesOpen(false)}
-        defaultType="window"
-        onLoadQuote={loadDraftIntoWorkspace}
-      />
-
-      <AttachSealedUnitModal
-        isOpen={isAttachModalOpen}
-        onClose={() => setIsAttachModalOpen(false)}
-        attachedSealedUnit={attachedSealedUnit}
-        onAttach={(su) => setAttachedSealedUnit(su)}
-        onDetach={() => setAttachedSealedUnit(null)}
+        handleApplyOption={handleApplyOption}
+        handleApplyAndCustomize={handleApplyAndCustomize}
+        handleKeepOptionB={handleKeepOptionB}
+        setAttachedUpgrade={setAttachedUpgrade}
+        isSavedQuotesOpen={isSavedQuotesOpen}
+        setIsSavedQuotesOpen={setIsSavedQuotesOpen}
+        loadDraftIntoWorkspace={loadDraftIntoWorkspace}
+        isAttachModalOpen={isAttachModalOpen}
+        setIsAttachModalOpen={setIsAttachModalOpen}
+        setAttachedSealedUnit={setAttachedSealedUnit}
+        setAttachedDoorQuote={setAttachedDoorQuote}
+        showResetModal={showResetModal}
+        setShowResetModal={setShowResetModal}
+        handleConfirmReset={handleConfirmReset}
       />
     </div>
   );

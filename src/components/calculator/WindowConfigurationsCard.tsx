@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Component, FileUp, Plus, Trash2, Sparkles, Bookmark, FolderOpen, Paperclip } from 'lucide-react';
+import { Component, FileUp, Plus, Trash2, Bookmark, FolderOpen, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
 import { formatMoney } from '@/lib/promo-logic';
@@ -23,6 +23,7 @@ export interface WindowConfigurationsCardProps {
   handlePdfUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handlePdfImportClick: () => void;
   isReadOnly: boolean;
+  onResetQuote?: () => void;
   handleWindowChange: (id: string, field: keyof UIWindowItem, value: string) => void;
   handleRemoveWindow: (id: string) => void;
   handleAddWindow: () => void;
@@ -33,8 +34,10 @@ export interface WindowConfigurationsCardProps {
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   onRemoveAttachedUpgrade?: () => void;
   attachedSealedUnit?: any | null;
+  attachedDoorQuote?: any | null;
   onOpenAttachSealedUnitModal?: () => void;
   onRemoveAttachedSealedUnit?: () => void;
+  onRemoveAttachedDoorQuote?: () => void;
   onSaveDraft?: () => void;
   onOpenSavedQuotes?: () => void;
   savedDraftsCount?: number;
@@ -51,6 +54,7 @@ export function WindowConfigurationsCard({
   handlePdfUpload,
   handlePdfImportClick,
   isReadOnly,
+  onResetQuote,
   handleWindowChange,
   handleRemoveWindow,
   handleAddWindow,
@@ -61,8 +65,10 @@ export function WindowConfigurationsCard({
   attachedUpgrade,
   onRemoveAttachedUpgrade,
   attachedSealedUnit,
+  attachedDoorQuote,
   onOpenAttachSealedUnitModal,
   onRemoveAttachedSealedUnit,
+  onRemoveAttachedDoorQuote,
   onSaveDraft,
   onOpenSavedQuotes,
   savedDraftsCount,
@@ -79,207 +85,43 @@ export function WindowConfigurationsCard({
             Enter the base prices and upgrade components for each window.
           </CardDescription>
         </div>
-        {/* Clean Unified Action Toolbar: 2 Rows */}
-        <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
-          {/* Row 1: Compare PDF, Supply Only, Import PDF */}
-          <div className="flex flex-wrap items-center gap-2 justify-end w-full sm:w-auto">
-            {/* Compare PDF */}
-            {onOpenCompareModal && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenCompareModal}
-                disabled={isReadOnly}
-                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 shadow-xs"
-                title="Compare with Upgraded Manufacturer PDF (Triple Pane, Painted, etc.)"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Compare PDF</span>
-              </Button>
-            )}
-
-            {/* Supply Only Mode Pill */}
-            {setIsSupplyOnly && (
-              <label
-                htmlFor="supplyOnlyToggle"
-                className={cn(
-                  'flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all shadow-xs',
-                  isSupplyOnly
-                    ? 'bg-primary/15 border-primary/40 text-primary'
-                    : 'bg-muted/50 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-              >
-                <Checkbox
-                  id="supplyOnlyToggle"
-                  disabled={isReadOnly}
-                  checked={isSupplyOnly}
-                  onCheckedChange={(checked) => setIsSupplyOnly(!!checked)}
-                  className="data-[state=checked]:bg-primary h-3.5 w-3.5"
-                />
-                <span className="whitespace-nowrap">Supply Only</span>
-              </label>
-            )}
-
-            {/* Import PDF */}
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              hidden
-              ref={fileInputRef as any}
-              onChange={handlePdfUpload}
-            />
+        {/* Right side: Reset Quote & Import PDF in its original position */}
+        <div className="flex items-center gap-1.5">
+          {onResetQuote && (
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={handlePdfImportClick}
+              onClick={onResetQuote}
               disabled={isReadOnly}
-              className="h-8 px-2.5 text-xs font-semibold cursor-pointer shadow-xs bg-card hover:bg-muted border-border/70 text-foreground"
+              className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 text-destructive hover:bg-destructive/10 border-border/70 shadow-xs"
+              title="Reset quote & start fresh"
             >
-              <FileUp className="w-3.5 h-3.5 mr-1 text-primary" />
-              <span>Import PDF</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset</span>
             </Button>
-          </div>
+          )}
 
-          {/* Row 2: Attach Quote, Save Draft, Saved Quotes */}
-          <div className="flex flex-wrap items-center gap-2 justify-end w-full sm:w-auto">
-            {/* Attach Quote Button */}
-            {onOpenAttachSealedUnitModal && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenAttachSealedUnitModal}
-                className={cn(
-                  'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
-                  attachedSealedUnit
-                    ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-                    : 'border-border/80 hover:bg-muted text-foreground'
-                )}
-                title="Attach an existing quote (Sealed Units, Entry Doors, etc.) to this window quote"
-              >
-                <Paperclip
-                  className={cn(
-                    'w-3.5 h-3.5',
-                    attachedSealedUnit ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'
-                  )}
-                />
-                <span>{attachedSealedUnit ? 'Quote Attached' : 'Attach Quote'}</span>
-              </Button>
-            )}
-
-            {/* Save Draft */}
-            {onSaveDraft && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onSaveDraft}
-                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
-                title="Save current quote to drafts"
-              >
-                <Bookmark className="w-3.5 h-3.5 text-primary" />
-                <span>Save Draft</span>
-              </Button>
-            )}
-
-            {/* Saved Quotes */}
-            {onOpenSavedQuotes && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenSavedQuotes}
-                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
-                title="View and load saved quotes"
-              >
-                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Saved Quotes</span>
-                {typeof savedDraftsCount === 'number' && savedDraftsCount > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
-                    {savedDraftsCount}
-                  </span>
-                )}
-              </Button>
-            )}
-          </div>
+          <input
+            type="file"
+            accept=".pdf,application/pdf"
+            hidden
+            ref={fileInputRef as any}
+            onChange={handlePdfUpload}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePdfImportClick}
+            disabled={isReadOnly}
+            className="h-8 px-2.5 text-xs font-semibold cursor-pointer shadow-xs bg-card hover:bg-muted border-border/70 text-foreground"
+          >
+            <FileUp className="w-3.5 h-3.5 mr-1 text-primary" />
+            <span>Import PDF</span>
+          </Button>
         </div>
       </CardHeader>
 
-      {/* Attached Sealed Unit Callout Banner */}
-      {attachedSealedUnit && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/30 text-emerald-950 dark:text-emerald-200 text-xs animate-in fade-in duration-150">
-          <div className="flex items-center gap-2">
-            <Paperclip className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-semibold">
-              Attached Sealed Units:{' '}
-              <span className="font-bold underline decoration-emerald-500/50">
-                Quote #{attachedSealedUnit.quoteNumber} (
-                {attachedSealedUnit.itemCount || (attachedSealedUnit.lineItems && attachedSealedUnit.lineItems.length) || 0} units · ${attachedSealedUnit.totals?.grandTotal ? attachedSealedUnit.totals.grandTotal.toFixed(2) : '0.00'})
-              </span>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {onOpenAttachSealedUnitModal && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenAttachSealedUnitModal}
-                className="h-6 text-[11px] px-2 text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 hover:bg-emerald-500/20 cursor-pointer"
-              >
-                Change Quote
-              </Button>
-            )}
-            {onRemoveAttachedSealedUnit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRemoveAttachedSealedUnit}
-                className="h-6 text-[11px] px-2 text-destructive hover:bg-destructive/10 cursor-pointer gap-1"
-                title="Remove attached sealed units from this quote"
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>Detach</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Optional Upgrade Attached Callout Banner */}
-      {attachedUpgrade && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 bg-amber-500/10 border-b border-amber-500/30 text-amber-950 dark:text-amber-200 text-xs animate-in fade-in duration-150">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="font-semibold">
-              Optional Upgrade Attached to Quote PDF:{' '}
-              <span className="font-bold underline decoration-amber-500/50">
-                {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
-              </span>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {onOpenCompareModal && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenCompareModal}
-                className="h-6 text-[11px] px-2 text-amber-800 dark:text-amber-300 hover:text-amber-950 hover:bg-amber-500/20 cursor-pointer"
-              >
-                Review / Change
-              </Button>
-            )}
-            {onRemoveAttachedUpgrade && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRemoveAttachedUpgrade}
-                className="h-6 text-[11px] px-2 text-destructive hover:bg-destructive/10 cursor-pointer gap-1"
-                title="Remove upgrade line from PDF quote"
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>Remove Option</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
       <CardContent className="p-0">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2.5 px-5 sm:px-6 bg-muted/20 border-b border-border/40">
           <div className="space-y-1">

@@ -5,7 +5,9 @@ import {
   SealedUnitLineItem,
   SealedUnitLabourSettings,
   formatSealedUnitSummarySentence,
+  getSealedUnitServiceSummaryLabel,
 } from '@/lib/sealed-units-logic';
+import { formatDoorItemHeading } from '@/lib/doors/calculations';
 
 export type SealedUnitTemplateType = 'window_style' | 'standard' | 'production';
 
@@ -24,6 +26,8 @@ export interface SealedUnitPrintInvoiceProps {
   spacing?: number; // multiplier, default 1.0
   orientation?: 'portrait' | 'landscape';
   isInteractivePreview?: boolean;
+  attachedWindowQuote?: any | null;
+  attachedDoorQuote?: any | null;
   totals: {
     totalUnits: number;
     totalSqft: number;
@@ -165,8 +169,10 @@ interface CommonSummaryLedgerProps {
   isInstallation: boolean;
   isService: boolean;
   hstRate: number;
-  firstPayment: number;
-  secondPayment: number;
+  firstPayment?: number;
+  secondPayment?: number;
+  attachedWindowQuote?: any | null;
+  attachedDoorQuote?: any | null;
   textColor?: string;
   subtextColor?: string;
   borderColor?: string;
@@ -179,57 +185,176 @@ function CommonSummaryLedger({
   isInstallation,
   isService,
   hstRate,
-  firstPayment,
-  secondPayment,
+  attachedWindowQuote,
+  attachedDoorQuote,
   textColor = 'text-gray-900',
   subtextColor = 'text-gray-700',
   borderColor = 'border-gray-300',
   totalBorderColor = 'border-gray-600',
 }: CommonSummaryLedgerProps) {
+  const hasAttachedWindow = Boolean(attachedWindowQuote);
+  const hasAttachedDoor = Boolean(attachedDoorQuote);
+  const hasAnyAttached = hasAttachedWindow || hasAttachedDoor;
+
+  const winBase = hasAttachedWindow ? (attachedWindowQuote.totals?.base || attachedWindowQuote.totals?.subtotal || 0) : 0;
+  const winJC = hasAttachedWindow ? (attachedWindowQuote.totals?.jc ?? attachedWindowQuote.jcDollars ?? 0) : 0;
+  const winJCDescription = attachedWindowQuote?.jcLabel || 'Jambs & Casing';
+  const winDiscount = hasAttachedWindow
+    ? (attachedWindowQuote.totals?.promoDiscount || attachedWindowQuote.quoteResult?.promoDiscount || attachedWindowQuote.data?.promoDiscount || 0) / (attachedWindowQuote.quoteResult?.promoDiscount ? 100 : 1)
+    : 0;
+  const winPromoName = attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || 'Window Promo';
+  const doorDiscount = hasAttachedDoor ? (attachedDoorQuote.totals?.discountTotal || 0) : 0;
+  const doorMat = hasAttachedDoor
+    ? ((attachedDoorQuote.totals?.rawDoorBaseTotal || 0) + (attachedDoorQuote.totals?.stormDoorTotal || 0) + (attachedDoorQuote.totals?.hardwareTotal || 0) - doorDiscount)
+    : 0;
+
+  const winLabour = hasAttachedWindow ? (attachedWindowQuote.totals?.labour || 0) : 0;
+  const doorLabour = hasAttachedDoor ? (attachedDoorQuote.totals?.combinedLabourTotal || 0) : 0;
+  const winMisc = hasAttachedWindow ? (attachedWindowQuote.totals?.misc || 0) : 0;
+  const doorMisc = hasAttachedDoor ? (attachedDoorQuote.totals?.miscTotal || 0) : 0;
+  const rawWinSurcharge = hasAttachedWindow ? (attachedWindowQuote.totals?.surcharge || 0) : 0;
+  const winSurcharge = (rawWinSurcharge > winBase && winBase > 0)
+    ? Math.round(winBase * 0.08 * 100) / 100
+    : rawWinSurcharge;
+  const doorSurcharge = hasAttachedDoor ? (attachedDoorQuote.totals?.surchargeTotal || 0) : 0;
+
+  const suMaterials = isService ? 0 : totals.glassBefore8PercentTotal;
+  const combinedLabour = totals.combinedLabourTotal + winLabour + doorLabour;
+  const combinedMisc = (totals.miscTotal || 0) + winMisc + doorMisc;
+  const combinedSurcharge = totals.glass8PercentSurchargeTotal + winSurcharge + doorSurcharge;
+  const combinedSubtotal = hasAnyAttached
+    ? Math.round((suMaterials + (winBase - winDiscount) + winJC + doorMat + combinedLabour + combinedMisc + combinedSurcharge) * 100) / 100
+    : totals.subtotalPreTax;
+
+  let combinedTax = totals.hstAmount;
+  if (hasAnyAttached) {
+    if (hstRate === 8) {
+      const mat = totals.glassBefore8PercentTotal + totals.glass8PercentSurchargeTotal + (winBase - winDiscount + winJC + winSurcharge) + (doorMat + doorSurcharge);
+      const srv = combinedLabour + combinedMisc;
+      combinedTax = Math.round((mat * 0.05 + srv * 0.13) * 100) / 100;
+    } else if (hstRate === 13) {
+      combinedTax = Math.round(combinedSubtotal * 0.13 * 100) / 100;
+    } else {
+      combinedTax = 0;
+    }
+  }
+
+  const grandTotal = hasAnyAttached ? (combinedSubtotal + combinedTax) : totals.grandTotal;
+  const fp = Math.floor((grandTotal / 2) * 100) / 100;
+  const sp = Math.round((grandTotal - fp) * 100) / 100;
+
   return (
     <div className={`space-y-1 font-mono text-[7.5pt] ${textColor}`}>
       {!isService ? (
         <>
           {/* 1. Unified Glass Summary Sentence */}
-          <div className="flex justify-between items-baseline py-0.5">
-            <span className="font-sans font-medium capitalize">
-              {formatSealedUnitSummarySentence(lineItems)}
-            </span>
-            <span className="font-bold">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
-          </div>
-
-          {/* 2. Labour (installation) */}
-          {isInstallation && (
+          {lineItems.length > 0 && (
             <div className="flex justify-between items-baseline py-0.5">
-              <span className="font-sans">Labour</span>
-              <span className="font-semibold">+${totals.combinedLabourTotal.toFixed(2)}</span>
+              <span className="font-sans font-medium capitalize truncate max-w-[200px]">
+                {formatSealedUnitSummarySentence(lineItems)}
+              </span>
+              <span className="font-bold">${totals.glassBefore8PercentTotal.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Attached Window Units */}
+          {hasAttachedWindow && (
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="font-sans font-medium truncate max-w-[200px]">
+                {attachedWindowQuote.summarySentence || attachedWindowQuote.summaryLabel || `Attached Windows (#${attachedWindowQuote.quoteNumber})`}
+              </span>
+              <span className="font-bold">+${winBase.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Attached Window Jambs & Casing */}
+          {hasAttachedWindow && winJC > 0 && (
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="font-sans font-medium truncate max-w-[200px]">
+                {winJCDescription}
+              </span>
+              <span className="font-bold">+${winJC.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Attached Door Units (Itemized as Headings) */}
+          {hasAttachedDoor && (
+            attachedDoorQuote?.lineItems && attachedDoorQuote.lineItems.length > 0 ? (
+              attachedDoorQuote.lineItems.map((dItem: any, dIdx: number) => {
+                const q = dItem.quantity || 1;
+                const heading = formatDoorItemHeading(dItem);
+                const itemBase = (dItem.inksterBasePrice || 0) * q;
+                return (
+                  <div key={dItem.id || dIdx} className="flex justify-between items-baseline py-0.5">
+                    <span className="font-sans font-medium truncate max-w-[200px]">
+                      {heading}
+                    </span>
+                    <span className="font-bold">+${itemBase.toFixed(2)}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="flex justify-between items-baseline py-0.5">
+                <span className="font-sans font-medium truncate max-w-[200px]">
+                  Attached Doors (#{attachedDoorQuote.quoteNumber})
+                </span>
+                <span className="font-bold">+${doorMat.toFixed(2)}</span>
+              </div>
+            )
+          )}
+
+          {/* 2. Labour (installation or attached) */}
+          {(isInstallation || hasAnyAttached) && (
+            <div className="flex justify-between items-baseline py-0.5">
+              <span className="font-sans">Labour {hasAnyAttached ? '(all quotes)' : ''}</span>
+              <span className="font-semibold">+${combinedLabour.toFixed(2)}</span>
             </div>
           )}
 
           {/* 3. Miscellaneous */}
-          {isInstallation && (
+          {(isInstallation || hasAnyAttached) && (
             <div className="flex justify-between items-baseline py-0.5">
-              <span className="font-sans">Miscellaneous</span>
-              <span className="font-semibold">+${totals.miscTotal.toFixed(2)}</span>
+              <span className="font-sans">Miscellaneous {hasAnyAttached ? '(all quotes)' : ''}</span>
+              <span className="font-semibold">+${combinedMisc.toFixed(2)}</span>
             </div>
           )}
 
           {/* 4. Surcharge (8%) */}
           <div className="flex justify-between items-baseline py-0.5">
-            <span className="font-sans">Surcharge</span>
-            <span className="font-semibold">+${totals.glass8PercentSurchargeTotal.toFixed(2)}</span>
+            <span className="font-sans">Surcharge {hasAnyAttached ? '(8% on materials)' : '(8%)'}</span>
+            <span className="font-semibold">+${combinedSurcharge.toFixed(2)}</span>
           </div>
+
+          {/* Window Promo Discount */}
+          {winDiscount > 0 && (
+            <div className="flex justify-between items-baseline py-0.5 text-emerald-700 font-semibold">
+              <span className="font-sans truncate max-w-[200px]">
+                Promo ({winPromoName})
+              </span>
+              <span className="font-bold">-${winDiscount.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Door Discount */}
+          {doorDiscount > 0 && (
+            <div className="flex justify-between items-baseline py-0.5 text-emerald-700 font-semibold">
+              <span className="font-sans truncate max-w-[200px]">
+                10% Door Discount
+              </span>
+              <span className="font-bold">-${doorDiscount.toFixed(2)}</span>
+            </div>
+          )}
         </>
       ) : (
         <>
-          {/* Service Mode */}
+          {/* Service Mode with Dynamic Units Count, e.g. "1 Sealed Unit Service (Labour)" */}
           <div className="flex justify-between items-baseline py-0.5">
-            <span className="font-sans font-medium">Labour</span>
-            <span className="font-bold">${totals.combinedLabourTotal.toFixed(2)}</span>
+            <span className="font-sans font-medium">{getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)} (Labour)</span>
+            <span className="font-bold">${combinedLabour.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-baseline py-0.5">
-            <span className="font-sans">Miscellaneous</span>
-            <span className="font-semibold">+${(totals.miscTotal || 0).toFixed(2)}</span>
+            <span className="font-sans">Miscellaneous (Supplies)</span>
+            <span className="font-semibold">+${combinedMisc.toFixed(2)}</span>
           </div>
         </>
       )}
@@ -237,30 +362,32 @@ function CommonSummaryLedger({
       {/* 5. Subtotal */}
       <div className={`flex justify-between items-baseline border-t ${borderColor} pt-0.5 font-bold`}>
         <span className="font-sans">Subtotal</span>
-        <span>${totals.subtotalPreTax.toFixed(2)}</span>
+        <span>${combinedSubtotal.toFixed(2)}</span>
       </div>
 
       {/* 6. Tax */}
       <div className={`flex justify-between items-baseline py-0.5 ${subtextColor}`}>
-        <span className="font-sans">Tax</span>
-        <span>${totals.hstAmount.toFixed(2)}</span>
+        <span className="font-sans">
+          {hstRate === 8 ? 'HST (8% First Nations)' : hstRate === 0 ? 'Tax (Exempt)' : 'HST (13%)'}
+        </span>
+        <span>${combinedTax.toFixed(2)}</span>
       </div>
 
       {/* 7. Total */}
       <div className={`flex justify-between items-baseline border-t-2 ${totalBorderColor} pt-0.5 font-black text-[9pt]`}>
         <span className="font-sans uppercase">Total:</span>
-        <span>${totals.grandTotal.toFixed(2)}</span>
+        <span>${grandTotal.toFixed(2)}</span>
       </div>
 
       {/* 8. 50/50 Deposit */}
       <div className={`grid grid-cols-2 gap-1.5 pt-1 mt-0.5 border-t ${borderColor} font-sans text-center text-[7pt]`}>
         <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
           <span className="text-gray-500 uppercase block font-bold text-[6pt]">First 50%</span>
-          <span className="font-mono font-bold">${firstPayment.toFixed(2)}</span>
+          <span className="font-mono font-bold">${fp.toFixed(2)}</span>
         </div>
         <div className="border border-gray-300 rounded py-0.5 px-1 bg-white">
           <span className="text-gray-500 uppercase block font-bold text-[6pt]">Final 50%</span>
-          <span className="font-mono font-bold">${secondPayment.toFixed(2)}</span>
+          <span className="font-mono font-bold">${sp.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -283,6 +410,8 @@ export function SealedUnitPrintInvoice({
   spacing = 1.0,
   orientation = 'portrait',
   isInteractivePreview = false,
+  attachedWindowQuote,
+  attachedDoorQuote,
 }: SealedUnitPrintInvoiceProps) {
   const isService = mode === 'service_only';
   const [quoteDate, setQuoteDate] = useState<string>('');
@@ -411,67 +540,135 @@ export function SealedUnitPrintInvoice({
               <thead>
                 <tr className="bg-slate-100 text-slate-900 border-b-2 border-slate-400 font-bold uppercase text-[7.5pt] tracking-wider">
                   <th className="py-1.5 px-2 text-center w-7">#</th>
-                  <th className="py-1.5 px-2">Glass Combination &amp; Treatment</th>
-                  <th className="py-1.5 px-2">Dimensions &amp; Area</th>
-                  <th className="py-1.5 px-2">Geometry &amp; Grills</th>
+                  <th className="py-1.5 px-2">Glass Specs</th>
+                  <th className="py-1.5 px-2">Dimension</th>
+                  <th className="py-1.5 px-2">Grills</th>
                   <th className="py-1.5 px-2 text-center w-10">Qty</th>
-                  {!isService ? (
-                    <>
-                      <th className="py-1.5 px-2 text-right">Unit Price</th>
-                      <th className="py-1.5 px-2 text-right">Total Price</th>
-                    </>
-                  ) : (
-                    <th className="py-1.5 px-2 text-right">Service Area</th>
-                  )}
+                  <th className="py-1.5 px-2 text-right">Base Price</th>
+                  <th className="py-1.5 px-2 text-right">Labour</th>
+                  <th className="py-1.5 px-2 text-right">Misc</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {lineItems.length === 0 && isService ? (
                   <tr>
                     <td className="py-2 px-2 text-center text-slate-500 font-mono">1</td>
-                    <td className="py-2 px-2 font-bold text-slate-900">On-Site Sealed Unit Service &amp; Glazing</td>
-                    <td className="py-2 px-2 font-mono">{(totals.totalSqft || 0).toFixed(2)} sq ft total</td>
-                    <td className="py-2 px-2 text-slate-400">—</td>
-                    <td className="py-2 px-2 text-center font-bold">1</td>
-                    <td className="py-2 px-2 text-right font-mono font-bold">{(totals.totalSqft || 0).toFixed(2)} sq ft</td>
+                    <td className="py-2 px-2 font-mono text-slate-400">—</td>
+                    <td className="py-2 px-2 font-mono font-bold text-slate-900">{(totals.totalSqft || 0).toFixed(2)} sq ft total</td>
+                    <td className="py-2 px-2 text-slate-400 font-mono">—</td>
+                    <td className="py-2 px-2 text-center font-bold font-mono">1</td>
+                    <td className="py-2 px-2 text-right text-slate-400 font-mono">—</td>
+                    <td className="py-2 px-2 text-right font-mono font-bold text-slate-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</td>
+                    <td className="py-2 px-2 text-right font-mono text-slate-700">${(totals.miscTotal || 0).toFixed(2)}</td>
                   </tr>
                 ) : (
-                  lineItems.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50">
-                      <td className="py-1.5 px-2 text-center text-slate-500 font-mono font-bold">{idx + 1}</td>
-                      <td className="py-1.5 px-2">
-                        <div className="font-bold text-slate-900">{item.combinationName}</div>
-                        <div className="text-[7pt] text-slate-500 capitalize">
-                          {item.treatment} · {item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane'} · {item.thicknessMm}mm
-                        </div>
-                      </td>
-                      <td className="py-1.5 px-2 font-mono">
-                        <div className="font-bold text-slate-900">{item.widthIn}&quot; × {item.heightIn}&quot;</div>
-                        <div className="text-[7pt] text-slate-500 font-sans">
-                          {item.actualSqft.toFixed(2)} sqft {isService ? '' : `(${item.billableSqft} billable)`}
-                        </div>
-                      </td>
-                      <td className="py-1.5 px-2">
-                        {item.rawShapeCost > 0 && (
-                          <span className="font-semibold text-slate-800 text-[7pt] block">{item.shapeDescription}</span>
-                        )}
-                        {item.rawGrillCost > 0 ? (
-                          <span className="font-medium text-slate-700 text-[7pt] block">{item.grillDescription}</span>
-                        ) : (
-                          <span className="text-slate-400 text-[7.5pt]">Standard</span>
-                        )}
-                      </td>
-                      <td className="py-1.5 px-2 text-center font-mono font-bold text-slate-900">{item.quantity}</td>
-                      {!isService ? (
-                        <>
-                          <td className="py-1.5 px-2 text-right font-mono text-slate-800">${item.finalUnitPrice.toFixed(2)}</td>
-                          <td className="py-1.5 px-2 text-right font-mono font-bold text-slate-950">${item.lineGlassTotal.toFixed(2)}</td>
-                        </>
-                      ) : (
-                        <td className="py-1.5 px-2 text-right font-mono font-bold">{(item.actualSqft * item.quantity).toFixed(2)} sqft</td>
-                      )}
-                    </tr>
-                  ))
+                  lineItems.map((item, idx) => {
+                    const minL = labour.labourMinPerUnit ?? 120.0;
+                    const labourR = totals.effectiveLabourRate || labour.labourRatePerSqft || 14.4;
+                    const miscR = totals.effectiveMiscRate || labour.miscRatePerSqft || 2.4;
+                    const unitServiceLabour = Math.max(item.actualSqft * labourR, minL);
+                    const totalItemServiceLabour = Math.round(unitServiceLabour * item.quantity * 100) / 100;
+                    const totalItemServiceMisc = Math.round(item.actualSqft * miscR * item.quantity * 100) / 100;
+
+                    const unitInstallLabour = item.unitLabour > 0 ? Math.max(item.unitLabour, minL) : Math.max(item.actualSqft * labourR, minL);
+                    const totalInstallLabour = Math.round(unitInstallLabour * item.quantity * 100) / 100;
+
+                    const hasGrill = item.rawGrillCost > 0 || Boolean(item.grill);
+                    const grillDimText = item.grill?.colsCount && item.grill?.rowsCount
+                      ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
+                      : '';
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/50">
+                        <td className="py-1.5 px-2 text-center text-slate-500 font-mono font-bold">{idx + 1}</td>
+
+                        {/* Glass Specs: empty in service only */}
+                        <td className="py-1.5 px-2">
+                          {!isService ? (
+                            <>
+                              <div className="font-bold text-slate-900">{item.combinationName}</div>
+                              <div className="text-[7pt] text-slate-500 capitalize">
+                                {item.treatment} · {item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane'} · {item.thicknessMm}mm
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Dimension: e.g. 31" wide x 78" high  16.79 sqft */}
+                        <td className="py-1.5 px-2 font-mono">
+                          <div className="font-bold text-slate-900 whitespace-nowrap">
+                            {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                          </div>
+                          <div className="text-[7pt] text-slate-500 font-sans">
+                            {item.actualSqft.toFixed(2)} sqft {!isService && item.billableSqft !== Math.round(item.actualSqft) ? `(${item.billableSqft} billable)` : ''}
+                          </div>
+                        </td>
+
+                        {/* Grills: e.g. 3x5 / Brass grills */}
+                        <td className="py-1.5 px-2">
+                          {!isService && hasGrill ? (
+                            <div>
+                              {grillDimText ? (
+                                <div className="font-bold text-slate-900 font-mono text-[7.5pt]">
+                                  {grillDimText}
+                                </div>
+                              ) : null}
+                              <div className="text-[7pt] text-amber-800 font-semibold truncate">
+                                {item.grill?.color ? `${item.grill.color} Grills` : (item.grillDescription || 'Grills')}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Qty */}
+                        <td className="py-1.5 px-2 text-center font-mono font-bold text-slate-900">{item.quantity}</td>
+
+                        {/* Base Price: empty in service only */}
+                        <td className="py-1.5 px-2 text-right font-mono">
+                          {!isService ? (
+                            <>
+                              <div className="font-bold text-slate-950">${Number(item.multipliedTotal ?? (item.multipliedAmount ? item.multipliedAmount * item.quantity : item.lineGlassTotal || 0)).toFixed(2)}</div>
+                              <div className="text-[6.5pt] text-slate-500">${Number(item.multipliedAmount || (item.multipliedTotal ? item.multipliedTotal / item.quantity : item.finalUnitPrice || 0)).toFixed(2)}/ea</div>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Labour: min $120 enforced */}
+                        <td className="py-1.5 px-2 text-right font-mono">
+                          {isService ? (
+                            <>
+                              <div className="font-bold text-slate-900">${totalItemServiceLabour.toFixed(2)}</div>
+                              <div className="text-[6.5pt] text-slate-500">${unitServiceLabour.toFixed(2)}/ea</div>
+                            </>
+                          ) : isInstallation ? (
+                            <>
+                              <div className="font-bold text-slate-900">${totalInstallLabour.toFixed(2)}</div>
+                              <div className="text-[6.5pt] text-slate-500">${unitInstallLabour.toFixed(2)}/ea</div>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Misc */}
+                        <td className="py-1.5 px-2 text-right font-mono">
+                          {isService ? (
+                            <span className="font-medium text-slate-700">${totalItemServiceMisc.toFixed(2)}</span>
+                          ) : isInstallation ? (
+                            <span className="font-medium text-slate-700">${Number(item.totalMisc || 0).toFixed(2)}</span>
+                          ) : (
+                            <span className="text-slate-400 font-mono">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -497,6 +694,8 @@ export function SealedUnitPrintInvoice({
                   hstRate={hstRate}
                   firstPayment={firstPayment}
                   secondPayment={secondPayment}
+                  attachedWindowQuote={attachedWindowQuote}
+                  attachedDoorQuote={attachedDoorQuote}
                   textColor="text-slate-900"
                   subtextColor="text-slate-700"
                   borderColor="border-slate-300"
@@ -576,46 +775,122 @@ export function SealedUnitPrintInvoice({
             <thead>
               <tr className="bg-gray-100 border-b-2 border-gray-400 font-bold text-gray-900 uppercase text-[7.5pt]">
                 <th className="py-1 px-1.5 border-r border-gray-300 w-6 text-center">#</th>
-                <th className="py-1 px-1.5 border-r border-gray-300">Glass Spec</th>
-                <th className="py-1 px-1.5 border-r border-gray-300">Dimensions</th>
-                <th className="py-1 px-1.5 border-r border-gray-300 text-center">Shape</th>
-                <th className="py-1 px-1.5 border-r border-gray-300">Interior Grills</th>
+                <th className="py-1 px-1.5 border-r border-gray-300">Glass Specs</th>
+                <th className="py-1 px-1.5 border-r border-gray-300">Dimension</th>
+                <th className="py-1 px-1.5 border-r border-gray-300">Grills</th>
                 <th className="py-1 px-1.5 border-r border-gray-300 text-center w-8">Qty</th>
-                {!isService ? (
-                  <>
-                    <th className="py-1 px-1.5 border-r border-gray-300 text-right">Unit Price</th>
-                    <th className="py-1 px-1.5 text-right">Glass Total</th>
-                  </>
-                ) : (
-                  <th className="py-1 px-1.5 text-right">Service Sqft</th>
-                )}
+                <th className="py-1 px-1.5 border-r border-gray-300 text-right">Base Price</th>
+                <th className="py-1 px-1.5 border-r border-gray-300 text-right">Labour</th>
+                <th className="py-1 px-1.5 text-right">Misc</th>
               </tr>
             </thead>
             <tbody>
-              {lineItems.map((item, idx) => (
-                <tr key={item.id} className="border-b border-gray-300">
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono">{idx + 1}</td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 font-bold">{item.combinationName}</td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 font-mono">
-                    {item.widthIn}&quot; × {item.heightIn}&quot; ({item.actualSqft.toFixed(2)} sqft)
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center text-[7pt]">
-                    {item.rawShapeCost > 0 ? item.shapeDescription : '—'}
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-[7pt]">
-                    {item.rawGrillCost > 0 ? item.grillDescription : '—'}
-                  </td>
-                  <td className="py-1 px-1.5 border-r border-gray-300 text-center font-bold">{item.quantity}</td>
-                  {!isService ? (
-                    <>
-                      <td className="py-1 px-1.5 border-r border-gray-300 text-right font-mono">${item.finalUnitPrice.toFixed(2)}</td>
-                      <td className="py-1 px-1.5 text-right font-mono font-bold">${item.lineGlassTotal.toFixed(2)}</td>
-                    </>
-                  ) : (
-                    <td className="py-1 px-1.5 text-right font-mono">{(item.actualSqft * item.quantity).toFixed(2)} sqft</td>
-                  )}
+              {lineItems.length === 0 && isService ? (
+                <tr className="border-b border-gray-300">
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono">1</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-gray-400 font-mono">—</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 font-mono font-bold text-gray-900">{(totals.totalSqft || 0).toFixed(2)} sq ft total</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-gray-400 font-mono">—</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-center font-bold font-mono">1</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-right text-gray-400 font-mono">—</td>
+                  <td className="py-1 px-1.5 border-r border-gray-300 text-right font-mono font-bold text-gray-900">${(totals.serviceLabourTotal || 0).toFixed(2)}</td>
+                  <td className="py-1 px-1.5 text-right font-mono text-gray-700">${(totals.miscTotal || 0).toFixed(2)}</td>
                 </tr>
-              ))}
+              ) : (
+                lineItems.map((item, idx) => {
+                  const minL = labour.labourMinPerUnit ?? 120.0;
+                  const labourR = totals.effectiveLabourRate || labour.labourRatePerSqft || 14.4;
+                  const miscR = totals.effectiveMiscRate || labour.miscRatePerSqft || 2.4;
+                  const unitServiceLabour = Math.max(item.actualSqft * labourR, minL);
+                  const totalItemServiceLabour = Math.round(unitServiceLabour * item.quantity * 100) / 100;
+                  const totalItemServiceMisc = Math.round(item.actualSqft * miscR * item.quantity * 100) / 100;
+
+                  const unitInstallLabour = item.unitLabour > 0 ? Math.max(item.unitLabour, minL) : Math.max(item.actualSqft * labourR, minL);
+                  const totalInstallLabour = Math.round(unitInstallLabour * item.quantity * 100) / 100;
+
+                  const hasGrill = item.rawGrillCost > 0 || Boolean(item.grill);
+                  const grillDimText = item.grill?.colsCount && item.grill?.rowsCount
+                    ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
+                    : '';
+
+                  return (
+                    <tr key={item.id} className="border-b border-gray-300">
+                      <td className="py-1 px-1.5 border-r border-gray-300 text-center font-mono">{idx + 1}</td>
+                      <td className="py-1 px-1.5 border-r border-gray-300">
+                        {!isService ? (
+                          <>
+                            <div className="font-bold text-gray-900">{item.combinationName}</div>
+                            <div className="text-[7pt] text-gray-500 capitalize">
+                              {item.treatment} · {item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane'} · {item.thicknessMm}mm
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="py-1 px-1.5 border-r border-gray-300 font-mono">
+                        <div className="font-bold text-gray-900 whitespace-nowrap">
+                          {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                        </div>
+                        <div className="text-[7pt] text-gray-500 font-sans">
+                          {item.actualSqft.toFixed(2)} sqft {!isService && item.billableSqft !== Math.round(item.actualSqft) ? `(${item.billableSqft} billable)` : ''}
+                        </div>
+                      </td>
+                      <td className="py-1 px-1.5 border-r border-gray-300">
+                        {!isService && hasGrill ? (
+                          <div>
+                            {grillDimText ? (
+                              <div className="font-bold text-gray-900 font-mono text-[7.5pt]">
+                                {grillDimText}
+                              </div>
+                            ) : null}
+                            <div className="text-[7pt] text-amber-800 font-semibold truncate">
+                              {item.grill?.color ? `${item.grill.color} Grills` : (item.grillDescription || 'Grills')}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="py-1 px-1.5 border-r border-gray-300 text-center font-bold font-mono">{item.quantity}</td>
+                      <td className="py-1 px-1.5 border-r border-gray-300 text-right font-mono">
+                        {!isService ? (
+                          <>
+                            <div className="font-bold text-gray-900">${Number(item.multipliedTotal ?? (item.multipliedAmount ? item.multipliedAmount * item.quantity : item.lineGlassTotal || 0)).toFixed(2)}</div>
+                            <div className="text-[6.5pt] text-gray-500">${Number(item.multipliedAmount || (item.multipliedTotal ? item.multipliedTotal / item.quantity : item.finalUnitPrice || 0)).toFixed(2)}/ea</div>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="py-1 px-1.5 border-r border-gray-300 text-right font-mono">
+                        {isService ? (
+                          <>
+                            <div className="font-bold text-gray-900">${totalItemServiceLabour.toFixed(2)}</div>
+                            <div className="text-[6.5pt] text-gray-500">${unitServiceLabour.toFixed(2)}/ea</div>
+                          </>
+                        ) : isInstallation ? (
+                          <>
+                            <div className="font-bold text-gray-900">${totalInstallLabour.toFixed(2)}</div>
+                            <div className="text-[6.5pt] text-gray-500">${unitInstallLabour.toFixed(2)}/ea</div>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="py-1 px-1.5 text-right font-mono">
+                        {isService ? (
+                          <span className="font-medium text-gray-700">${totalItemServiceMisc.toFixed(2)}</span>
+                        ) : isInstallation ? (
+                          <span className="font-medium text-gray-700">${Number(item.totalMisc || 0).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-gray-400 font-mono">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
 
@@ -636,6 +911,8 @@ export function SealedUnitPrintInvoice({
                   hstRate={hstRate}
                   firstPayment={firstPayment}
                   secondPayment={secondPayment}
+                  attachedWindowQuote={attachedWindowQuote}
+                  attachedDoorQuote={attachedDoorQuote}
                   textColor="text-gray-900"
                   subtextColor="text-gray-700"
                   borderColor="border-gray-300"
@@ -788,6 +1065,8 @@ export function SealedUnitPrintInvoice({
                   hstRate={hstRate}
                   firstPayment={firstPayment}
                   secondPayment={secondPayment}
+                  attachedWindowQuote={attachedWindowQuote}
+                  attachedDoorQuote={attachedDoorQuote}
                   textColor="text-zinc-900"
                   subtextColor="text-zinc-700"
                   borderColor="border-zinc-300"

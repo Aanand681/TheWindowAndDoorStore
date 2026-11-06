@@ -32,6 +32,8 @@ export interface SealedUnitPreviewModalProps {
   quoteNumber: string;
   preparedBy?: string;
   totals: any;
+  attachedWindowQuote?: any | null;
+  attachedDoorQuote?: any | null;
 }
 
 export function SealedUnitPreviewModal({
@@ -54,6 +56,8 @@ export function SealedUnitPreviewModal({
   quoteNumber,
   preparedBy,
   totals,
+  attachedWindowQuote,
+  attachedDoorQuote,
 }: SealedUnitPreviewModalProps) {
   const [mounted, setMounted] = useState(false);
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -340,6 +344,8 @@ export function SealedUnitPreviewModal({
               spacing={spacing}
               orientation={orientation}
               isInteractivePreview={true}
+              attachedWindowQuote={attachedWindowQuote}
+              attachedDoorQuote={attachedDoorQuote}
             />
           </div>
         </div>

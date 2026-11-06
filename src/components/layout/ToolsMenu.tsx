@@ -51,6 +51,7 @@ export default function ToolsMenu({ currentPath, className }: ToolsMenuProps) {
   const isStudioActive = currentPath === '/quote-studio';
   const isUpgradeActive = currentPath === '/upgrade-calculator';
   const isSealedUnitsActive = currentPath === '/sealed-units';
+  const isDoorsActive = currentPath === '/doors';
 
   return (
     <div className={cn('relative inline-block text-left', className)} ref={menuRef}>
@@ -60,7 +61,7 @@ export default function ToolsMenu({ currentPath, className }: ToolsMenuProps) {
         className={cn(
           buttonVariants({ variant: 'outline', size: 'sm' }),
           'gap-1.5 rounded-full text-xs font-medium bg-card/50 backdrop-blur transition-all cursor-pointer shadow-xs',
-          isStudioActive || isUpgradeActive || isSealedUnitsActive
+          isStudioActive || isUpgradeActive || isSealedUnitsActive || isDoorsActive
             ? 'border-primary text-primary bg-primary/10 hover:bg-primary/15'
             : 'border-border/60 hover:bg-muted/30 text-muted-foreground hover:text-foreground'
         )}
@@ -187,23 +188,37 @@ export default function ToolsMenu({ currentPath, className }: ToolsMenuProps) {
               </div>
             </Link>
 
-            {/* Tool 2: Door Calculator (Coming Soon) */}
-            <div className="flex items-start gap-3 p-2.5 rounded-xl border border-dashed border-border/60 bg-muted/20 opacity-70 cursor-not-allowed select-none">
-              <div className="p-2 rounded-lg shrink-0 bg-muted text-muted-foreground">
+            {/* Tool 4: Door Calculator */}
+            <Link
+              href="/doors"
+              onClick={() => setIsOpen(false)}
+              className={cn(
+                'group flex items-start gap-3 p-2.5 rounded-xl transition-all cursor-pointer border',
+                isDoorsActive
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                  : 'border-transparent hover:bg-muted/60 text-foreground'
+              )}
+            >
+              <div
+                className={cn(
+                  'p-2 rounded-lg shrink-0 transition-colors',
+                  isDoorsActive
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white'
+                )}
+              >
                 <DoorClosed className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs font-semibold text-muted-foreground">Door Calculator</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-semibold">
-                    Coming Soon
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold">Door Calculator</span>
+                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  Exterior entry doors &amp; slab pricing engine
+                  Door &amp; installation pricing, 10% discount &amp; tax
                 </p>
               </div>
-            </div>
+            </Link>
 
             {/* Estimator Guide Quick Action */}
             <div className="pt-1 border-t border-border/60">

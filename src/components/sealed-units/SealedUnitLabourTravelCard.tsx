@@ -106,45 +106,11 @@ export function SealedUnitLabourTravelCard({
             </p>
           </div>
 
-          {/* Distinct Scope Selector Badges */}
-          <div className="inline-flex p-1 bg-muted/60 rounded-xl border border-border/60 text-xs gap-1">
-            <button
-              type="button"
-              onClick={() => handleSelectMode('supply_only')}
-              className={cn(
-                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer text-xs',
-                currentMode === 'supply_only'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Supply Only
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectMode('installation')}
-              className={cn(
-                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
-                currentMode === 'installation'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Wrench className="w-3 h-3" />
-              <span>Installation</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectMode('service_only')}
-              className={cn(
-                'px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 text-xs',
-                currentMode === 'service_only'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <span>Service Only</span>
-            </button>
+          {/* Active Scope Badge (Controlled from Summary Card) */}
+          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-muted text-muted-foreground border border-border/60 uppercase tracking-wider font-mono">
+              {currentMode === 'service_only' ? 'Service Only Scope' : currentMode === 'supply_only' ? 'Supply Only Scope' : 'Installation Scope'}
+            </span>
           </div>
         </div>
       </div>

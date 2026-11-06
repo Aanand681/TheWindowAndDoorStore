@@ -103,14 +103,33 @@ export function calculateSealedUnitTotals(params: SealedUnitCalculationParams): 
     ? 0
     : lineItems.reduce((acc, item) => acc + item.lineGlassTotal, 0);
 
-  // Sqft-based Service Labour
-  const serviceLabourTotal = isServiceOnly
-    ? Math.round(effectiveServiceSqft * effectiveLabourRate * 100) / 100
-    : 0;
+  const minLabourPerUnit = labour.labourMinPerUnit ?? 120.0;
 
-  // Installation unit-based labour
+  // Sqft-based Service Labour (enforces minimum labour per unit from database settings)
+  let serviceLabourTotal = 0;
+  if (isServiceOnly) {
+    if (lineItems.length > 0) {
+      serviceLabourTotal = lineItems.reduce((acc, item) => {
+        const itemLabour = Math.max(item.actualSqft * effectiveLabourRate, minLabourPerUnit);
+        return acc + itemLabour * item.quantity;
+      }, 0);
+      if (serviceSqftInput.trim() !== '') {
+        const manualSqft = parseFloat(serviceSqftInput) || 0;
+        const manualLabour = manualSqft > 0 ? Math.max(manualSqft * effectiveLabourRate, minLabourPerUnit) : 0;
+        serviceLabourTotal = Math.max(serviceLabourTotal, manualLabour);
+      }
+    } else {
+      serviceLabourTotal = effectiveServiceSqft > 0 ? Math.max(effectiveServiceSqft * effectiveLabourRate, minLabourPerUnit) : 0;
+    }
+    serviceLabourTotal = Math.round(serviceLabourTotal * 100) / 100;
+  }
+
+  // Installation unit-based labour (enforces minimum labour per unit from database settings)
   const unitLabourSum = isInstallation
-    ? lineItems.reduce((acc, item) => acc + item.totalLabour, 0)
+    ? lineItems.reduce((acc, item) => {
+        const unitL = item.unitLabour > 0 ? Math.max(item.unitLabour, minLabourPerUnit) : Math.max(item.actualSqft * (labour.labourRatePerSqft || 14.4), minLabourPerUnit);
+        return acc + unitL * item.quantity;
+      }, 0)
     : 0;
 
   // Misc / consumables

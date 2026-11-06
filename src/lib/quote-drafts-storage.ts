@@ -4,7 +4,7 @@
  * for both Window Calculator and Sealed Unit Calculator.
  */
 
-export type QuoteType = 'window' | 'sealed_unit';
+export type QuoteType = 'window' | 'sealed_unit' | 'door';
 
 export interface WindowQuoteDraftPayload {
   quoteNumber: string;
@@ -18,18 +18,27 @@ export interface WindowQuoteDraftPayload {
   supplyJambRate?: string;
   supplyCasingId?: string;
   supplyCasingRate?: string;
-  customJC?: number;
-  customMisc?: number;
-  customLabour?: number;
+  customJC?: string | number;
+  customMisc?: string | number;
+  customLabour?: string | number;
   includeJCInPromo?: boolean;
   includeMiscInPromo?: boolean;
   includeLabourInPromo?: boolean;
   hstRate?: number;
   attachedUpgrade?: any;
   attachedSealedUnit?: any;
+  attachedDoorQuote?: any;
+  wantsUpgrade?: boolean;
   subtotal: number;
   grandTotal: number;
   itemCount: number;
+  effectiveBase?: number;
+  effectiveSurcharge?: number;
+  effectiveLabour?: number;
+  effectiveMisc?: number;
+  effectiveJC?: number;
+  taxTotals?: any;
+  quoteResult?: any;
 }
 
 export interface SealedUnitQuoteDraftPayload {
@@ -49,6 +58,33 @@ export interface SealedUnitQuoteDraftPayload {
   crewHours: string;
   crewSize: '2' | '3';
   hstRate: number;
+  attachedWindowQuote?: any;
+  attachedDoorQuote?: any;
+  wantsUpgrade?: boolean;
+  subtotal: number;
+  grandTotal: number;
+  itemCount: number;
+  totals?: any;
+}
+
+export interface DoorQuoteDraftPayload {
+  quoteNumber: string;
+  customerName: string;
+  quoteNotes: string;
+  mode: 'installation' | 'supply_only' | 'office_reference';
+  lineItems: any[];
+  globalUpcharges: any[];
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
+  customTravelFee: string;
+  showOutTownTravel: boolean;
+  travelKm: string;
+  crewHours: string;
+  crewSize: '2' | '3';
+  isFirstNation: boolean;
+  customLabour?: string | number;
+  customMisc?: string | number;
+  attachedWindowQuote?: any;
+  attachedSealedUnit?: any;
   subtotal: number;
   grandTotal: number;
   itemCount: number;
@@ -66,7 +102,7 @@ export interface QuoteDraftItem {
   subtotal: number;
   grandTotal: number;
   summaryLabel: string;
-  data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload;
+  data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload | DoorQuoteDraftPayload;
 }
 
 export interface ActiveAutoSaveDraft {
@@ -77,12 +113,13 @@ export interface ActiveAutoSaveDraft {
   itemCount: number;
   grandTotal: number;
   summaryLabel: string;
-  data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload;
+  data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload | DoorQuoteDraftPayload;
 }
 
 const SAVED_DRAFTS_STORAGE_KEY = 'vwd_saved_quote_drafts_v1';
 const AUTOSAVE_WINDOW_KEY = 'vwd_autosave_window_v1';
 const AUTOSAVE_SEALED_UNIT_KEY = 'vwd_autosave_sealed_unit_v1';
+const AUTOSAVE_DOOR_KEY = 'vwd_autosave_door_v1';
 
 export const DRAFT_CHANGE_EVENT = 'vwd_drafts_updated';
 
@@ -268,11 +305,16 @@ export function saveActiveAutoSave(
     itemCount: number;
     grandTotal: number;
     summaryLabel: string;
-    data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload;
+    data: WindowQuoteDraftPayload | SealedUnitQuoteDraftPayload | DoorQuoteDraftPayload;
   }
 ): void {
   if (typeof window === 'undefined') return;
-  const key = type === 'window' ? AUTOSAVE_WINDOW_KEY : AUTOSAVE_SEALED_UNIT_KEY;
+  const key =
+    type === 'window'
+      ? AUTOSAVE_WINDOW_KEY
+      : type === 'sealed_unit'
+      ? AUTOSAVE_SEALED_UNIT_KEY
+      : AUTOSAVE_DOOR_KEY;
   const autoSave: ActiveAutoSaveDraft = {
     timestamp: new Date().toISOString(),
     type,
@@ -320,6 +362,12 @@ function isDraftMeaningful(type: QuoteType, draft: ActiveAutoSaveDraft): boolean
     return false;
   }
 
+  if (type === 'door') {
+    const doorData = draft.data as DoorQuoteDraftPayload;
+    const lineItems = doorData.lineItems || [];
+    return lineItems.length > 0;
+  }
+
   return false;
 }
 
@@ -328,7 +376,12 @@ function isDraftMeaningful(type: QuoteType, draft: ActiveAutoSaveDraft): boolean
  */
 export function getActiveAutoSave(type: QuoteType): ActiveAutoSaveDraft | null {
   if (typeof window === 'undefined') return null;
-  const key = type === 'window' ? AUTOSAVE_WINDOW_KEY : AUTOSAVE_SEALED_UNIT_KEY;
+  const key =
+    type === 'window'
+      ? AUTOSAVE_WINDOW_KEY
+      : type === 'sealed_unit'
+      ? AUTOSAVE_SEALED_UNIT_KEY
+      : AUTOSAVE_DOOR_KEY;
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
@@ -350,7 +403,12 @@ export function getActiveAutoSave(type: QuoteType): ActiveAutoSaveDraft | null {
  */
 export function clearActiveAutoSave(type: QuoteType): void {
   if (typeof window === 'undefined') return;
-  const key = type === 'window' ? AUTOSAVE_WINDOW_KEY : AUTOSAVE_SEALED_UNIT_KEY;
+  const key =
+    type === 'window'
+      ? AUTOSAVE_WINDOW_KEY
+      : type === 'sealed_unit'
+      ? AUTOSAVE_SEALED_UNIT_KEY
+      : AUTOSAVE_DOOR_KEY;
   try {
     localStorage.removeItem(key);
   } catch (err) {

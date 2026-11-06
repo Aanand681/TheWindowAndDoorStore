@@ -21,6 +21,18 @@ export interface ISavedQuote extends Document {
   quoteNotes: string;
   surchargeRate: number;
   activePromoId?: string;
+  customJC?: string | number;
+  customMisc?: string | number;
+  customLabour?: string | number;
+  includeJCInPromo?: boolean;
+  includeMiscInPromo?: boolean;
+  includeLabourInPromo?: boolean;
+  attachedUpgrade?: any;
+  attachedSealedUnit?: any;
+  attachedDoorQuote?: any;
+  wantsUpgrade?: boolean;
+  isSupplyOnly?: boolean;
+  isServiceOnly?: boolean;
 
   // Odoo Entry Tracking
   odooAssignedTo?: string;
@@ -118,6 +130,54 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     activePromoId: {
       type: String,
       default: 'none',
+    },
+    customJC: {
+      type: Schema.Types.Mixed,
+      default: '',
+    },
+    customMisc: {
+      type: Schema.Types.Mixed,
+      default: '',
+    },
+    customLabour: {
+      type: Schema.Types.Mixed,
+      default: '',
+    },
+    includeJCInPromo: {
+      type: Boolean,
+      default: true,
+    },
+    includeMiscInPromo: {
+      type: Boolean,
+      default: true,
+    },
+    includeLabourInPromo: {
+      type: Boolean,
+      default: true,
+    },
+    attachedUpgrade: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    attachedSealedUnit: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    attachedDoorQuote: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    wantsUpgrade: {
+      type: Boolean,
+      default: false,
+    },
+    isSupplyOnly: {
+      type: Boolean,
+      default: false,
+    },
+    isServiceOnly: {
+      type: Boolean,
+      default: false,
     },
     reviewedAt: {
       type: Date,

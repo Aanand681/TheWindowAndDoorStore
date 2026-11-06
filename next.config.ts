@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       'sonner',
       'framer-motion',
       'pdf-lib',
+      'date-fns',
     ],
   },
 

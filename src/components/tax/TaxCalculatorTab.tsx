@@ -80,7 +80,7 @@ export default function TaxCalculatorTab({
     { crewSize: '4', hourlyRate: 500 }
   ]);
 
-  const isSupplyOnly = Boolean(isSupplyOnlyProp || savedTaxTotals?.isSupplyOnly);
+  const isSupplyOnly = Boolean(isSupplyOnlyProp);
 
   const [addons, setAddons] = useState<Record<string, string>>({});
   
@@ -335,10 +335,23 @@ export default function TaxCalculatorTab({
   const region = regions.find(r => r._id === selectedRegionId);
   const effectiveIsSupplyOnly = isSupplyOnly || Boolean(isSupplyOnlyProp || region?.isSupplyOnly || region?.name?.toLowerCase().includes('supply'));
 
+  const lastInstallJambIdRef = React.useRef<string>('j3');
+  const lastInstallCasingIdRef = React.useRef<string>('vinyl');
+
   useEffect(() => {
     if (effectiveIsSupplyOnly) {
+      if (jambId !== 'none') lastInstallJambIdRef.current = jambId;
+      if (casingId !== 'none') lastInstallCasingIdRef.current = casingId;
       setJambId('none');
       setCasingId('none');
+    } else {
+      // Switched back to Installation mode: restore default or previously selected jambs/casings
+      if (jambId === 'none') {
+        setJambId(lastInstallJambIdRef.current || 'j3');
+      }
+      if (casingId === 'none') {
+        setCasingId(lastInstallCasingIdRef.current || 'vinyl');
+      }
     }
   }, [effectiveIsSupplyOnly]);
 

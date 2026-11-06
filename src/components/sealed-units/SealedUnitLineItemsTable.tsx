@@ -11,6 +11,7 @@ export interface SealedUnitLineItemsTableProps {
   mode?: 'installation' | 'supply_only' | 'service_only';
   labourRate?: number;
   miscRate?: number;
+  labourMin?: number;
   onRemoveItem: (id: string) => void;
   onResetQuote: () => void;
 }
@@ -21,10 +22,13 @@ export function SealedUnitLineItemsTable({
   mode = 'installation',
   labourRate = 14.40,
   miscRate = 2.40,
+  labourMin = 120.0,
   onRemoveItem,
   onResetQuote,
 }: SealedUnitLineItemsTableProps) {
   const isService = mode === 'service_only';
+  const isSupply = mode === 'supply_only';
+  const isInstall = mode === 'installation';
 
   return (
     <div className="bg-card/60 border border-border/80 backdrop-blur-xl shadow-xl rounded-2xl overflow-hidden">
@@ -36,8 +40,8 @@ export function SealedUnitLineItemsTable({
           </div>
           <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
             {isService
-              ? 'Individual glass units being serviced on-site. Labour & misc service charges are calculated on actual square footage.'
-              : 'Review individual glass specs, grill designs, manufacturing pricing, and installation lines.'}
+              ? 'On-site service charges: Labour is calculated on actual square footage (min $120.00/unit).'
+              : 'Review glass specifications, grill layout, manufacturing base price, labour, and misc.'}
           </p>
         </div>
         {lineItems.length > 0 && (
@@ -62,129 +66,168 @@ export function SealedUnitLineItemsTable({
             </div>
             <p className="text-xs text-muted-foreground/80 max-w-sm mx-auto">
               {isService
-                ? 'On-site service is charged on total square footage in the Labour & Settings card above. Adding individual glass specs here is optional.'
+                ? 'Configure your glass units above to calculate itemized service labour and dimensions.'
                 : 'Configure your first sealed unit above and click "Add to Quote".'}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-muted/40 text-muted-foreground font-semibold border-b border-border/50">
+              <thead className="bg-muted/40 text-muted-foreground font-semibold border-b border-border/50 text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="py-2 px-2.5">#</th>
-                  <th className="py-2 px-2.5">Glass Spec &amp; Combo</th>
-                  <th className="py-2 px-2.5">Dimensions &amp; Sq Ft</th>
-                  <th className="py-2 px-2.5">Interior Grill</th>
-                  <th className="py-2 px-2.5 text-center">Qty</th>
-                  {!isService ? (
-                    <>
-                      <th className="py-2 px-2.5 text-right">Unit Price</th>
-                      <th className="py-2 px-2.5 text-right">Glass Total</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="py-2 px-2.5 text-right">Service Labour</th>
-                      <th className="py-2 px-2.5 text-right">Service Misc</th>
-                      <th className="py-2 px-2.5 text-right">Line Total</th>
-                    </>
-                  )}
-                  {isInstallation && (
-                    <>
-                      <th className="py-2 px-2.5 text-right">Labour</th>
-                      <th className="py-2 px-2.5 text-right">Misc</th>
-                    </>
-                  )}
-                  <th className="py-2 px-2.5 text-center">Action</th>
+                  <th className="py-2.5 px-2.5 text-center w-8">#</th>
+                  <th className="py-2.5 px-2.5">Glass Specs</th>
+                  <th className="py-2.5 px-2.5">Dimension</th>
+                  <th className="py-2.5 px-2.5">Grills</th>
+                  <th className="py-2.5 px-2 text-center w-12">Qty</th>
+                  <th className="py-2.5 px-2.5 text-right w-24">Base Price</th>
+                  <th className="py-2.5 px-2.5 text-right w-24">Labour</th>
+                  <th className="py-2.5 px-2.5 text-right w-20">Misc</th>
+                  <th className="py-2.5 px-2.5 text-right w-24">Line Total</th>
+                  <th className="py-2.5 px-2.5 text-center w-12">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40 font-mono">
+              <tbody className="divide-y divide-border/40">
                 {lineItems.map((item, idx) => {
-                  const lineSqft = item.actualSqft * item.quantity;
-                  const lineServiceLabour = Math.round(lineSqft * labourRate * 100) / 100;
-                  const lineServiceMisc = Math.round(lineSqft * miscRate * 100) / 100;
-                  const lineServiceTotal = Math.round((lineServiceLabour + lineServiceMisc) * 100) / 100;
+                  const unitServiceLabour = Math.max(item.actualSqft * labourRate, labourMin);
+                  const totalItemServiceLabour = Math.round(unitServiceLabour * item.quantity * 100) / 100;
+                  const unitServiceMisc = Math.round(item.actualSqft * miscRate * 100) / 100;
+                  const totalItemServiceMisc = Math.round(unitServiceMisc * item.quantity * 100) / 100;
+
+                  const lineTotal = isService
+                    ? Math.round((totalItemServiceLabour + totalItemServiceMisc) * 100) / 100
+                    : isInstall
+                    ? Math.round((item.lineGlassTotal + item.totalLabour + item.totalMisc) * 100) / 100
+                    : item.lineGlassTotal;
+
+                  const hasGrill = item.rawGrillCost > 0 || Boolean(item.grill);
+                  const grillDimText = item.grill?.colsCount && item.grill?.rowsCount
+                    ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
+                    : '';
 
                   return (
                     <tr key={item.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-2.5 px-2.5 text-muted-foreground font-semibold">{idx + 1}</td>
-                      <td className="py-2.5 px-2.5 font-sans">
-                        <div className="font-bold text-foreground">{item.combinationName}</div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <span className="capitalize font-semibold">{item.treatment}</span>
-                          <span>•</span>
-                          <span className="uppercase font-semibold text-foreground">{item.paneType}</span>
-                          <span>•</span>
-                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px] text-foreground">
-                            {item.thicknessMm}mm
-                          </span>
-                        </div>
+                      <td className="py-2.5 px-2.5 text-muted-foreground font-semibold text-center font-mono">
+                        {idx + 1}
                       </td>
-                      <td className="py-2.5 px-2.5">
-                        <div className="font-bold text-foreground">
-                          {item.widthIn}&quot; × {item.heightIn}&quot;
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {item.actualSqft.toFixed(2)} sqft {isService ? '' : `→ ${item.billableSqft} sqft billed`}
-                        </div>
-                        {item.rawShapeCost > 0 && (
-                          <div className="text-[10px] font-sans font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
-                            {item.shapeDescription}
-                          </div>
+
+                      {/* Glass Specs: Empty in Service Only */}
+                      <td className="py-2.5 px-2.5 font-sans">
+                        {!isService ? (
+                          <>
+                            <div className="font-bold text-foreground">{item.combinationName}</div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <span className="capitalize font-semibold">{item.treatment}</span>
+                              <span>•</span>
+                              <span className="uppercase font-semibold">{item.paneType}</span>
+                              <span>•</span>
+                              <span className="font-mono bg-muted px-1 rounded text-[10px]">
+                                {item.thicknessMm}mm
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground font-mono">—</span>
                         )}
                       </td>
+
+                      {/* Dimension: e.g. 31" wide × 78" high (16.79 sqft) */}
                       <td className="py-2.5 px-2.5 font-sans">
-                        {item.rawGrillCost > 0 ? (
-                          <div className="max-w-[200px]">
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                              {item.grillDescription}
-                            </span>
-                            {!isService && (
-                              <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                                +${item.rawGrillCost.toFixed(2)} raw
+                        <div className="font-bold text-foreground whitespace-nowrap">
+                          {item.widthIn}&quot; wide × {item.heightIn}&quot; high
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                          {item.actualSqft.toFixed(2)} sqft
+                          {!isService && item.billableSqft !== Math.round(item.actualSqft) ? ` (${item.billableSqft} billable)` : ''}
+                        </div>
+                      </td>
+
+                      {/* Grills: e.g. 3 x 5 / Brass Grills */}
+                      <td className="py-2.5 px-2.5 font-sans">
+                        {!isService && hasGrill ? (
+                          <div>
+                            {grillDimText ? (
+                              <div className="font-bold text-foreground font-mono text-[11px]">
+                                {grillDimText}
                               </div>
-                            )}
+                            ) : null}
+                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold truncate">
+                              {item.grill?.color ? `${item.grill.color} Grills` : (item.grillDescription || 'Grills')}
+                            </div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-[11px]">None</span>
+                          <span className="text-muted-foreground font-mono">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-center font-bold text-foreground">{item.quantity}</td>
-                      {!isService ? (
-                        <>
-                          <td className="py-2.5 px-2.5 text-right">
-                            <div className="font-bold text-foreground">${item.finalUnitPrice.toFixed(2)}</div>
-                            <div className="text-[10px] text-muted-foreground">
-                              Pre-8%: ${item.multipliedAmount.toFixed(2)} + 8%: ${item.surcharge8PercentAmount.toFixed(2)}
+
+                      {/* Qty */}
+                      <td className="py-2.5 px-2 text-center font-bold font-mono text-foreground">
+                        {item.quantity}
+                      </td>
+
+                      {/* Base Price: Clean base price before 8% surcharge (Empty in Service Only) */}
+                      <td className="py-2.5 px-2.5 text-right font-mono">
+                        {!isService ? (
+                          <>
+                            <div className="font-bold text-foreground">
+                              ${(item.multipliedTotal ?? (item.multipliedAmount * item.quantity)).toFixed(2)}
                             </div>
-                          </td>
-                          <td className="py-3 px-3 text-right font-black text-emerald-600 dark:text-emerald-400">
-                            ${item.lineGlassTotal.toFixed(2)}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="py-3 px-3 text-right text-foreground font-bold">
-                            ${lineServiceLabour.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-3 text-right text-muted-foreground">
-                            ${lineServiceMisc.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-3 text-right font-bold font-mono text-foreground">
-                            ${lineServiceTotal.toFixed(2)}
-                          </td>
-                        </>
-                      )}
-                      {isInstallation && (
-                        <>
-                          <td className="py-3 px-3 text-right text-muted-foreground">
-                            ${item.totalLabour.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-3 text-right text-muted-foreground">
+                            <div className="text-[10px] text-muted-foreground">
+                              ${Number(item.multipliedAmount || (item.multipliedTotal ? item.multipliedTotal / item.quantity : 0)).toFixed(2)}/ea
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+
+                      {/* Labour: Populated in Service Only (min $120) and Installation */}
+                      <td className="py-2.5 px-2.5 text-right font-mono">
+                        {isService ? (
+                          <>
+                            <div className="font-bold text-foreground">
+                              ${totalItemServiceLabour.toFixed(2)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              ${unitServiceLabour.toFixed(2)}/ea
+                            </div>
+                          </>
+                        ) : isInstall ? (
+                          <>
+                            <div className="font-bold text-foreground">
+                              ${item.totalLabour.toFixed(2)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              ${item.unitLabour.toFixed(2)}/ea
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+
+                      {/* Misc */}
+                      <td className="py-2.5 px-2.5 text-right font-mono">
+                        {isService ? (
+                          <span className="font-medium text-muted-foreground">
+                            ${totalItemServiceMisc.toFixed(2)}
+                          </span>
+                        ) : isInstall ? (
+                          <span className="font-medium text-muted-foreground">
                             ${item.totalMisc.toFixed(2)}
-                          </td>
-                        </>
-                      )}
-                      <td className="py-3 px-3 text-center">
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+
+                      {/* Line Total */}
+                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-foreground">
+                        ${lineTotal.toFixed(2)}
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-2.5 px-2.5 text-center">
                         <button
                           type="button"
                           onClick={() => onRemoveItem(item.id)}

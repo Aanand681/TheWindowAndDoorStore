@@ -135,6 +135,18 @@ export async function PUT(
     if (body.preparerNotes !== undefined) updateData.preparerNotes = body.preparerNotes;
     if (body.assignedTo !== undefined) updateData.assignedTo = body.assignedTo;
     if (body.isStarred !== undefined) updateData.isStarred = Boolean(body.isStarred);
+    if (body.customJC !== undefined) updateData.customJC = body.customJC;
+    if (body.customMisc !== undefined) updateData.customMisc = body.customMisc;
+    if (body.customLabour !== undefined) updateData.customLabour = body.customLabour;
+    if (body.includeJCInPromo !== undefined) updateData.includeJCInPromo = body.includeJCInPromo;
+    if (body.includeMiscInPromo !== undefined) updateData.includeMiscInPromo = body.includeMiscInPromo;
+    if (body.includeLabourInPromo !== undefined) updateData.includeLabourInPromo = body.includeLabourInPromo;
+    if (body.attachedUpgrade !== undefined) updateData.attachedUpgrade = body.attachedUpgrade;
+    if (body.attachedSealedUnit !== undefined) updateData.attachedSealedUnit = body.attachedSealedUnit;
+    if (body.attachedDoorQuote !== undefined) updateData.attachedDoorQuote = body.attachedDoorQuote;
+    if (body.wantsUpgrade !== undefined) updateData.wantsUpgrade = body.wantsUpgrade;
+    if (body.isSupplyOnly !== undefined) updateData.isSupplyOnly = body.isSupplyOnly;
+    if (body.isServiceOnly !== undefined) updateData.isServiceOnly = body.isServiceOnly;
 
     // Odoo Post-Approval Workflow Fields
     if (body.odooAssignedTo !== undefined) {

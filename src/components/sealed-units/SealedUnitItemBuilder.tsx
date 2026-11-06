@@ -8,6 +8,7 @@ import {
   Shapes,
   Bookmark,
   FolderOpen,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ export interface SealedUnitItemBuilderProps {
   setHeightInput: (h: string) => void;
   qtyInput: string;
   setQtyInput: (q: string) => void;
+  onResetQuote?: () => void;
   // Grill state
   grillType: GrillType;
   setGrillType: (g: GrillType) => void;
@@ -91,6 +93,7 @@ export function SealedUnitItemBuilder({
   setHeightInput,
   qtyInput,
   setQtyInput,
+  onResetQuote,
   grillType,
   setGrillType,
   grillProfile,
@@ -141,14 +144,29 @@ export function SealedUnitItemBuilder({
   return (
     <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20">
-        <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
-          <Layers className="w-4 h-4 text-primary" />
-          <span>Unit Specifications &amp; Glass Config</span>
+      <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20 flex items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+            <Layers className="w-4 h-4 text-primary" />
+            <span>Unit Specifications &amp; Glass Config</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+            Select treatment, combo, shape, and dimensions with live fraction parsing.
+          </p>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
-          Select treatment, combo, shape, and dimensions with live fraction parsing.
-        </p>
+        {onResetQuote && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onResetQuote}
+            className="gap-1 text-xs text-destructive hover:bg-destructive/10 h-7 px-2 cursor-pointer shrink-0"
+            title="Reset quote & start fresh"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset</span>
+          </Button>
+        )}
       </div>
 
       <div className="p-3 sm:p-3.5 space-y-3">
@@ -163,7 +181,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'annealed'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -175,7 +193,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   treatment === 'tempered'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -215,7 +233,7 @@ export function SealedUnitItemBuilder({
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   !hasDualPane && 'opacity-40 cursor-not-allowed line-through',
                   selectedPane === 'dual'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -227,7 +245,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer',
                   selectedPane === 'triple'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -249,7 +267,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rectangle'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -262,7 +280,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'rakehead_triangle'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -277,7 +295,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   shape === 'roundtop_circle_octagon'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -352,7 +370,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'none'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -364,7 +382,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'grid'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -376,7 +394,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '3_burst'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -391,7 +409,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === '5_burst'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -403,7 +421,7 @@ export function SealedUnitItemBuilder({
                 className={cn(
                   'px-2 py-1 rounded-lg border font-semibold transition-all cursor-pointer text-center',
                   grillType === 'customer_own'
-                    ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 font-bold shadow-xs'
+                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                     : 'bg-background hover:bg-muted text-muted-foreground border-border/70'
                 )}
               >
@@ -457,7 +475,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'pattern'
-                            ? 'bg-zinc-800 text-white font-bold dark:bg-zinc-100 dark:text-zinc-900'
+                            ? 'bg-primary/15 text-primary font-bold'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -470,7 +488,7 @@ export function SealedUnitItemBuilder({
                         className={cn(
                           'px-2 py-0.5 rounded cursor-pointer font-bold',
                           grillPatternMode === 'manual'
-                            ? 'bg-zinc-800 text-white font-bold dark:bg-zinc-100 dark:text-zinc-900'
+                            ? 'bg-primary/15 text-primary font-bold'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -583,7 +601,7 @@ export function SealedUnitItemBuilder({
           <div className="flex gap-2 pt-0.5">
             <Button
               type="submit"
-              className="flex-1 h-9 text-xs font-bold bg-black hover:bg-zinc-800 text-white shadow-sm cursor-pointer gap-1.5 transition-colors"
+              className="flex-1 h-9 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer gap-1.5 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add to Quote</span>

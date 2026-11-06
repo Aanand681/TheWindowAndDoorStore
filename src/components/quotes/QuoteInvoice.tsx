@@ -2,15 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { formatMoney, toCents } from '@/lib/promo-logic';
+import { formatDoorSummarySentence, formatDoorItemHeading } from '@/lib/doors/calculations';
+import { formatSealedUnitSummarySentence, getSealedUnitServiceSummaryLabel } from '@/lib/sealed-units-logic';
 
 export type QuoteTemplateType = 'modern' | 'executive' | 'cards';
 
 export interface QuoteInvoiceProps {
   customerName?: string;
   quoteNumber?: string;
-  windows: any[];
+  primaryQuoteType?: 'window' | 'sealed_unit' | 'door';
+  windows?: any[];
+  sealedUnits?: any[];
+  doors?: any[];
   taxTotals?: any;
   quoteResult?: any;
+  sealedUnitTotals?: any;
+  doorTotals?: any;
   activePromo?: { name: string; discount: number } | null;
   basePrice?: number; // cents
   surcharge?: number; // cents
@@ -38,6 +45,9 @@ export interface QuoteInvoiceProps {
   orientation?: 'portrait' | 'landscape';
   attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
   attachedSealedUnit?: any | null;
+  attachedDoorQuote?: any | null;
+  attachedWindowQuote?: any | null;
+  globalUpcharges?: any[];
   isSupplyOnly?: boolean;
 }
 
@@ -144,9 +154,14 @@ function renderFormattedNotes(notes: string, noteFs: number = 9.5) {
 export default function QuoteInvoice({
   customerName,
   quoteNumber,
+  primaryQuoteType,
   windows = [],
+  sealedUnits = [],
+  doors = [],
   taxTotals,
   quoteResult,
+  sealedUnitTotals,
+  doorTotals,
   activePromo,
   basePrice = 0,
   surcharge = 0,
@@ -174,6 +189,9 @@ export default function QuoteInvoice({
   orientation = 'portrait',
   attachedUpgrade = null,
   attachedSealedUnit = null,
+  attachedDoorQuote = null,
+  attachedWindowQuote = null,
+  globalUpcharges = [],
   isSupplyOnly: isSupplyOnlyProp,
 }: QuoteInvoiceProps) {
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -186,39 +204,125 @@ export default function QuoteInvoice({
     }));
   }, []);
 
-  if (!taxTotals && windows.length === 0) return null;
+  // 1. Resolve product line lists and totals across host & attached quotes
+  const effectiveWindows = (windows && windows.length > 0)
+    ? windows
+    : (attachedWindowQuote?.windows || attachedWindowQuote?.lineItems || []);
+  const hasWindows = effectiveWindows.length > 0 || (basePrice > 0) || Boolean(quoteResult?.base);
 
-  // Travel items - only non-zero items that employee actually entered
+  const effectiveDoors = (doors && doors.length > 0)
+    ? doors
+    : (attachedDoorQuote?.lineItems || []);
+  const effectiveDoorTotals = doorTotals || attachedDoorQuote?.totals || {};
+  const effectiveDoorUpcharges = (globalUpcharges && globalUpcharges.length > 0)
+    ? globalUpcharges
+    : (attachedDoorQuote?.globalUpcharges || []);
+  const hasDoors = effectiveDoors.length > 0 || Boolean(effectiveDoorTotals?.grandTotal);
+
+  const effectiveSealedUnits = (sealedUnits && sealedUnits.length > 0)
+    ? sealedUnits
+    : (attachedSealedUnit?.lineItems || []);
+  const effectiveSUTotals = sealedUnitTotals || attachedSealedUnit?.totals || {};
+  const isAttachedSUService =
+    attachedSealedUnit?.sealedUnitMode === 'service_only' ||
+    attachedSealedUnit?.data?.sealedUnitMode === 'service_only' ||
+    Boolean(effectiveSUTotals.isServiceOnly);
+  const hasSealedUnits = effectiveSealedUnits.length > 0 || (isAttachedSUService && (effectiveSUTotals.totalSqft || 0) > 0);
+
+  // 2. Identify primary host quote type
+  const isDoorHost = primaryQuoteType === 'door' || (!primaryQuoteType && doors.length > 0 && windows.length === 0);
+  const isSUHost = primaryQuoteType === 'sealed_unit' || (!primaryQuoteType && sealedUnits.length > 0 && windows.length === 0 && doors.length === 0);
+  const isWindowHost = !isDoorHost && !isSUHost;
+
+  // 3. Early return guard: if no product data exists at all
+  if (!hasWindows && !hasSealedUnits && !hasDoors && !taxTotals && !doorTotals && !sealedUnitTotals) {
+    return null;
+  }
+
+  // 4. Logistics & Travel Deduplication:
+  // ONLY the host quote charges travel & $140 setup fee. Attached quotes are on the same site for the same customer!
   const travelItems: { label: string; amount: number }[] = [];
-  if (taxTotals?.km > 0) {
-    travelItems.push({
-      label: `Vehicle travel (${taxTotals.km} km @ $${taxTotals.vehicleRate?.toFixed(2) || '0.98'}/km)`,
-      amount: (taxTotals.vehicle || 0) * 100,
-    });
-  }
-  if (taxTotals?.hrs > 0 && taxTotals?.crew && taxTotals.crew !== 'none') {
-    travelItems.push({
-      label: `Crew travel (${taxTotals.crew} crew × ${taxTotals.hrs}h @ $${taxTotals.crewRate || 0}/h)`,
-      amount: (taxTotals.crewTravel || 0) * 100,
-    });
-  }
-  if (taxTotals?.setup > 0) {
-    travelItems.push({
-      label: 'Per-job set-up fee',
-      amount: (taxTotals.setup || 0) * 100,
-    });
-  }
-  if (taxTotals?.fixedSetupFee > 0) {
-    travelItems.push({
-      label: `Job Set Up Fee (${regionName || 'Standard'})`,
-      amount: (taxTotals.fixedSetupFee || 0) * 100,
-    });
-  }
-  if (taxTotals?.baseTravelFee > 0) {
-    travelItems.push({
-      label: 'Base travel fee',
-      amount: (taxTotals.baseTravelFee || 0) * 100,
-    });
+  if (isWindowHost && taxTotals) {
+    if (taxTotals.km > 0) {
+      travelItems.push({
+        label: `Vehicle travel (${taxTotals.km} km @ $${taxTotals.vehicleRate?.toFixed(2) || '0.98'}/km)`,
+        amount: (taxTotals.vehicle || 0) * 100,
+      });
+    }
+    if (taxTotals.hrs > 0 && taxTotals.crew && taxTotals.crew !== 'none') {
+      travelItems.push({
+        label: `Crew travel (${taxTotals.crew} crew × ${taxTotals.hrs}h @ $${taxTotals.crewRate || 0}/h)`,
+        amount: (taxTotals.crewTravel || 0) * 100,
+      });
+    }
+    if (taxTotals.setup > 0) {
+      travelItems.push({
+        label: 'Per-job set-up fee',
+        amount: (taxTotals.setup || 0) * 100,
+      });
+    }
+    if (taxTotals.fixedSetupFee > 0) {
+      travelItems.push({
+        label: `Job Set Up Fee (${regionName || 'Standard'})`,
+        amount: (taxTotals.fixedSetupFee || 0) * 100,
+      });
+    }
+    if (taxTotals.baseTravelFee > 0) {
+      travelItems.push({
+        label: 'Base travel fee',
+        amount: (taxTotals.baseTravelFee || 0) * 100,
+      });
+    }
+  } else if (isDoorHost && effectiveDoorTotals) {
+    if ((effectiveDoorTotals.baseSetupFee || 0) > 0) {
+      travelItems.push({
+        label: 'Per-job set-up fee',
+        amount: Math.round((effectiveDoorTotals.baseSetupFee || 0) * 100),
+      });
+    }
+    if ((effectiveDoorTotals.additionalFarFee || 0) > 0) {
+      travelItems.push({
+        label: 'Remote Area Travel / Setup Surcharge',
+        amount: Math.round((effectiveDoorTotals.additionalFarFee || 0) * 100),
+      });
+    }
+    if ((effectiveDoorTotals.vehicleTravelFee || 0) > 0) {
+      travelItems.push({
+        label: 'Vehicle travel',
+        amount: Math.round((effectiveDoorTotals.vehicleTravelFee || 0) * 100),
+      });
+    }
+    if ((effectiveDoorTotals.crewTravelFee || 0) > 0) {
+      travelItems.push({
+        label: 'Crew travel',
+        amount: Math.round((effectiveDoorTotals.crewTravelFee || 0) * 100),
+      });
+    }
+  } else if (isSUHost && effectiveSUTotals) {
+    if ((effectiveSUTotals.baseSetupFee || 0) > 0) {
+      travelItems.push({
+        label: 'Per-job set-up fee',
+        amount: Math.round((effectiveSUTotals.baseSetupFee || 0) * 100),
+      });
+    }
+    if ((effectiveSUTotals.additionalFarFee || 0) > 0) {
+      travelItems.push({
+        label: 'Remote Area Travel / Setup Surcharge',
+        amount: Math.round((effectiveSUTotals.additionalFarFee || 0) * 100),
+      });
+    }
+    if ((effectiveSUTotals.vehicleTravelFee || 0) > 0) {
+      travelItems.push({
+        label: 'Vehicle travel',
+        amount: Math.round((effectiveSUTotals.vehicleTravelFee || 0) * 100),
+      });
+    }
+    if ((effectiveSUTotals.crewTravelFee || 0) > 0) {
+      travelItems.push({
+        label: 'Crew travel',
+        amount: Math.round((effectiveSUTotals.crewTravelFee || 0) * 100),
+      });
+    }
   }
 
   const isSupplyOnly = Boolean(
@@ -284,7 +388,7 @@ export default function QuoteInvoice({
     // If taxJCCents > 0 but no named jamb/casing item was in taxTotals:
     if (jcItems.length === 0) {
       jcItems.push({
-        label: 'Jambs & Casings (Custom)',
+        label: 'Jambs & Casings',
         amount: taxJCCents,
       });
     }
@@ -302,8 +406,6 @@ export default function QuoteInvoice({
 
   const detailedExtrasList: DetailedExtraItem[] = [];
   extrasList.forEach((a: any, idx: number) => {
-    const isDripEdge = (a.id && String(a.id).toLowerCase().includes('drip')) ||
-                       (a.label && String(a.label).toLowerCase().includes('drip'));
     const labCents = Math.round((Number(a.lab) || 0) * 100);
     const miscCents = Math.round((Number(a.misc) || 0) * 100);
 
@@ -344,124 +446,141 @@ export default function QuoteInvoice({
       });
     }
   });
-  const promoDiscountCents = activePromo?.discount || 0;
+  const promoDiscountCents = isWindowHost
+    ? (activePromo?.discount || 0)
+    : (attachedWindowQuote?.totals?.promoDiscount ? Math.round(attachedWindowQuote.totals.promoDiscount * 100) : (attachedWindowQuote?.quoteResult?.promoDiscount || activePromo?.discount || 0));
   const monthlyDiscountCents = Math.round((taxTotals?.discount || 0) * 100);
 
-  // Compute exact subtotal from component lines:
-  const lineItemsSubtotalCents = Math.max(0,
-    basePrice +
-    surcharge +
-    taxJCCents +
-    taxMiscCents +
-    taxLabourCents -
-    promoDiscountCents -
-    monthlyDiscountCents
-  );
+  // Component line calculations for each product type
+  // 1. Windows:
+  const winMaterialsCents = hasWindows
+    ? (quoteResult?.base || basePrice || (attachedWindowQuote?.totals?.base ? Math.round(attachedWindowQuote.totals.base * 100) : 0))
+    : 0;
+  const rawWinSurchargeCents = hasWindows
+    ? (surcharge || (attachedWindowQuote?.totals?.surcharge ? Math.round(attachedWindowQuote.totals.surcharge * 100) : 0))
+    : 0;
+  const winSurchargeCents = (!isWindowHost && rawWinSurchargeCents > winMaterialsCents && winMaterialsCents > 0)
+    ? Math.round(winMaterialsCents * 0.08)
+    : rawWinSurchargeCents;
+  const winLabourCents = hasWindows
+    ? (isWindowHost
+        ? taxLabourCents
+        : (attachedWindowQuote?.totals?.labour ? Math.round(attachedWindowQuote.totals.labour * 100) : 0))
+    : 0;
+  const winMiscCents = hasWindows
+    ? (isWindowHost
+        ? taxMiscCents
+        : (attachedWindowQuote?.totals?.misc ? Math.round(attachedWindowQuote.totals.misc * 100) : 0))
+    : 0;
+  const winJCCents = hasWindows
+    ? (isWindowHost
+        ? taxJCCents
+        : (attachedWindowQuote?.totals?.jc ? Math.round(attachedWindowQuote.totals.jc * 100) : 0))
+    : 0;
 
-  const subtotalCents = (afterDiscount > 0 && Math.abs(afterDiscount - lineItemsSubtotalCents) <= 10)
-    ? afterDiscount
-    : lineItemsSubtotalCents;
+  // 2. Sealed Units:
+  const suGlassCents = hasSealedUnits && !isAttachedSUService
+    ? Math.round((effectiveSUTotals.glassBefore8PercentTotal || 0) * 100)
+    : 0;
+  const suSurchargeCents = hasSealedUnits && !isAttachedSUService
+    ? Math.round((effectiveSUTotals.glass8PercentSurchargeTotal || 0) * 100)
+    : 0;
+  const suMiscCents = hasSealedUnits
+    ? Math.round((effectiveSUTotals.miscTotal || 0) * 100)
+    : 0;
+  // Deduplication: if SU is attached, strip travel and setup fee from SU labour
+  const suLabourCents = hasSealedUnits
+    ? (isSUHost
+        ? Math.round((effectiveSUTotals.combinedLabourTotal || 0) * 100)
+        : Math.round((effectiveSUTotals.serviceLabourTotal ?? effectiveSUTotals.unitLabourSum ?? 0) * 100))
+    : 0;
 
-  let hstAmountCents = 0;
-  let hstLabel = `HST (${hstRate}%)`;
-  if (hstRate === 13) {
-    hstAmountCents = Math.round(subtotalCents * 0.13);
-    hstLabel = 'HST (13%)';
-  } else if (hstRate === 8) {
-    // 8% Provincial Point-of-Sale Exemption on materials (5% GST on materials, 13% on labour)
-    const matCents = Math.max(0, (basePrice + surcharge - (activePromo?.discount || 0)) + taxJCCents);
-    const srvCents = Math.max(0, subtotalCents - matCents);
-    hstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
-    hstLabel = 'HST (8% Exempt on Materials)';
-  }
-  const displayTotalCents = (total > 0 && Math.abs(total - (subtotalCents + hstAmountCents)) <= 10)
-    ? total
-    : (subtotalCents + hstAmountCents);
+  // 3. Doors:
+  const doorRawBaseCents = hasDoors
+    ? Math.round(((effectiveDoorTotals.rawDoorBaseTotal || 0) + (effectiveDoorTotals.stormDoorTotal || 0) + (effectiveDoorTotals.hardwareTotal || 0)) * 100)
+    : 0;
+  const doorDiscountCents = hasDoors
+    ? Math.round((effectiveDoorTotals.discountTotal || 0) * 100)
+    : 0;
+  const doorMaterialsCents = doorRawBaseCents;
+  const doorNetMaterialsCents = Math.max(0, doorRawBaseCents - doorDiscountCents);
+  const doorSurchargeCents = hasDoors
+    ? Math.round((effectiveDoorTotals.surchargeTotal || 0) * 100)
+    : 0;
+  const doorMiscCents = hasDoors
+    ? Math.round((effectiveDoorTotals.miscTotal || 0) * 100)
+    : 0;
+  // Deduplication: if Door is attached, strip travel and $140 setup fee from door labour
+  const doorLabourCents = hasDoors
+    ? (isDoorHost
+        ? Math.round((effectiveDoorTotals.combinedLabourTotal || 0) * 100)
+        : Math.round(((effectiveDoorTotals.unitLabourTotal || 0) + (effectiveDoorTotals.upchargesTotal || 0)) * 100))
+    : 0;
 
-  const displayFirstPayment = (firstPayment > 0 && Math.abs(firstPayment - Math.floor(displayTotalCents / 2)) <= 5)
-    ? firstPayment
-    : Math.floor(displayTotalCents / 2);
-  const displaySecondPayment = displayTotalCents - displayFirstPayment;
-
-  // Combined Sealed Unit Calculations (if attachedSealedUnit is present)
-  const hasAttachedSU = Boolean(attachedSealedUnit && attachedSealedUnit.totals);
-  const suTotals = attachedSealedUnit?.totals || {};
-  const isAttachedSUService =
-    attachedSealedUnit?.sealedUnitMode === 'service_only' ||
-    attachedSealedUnit?.data?.sealedUnitMode === 'service_only' ||
-    Boolean(suTotals.isServiceOnly);
-  const suLineItems: any[] = attachedSealedUnit?.lineItems || [];
-  const suGlassCents = isAttachedSUService ? 0 : Math.round((suTotals.glassBefore8PercentTotal || 0) * 100);
-  const suSurchargeCents = isAttachedSUService ? 0 : Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100);
-  const suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
-  const suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
-
-  const effectiveMiscTotalCents = taxMiscCents + (hasAttachedSU ? suMiscCents : 0);
-  const effectiveLabourTotalCents = taxLabourCents + (hasAttachedSU ? suLabourCents : 0);
-  const effectiveSurchargeTotalCents = surcharge + (hasAttachedSU ? suSurchargeCents : 0);
+  // Combined totals across all products
+  const hasAnyAttached = Boolean(attachedSealedUnit || attachedDoorQuote || attachedWindowQuote);
+  const effectiveMiscTotalCents = (hasWindows ? winMiscCents : 0) + (hasSealedUnits ? suMiscCents : 0) + (hasDoors ? doorMiscCents : 0);
+  const effectiveLabourTotalCents = (hasWindows ? winLabourCents : 0) + (hasSealedUnits ? suLabourCents : 0) + (hasDoors ? doorLabourCents : 0);
+  const effectiveSurchargeTotalCents = (hasWindows ? winSurchargeCents : 0) + (hasSealedUnits ? suSurchargeCents : 0) + (hasDoors ? doorSurchargeCents : 0);
   const totalDiscountCents = promoDiscountCents + monthlyDiscountCents;
 
   const combinedSubtotalCalculatedCents = Math.max(
     0,
-    (quoteResult?.base || basePrice || 0) +
-    (hasAttachedSU ? suGlassCents : 0) +
-    taxJCCents +
+    (hasWindows ? (winMaterialsCents - totalDiscountCents + winJCCents) : 0) +
+    suGlassCents +
+    doorNetMaterialsCents +
     effectiveMiscTotalCents +
     effectiveLabourTotalCents +
-    effectiveSurchargeTotalCents -
-    totalDiscountCents
+    effectiveSurchargeTotalCents
   );
 
-  const finalSubtotalCents = hasAttachedSU ? combinedSubtotalCalculatedCents : subtotalCents;
+  const finalSubtotalCents = (hasAnyAttached || isDoorHost || isSUHost)
+    ? combinedSubtotalCalculatedCents
+    : (afterDiscount > 0 && Math.abs(afterDiscount - combinedSubtotalCalculatedCents) <= 10 ? afterDiscount : combinedSubtotalCalculatedCents);
 
   let finalHstAmountCents = 0;
-  let finalHstLabel = hstLabel;
-  if (hasAttachedSU) {
-    if (hstRate === 13) {
-      finalHstAmountCents = Math.round(finalSubtotalCents * 0.13);
-      finalHstLabel = 'HST (13%)';
-    } else if (hstRate === 8) {
-      const matCents = Math.max(
-        0,
-        (quoteResult?.base || basePrice || 0) + surcharge - totalDiscountCents + taxJCCents + suGlassCents + suSurchargeCents
-      );
-      const srvCents = Math.max(0, effectiveLabourTotalCents + effectiveMiscTotalCents);
-      finalHstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
-      finalHstLabel = 'HST (8% Exempt on Materials)';
-    } else {
-      finalHstAmountCents = 0;
-      finalHstLabel = 'HST (0%)';
-    }
+  let finalHstLabel = `HST (${hstRate}%)`;
+  if (hstRate === 13) {
+    finalHstAmountCents = Math.round(finalSubtotalCents * 0.13);
+    finalHstLabel = 'HST (13%)';
+  } else if (hstRate === 8) {
+    // 8% Provincial Point-of-Sale Exemption on materials (5% GST on materials, 13% on labour)
+    const matCents = Math.max(
+      0,
+      (hasWindows ? (winMaterialsCents - totalDiscountCents + winSurchargeCents + winJCCents) : 0) +
+      (hasSealedUnits ? (suGlassCents + suSurchargeCents) : 0) +
+      (hasDoors ? (doorNetMaterialsCents + doorSurchargeCents) : 0)
+    );
+    const srvCents = Math.max(0, effectiveLabourTotalCents + effectiveMiscTotalCents);
+    finalHstAmountCents = Math.round(matCents * 0.05) + Math.round(srvCents * 0.13);
+    finalHstLabel = 'HST (8% Exempt on Materials)';
   } else {
-    finalHstAmountCents = hstAmountCents;
+    finalHstAmountCents = 0;
+    finalHstLabel = 'HST (0%)';
   }
 
-  const finalTotalCents = hasAttachedSU
-    ? finalSubtotalCents + finalHstAmountCents
-    : displayTotalCents;
-
-  const finalFirstPayment = hasAttachedSU
-    ? Math.round(finalTotalCents / 2)
-    : displayFirstPayment;
+  const finalTotalCents = finalSubtotalCents + finalHstAmountCents;
+  const finalFirstPayment = Math.round(finalTotalCents / 2);
   const finalSecondPayment = finalTotalCents - finalFirstPayment;
 
-  // Sealed Unit Summary Sentence for Line 2
-  let suSummarySentence = 'Sealed Unit';
-  if (isAttachedSUService) {
-    const suSqft = Number(suTotals.totalSqft || 0);
-    suSummarySentence = suSqft > 0
-      ? `Sealed Unit On-Site Service (${suSqft.toFixed(1)} sq ft)`
-      : 'Sealed Unit Service Only';
-  } else if (suLineItems.length > 0) {
-    const totalSUQty = suLineItems.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
-    const paneTypes = Array.from(new Set(suLineItems.map((it: any) => (it.paneType === 'triple' ? 'Triple' : 'Dual'))));
-    suSummarySentence = `${totalSUQty} ${paneTypes.join('/')} Pane Sealed Unit${totalSUQty > 1 ? 's' : ''}`;
-  }
+  // Sealed Unit Summary Sentence
+  const suSummarySentence = isAttachedSUService
+    ? getSealedUnitServiceSummaryLabel(effectiveSealedUnits, effectiveSUTotals.totalSqft)
+    : formatSealedUnitSummarySentence(effectiveSealedUnits);
+
+  // Door Summary Sentence
+  const doorSummarySentence = formatDoorSummarySentence(effectiveDoors);
+
+  // Door Upgrade Items (if any door has an upgrade option enabled)
+  const doorUpgradeItems = effectiveDoors.filter((d: any) => d.upgradeOption?.enabled);
 
   const hasJambs = Boolean(taxJCCents > 0 && hasSupplyJamb);
   const hasCasing = Boolean(taxJCCents > 0 && hasSupplyCasing);
 
   const jcLabel = (() => {
+    if (!isWindowHost && attachedWindowQuote?.jcLabel) {
+      return attachedWindowQuote.jcLabel;
+    }
     if (hasJambs && !hasCasing) {
       return isSupplyOnly ? 'Jambs Only (Loose)' : 'Jambs Only';
     }
@@ -473,11 +592,11 @@ export default function QuoteInvoice({
 
   // Clean promo name to prevent raw MongoDB ObjectIDs from displaying on print/invoices
   const resolvedPromoName = (() => {
-    const raw = activePromo?.name?.trim();
+    const raw = (isWindowHost ? activePromo?.name : (attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || activePromo?.name))?.trim();
     if (!raw) return 'Promotion Discount';
     // If raw matches a 24-char hex Mongo ObjectId or begins with one, fall back to quoteResult or 'Promotion Discount'
     if (/^[0-9a-fA-F]{24}$/.test(raw) || /^[0-9a-fA-F]{24}/.test(raw)) {
-      return quoteResult?.promoName || 'Promotion Discount';
+      return attachedWindowQuote?.quoteResult?.promoName || quoteResult?.promoName || 'Promotion Discount';
     }
     return raw;
   })();
@@ -513,8 +632,8 @@ export default function QuoteInvoice({
   let tP = 0; // triple painted
   let totalBaseCentsCalculated = 0;
 
-  if (Array.isArray(windows) && windows.length > 0) {
-    windows.forEach((w) => {
+  if (Array.isArray(effectiveWindows) && effectiveWindows.length > 0) {
+    effectiveWindows.forEach((w) => {
       const q = Math.max(1, Number(w.qty) || 1);
       const itemBase = toCents(w.base);
       const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
@@ -563,7 +682,31 @@ export default function QuoteInvoice({
     windowSummarySentence = 'Base price of windows';
   }
 
-  const totalWindowBaseCents = totalBaseCentsCalculated > 0 ? totalBaseCentsCalculated : (basePrice > 0 ? basePrice : 0);
+  const totalWindowBaseCents = totalBaseCentsCalculated > 0 ? totalBaseCentsCalculated : (winMaterialsCents > 0 ? winMaterialsCents : 0);
+
+  const invoiceSubtitle = (() => {
+    if (hasWindows && hasDoors && hasSealedUnits) {
+      return isSupplyOnly ? 'Supply Only Windows, Doors & Sealed Units Quotation' : 'Comprehensive Window, Door & Sealed Unit Proposal';
+    }
+    if (hasWindows && hasDoors) {
+      return isSupplyOnly ? 'Supply Only Windows & Doors Quotation' : 'Window & Door Architectural Proposal';
+    }
+    if (hasWindows && hasSealedUnits) {
+      return isSupplyOnly ? 'Supply Only Windows & Sealed Units Quotation' : 'Window & Sealed Unit Quotation';
+    }
+    if (hasDoors && hasSealedUnits) {
+      return isSupplyOnly ? 'Supply Only Doors & Sealed Units Quotation' : 'Door & Sealed Unit Quotation';
+    }
+    if (hasDoors) {
+      return isSupplyOnly ? 'Supply Only Door Quotation' : 'Custom Door Systems Proposal';
+    }
+    if (hasSealedUnits) {
+      return isSupplyOnly
+        ? 'Supply Only Sealed Unit Quotation'
+        : (isAttachedSUService ? 'Sealed Unit Service & Glazing Proposal' : 'Sealed Glass Unit Proposal');
+    }
+    return isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote';
+  })();
 
   const renderWindowBasePriceRows = (textColor: string = 'text-[#0f172a]') => {
     return (
@@ -578,36 +721,127 @@ export default function QuoteInvoice({
     );
   };
 
-  const renderSealedUnitsTable = (theme: 'modern' | 'executive' | 'cards') => {
-    if (!hasAttachedSU || (suLineItems.length === 0 && !(isAttachedSUService && (suTotals.totalSqft || 0) > 0))) return null;
+  const renderWindowsTable = (theme: 'modern' | 'executive' | 'cards') => {
+    if (!hasWindows || effectiveWindows.length === 0) return null;
 
     const isModern = theme === 'modern';
     const isExecutive = theme === 'executive';
     const isCards = theme === 'cards';
-    const effectiveSULineItems = suLineItems.length > 0 ? suLineItems : [
-      {
-        id: 'su-service-1',
-        widthIn: 'Custom Area',
-        heightIn: '',
-        paneType: 'dual',
-        combinationName: 'On-Site Sealed Unit Service & Glazing',
-        shapeDescription: 'On-Site Service',
-        grillDescription: 'No Grills',
-        quantity: 1,
-        multipliedAmount: 0,
-        multipliedTotal: 0,
-        actualSqft: suTotals.totalSqft || 0,
-      }
-    ];
 
     return (
       <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
         <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
           <div className="flex items-center gap-2">
             <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
-              {isAttachedSUService ? 'Sealed Unit Service Work' : 'Sealed Glass Units'}
+              Window Specifications
             </span>
-            {attachedSealedUnit.quoteNumber && (
+            {!isWindowHost && attachedWindowQuote?.quoteNumber && (
+              <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
+                #{attachedWindowQuote.quoteNumber}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
+            {effectiveWindows.length} item{effectiveWindows.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+          <thead>
+            <tr className={isModern ? "border-b-2 border-[#0f172a] uppercase tracking-wider text-[#0f172a] bg-white font-bold" : isExecutive ? "bg-white border-b-2 border-[#0f172a] text-[#0f172a] font-bold uppercase tracking-wider" : "border-b border-[#cbd5e1] bg-[#f8fafc] text-[#0f172a] font-semibold text-[10px] uppercase"} style={{ fontSize: `${thFs}px` }}>
+              <th className="py-1 px-1.5 text-left w-[5%]">#</th>
+              <th className={`py-1 px-1.5 text-left ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window (Size W × H)</th>
+              <th className={`py-1 px-1.5 text-center ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
+              <th className={`py-1 px-1.5 text-right font-mono ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
+              {!isSupplyOnly && (
+                <>
+                  <th className="py-1 px-1.5 text-right font-mono w-[19%]">Labour</th>
+                  <th className="py-1 px-1.5 text-right font-mono w-[19%]">Misc</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody style={{ fontSize: `${bodyFs}px` }}>
+            {effectiveWindows.map((w: any, i: number) => {
+              const line = taxTotals?.lines?.[i];
+              const qty = Number(w.qty) || 1;
+              const totalItemBaseCents = toCents(w.base);
+              const unitBaseCents = qty > 0 ? Math.round(totalItemBaseCents / qty) : totalItemBaseCents;
+              const itemLabDollars = line?.lab ?? 0;
+              const itemMiscDollars = line?.misc ?? 0;
+
+              return (
+                <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">{i + 1}</td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                    {w.w && w.h ? `${w.w}" × ${w.h}"` : (w.dimensions || 'Custom Window')}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">{qty}</td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                    <span className="font-bold text-[#0f172a]">{formatMoney(totalItemBaseCents)}</span>
+                    {qty > 1 && (
+                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">({formatMoney(unitBaseCents)} ea)</span>
+                    )}
+                  </td>
+                  {!isSupplyOnly && (
+                    <>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
+                        {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
+                      </td>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
+                        {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderSealedUnitsTable = (theme: 'modern' | 'executive' | 'cards') => {
+    const isService = isAttachedSUService;
+    const suMode = attachedSealedUnit?.sealedUnitMode || attachedSealedUnit?.data?.sealedUnitMode || (isService ? 'service_only' : (attachedSealedUnit?.isInstallation || effectiveSUTotals.isInstallation ? 'installation' : 'supply_only'));
+    const isInstallation = !isService && suMode === 'installation';
+    const isSupplyOnly = !isService && suMode === 'supply_only';
+
+    const effectiveSULineItems = effectiveSealedUnits.length > 0 ? effectiveSealedUnits : (
+      isService && (effectiveSUTotals.totalSqft || 0) > 0 ? [
+        {
+          id: 'su-service-1',
+          widthIn: 'Custom Area',
+          heightIn: '',
+          paneType: 'dual',
+          combinationName: 'On-Site Sealed Unit Service & Glazing',
+          shapeDescription: 'On-Site Service',
+          grillDescription: 'No Grills',
+          quantity: 1,
+          actualSqft: effectiveSUTotals.totalSqft || 0,
+        }
+      ] : []
+    );
+
+    if (!hasSealedUnits || effectiveSULineItems.length === 0) return null;
+
+    const isModern = theme === 'modern';
+    const isExecutive = theme === 'executive';
+    const isCards = theme === 'cards';
+
+    const minL = effectiveSUTotals.labourMinPerUnit ?? 120.0;
+    const labourR = effectiveSUTotals.effectiveLabourRate || effectiveSUTotals.labourRatePerSqft || 14.4;
+    const miscR = effectiveSUTotals.effectiveMiscRate || effectiveSUTotals.miscRatePerSqft || 2.4;
+
+    return (
+      <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
+        <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
+              {isService ? suSummarySentence : isInstallation ? 'Sealed Units & Installation' : 'Supply Only Sealed Units'}
+            </span>
+            {!isSUHost && attachedSealedUnit?.quoteNumber && (
               <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
                 #{attachedSealedUnit.quoteNumber}
               </span>
@@ -620,62 +854,162 @@ export default function QuoteInvoice({
 
         <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
           <thead>
-            <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
-              <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
-              <th className="py-1 px-1.5 text-left font-bold w-[25%]">{isAttachedSUService ? 'Dimensions / Scope' : 'Dimensions'}</th>
-              <th className="py-1 px-1.5 text-left font-bold w-[34%]">Glass Specification</th>
-              <th className="py-1 px-1.5 text-left font-bold w-[18%]">Shape &amp; Grills</th>
+            <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"} style={{ fontSize: `${thFs}px` }}>
+              <th className="py-1 px-1.5 text-left font-bold w-[4%]">#</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[26%]">Glass Specs</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[22%]">Dimension</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[12%]">Grills</th>
               <th className="py-1 px-1.5 text-center font-bold w-[6%]">Qty</th>
-              <th className="py-1 px-1.5 text-right font-mono font-bold w-[12%]">Price</th>
+              <th className="py-1 px-1.5 text-right font-mono font-bold w-[10%]">Base Price</th>
+              <th className="py-1 px-1.5 text-right font-mono font-bold w-[10%]">Labour</th>
+              <th className="py-1 px-1.5 text-right font-mono font-bold w-[10%]">Misc</th>
             </tr>
           </thead>
           <tbody style={{ fontSize: `${bodyFs}px` }}>
             {effectiveSULineItems.map((item: any, idx: number) => {
-              const qty = Number(item.quantity) || 1;
-              const unitPrice = isAttachedSUService ? 0 : (item.multipliedAmount || 0);
-              const lineTotal = isAttachedSUService ? 0 : (item.multipliedTotal || (unitPrice * qty));
+              const qty = Math.max(1, Number(item.quantity) || 1);
+              const sqft = Number(item.actualSqft) || 0;
+
+              // 1. Base Price (Clean base price before 8% surcharge)
+              const unitBasePrice = Number(item.multipliedAmount ?? (item.multipliedTotal ? item.multipliedTotal / qty : (item.finalUnitPrice ? item.finalUnitPrice / 1.08 : (item.unitBasePrice ?? 0))));
+              const totalBasePrice = Number(item.multipliedTotal ?? (unitBasePrice * qty));
+
+              // 2. Labour (with min $120 enforced)
+              const unitServiceLabour = Math.max(sqft * labourR, minL);
+              const totalServiceLabour = Math.round(unitServiceLabour * qty * 100) / 100;
+
+              const unitInstallLabour = (item.unitLabour && Number(item.unitLabour) > 0)
+                ? Math.max(Number(item.unitLabour), minL)
+                : Math.max(sqft * labourR, minL);
+              const totalInstallLabour = Math.round(unitInstallLabour * qty * 100) / 100;
+
+              // 3. Misc
+              const totalServiceMisc = Math.round(sqft * miscR * qty * 100) / 100;
+              const totalInstallMisc = item.totalMisc !== undefined && item.totalMisc !== null
+                ? Number(item.totalMisc)
+                : Math.round(sqft * miscR * qty * 100) / 100;
+
+              // 4. Dimension & Area
+              const isCustomArea = item.widthIn === 'Custom Area' || !item.widthIn || !item.heightIn;
+              const dimText = isCustomArea
+                ? (sqft > 0 ? `${sqft.toFixed(2)} sq ft total` : 'Custom Glazing')
+                : `${item.widthIn}" wide × ${item.heightIn}" high`;
+
+              // 5. Grills
+              const hasGrill = (item.rawGrillCost > 0) || Boolean(item.grill && item.grill.type !== 'none') || (item.grillDescription && item.grillDescription !== 'No Grills');
+              const grillDimText = item.grill?.colsCount && item.grill?.rowsCount
+                ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
+                : '';
+              const grillColorText = item.grill?.color
+                ? `${item.grill.color} Grills`
+                : (item.grillDescription && item.grillDescription !== 'No Grills' ? item.grillDescription : 'Grills');
+
+              // 6. Glass specs
               const paneLabel = item.paneType === 'triple' ? 'Triple Pane' : 'Dual Pane';
               const glassSpec = item.combinationName || `${paneLabel} · ${item.treatment || 'Cardinal 366'}`;
-              const shapeText = item.shapeDescription || item.shape || 'Standard (Rectangle)';
-              const grillText = item.grillDescription || 'No Grills';
 
               return (
                 <tr key={item.id || idx} className="border-b border-[#cbd5e1] bg-white">
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">
                     {idx + 1}
                   </td>
-                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
-                    {item.widthIn === 'Custom Area' ? `${(item.actualSqft || 0).toFixed(2)} sq ft total` : `${item.widthIn}" wide × ${item.heightIn}" high`}
-                  </td>
+
+                  {/* Glass Specs: empty in service only */}
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#1e293b]">
-                    <span className="font-semibold">{isAttachedSUService ? 'On-Site Service' : paneLabel}</span>
-                    <span className="text-[#475569] text-xs block">{glassSpec}</span>
+                    {!isService ? (
+                      <>
+                        <div className="font-bold text-[#0f172a]">{glassSpec}</div>
+                        <div className="text-[10px] text-[#64748b] capitalize">
+                          {item.treatment || 'Cardinal'} · {paneLabel} {item.thicknessMm ? `· ${item.thicknessMm}mm` : ''}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[#94a3b8] font-mono">—</span>
+                    )}
                   </td>
-                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155]">
-                    <div>{shapeText}</div>
-                    {grillText !== 'No Grills' && (
-                      <div style={{ fontSize: `${microFs}px` }} className="text-emerald-700 font-medium">
-                        {grillText}
+
+                  {/* Dimension */}
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                    <div className="whitespace-nowrap">{dimText}</div>
+                    {sqft > 0 && !isCustomArea && (
+                      <div className="text-[10px] text-[#64748b] font-normal">
+                        {sqft.toFixed(2)} sqft
                       </div>
                     )}
                   </td>
+
+                  {/* Grills */}
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155]">
+                    {!isService && hasGrill ? (
+                      <div>
+                        {grillDimText && (
+                          <div className="font-bold text-[#0f172a] font-mono text-[11px]">
+                            {grillDimText}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-amber-800 font-semibold truncate">
+                          {grillColorText}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-[#94a3b8] font-mono">—</span>
+                    )}
+                  </td>
+
+                  {/* Qty */}
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">
                     {qty}
                   </td>
+
+                  {/* Base Price: empty in service only */}
                   <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
-                    {isAttachedSUService ? (
-                      <span className="text-xs text-blue-700 font-medium font-sans">
-                        Service Labour
-                      </span>
-                    ) : (
+                    {!isService && totalBasePrice > 0 ? (
                       <>
-                        <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
+                        <span className="font-bold text-[#0f172a]">${totalBasePrice.toFixed(2)}</span>
                         {qty > 1 && (
-                          <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">
-                            ({formatMoney(Math.round(unitPrice * 100))} ea)
+                          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] block font-sans font-normal">
+                            (${unitBasePrice.toFixed(2)} ea)
                           </span>
                         )}
                       </>
+                    ) : (
+                      <span className="text-[#94a3b8] font-mono">—</span>
+                    )}
+                  </td>
+
+                  {/* Labour: min $120 enforced */}
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                    {isService ? (
+                      <>
+                        <span className="font-bold text-[#0f172a]">${totalServiceLabour.toFixed(2)}</span>
+                        {qty > 1 && (
+                          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] block font-sans font-normal">
+                            (${unitServiceLabour.toFixed(2)} ea)
+                          </span>
+                        )}
+                      </>
+                    ) : isInstallation ? (
+                      <>
+                        <span className="font-bold text-[#0f172a]">${totalInstallLabour.toFixed(2)}</span>
+                        {qty > 1 && (
+                          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] block font-sans font-normal">
+                            (${unitInstallLabour.toFixed(2)} ea)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[#94a3b8] font-mono">—</span>
+                    )}
+                  </td>
+
+                  {/* Misc */}
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                    {isService ? (
+                      <span className="font-medium text-[#334155]">${totalServiceMisc.toFixed(2)}</span>
+                    ) : isInstallation ? (
+                      <span className="font-medium text-[#334155]">${totalInstallMisc.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-[#94a3b8] font-mono">—</span>
                     )}
                   </td>
                 </tr>
@@ -687,38 +1021,217 @@ export default function QuoteInvoice({
     );
   };
 
+  const renderDoorsTable = (theme: 'modern' | 'executive' | 'cards') => {
+    if (!hasDoors || effectiveDoors.length === 0) return null;
+
+    const isModern = theme === 'modern';
+    const isExecutive = theme === 'executive';
+    const isCards = theme === 'cards';
+
+    return (
+      <div className={isCards ? "mb-4 border border-[#cbd5e1] rounded bg-white shadow-sm overflow-hidden" : "mb-4"}>
+        <div className={`flex items-center justify-between ${isCards ? 'p-2 bg-[#f8fafc] border-b border-[#cbd5e1]' : 'mb-1 pb-1 border-b-[1.5px] border-[#0f172a]'}`}>
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
+              Configured Doors
+            </span>
+            {!isDoorHost && attachedDoorQuote?.quoteNumber && (
+              <span style={{ fontSize: `${microFs}px` }} className="px-1.5 py-0.5 rounded bg-muted text-[#334155] font-mono font-medium">
+                #{attachedDoorQuote.quoteNumber}
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
+            {effectiveDoors.length} item{effectiveDoors.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
+        <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+          <thead>
+            <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
+              <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[45%]">Door Specifications</th>
+              <th className="py-1 px-1.5 text-left font-bold w-[25%]">Hardware &amp; Options</th>
+              <th className="py-1 px-1.5 text-center font-bold w-[10%]">Qty</th>
+              <th className="py-1 px-1.5 text-right font-mono font-bold w-[15%]">Price</th>
+            </tr>
+          </thead>
+          <tbody style={{ fontSize: `${bodyFs}px` }}>
+            {effectiveDoors.map((item: any, idx: number) => {
+              const qty = Number(item.quantity) || 1;
+              const unitNetPrice = (item.netBasePrice || item.inksterBasePrice || 0);
+              const lineTotal = (item.totalPrice || (unitNetPrice * qty));
+
+              return (
+                <tr key={item.id || idx} className="border-b border-[#cbd5e1] bg-white">
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">
+                    {idx + 1}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                    <div>{item.customDescription || item.presetLabel}</div>
+                    {item.notes && (
+                      <div className="text-[#64748b] text-[10px] font-normal">{item.notes}</div>
+                    )}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#1e293b]">
+                    <div className="capitalize">{item.hardwareType === 'standard' ? 'Standard Lockset' : item.hardwareType === 'customer' ? 'Customer Supplied' : item.customHardwareName || 'None'}</div>
+                    {item.upgradeOption?.enabled && (
+                      <div className="text-amber-700 font-semibold text-[10px]">
+                        Option: {item.upgradeOption.title} (+{formatMoney(Math.round((item.upgradeOption.subtotalDifference || 0) * 100))})
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">
+                    {qty}
+                  </td>
+                  <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
+                    <span className="font-bold text-[#0f172a]">{formatMoney(Math.round(lineTotal * 100))}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Itemized Jobsite Labour & Special Site Services (if selected for doors) */}
+        {effectiveDoorUpcharges.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-[#cbd5e1]">
+            <div className="flex justify-between items-center mb-1 text-xs">
+              <span style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a]">
+                Jobsite Labour &amp; Special Site Services
+              </span>
+              <span style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-medium">
+                {effectiveDoorUpcharges.length} service{effectiveDoorUpcharges.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+              <thead>
+                <tr className={isModern ? "border-b-2 border-[#0f172a] text-[#0f172a]" : isExecutive ? "border-b-2 border-[#0f172a] text-[#0f172a]" : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"}>
+                  <th className="py-1 px-1.5 text-left font-bold w-[5%]">#</th>
+                  <th className="py-1 px-1.5 text-left font-bold w-[55%]">Service Description</th>
+                  <th className="py-1 px-1.5 text-center font-bold w-[12%]">Qty</th>
+                  <th className="py-1 px-1.5 text-right font-mono font-bold w-[13%]">Rate</th>
+                  <th className="py-1 px-1.5 text-right font-mono font-bold w-[15%]">Total</th>
+                </tr>
+              </thead>
+              <tbody style={{ fontSize: `${bodyFs}px` }}>
+                {effectiveDoorUpcharges.map((u: any, uIdx: number) => {
+                  const qty = Number(u.qty) || 1;
+                  const rate = Number(u.rate) || 0;
+                  const total = Number(u.total ?? (rate * qty));
+                  return (
+                    <tr key={u.upchargeId || u.id || uIdx} className="border-b border-[#cbd5e1] bg-white">
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">
+                        {uIdx + 1}
+                      </td>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
+                        {u.label}
+                      </td>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">
+                        {qty}
+                      </td>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
+                        {formatMoney(Math.round(rate * 100))}
+                      </td>
+                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono font-bold text-[#0f172a]">
+                        {formatMoney(Math.round(total * 100))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderSummaryRows = (textColor: string = 'text-[#0f172a]', rowPyOverride?: number) => {
     const py = rowPyOverride ?? 1;
     return (
       <>
         {/* Line 1: [Qty] [Pane] [Color] Window (Window base glass total) */}
-        {((Array.isArray(windows) && windows.length > 0) || totalWindowBaseCents > 0) && renderWindowBasePriceRows(textColor)}
+        {hasWindows && winMaterialsCents > 0 && renderWindowBasePriceRows(textColor)}
 
-        {/* Line 2: [Qty] [Pane] Sealed Unit (Sealed unit glass total pre-8%) */}
-        {hasAttachedSU && suGlassCents > 0 && (
+        {/* Line 2: [Qty] [Pane] Sealed Unit (Sealed unit glass total pre-8%) or Service */}
+        {hasSealedUnits && (
+          suGlassCents > 0 ? (
+            <tr className="border-b border-[#e2e8f0]">
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium capitalize`}>
+                {suSummarySentence}
+              </td>
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+                {formatMoney(suGlassCents)}
+              </td>
+            </tr>
+          ) : isAttachedSUService && hasAnyAttached ? (
+            <tr className="border-b border-[#e2e8f0]">
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+                {suSummarySentence}
+              </td>
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono text-[#64748b] text-[10px] font-normal`}>
+                (Labour below)
+              </td>
+            </tr>
+          ) : null
+        )}
+
+        {/* Line 3: Door Units (Itemized as Headings) */}
+        {hasDoors && (
+          effectiveDoors.length > 0 ? (
+            effectiveDoors.map((dItem: any, dIdx: number) => {
+              const q = Number(dItem.quantity) || 1;
+              const heading = formatDoorItemHeading(dItem);
+              const itemBaseCents = Math.round((dItem.inksterBasePrice || 0) * q * 100);
+              return (
+                <tr key={dItem.id || dIdx} className="border-b border-[#e2e8f0]">
+                  <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+                    {heading}
+                  </td>
+                  <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+                    {formatMoney(itemBaseCents)}
+                  </td>
+                </tr>
+              );
+            })
+          ) : doorMaterialsCents > 0 ? (
+            <tr className="border-b border-[#e2e8f0]">
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium capitalize`}>
+                {doorSummarySentence}
+              </td>
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
+                {formatMoney(doorMaterialsCents)}
+              </td>
+            </tr>
+          ) : null
+        )}
+
+        {/* Door Hardware if any */}
+        {hasDoors && Boolean((effectiveDoorTotals?.hardwareTotal || 0) > 0) && (
           <tr className="border-b border-[#e2e8f0]">
-            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium capitalize`}>
-              {suSummarySentence}
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
+              Door Lockset &amp; Hardware
             </td>
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
-              {formatMoney(suGlassCents)}
+              {formatMoney(Math.round(Number(effectiveDoorTotals.hardwareTotal) * 100))}
             </td>
           </tr>
         )}
 
-        {/* Line 3: Jambs & Casing (Window only, if applicable) */}
-        {taxJCCents > 0 && (
+        {/* Line 4: Jambs & Casing (Window only, if applicable) */}
+        {winJCCents > 0 && (
           <tr className="border-b border-[#e2e8f0]">
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
               {jcLabel}
             </td>
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`text-right font-mono font-bold ${textColor}`}>
-              {formatMoney(taxJCCents)}
+              {formatMoney(winJCCents)}
             </td>
           </tr>
         )}
 
-        {/* Line 4: Misc (Window misc + Sealed unit misc) */}
+        {/* Line 5: Misc (Window misc + Sealed unit misc + Door misc) */}
         {effectiveMiscTotalCents > 0 && (
           <tr className="border-b border-[#e2e8f0]">
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
@@ -730,7 +1243,7 @@ export default function QuoteInvoice({
           </tr>
         )}
 
-        {/* Line 5: Labour (Window installation/labour + Sealed unit labour) */}
+        {/* Line 6: Labour (Deduplicated combined installation & host travel) */}
         {effectiveLabourTotalCents > 0 && (
           <tr className="border-b border-[#e2e8f0]">
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
@@ -742,7 +1255,7 @@ export default function QuoteInvoice({
           </tr>
         )}
 
-        {/* Line 6: Surcharge (Window surcharge + Sealed unit 8% surcharge) */}
+        {/* Line 7: Surcharge (Window surcharge + Sealed unit 8% surcharge + Door 8% surcharge) */}
         {effectiveSurchargeTotalCents > 0 && (
           <tr className="border-b border-[#e2e8f0]">
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className={`${textColor} font-medium`}>
@@ -754,7 +1267,7 @@ export default function QuoteInvoice({
           </tr>
         )}
 
-        {/* Line 7: Discount (Window promos/discounts only — sealed units exempt) */}
+        {/* Line 8: Discount (Window promos/discounts only) */}
         {promoDiscountCents > 0 && (
           <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
             <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="pl-1">
@@ -776,7 +1289,20 @@ export default function QuoteInvoice({
           </tr>
         )}
 
-        {/* Line 8: Subtotal (Pre-tax combined subtotal) */}
+        {/* Line 8b: Door Discount (Separate row) */}
+        {doorDiscountCents > 0 && (
+          <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="pl-1">
+              <span style={{ fontSize: `${microFs}px` }} className="uppercase font-bold tracking-wider text-emerald-700 block">Discount Applied:</span>
+              10% Door Discount (Non-Storm Doors)
+            </td>
+            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono text-emerald-700 font-bold pr-1">
+              −{formatMoney(doorDiscountCents)}
+            </td>
+          </tr>
+        )}
+
+        {/* Line 9: Subtotal (Pre-tax combined subtotal) */}
         <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
           <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-[#0f172a]">Subtotal</td>
           <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono font-bold text-[#0f172a]">
@@ -784,17 +1310,13 @@ export default function QuoteInvoice({
           </td>
         </tr>
 
-        {/* Line 9: Tax (HST on combined subtotal) */}
-        {hstRate > 0 && (
-          <tr className="border-b border-[#cbd5e1]">
-            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-[#334155] font-medium">
-              {finalHstLabel}
-            </td>
-            <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono font-bold text-[#0f172a]">
-              {formatMoney(finalHstAmountCents)}
-            </td>
-          </tr>
-        )}
+        {/* Line 10: HST */}
+        <tr className="border-b border-[#cbd5e1] text-[#0f172a]">
+          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-[#334155]">{finalHstLabel}</td>
+          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="text-right font-mono text-[#0f172a]">
+            {formatMoney(finalHstAmountCents)}
+          </td>
+        </tr>
       </>
     );
   };
@@ -861,7 +1383,7 @@ export default function QuoteInvoice({
                   The Window &amp; Door Store
                 </h1>
                 <div style={{ fontSize: `${smallFs}px` }} className="text-indigo-600 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>{isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote'}</span>
+                  <span>{invoiceSubtitle}</span>
                 </div>
               </div>
               <div className="text-right">
@@ -901,63 +1423,10 @@ export default function QuoteInvoice({
             )}
           </div>
 
-          {/* Windows Table (Single-line per window) */}
-          <div style={{ marginBottom: `${sectionMb}px` }}>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b-2 border-[#0f172a] uppercase tracking-wider text-[#0f172a] bg-white font-bold" style={{ fontSize: `${thFs}px` }}>
-                  <th className="py-1 px-1.5 text-left w-[5%]">#</th>
-                  <th className={`py-1 px-1.5 text-left ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window (Size W × H)</th>
-                  <th className={`py-1 px-1.5 text-center ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
-                  <th className={`py-1 px-1.5 text-right font-mono ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th className="py-1 px-1.5 text-right font-mono w-[19%]">Labour</th>
-                      <th className="py-1 px-1.5 text-right font-mono w-[19%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const unitBaseCents = qty > 0 ? Math.round(totalItemBaseCents / qty) : totalItemBaseCents;
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
-
-                  return (
-                    <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-[#334155] font-semibold">{i + 1}</td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 font-bold text-[#0f172a]">
-                        {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Window'}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-center font-bold text-[#0f172a]">{qty}</td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono">
-                        <span className="font-bold text-[#0f172a]">{formatMoney(totalItemBaseCents)}</span>
-                        {qty > 1 && (
-                          <span style={{ fontSize: `${microFs}px` }} className="text-[#334155] block font-sans font-normal">({formatMoney(unitBaseCents)} ea)</span>
-                        )}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-1.5 text-right font-mono text-[#334155]">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
+          {/* Product Schedules (Windows, Sealed Units, Doors) */}
+          {renderWindowsTable('modern')}
           {renderSealedUnitsTable('modern')}
+          {renderDoorsTable('modern')}
 
           {/* Two-Column Layout (Left: Details / Right: Financial Summary) */}
           <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t border-[#cbd5e1] pt-2">
@@ -1047,6 +1516,19 @@ export default function QuoteInvoice({
                 </div>
               )}
 
+              {/* Optional Door Upgrade Offers */}
+              {doorUpgradeItems.map((dItem: any, dIdx: number) => (
+                <div key={dIdx} className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                    <span>Option for Door: {dItem.upgradeOption?.title}</span>
+                    <span className="font-mono text-[#b45309] font-bold">+{formatMoney(Math.round((dItem.upgradeOption?.subtotalDifference || 0) * 100))}</span>
+                  </div>
+                  <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                    Optional upgrade for {dItem.customDescription || dItem.presetLabel || 'Door'}. Net pre-tax difference, not included in quote total.
+                  </div>
+                </div>
+              ))}
+
               {/* Optional Employee Quote Notes */}
               {quoteNotes && quoteNotes.trim() && (
                 <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
@@ -1105,7 +1587,7 @@ export default function QuoteInvoice({
                   The Window &amp; Door Store
                 </h1>
                 <div style={{ fontSize: `${smallFs}px` }} className="text-amber-800 font-bold uppercase tracking-widest mt-1">
-                  <span>{isSupplyOnly ? 'Executive Supply Quotation' : 'Executive Installation & Supply Quote'}</span>
+                  <span>{invoiceSubtitle}</span>
                 </div>
               </div>
               <div className="text-right">
@@ -1145,116 +1627,14 @@ export default function QuoteInvoice({
             )}
           </div>
 
-          {/* Itemized Windows Schedule - Compact Architectural Ledger Table */}
-          <div style={{ marginBottom: `${sectionMb}px` }}>
-            <table className="w-full border-collapse border border-[#cbd5e1]">
-              <thead>
-                <tr className="bg-white border-b-2 border-[#0f172a] text-[#0f172a] font-bold uppercase tracking-wider" style={{ fontSize: `${thFs}px` }}>
-                  <th className="py-1 px-2 text-left border-r border-[#cbd5e1] w-[5%]">#</th>
-                  <th className={`py-1 px-2 text-left border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[62%]' : 'w-[30%]'}`}>Window Size (W × H)</th>
-                  <th className={`py-1 px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[10%]' : 'w-[8%]'}`}>Qty</th>
-                  <th className={`py-1 px-2 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[23%]' : 'w-[19%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th className="py-1 px-2 text-right border-r border-[#cbd5e1] font-mono w-[19%]">Labour</th>
-                      <th className="py-1 px-2 text-right font-mono w-[19%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
-
-                  return (
-                    <tr key={w.id || i} className="border-b border-[#cbd5e1] bg-white">
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-[#334155] font-mono font-bold border-r border-[#cbd5e1]">
-                        {i + 1}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        {w.w && w.h ? `${w.w}" × ${w.h}"` : 'Standard'}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        {qty}
-                      </td>
-                      <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className={`px-2 text-right font-mono font-bold text-[#0f172a] ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        {formatMoney(totalItemBaseCents)}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155] border-r border-[#cbd5e1]">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }} className="px-2 text-right font-mono text-[#334155]">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
+          {/* Product Schedules (Windows, Sealed Units, Doors) */}
+          {renderWindowsTable('executive')}
           {renderSealedUnitsTable('executive')}
+          {renderDoorsTable('executive')}
 
-          {/* Bottom Grid: Same Compact Scope & Accounting as Modern List, Distinct Ledger Design */}
-          {/* Executive Bottom: Adaptive Full-Width for Supply Only vs Two-Column */}
-          {isSupplyOnly || (!travelItems.length && !wantsUpgrade && !quoteNotes.trim() && !detailedExtrasList.length) ? (
-            <div className="space-y-2 border-t-2 border-[#0f172a] pt-2">
-              {jcItems.length > 0 && (
-                <div className="border border-[#cbd5e1] rounded p-2 bg-white">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-0.5 pb-0.5 border-b border-[#cbd5e1] flex justify-between items-center">
-                    <span>Jambs &amp; Casing Specifications</span>
-                    <span className="text-[10px] text-slate-500 font-normal">Supply Only</span>
-                  </div>
-                  <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
-                    <tbody>
-                      {jcItems.map((item, idx) => (
-                        <tr key={idx} className="border-b border-[#e2e8f0]">
-                          <td className="py-0.5 text-[#1e293b] font-medium">{item.label}</td>
-                          <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">{formatMoney(item.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Exact Financial Summary Full Width */}
-              <div className="border border-[#cbd5e1] rounded p-2.5 bg-white">
-                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
-                  Summary
-                </div>
-                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
-                  <tbody>
-                    {renderSummaryRows('text-[#0f172a]')}
-                  </tbody>
-                </table>
-                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md p-2 flex justify-between items-center font-extrabold mt-2">
-                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                  <span style={{ fontSize: `${Math.round(baseFs * 1.35)}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
-                  </div>
-                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
-              {/* Left: Project Specifications & Scope */}
+          {/* Bottom Grid: Balanced 2-Column Compact Scope & Accounting */}
+          <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
+            {/* Left: Project Specifications & Scope */}
               <div className="space-y-2">
                 {travelItems.length > 0 && (
                   <div>
@@ -1335,6 +1715,19 @@ export default function QuoteInvoice({
                   </div>
                 )}
 
+                {/* Optional Door Upgrade Offers */}
+                {doorUpgradeItems.map((dItem: any, dIdx: number) => (
+                  <div key={dIdx} className="p-2 bg-white border border-[#d97706] rounded text-[#0f172a]">
+                    <div style={{ fontSize: `${smallFs}px` }} className="font-bold uppercase tracking-wider flex justify-between items-center text-[#0f172a]">
+                      <span>Option for Door: {dItem.upgradeOption?.title}</span>
+                      <span className="font-mono text-[#b45309] font-bold">+{formatMoney(Math.round((dItem.upgradeOption?.subtotalDifference || 0) * 100))}</span>
+                    </div>
+                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] mt-0.5">
+                      Optional upgrade for {dItem.customDescription || dItem.presetLabel || 'Door'}. Net pre-tax difference, not included in quote total.
+                    </div>
+                  </div>
+                ))}
+
                 {quoteNotes && quoteNotes.trim() && (
                   <div className="p-2 bg-white border border-[#cbd5e1] rounded text-[#0f172a] space-y-0.5">
                     <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
@@ -1375,7 +1768,6 @@ export default function QuoteInvoice({
                 </div>
               </div>
             </div>
-          )}
         </>
       )}
 
@@ -1392,7 +1784,7 @@ export default function QuoteInvoice({
                   The Window &amp; Door Store
                 </h1>
                 <div style={{ fontSize: `${smallFs}px` }} className="text-[#334155] font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>{isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote'}</span>
+                  <span>{invoiceSubtitle}</span>
                 </div>
               </div>
               <div className="text-right">
@@ -1432,85 +1824,10 @@ export default function QuoteInvoice({
             )}
           </div>
 
-          {/* Itemized Window Specification Schedule */}
-          <div style={{ marginBottom: `${Math.max(6, sectionMb - 4)}px` }}>
-            <table className="w-full border-collapse border border-[#cbd5e1] text-left">
-              <thead>
-                <tr className="bg-[#f8fafc] border-b-2 border-[#0f172a] text-[#0f172a] uppercase font-bold" style={{ fontSize: `${thFs}px` }}>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2 w-[5%] text-center border-r border-[#cbd5e1]">#</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[72%]' : 'w-[56%]'}`}>Window Size (W × H)</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2 text-center border-r border-[#cbd5e1] ${isSupplyOnly ? 'w-[8%]' : 'w-[7%]'}`}>Qty</th>
-                  <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className={`px-2.5 text-right font-mono ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''} ${isSupplyOnly ? 'w-[15%]' : 'w-[13%]'}`}>Base Price</th>
-                  {!isSupplyOnly && (
-                    <>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono border-r border-[#cbd5e1] w-[11%]">Labour</th>
-                      <th style={{ paddingTop: `${rowPy * 0.75}px`, paddingBottom: `${rowPy * 0.75}px` }} className="px-2.5 text-right font-mono w-[10%]">Misc</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {windows.map((w, i) => {
-                  const line = taxTotals?.lines?.[i];
-                  const qty = Number(w.qty) || 1;
-                  const totalItemBaseCents = toCents(w.base);
-                  const itemLabDollars = line?.lab ?? 0;
-                  const itemMiscDollars = line?.misc ?? 0;
-                  const cardRowPy = windows.length <= 2
-                    ? Math.max(7, rowPy * 1.3)
-                    : (windows.length <= 4 ? Math.max(5, rowPy * 1.0) : rowPy * 0.75);
-
-                  return (
-                    <tr key={w.id || i} className={`border-b border-[#cbd5e1] ${i % 2 === 1 ? 'bg-[#fcfdfd]' : 'bg-white'}`}>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#64748b] border-r border-[#cbd5e1]">
-                        {String(i + 1).padStart(2, '0')}
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 border-r border-[#cbd5e1]">
-                        <div className="font-bold text-[#0f172a] leading-tight flex items-center gap-2">
-                          <span>{w.w && w.h ? `${w.w}" × ${w.h}"` : 'Custom Sized Window Unit'}</span>
-                          {w.color && w.color.toLowerCase() === 'painted' && (
-                            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
-                              Painted
-                            </span>
-                          )}
-                          {(Number(w.triple) > 0 || toCents(w.triple) > 0) && (
-                            <span className="text-[10px] font-semibold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded">
-                              Triple
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2 text-center font-bold text-[#0f172a] border-r border-[#cbd5e1]">
-                        <span className="px-1.5 py-0.5 rounded bg-[#f1f5f9] text-[#0f172a] font-mono text-[11px]">
-                          {qty}
-                        </span>
-                      </td>
-                      <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className={`px-2.5 text-right font-mono font-bold text-[#0f172a] whitespace-nowrap ${!isSupplyOnly ? 'border-r border-[#cbd5e1]' : ''}`}>
-                        <div>{formatMoney(totalItemBaseCents)}</div>
-                        {qty > 1 && (
-                          <div style={{ fontSize: `${microFs}px` }} className="text-[#64748b] font-normal font-sans">
-                            ({formatMoney(Math.round(totalItemBaseCents / qty))} ea)
-                          </div>
-                        )}
-                      </td>
-                      {!isSupplyOnly && (
-                        <>
-                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] border-r border-[#cbd5e1] whitespace-nowrap">
-                            {itemLabDollars > 0 ? formatMoney(itemLabDollars * 100) : '—'}
-                          </td>
-                          <td style={{ paddingTop: `${cardRowPy}px`, paddingBottom: `${cardRowPy}px` }} className="px-2.5 text-right font-mono text-[#0f172a] whitespace-nowrap">
-                            {itemMiscDollars > 0 ? formatMoney(itemMiscDollars * 100) : '—'}
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
+          {/* Product Schedules (Windows, Sealed Units, Doors) */}
+          {renderWindowsTable('cards')}
           {renderSealedUnitsTable('cards')}
+          {renderDoorsTable('cards')}
 
           {/* Project Extras & Hardware (if any) */}
           {detailedExtrasList.length > 0 && !isSupplyOnly && (
@@ -1542,86 +1859,9 @@ export default function QuoteInvoice({
             </div>
           )}
 
-          {/* Bottom Section: Adaptive Full-Width for Supply Only / Small Quotes vs Balanced Two-Column */}
-          {isSupplyOnly || (!travelItems.length && !wantsUpgrade && !quoteNotes.trim()) ? (
-            <div className="space-y-2 border-t-2 border-[#0f172a]" style={{ paddingTop: `${rowPy}px` }}>
-              {/* Jamb & Casing Specifications (Matched to table width) */}
-              {jcItems.length > 0 && (
-                <div className="border border-[#cbd5e1] rounded p-2.5 bg-white">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-1 pb-0.5 border-b border-[#cbd5e1] flex justify-between items-center">
-                    <span>{isSupplyOnly ? 'Jamb & Casing Materials' : 'Jamb & Casing Specifications'}</span>
-                    <span className="text-[10px] text-slate-500 font-normal">Loose Supply Items</span>
-                  </div>
-                  <table className="w-full border-collapse" style={{ fontSize: `${smallFs}px` }}>
-                    <tbody>
-                      {jcItems.map((j, idx) => (
-                        <tr key={idx} className="border-b border-[#f1f5f9] last:border-0">
-                          <td style={{ paddingTop: `${rowPy * 0.4}px`, paddingBottom: `${rowPy * 0.4}px` }} className="text-[#1e293b] font-medium">{j.label}</td>
-                          <td style={{ paddingTop: `${rowPy * 0.4}px`, paddingBottom: `${rowPy * 0.4}px` }} className="text-right font-mono font-bold text-[#0f172a]">{formatMoney(j.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Optional Window Upgrade Offer */}
-              {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
-                <div className="p-2 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
-                  <div>
-                    <span className="font-bold text-[#0f172a] block">Optional Upgrade Offer:</span>
-                    <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
-                      {attachedUpgrade.title} adds {formatMoney(attachedUpgrade.amountPreTaxCents)}
-                    </span>
-                  </div>
-                  <span className="font-mono font-black text-[#b45309]">+{formatMoney(attachedUpgrade.amountPreTaxCents)}</span>
-                </div>
-              )}
-
-              {/* Special Instructions & Project Notes */}
-              {quoteNotes && quoteNotes.trim() && (
-                <div className="p-2.5 bg-white border border-[#cbd5e1] rounded space-y-0.5">
-                  <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
-                    Special Instructions &amp; Project Notes
-                  </div>
-                  {renderFormattedNotes(quoteNotes, smallFs)}
-                </div>
-              )}
-
-              {/* Financial Summary Card (Matches table width so it doesn't float on half sheet) */}
-              <div className="border border-[#cbd5e1] rounded bg-white shadow-sm" style={{ padding: `${rowPy * 1.25}px` }}>
-                <div style={{ fontSize: `${h2Fs}px` }} className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]">
-                  Summary
-                </div>
-
-                <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
-                  <tbody>
-                    {renderSummaryRows('text-[#0f172a]', rowPy * 0.6)}
-                  </tbody>
-                </table>
-
-                {/* Total Banner */}
-                <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2" style={{ padding: `${rowPy}px` }}>
-                  <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">Total</span>
-                  <span style={{ fontSize: `${titleFs}px` }} className="font-mono font-black text-[#0f172a]">{formatMoney(finalTotalCents)}</span>
-                </div>
-
-                {/* Deposit Terms */}
-                <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">50% Deposit</div>
-                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalFirstPayment)}</div>
-                  </div>
-                  <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
-                    <div style={{ fontSize: `${microFs}px` }} className="text-[#334155] uppercase tracking-wider font-semibold">Final 50% Balance</div>
-                    <div style={{ fontSize: `${bodyFs}px` }} className="font-mono font-bold text-[#0f172a] mt-0.5">{formatMoney(finalSecondPayment)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[1.1fr_1.15fr] items-start border-t-2 border-[#0f172a]" style={{ gap: `${cardGap * 1.5}px`, paddingTop: `${rowPy}px` }}>
-              {/* Left Column: Materials, Travel & Instructions */}
+          {/* Bottom Section: Balanced 2-Column Compact Scope & Accounting */}
+          <div className="grid grid-cols-[1.1fr_1.15fr] items-start border-t-2 border-[#0f172a]" style={{ gap: `${cardGap * 1.5}px`, paddingTop: `${rowPy}px` }}>
+            {/* Left Column: Materials, Travel & Instructions */}
               <div className="space-y-2">
                 {jcItems.length > 0 && (
                   <div className="border border-[#cbd5e1] rounded p-2 bg-white">
@@ -1682,6 +1922,19 @@ export default function QuoteInvoice({
                   </div>
                 )}
 
+                {/* Optional Door Upgrade Offers */}
+                {doorUpgradeItems.map((dItem: any, dIdx: number) => (
+                  <div key={dIdx} className="p-1.5 bg-white border border-[#d97706] rounded flex justify-between items-center" style={{ fontSize: `${smallFs}px` }}>
+                    <div>
+                      <span className="font-bold text-[#0f172a] block">Option for Door: {dItem.upgradeOption?.title}</span>
+                      <span style={{ fontSize: `${microFs}px` }} className="text-[#334155]">
+                        Optional upgrade for {dItem.customDescription || dItem.presetLabel || 'Door'} (pre-tax difference)
+                      </span>
+                    </div>
+                    <span className="font-mono font-black text-[#b45309]">+{formatMoney(Math.round((dItem.upgradeOption?.subtotalDifference || 0) * 100))}</span>
+                  </div>
+                ))}
+
                 {quoteNotes && quoteNotes.trim() && (
                   <div className="p-2 bg-white border border-[#cbd5e1] rounded space-y-0.5">
                     <div style={{ fontSize: `${smallFs}px` }} className="font-bold text-[#0f172a] uppercase tracking-wider mb-0.5 pb-0.5 border-b border-[#cbd5e1]">
@@ -1723,7 +1976,6 @@ export default function QuoteInvoice({
                 </div>
               </div>
             </div>
-          )}
         </>
       )}
     </div>

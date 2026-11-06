@@ -11,9 +11,12 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const cacheKey = 'settings:global';
+    const headers = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers });
     }
 
     await dbConnect();
@@ -59,7 +62,7 @@ export async function GET() {
     }
     
     cacheSet('settings:global', settings, 86400).catch(() => {});
-    return NextResponse.json(settings);
+    return NextResponse.json(settings, { headers });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

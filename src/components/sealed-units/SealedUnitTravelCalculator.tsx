@@ -69,7 +69,7 @@ export function SealedUnitTravelCalculator({
             className={cn(
               'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
               travelFeeType === 'none'
-                ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                 : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
             )}
           >
@@ -84,7 +84,7 @@ export function SealedUnitTravelCalculator({
             className={cn(
               'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
               travelFeeType === 'far_small'
-                ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                 : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
             )}
           >
@@ -101,7 +101,7 @@ export function SealedUnitTravelCalculator({
             className={cn(
               'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
               travelFeeType === 'far_std'
-                ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                 : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
             )}
           >
@@ -121,7 +121,7 @@ export function SealedUnitTravelCalculator({
             className={cn(
               'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
               travelFeeType === 'custom'
-                ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                 : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
             )}
           >
@@ -165,7 +165,7 @@ export function SealedUnitTravelCalculator({
             className={cn(
               'text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors cursor-pointer',
               showOutTownTravel
-                ? 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-800 font-bold'
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                 : 'bg-muted text-muted-foreground border border-border hover:text-foreground'
             )}
           >
@@ -227,7 +227,7 @@ export function SealedUnitTravelCalculator({
                   className={cn(
                     'rounded-lg border text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1',
                     crewSize === '2'
-                      ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                       : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/60'
                   )}
                 >
@@ -240,7 +240,7 @@ export function SealedUnitTravelCalculator({
                   className={cn(
                     'rounded-lg border text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1',
                     crewSize === '3'
-                      ? 'bg-zinc-800 text-white border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-xs'
+                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
                       : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/60'
                   )}
                 >

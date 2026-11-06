@@ -618,7 +618,7 @@ export function calculateSealedUnitItem(params: CalculateSealedUnitParams): Seal
 
   // Installation labour calculation from actual unrounded sq ft (User Rule: take actual, do not round):
   const rawUnitLabour = actualSqft * labourSettings.labourRatePerSqft;
-  const unitLabour = Math.max(rawUnitLabour, labourSettings.labourMinPerUnit);
+  const unitLabour = Math.max(rawUnitLabour, labourSettings.labourMinPerUnit ?? 120.0);
   const totalLabour = Math.round(unitLabour * params.quantity * 100) / 100;
 
   // Misc supplies from actual unrounded sq ft:
@@ -747,6 +747,17 @@ export function formatSealedUnitSummarySentence(lineItems: SealedUnitLineItem[])
   if (texts.length === 1) return texts[0];
   if (texts.length === 2) return `${texts[0]} and ${texts[1]}`;
   return texts.slice(0, -1).join(', ') + ' and ' + texts[texts.length - 1];
+}
+
+/**
+ * Formats a clean summary label for service-only mode based on user's entered quantity.
+ * e.g., "1 Sealed Unit Service", "2 Sealed Unit Service"
+ */
+export function getSealedUnitServiceSummaryLabel(lineItems?: any[], totalSqft?: number): string {
+  const count = (lineItems && lineItems.length > 0)
+    ? lineItems.reduce((acc, item) => acc + (Math.max(1, Number(item.quantity) || 1)), 0)
+    : 1;
+  return `${count} Sealed Unit Service`;
 }
 
 export interface CalculateSealedUnitTotalsParams {

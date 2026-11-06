@@ -3,7 +3,7 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Tag, DollarSign, Map, Layers } from 'lucide-react';
+import { Users, Tag, DollarSign, Map, Layers, DoorClosed } from 'lucide-react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/layout/AppHeader';
 
@@ -133,6 +133,26 @@ export default async function AdminDashboard() {
             <CardContent>
               <Link href="/admin/sealed-units" className="w-full block">
                 <Button className="w-full">Edit Sealed Unit Pricing</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Door Pricing & Labour - Available to both SUPERADMIN and ADMIN */}
+          <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl hover:border-primary/50 transition-colors">
+            <CardHeader>
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <DoorClosed className="w-5 h-5 text-primary" />
+                  Door Pricing &amp; Labour
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Update door presets, base labour, misc materials, site upcharges, surcharge %, and travel rates.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/doors" className="w-full block">
+                <Button className="w-full">Edit Door Pricing</Button>
               </Link>
             </CardContent>
           </Card>

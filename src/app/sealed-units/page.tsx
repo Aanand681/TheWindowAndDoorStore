@@ -22,6 +22,7 @@ import SmartBackButton from '@/components/shared/SmartBackButton';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { SubmitReviewModal } from '@/components/calculator/SubmitReviewModal';
 import { SavedQuotesModal } from '@/components/calculator/SavedQuotesModal';
+import { AttachQuoteModal } from '@/components/calculator/AttachQuoteModal';
 import {
   saveQuoteDraft,
   saveActiveAutoSave,
@@ -55,8 +56,10 @@ import {
   parseInchesInput,
   inchesToSqft,
   calculateSealedUnitItem,
+  getSealedUnitServiceSummaryLabel,
 } from '@/lib/sealed-units-logic';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   SealedUnitItemBuilder,
   SealedUnitLabourTravelCard,
@@ -66,6 +69,8 @@ import {
   SealedUnitPreviewModal,
   SealedUnitTemplateType,
 } from '@/components/sealed-units';
+import QuoteInvoice from '@/components/quotes/QuoteInvoice';
+import QuotePreviewModal from '@/components/quotes/QuotePreviewModal';
 import { calculateSealedUnitTotals } from '@/lib/sealed-units/calculations';
 
 export default function SealedUnitsCalculatorPage() {
@@ -156,9 +161,13 @@ export default function SealedUnitsCalculatorPage() {
   // Saved Drafts & Auto-Recovery State
   const router = useRouter();
   const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState<boolean>(false);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState<boolean>(false);
+  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null);
+  const [attachedDoorQuote, setAttachedDoorQuote] = useState<any | null>(null);
   const [savedDraftsCount, setSavedDraftsCount] = useState<number>(0);
   const [activeAutoSaveDraft, setActiveAutoSaveDraft] = useState<ActiveAutoSaveDraft | null>(null);
   const [autoSaveRestoredOrDismissed, setAutoSaveRestoredOrDismissed] = useState<boolean>(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const lastSavedSnapshotRef = useRef<string>('');
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -378,7 +387,6 @@ export default function SealedUnitsCalculatorPage() {
   };
 
   const handleResetQuote = () => {
-    if (lineItems.length === 0) return;
     setShowResetModal(true);
   };
 
@@ -455,6 +463,8 @@ export default function SealedUnitsCalculatorPage() {
       if (d.crewHours !== undefined) setCrewHours(d.crewHours);
       if (d.crewSize !== undefined) setCrewSize(d.crewSize);
       if (d.hstRate !== undefined) setHstRate(d.hstRate);
+      if (d.attachedWindowQuote !== undefined) setAttachedWindowQuote(d.attachedWindowQuote);
+      if (d.attachedDoorQuote !== undefined) setAttachedDoorQuote(d.attachedDoorQuote);
 
       clearActiveAutoSave('sealed_unit');
       setActiveAutoSaveDraft(null);
@@ -475,13 +485,65 @@ export default function SealedUnitsCalculatorPage() {
         crewHours: d.crewHours,
         crewSize: d.crewSize,
         hstRate: d.hstRate,
+        attachedWindowQuote: d.attachedWindowQuote || null,
+        attachedDoorQuote: d.attachedDoorQuote || null,
       });
       toast.success(`Loaded Sealed Unit Quote #${draft.quoteNumber}`);
     },
     [router]
   );
 
+  const restoreAutoSaveIntoWorkspace = useCallback(
+    (recovered: any) => {
+      const d = recovered.data as any;
+      if (!d) return;
+
+      if (d.quoteNumber) setQuoteNumber(d.quoteNumber);
+      if (d.customerName !== undefined) setCustomerName(d.customerName);
+      if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
+      if (Array.isArray(d.lineItems)) setLineItems(d.lineItems);
+      if (d.sealedUnitMode) {
+        setSealedUnitMode(d.sealedUnitMode);
+      } else if (d.isInstallation !== undefined) {
+        setIsInstallation(d.isInstallation);
+      }
+      if (d.serviceSqftInput !== undefined) setServiceSqftInput(d.serviceSqftInput);
+      if (d.serviceLabourRateInput !== undefined) setServiceLabourRateInput(d.serviceLabourRateInput);
+      if (d.serviceMiscRateInput !== undefined) setServiceMiscRateInput(d.serviceMiscRateInput);
+      if (d.travelFeeType !== undefined) setTravelFeeType(d.travelFeeType);
+      if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee);
+      if (d.showOutTownTravel !== undefined) setShowOutTownTravel(d.showOutTownTravel);
+      if (d.travelKm !== undefined) setTravelKm(d.travelKm);
+      if (d.crewHours !== undefined) setCrewHours(d.crewHours);
+      if (d.crewSize !== undefined) setCrewSize(d.crewSize);
+      if (d.hstRate !== undefined) setHstRate(d.hstRate);
+      if (d.attachedWindowQuote !== undefined) setAttachedWindowQuote(d.attachedWindowQuote);
+      if (d.attachedDoorQuote !== undefined) setAttachedDoorQuote(d.attachedDoorQuote);
+
+      if (recovered.timestamp) {
+        setLastSavedAt(new Date(recovered.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
+    },
+    []
+  );
+
   const handleSaveDraft = useCallback(() => {
+    const hasMeaningfulContent =
+      lineItems.length > 0 ||
+      (isServiceOnly && ((totals.totalSqft || 0) > 0 || serviceSqftInput.trim() !== '')) ||
+      Boolean(attachedWindowQuote) ||
+      Boolean(attachedDoorQuote);
+
+    if (!hasMeaningfulContent) {
+      toast.error('Add at least one sealed unit, service sqft, or attach a quote before saving.');
+      return;
+    }
+
+    if (!customerName.trim()) {
+      toast.error('Customer name is required before saving a quote.');
+      return;
+    }
+
     const effectiveQuoteNumber = quoteNumber.trim() || generateQuoteNumber();
     if (!quoteNumber.trim()) {
       setQuoteNumber(effectiveQuoteNumber);
@@ -492,7 +554,7 @@ export default function SealedUnitsCalculatorPage() {
       .slice(0, 3)
       .join(', ');
     const summaryTypeDesc = isServiceOnly
-      ? `Service Only (${(totals.totalSqft || 0).toFixed(1)} sq ft)`
+      ? getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)
       : lineItems.length > 0
       ? `${lineItems.length} Sealed Units (${panesCount}${lineItems.length > 3 ? '...' : ''})`
       : '0 Sealed Units';
@@ -522,6 +584,8 @@ export default function SealedUnitsCalculatorPage() {
         crewHours,
         crewSize,
         hstRate,
+        attachedWindowQuote,
+        attachedDoorQuote,
         subtotal: totals.subtotalPreTax || 0,
         grandTotal: totals.grandTotal || 0,
         itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
@@ -555,6 +619,8 @@ export default function SealedUnitsCalculatorPage() {
       crewHours,
       crewSize,
       hstRate,
+      attachedWindowQuote,
+      attachedDoorQuote,
     });
 
     toast.success(`Sealed Unit Quote #${effectiveQuoteNumber} saved to drafts!`);
@@ -577,6 +643,8 @@ export default function SealedUnitsCalculatorPage() {
     crewHours,
     crewSize,
     hstRate,
+    attachedWindowQuote,
+    attachedDoorQuote,
   ]);
 
   // Saved drafts count sync
@@ -608,21 +676,17 @@ export default function SealedUnitsCalculatorPage() {
 
     const recovered = getActiveAutoSave('sealed_unit');
     if (recovered && recovered.data && (recovered.itemCount > 0 || recovered.customerName)) {
-      if (isAutoSaveAlreadySaved('sealed_unit', recovered)) {
-        clearActiveAutoSave('sealed_unit');
-        setActiveAutoSaveDraft(null);
-      } else {
-        setActiveAutoSaveDraft(recovered);
-      }
+      restoreAutoSaveIntoWorkspace(recovered);
     }
-  }, [loadDraftIntoWorkspace]);
+  }, [loadDraftIntoWorkspace, restoreAutoSaveIntoWorkspace]);
 
   // Debounced auto-save effect
   useEffect(() => {
     const hasMeaningfulContent =
       lineItems.length > 0 ||
       (isServiceOnly && (serviceSqftInput.trim() !== '' || (totals.totalSqft || 0) > 0)) ||
-      customerName.trim() !== '';
+      Boolean(attachedWindowQuote) ||
+      Boolean(attachedDoorQuote);
 
     if (!hasMeaningfulContent) {
       clearActiveAutoSave('sealed_unit');
@@ -646,6 +710,8 @@ export default function SealedUnitsCalculatorPage() {
       crewHours,
       crewSize,
       hstRate,
+      attachedWindowQuote,
+      attachedDoorQuote,
     });
 
     if (currentSnapshot === lastSavedSnapshotRef.current) {
@@ -658,7 +724,7 @@ export default function SealedUnitsCalculatorPage() {
 
     autoSaveTimerRef.current = setTimeout(() => {
       const summaryLabel = isServiceOnly
-        ? `Service Only (${(totals.totalSqft || 0).toFixed(1)} sq ft)`
+        ? getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)
         : `${lineItems.length} Sealed Units`;
 
       saveActiveAutoSave('sealed_unit', {
@@ -684,12 +750,15 @@ export default function SealedUnitsCalculatorPage() {
           crewHours,
           crewSize,
           hstRate,
+          attachedWindowQuote,
+          attachedDoorQuote,
           subtotal: totals.subtotalPreTax || 0,
           grandTotal: totals.grandTotal || 0,
           itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.length,
           totals: totals,
         },
       });
+      setLastSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 1500);
 
     return () => {
@@ -715,27 +784,21 @@ export default function SealedUnitsCalculatorPage() {
     crewHours,
     crewSize,
     hstRate,
+    attachedWindowQuote,
+    attachedDoorQuote,
     totals,
   ]);
 
   const handlePrint = () => {
-    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
-      toast.error('Add at least one line item or enter service sq ft before previewing.');
+    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0) && !attachedWindowQuote && !attachedDoorQuote) {
+      toast.error('Add at least one line item, enter service sq ft, or attach a quote before previewing.');
       return;
     }
     setIsPreviewOpen(true);
   };
 
-  const handleAttachToWindowQuote = () => {
-    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
-      toast.error('Add at least one sealed unit or enter service sq ft before attaching to a window quote.');
-      return;
-    }
-    handleSaveDraft();
-    toast.success('Sealed unit draft saved! Opening Window Calculator to attach...');
-    setTimeout(() => {
-      router.push('/calculator');
-    }, 600);
+  const handleOpenAttachModal = () => {
+    setIsAttachModalOpen(true);
   };
 
   const handleSubmitForReview = async () => {
@@ -865,48 +928,72 @@ export default function SealedUnitsCalculatorPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {lastSavedAt && (
+                <span className="text-[11px] text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/50">
+                  Draft auto-saved {lastSavedAt}
+                </span>
+              )}
+
+              {/* 1. Attach Quote */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleOpenAttachModal}
+                className={cn(
+                  'h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 shadow-xs transition-colors',
+                  attachedWindowQuote || attachedDoorQuote
+                    ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                    : 'border-border/80 hover:bg-muted text-foreground'
+                )}
+                title="Attach saved Window or Door quote to this sealed unit quotation"
+              >
+                <Paperclip
+                  className={cn(
+                    'w-3.5 h-3.5',
+                    attachedWindowQuote || attachedDoorQuote
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-primary'
+                  )}
+                />
+                <span>{attachedWindowQuote || attachedDoorQuote ? 'Quote Attached' : 'Attach Quote'}</span>
+              </Button>
+
+              {/* 2. Save Draft */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleSaveDraft}
-                className="h-7 text-xs cursor-pointer gap-1.5 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
                 title="Save current sealed unit quote to drafts"
               >
-                <Bookmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <Bookmark className="w-3.5 h-3.5 text-primary" />
                 <span>Save Draft</span>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAttachToWindowQuote}
-                className="h-7 text-xs cursor-pointer gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-                title="Save and attach this sealed unit quote to a window quotation"
-              >
-                <Paperclip className="w-3.5 h-3.5 text-primary" />
-                <span>Attach to Window Quote</span>
-              </Button>
+
+              {/* 3. Saved Quotes */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setIsSavedQuotesOpen(true)}
-                className="h-7 text-xs cursor-pointer gap-1.5 border-border hover:bg-muted"
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs"
                 title="View and load saved quotes"
               >
                 <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>Saved Quotes</span>
                 {savedDraftsCount > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
                     {savedDraftsCount}
                   </span>
                 )}
               </Button>
+
               {(user?.role === 'ADMIN' || user?.role === 'SUPERADMIN' || Boolean(user?.canAccessAdmin)) && (
                 <Link href="/admin/sealed-units">
-                  <Button variant="outline" size="sm" className="h-7 text-xs cursor-pointer gap-1.5">
+                  <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1.5 border-border/80 hover:bg-muted shadow-xs">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
                     <span>Manage Price Sheets</span>
                   </Button>
@@ -915,55 +1002,6 @@ export default function SealedUnitsCalculatorPage() {
             </div>
           </div>
 
-          {/* Unsaved Sealed Unit Draft Recovery Notification (Ultra-Slim Minimal Space) */}
-          {activeAutoSaveDraft && !autoSaveRestoredOrDismissed && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg py-1 px-3 flex items-center justify-between gap-2 shadow-xs animate-in fade-in duration-150">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
-                <div className="text-xs text-foreground truncate">
-                  <span className="font-semibold text-amber-700 dark:text-amber-400 mr-1">Unsaved Session:</span>
-                  <span className="text-muted-foreground">{activeAutoSaveDraft.customerName || 'Customer'} (#{activeAutoSaveDraft.quoteNumber || 'Draft'} · {activeAutoSaveDraft.itemCount} units · ${activeAutoSaveDraft.grandTotal ? activeAutoSaveDraft.grandTotal.toFixed(2) : '0.00'})</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    loadDraftIntoWorkspace({
-                      id: 'autosave',
-                      type: 'sealed_unit',
-                      quoteNumber: activeAutoSaveDraft.quoteNumber,
-                      customerName: activeAutoSaveDraft.customerName,
-                      createdAt: activeAutoSaveDraft.timestamp,
-                      updatedAt: activeAutoSaveDraft.timestamp,
-                      itemCount: activeAutoSaveDraft.itemCount,
-                      subtotal: (activeAutoSaveDraft.data as any).subtotal || 0,
-                      grandTotal: activeAutoSaveDraft.grandTotal,
-                      summaryLabel: activeAutoSaveDraft.summaryLabel,
-                      data: activeAutoSaveDraft.data,
-                    });
-                  }}
-                  className="h-5 px-2 text-[10px] font-bold cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  Resume
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    clearActiveAutoSave('sealed_unit');
-                    setActiveAutoSaveDraft(null);
-                    setAutoSaveRestoredOrDismissed(true);
-                  }}
-                  className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Customer & Quote Number Information Bar */}
           <div className="bg-card/70 border border-border/80 backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 shadow-sm">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -971,11 +1009,12 @@ export default function SealedUnitsCalculatorPage() {
               <div className="sm:col-span-7 space-y-1">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-primary" />
-                  <span>Customer Name</span>
+                  <span>Customer Name <span className="text-destructive">*</span></span>
                 </Label>
                 <Input
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter customer name (required)"
                   className="h-9 text-xs sm:text-sm bg-background shadow-xs font-medium"
                 />
               </div>
@@ -1056,6 +1095,7 @@ export default function SealedUnitsCalculatorPage() {
                 activeGrillPreview={activeGrillPreview}
                 grills={grills}
                 onAddItem={handleAddItem}
+                onResetQuote={handleResetQuote}
                 onSaveDraft={handleSaveDraft}
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
                 savedDraftsCount={savedDraftsCount}
@@ -1067,13 +1107,12 @@ export default function SealedUnitsCalculatorPage() {
                 mode={sealedUnitMode}
                 labourRate={totals.effectiveLabourRate}
                 miscRate={totals.effectiveMiscRate}
+                labourMin={labour.labourMinPerUnit ?? 120.0}
                 onRemoveItem={handleRemoveItem}
                 onResetQuote={handleResetQuote}
               />
-            </div>
 
-            {/* RIGHT COLUMN (5 cols, sticky): Installation/Travel & Quote Summary */}
-            <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-4">
+              {/* Site Labour & Logistics Card (matching Door page layout) */}
               <SealedUnitLabourTravelCard
                 mode={sealedUnitMode}
                 setMode={handleSetSealedUnitMode}
@@ -1101,11 +1140,15 @@ export default function SealedUnitsCalculatorPage() {
                 itemsSqft={totals.itemsSqft || 0}
                 totals={totals}
               />
+            </div>
 
+            {/* RIGHT COLUMN (5 cols, sticky): Quote Summary (at the top, matching Door page) */}
+            <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-4">
               <SealedUnitQuoteSummaryCard
                 lineItems={lineItems}
                 lineItemsCount={lineItems.length}
                 mode={sealedUnitMode}
+                onModeChange={handleSetSealedUnitMode}
                 isInstallation={isInstallation}
                 labour={labour}
                 hstRate={hstRate}
@@ -1146,6 +1189,17 @@ export default function SealedUnitsCalculatorPage() {
                 onResetQuote={handleResetQuote}
                 onSaveDraft={handleSaveDraft}
                 onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
+                attachedWindowQuote={attachedWindowQuote}
+                attachedDoorQuote={attachedDoorQuote}
+                onOpenAttachModal={handleOpenAttachModal}
+                onRemoveAttachedWindowQuote={() => {
+                  setAttachedWindowQuote(null);
+                  toast.info('Detached Window Quote');
+                }}
+                onRemoveAttachedDoorQuote={() => {
+                  setAttachedDoorQuote(null);
+                  toast.info('Detached Door Quote');
+                }}
               />
             </div>
           </div>
@@ -1206,11 +1260,17 @@ export default function SealedUnitsCalculatorPage() {
                 size="sm"
                 onClick={() => {
                   setLineItems([]);
+                  setAttachedWindowQuote(null);
+                  setAttachedDoorQuote(null);
+                  setCustomerName('');
+                  setQuoteNumber(generateQuoteNumber());
+                  setQuoteNotes('');
                   setShowResetModal(false);
                   clearActiveAutoSave('sealed_unit');
                   setActiveAutoSaveDraft(null);
                   setAutoSaveRestoredOrDismissed(true);
-                  toast.info('Quote reset.');
+                  setLastSavedAt(null);
+                  toast.success('Sealed Unit quote reset. Workspace is fresh and ready.');
                 }}
                 className="text-xs font-bold bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer h-8"
               >
@@ -1223,44 +1283,46 @@ export default function SealedUnitsCalculatorPage() {
 
       {/* DEDICATED CLEAN PRINTABLE QUOTE INVOICE (Visible ONLY during print/PDF when preview modal is not active) */}
       {!isPreviewOpen && (
-        <SealedUnitPrintInvoice
-          lineItems={lineItems}
-          mode={sealedUnitMode}
-          isInstallation={isInstallation}
-          labour={labour}
-          hstRate={hstRate}
+        <QuoteInvoice
           customerName={customerName}
           quoteNumber={quoteNumber}
-          quoteNotes={quoteNotes}
           preparedBy={user?.name || user?.username || ''}
-          totals={totals}
-          template={quoteTemplate}
+          primaryQuoteType="sealed_unit"
+          sealedUnits={lineItems}
+          sealedUnitTotals={totals}
+          quoteNotes={quoteNotes}
+          template={quoteTemplate as any}
           fontSize={quoteFontSize}
           spacing={quoteSpacing}
+          hstRate={hstRate}
+          isSupplyOnly={!isInstallation}
+          attachedWindowQuote={attachedWindowQuote}
+          attachedDoorQuote={attachedDoorQuote}
         />
       )}
 
-      {/* Interactive Print Preview Modal with 3 Templates, Sliders, and Notes */}
-      <SealedUnitPreviewModal
+      {/* Universal Interactive Print Preview Modal with 3 Templates, Sliders, and Notes */}
+      <QuotePreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        template={quoteTemplate}
-        onTemplateChange={setQuoteTemplate}
+        template={quoteTemplate as any}
+        onTemplateChange={setQuoteTemplate as any}
         fontSize={quoteFontSize}
         onFontSizeChange={setQuoteFontSize}
         spacing={quoteSpacing}
         onSpacingChange={setQuoteSpacing}
         quoteNotes={quoteNotes}
         onQuoteNotesChange={setQuoteNotes}
-        lineItems={lineItems}
-        mode={sealedUnitMode}
-        isInstallation={isInstallation}
-        labour={labour}
-        hstRate={hstRate}
+        primaryQuoteType="sealed_unit"
+        sealedUnits={lineItems}
+        sealedUnitTotals={totals}
         customerName={customerName}
         quoteNumber={quoteNumber}
         preparedBy={user?.name || user?.username || ''}
-        totals={totals}
+        hstRate={hstRate}
+        isSupplyOnly={!isInstallation}
+        attachedWindowQuote={attachedWindowQuote}
+        attachedDoorQuote={attachedDoorQuote}
       />
 
       {/* Saved Quotes & Drafts Modal */}
@@ -1269,6 +1331,31 @@ export default function SealedUnitsCalculatorPage() {
         onClose={() => setIsSavedQuotesOpen(false)}
         defaultType="sealed_unit"
         onLoadQuote={loadDraftIntoWorkspace}
+      />
+
+      {/* Universal Multi-Quote Attachment Modal (Windows, Doors) */}
+      <AttachQuoteModal
+        isOpen={isAttachModalOpen}
+        onClose={() => setIsAttachModalOpen(false)}
+        currentQuoteType="sealed_unit"
+        attachedWindowQuote={attachedWindowQuote}
+        attachedDoorQuote={attachedDoorQuote}
+        onAttachWindow={(win: any) => {
+          setAttachedWindowQuote(win);
+          toast.success(`Attached Window Quote #${win.quoteNumber}`);
+        }}
+        onDetachWindow={() => {
+          setAttachedWindowQuote(null);
+          toast.info('Detached Window Quote');
+        }}
+        onAttachDoor={(door: any) => {
+          setAttachedDoorQuote(door);
+          toast.success(`Attached Door Quote #${door.quoteNumber}`);
+        }}
+        onDetachDoor={() => {
+          setAttachedDoorQuote(null);
+          toast.info('Detached Door Quote');
+        }}
       />
     </>
   );

@@ -11,10 +11,14 @@ export async function GET(request: Request) {
     const activeOnly = searchParams.get('active') === 'true';
     const cacheKey = activeOnly ? 'promos:active' : 'promos:all';
 
+    const headers = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
+
     // 1. Check Redis Cache
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers });
     }
     
     // 2. Fetch from MongoDB
@@ -25,7 +29,7 @@ export async function GET(request: Request) {
     // 3. Store in Redis (1 hour TTL)
     cacheSet(cacheKey, promos, 3600).catch(() => {});
     
-    return NextResponse.json(promos);
+    return NextResponse.json(promos, { headers });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

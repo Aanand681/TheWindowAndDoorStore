@@ -8,15 +8,18 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const cacheKey = 'regions:all';
+    const headers = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers });
     }
 
     await dbConnect();
     const regions = await RegionConfig.find().sort({ name: 1 });
     cacheSet(cacheKey, regions, 86400).catch(() => {});
-    return NextResponse.json(regions);
+    return NextResponse.json(regions, { headers });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

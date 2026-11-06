@@ -14,6 +14,7 @@ import {
   Hash,
   AlertCircle,
   FileCheck2,
+  DoorClosed,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +94,10 @@ export function SavedQuotesModal({
   );
   const sealedUnitDraftsCount = useMemo(
     () => drafts.filter((d) => d.type === 'sealed_unit').length,
+    [drafts]
+  );
+  const doorDraftsCount = useMemo(
+    () => drafts.filter((d) => d.type === 'door').length,
     [drafts]
   );
 
@@ -201,6 +206,19 @@ export function SavedQuotesModal({
                 <Layers className="w-3.5 h-3.5" />
                 <span>Sealed Units ({sealedUnitDraftsCount})</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTab('door')}
+                className={cn(
+                  'px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
+                  selectedTab === 'door'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <DoorClosed className="w-3.5 h-3.5" />
+                <span>Doors ({doorDraftsCount})</span>
+              </button>
             </div>
 
             {/* Search Input */}
@@ -252,15 +270,20 @@ export function SavedQuotesModal({
                   {/* Left Info */}
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      {isWindow ? (
+                      {draft.type === 'window' ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                           <Component className="w-3 h-3" />
                           <span>Window Quote</span>
                         </span>
-                      ) : (
+                      ) : draft.type === 'sealed_unit' ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                           <Layers className="w-3 h-3" />
                           <span>Sealed Unit Quote</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          <DoorClosed className="w-3 h-3" />
+                          <span>Door Quote</span>
                         </span>
                       )}
 
