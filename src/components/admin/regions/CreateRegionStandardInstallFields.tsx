@@ -18,71 +18,12 @@ export function CreateRegionStandardInstallFields({
 }: CreateRegionStandardInstallFieldsProps) {
   return (
     <div className="space-y-4 pt-2 border-t border-border">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div>
-          <Label className="text-xs">Labour Per Sqft ($)</Label>
+          <Label className="text-xs font-semibold">Fixed Base Setup Fee / Job ($)</Label>
           <Input
             type="number"
-            step="0.01"
-            value={newRegion.labourPerSqft}
-            onChange={(e) =>
-              setNewRegion((prev) => ({
-                ...prev,
-                labourPerSqft: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Misc Per Sqft ($)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={newRegion.miscPerSqft}
-            onChange={(e) =>
-              setNewRegion((prev) => ({
-                ...prev,
-                miscPerSqft: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Min Labour per Window ($)</Label>
-          <Input
-            type="number"
-            value={newRegion.labourMin}
-            onChange={(e) =>
-              setNewRegion((prev) => ({
-                ...prev,
-                labourMin: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Min Misc per Window ($)</Label>
-          <Input
-            type="number"
-            value={newRegion.miscMin}
-            onChange={(e) =>
-              setNewRegion((prev) => ({
-                ...prev,
-                miscMin: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Fixed Setup Fee / Job ($)</Label>
-          <Input
-            type="number"
+            className="h-9 text-xs font-mono"
             value={newRegion.fixedSetupFee}
             onChange={(e) =>
               setNewRegion((prev) => ({
@@ -90,33 +31,27 @@ export function CreateRegionStandardInstallFields({
                 fixedSetupFee: Number(e.target.value),
               }))
             }
+            placeholder="140"
           />
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">
+            Base mobilization fee for jobs dispatched in this region.
+          </span>
         </div>
+
         <div>
-          <Label className="text-xs">Extra Lin Per Window (ft)</Label>
+          <Label className="text-xs font-semibold">Free Radius Cities (comma-separated)</Label>
           <Input
-            type="number"
-            step="0.01"
-            value={newRegion.extraLinPerWindow}
+            className="h-9 text-xs"
+            placeholder="e.g. Fort Frances, Devlin, Emo"
+            value={newRegion.freeCities}
             onChange={(e) =>
-              setNewRegion((prev) => ({
-                ...prev,
-                extraLinPerWindow: Number(e.target.value),
-              }))
+              setNewRegion((prev) => ({ ...prev, freeCities: e.target.value }))
             }
           />
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">
+            Towns within local radius where mileage and crew transit are $0.
+          </span>
         </div>
-      </div>
-
-      <div>
-        <Label className="text-xs">Free Radius Cities (comma-separated)</Label>
-        <Input
-          placeholder="e.g. Fort Frances, Devlin, Emo"
-          value={newRegion.freeCities}
-          onChange={(e) =>
-            setNewRegion((prev) => ({ ...prev, freeCities: e.target.value }))
-          }
-        />
       </div>
 
       {/* Dynamic Setup Fees */}
@@ -147,8 +82,8 @@ export function CreateRegionStandardInstallFields({
           {newRegion.setupFeeOptions.map((opt, idx) => (
             <div key={idx} className="flex gap-2 items-center">
               <Input
-                className="flex-1 text-xs"
-                placeholder="e.g. Standard Setup or Crane Fee"
+                className="flex-1 text-xs h-8.5"
+                placeholder="e.g. Dryden / Sioux Lookout"
                 value={opt.label}
                 onChange={(e) => {
                   const updated = [...newRegion.setupFeeOptions];
@@ -164,7 +99,7 @@ export function CreateRegionStandardInstallFields({
                   $
                 </span>
                 <Input
-                  className="pl-6 text-xs"
+                  className="pl-6 text-xs h-8.5 font-mono"
                   type="number"
                   placeholder="0"
                   value={opt.value}
@@ -185,7 +120,7 @@ export function CreateRegionStandardInstallFields({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer"
+                className="h-8.5 w-8.5 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer"
                 onClick={() => {
                   setNewRegion((prev) => ({
                     ...prev,
@@ -204,4 +139,3 @@ export function CreateRegionStandardInstallFields({
     </div>
   );
 }
-

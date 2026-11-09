@@ -19,7 +19,6 @@ import { useSealedUnitsItemBuilder } from '@/hooks/sealed-units/useSealedUnitsIt
 import { useSealedUnitsDrafts } from '@/hooks/sealed-units/useSealedUnitsDrafts';
 import { useSealedUnitsReviewSubmit } from '@/hooks/sealed-units/useSealedUnitsReviewSubmit';
 import { SealedUnitsHeaderBar } from '@/components/sealed-units/page/SealedUnitsHeaderBar';
-import { SealedUnitsCustomerInfoBar } from '@/components/sealed-units/page/SealedUnitsCustomerInfoBar';
 import { SealedUnitsModalsGroup } from '@/components/sealed-units/page/SealedUnitsModalsGroup';
 
 export default function SealedUnitsCalculatorPage() {
@@ -139,18 +138,15 @@ export default function SealedUnitsCalculatorPage() {
             onOpenSavedQuotes={() => drafts.setIsSavedQuotesOpen(true)}
           />
 
-          <SealedUnitsCustomerInfoBar
-            customerName={drafts.customerName}
-            setCustomerName={drafts.setCustomerName}
-            quoteNumber={drafts.quoteNumber}
-            setQuoteNumber={drafts.setQuoteNumber}
-            onRegenerateQuoteNumber={() => drafts.setQuoteNumber(drafts.generateQuoteNumber())}
-          />
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
             {/* Left Column (7 cols): Builder, Table, Travel */}
             <div className="lg:col-span-7 space-y-3.5">
               <SealedUnitItemBuilder
+                customerName={drafts.customerName}
+                setCustomerName={drafts.setCustomerName}
+                quoteNumber={drafts.quoteNumber}
+                setQuoteNumber={drafts.setQuoteNumber}
+                onRegenerateQuoteNumber={() => drafts.setQuoteNumber(drafts.generateQuoteNumber())}
                 {...builder}
                 grills={settings.grills}
                 onResetQuote={() => drafts.setShowResetModal(true)}
@@ -176,6 +172,9 @@ export default function SealedUnitsCalculatorPage() {
                 isInstallation={travel.isInstallation}
                 setIsInstallation={travel.setIsInstallation}
                 labour={settings.labour}
+                regions={travel.regions}
+                selectedRegionId={travel.selectedRegionId}
+                onSelectRegion={travel.setSelectedRegionId}
                 travelFeeType={travel.travelFeeType}
                 setTravelFeeType={travel.setTravelFeeType}
                 customTravelFee={travel.customTravelFee}
@@ -268,6 +267,7 @@ export default function SealedUnitsCalculatorPage() {
         lineItems={lineItems}
         totals={totals}
         isInstallation={travel.isInstallation}
+        regionName={travel.isInstallation ? travel.selectedRegion?.name : undefined}
         hstRate={travel.hstRate}
       />
     </>

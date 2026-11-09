@@ -3,8 +3,15 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DoorLogisticsSettings } from '@/lib/doors/types';
-import { MapPin } from 'lucide-react';
+import { Truck } from 'lucide-react';
 
 interface DoorMileageSectionProps {
   showOutTownTravel: boolean;
@@ -30,80 +37,101 @@ export function DoorMileageSection({
 }: DoorMileageSectionProps) {
   const km = parseFloat(travelKm) || 0;
   const hours = parseFloat(crewHours) || 0;
-  const vehicleCost = showOutTownTravel ? km * logistics.vehicleRatePerKm : 0;
-  const crewHourlyRate = crewSize === '3' ? logistics.crewHourly3Men : logistics.crewHourly2Men;
-  const crewCost = showOutTownTravel ? hours * crewHourlyRate : 0;
+  const isTravelActive = showOutTownTravel || km > 0 || hours > 0;
+  const vehicleCost = isTravelActive ? km * (logistics.vehicleRatePerKm || 0.98) : 0;
+  const crewHourlyRate = crewSize === '2' ? logistics.crewHourly2Men || 150 : logistics.crewHourly3Men || 200;
+  const crewCost = isTravelActive ? hours * crewHourlyRate : 0;
+  const totalTravelFleet = vehicleCost + crewCost;
+
+  const handleKmChange = (val: string) => {
+    const num = parseFloat(val) || 0;
+    onUpdateParams({
+      travelKm: val,
+      showOutTownTravel: num > 0 || parseFloat(crewHours) > 0,
+    });
+  };
+
+  const handleHoursChange = (val: string) => {
+    const num = parseFloat(val) || 0;
+    onUpdateParams({
+      crewHours: val,
+      showOutTownTravel: num > 0 || parseFloat(travelKm) > 0,
+    });
+  };
 
   return (
-    <div className="border border-border/70 rounded-xl overflow-hidden bg-card/40">
-      <div className="flex items-center justify-between p-3 text-xs font-semibold">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showOutTownTravel}
-            onChange={(e) => onUpdateParams({ showOutTownTravel: e.target.checked })}
-            className="rounded border-input text-primary focus:ring-primary w-4 h-4"
-          />
-          <span className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-primary" />
-            Additional Out-of-Town Mileage &amp; Crew Travel Time
-          </span>
-        </label>
-        {showOutTownTravel && (
-          <span className="text-[11px] font-mono text-primary font-bold">
-            +${(vehicleCost + crewCost).toFixed(2)}
-          </span>
-        )}
+    <div className="space-y-3.5 p-3.5 rounded-xl border border-border/70 bg-card/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
+        <div className="flex items-center gap-2">
+          <Truck className="w-4 h-4 text-primary" />
+          <Label className="text-xs font-bold text-foreground">
+            Travel Mileage &amp; Crew Transit (Out-of-Town)
+          </Label>
+        </div>
+        <div className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 self-start sm:self-auto">
+          Mileage Total: +${totalTravelFleet.toFixed(2)}
+        </div>
       </div>
 
-      {showOutTownTravel && (
-        <div className="p-3 pt-0 border-t border-border/40 space-y-3 mt-2 bg-muted/20">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Distance (km)</Label>
-              <Input
-                type="number"
-                step="1"
-                value={travelKm}
-                onChange={(e) => onUpdateParams({ travelKm: e.target.value })}
-                placeholder="e.g. 200"
-                className="h-8 text-xs font-mono"
-              />
-              <div className="text-[10px] text-muted-foreground">
-                @ ${logistics.vehicleRatePerKm.toFixed(2)}/km = ${vehicleCost.toFixed(2)}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Crew Transit (Hours)</Label>
-              <Input
-                type="number"
-                step="any"
-                value={crewHours}
-                onChange={(e) => onUpdateParams({ crewHours: e.target.value })}
-                placeholder="e.g. 2.5"
-                className="h-8 text-xs font-mono"
-              />
-              <div className="text-[10px] text-muted-foreground">
-                @ ${crewHourlyRate.toFixed(2)}/hr = ${crewCost.toFixed(2)}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Crew Size (Default: 3 Men)</Label>
-              <select
-                value={crewSize}
-                onChange={(e) => onUpdateParams({ crewSize: e.target.value as '2' | '3' })}
-                className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs shadow-xs focus:ring-1 focus:ring-ring font-medium"
-              >
-                <option value="3">3-Man Crew (${logistics.crewHourly3Men}/hr) [Default]</option>
-                <option value="2">2-Man Crew (${logistics.crewHourly2Men}/hr)</option>
-              </select>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* Round-trip Distance */}
+        <div className="space-y-1">
+          <Label className="text-xs font-semibold text-muted-foreground">Round-Trip Distance (km)</Label>
+          <Input
+            type="number"
+            step="1"
+            value={travelKm}
+            onChange={(e) => handleKmChange(e.target.value)}
+            placeholder="0"
+            className="h-9 text-xs font-mono bg-background"
+          />
+          <span className="text-[10px] text-muted-foreground block">
+            @ ${(logistics.vehicleRatePerKm || 0.98).toFixed(2)}/km = ${vehicleCost.toFixed(2)}
+          </span>
         </div>
-      )}
+
+        {/* Crew Size */}
+        <div className="space-y-1">
+          <Label className="text-xs font-semibold text-muted-foreground">Crew Configuration</Label>
+          <Select
+            value={crewSize}
+            onValueChange={(val: any) => {
+              if (val) onUpdateParams({ crewSize: val });
+            }}
+          >
+            <SelectTrigger className="h-9 text-xs font-medium bg-background">
+              <SelectValue placeholder="Crew Size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">
+                3-Man Crew (${logistics.crewHourly3Men || 200}/hr) [Standard]
+              </SelectItem>
+              <SelectItem value="2">
+                2-Man Crew (${logistics.crewHourly2Men || 150}/hr)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-[10px] text-muted-foreground block">
+            Hourly transit billing per crew size
+          </span>
+        </div>
+
+        {/* Crew Transit Hours */}
+        <div className="space-y-1">
+          <Label className="text-xs font-semibold text-muted-foreground">Transit Time (Hours)</Label>
+          <Input
+            type="number"
+            step="0.5"
+            value={crewHours}
+            onChange={(e) => handleHoursChange(e.target.value)}
+            placeholder="0.0"
+            className="h-9 text-xs font-mono bg-background"
+          />
+          <span className="text-[10px] text-muted-foreground block">
+            @ ${crewHourlyRate.toFixed(2)}/hr = ${crewCost.toFixed(2)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
-

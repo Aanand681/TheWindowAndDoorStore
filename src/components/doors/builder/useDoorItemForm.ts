@@ -8,6 +8,7 @@ import {
   DoorCategory,
   DoorHardwareType,
   DoorUpgradeOption,
+  DoorQuotingMode,
 } from '@/lib/doors/types';
 import { buildDoorLineItem, calculateDoorUpgradeDifference } from '@/lib/doors/calculations';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ interface UseDoorItemFormOptions {
   presets: DoorPreset[];
   formula: DoorFormulaSettings;
   editingItem?: DoorLineItem | null;
+  mode?: DoorQuotingMode;
   onSaveItem: (item: DoorLineItem) => void;
   onResetQuote?: () => void;
 }
@@ -24,6 +26,7 @@ export function useDoorItemForm({
   presets,
   formula,
   editingItem,
+  mode,
   onSaveItem,
   onResetQuote,
 }: UseDoorItemFormOptions) {
@@ -40,10 +43,19 @@ export function useDoorItemForm({
   // Pricing
   const [inksterBasePrice, setInksterBasePrice] = useState<string>('1200');
 
-  // Hardware
-  const [hardwareType, setHardwareType] = useState<DoorHardwareType>('standard');
+  // Hardware (defaults to 'none' if in supply_only mode)
+  const [hardwareType, setHardwareType] = useState<DoorHardwareType>(
+    mode === 'supply_only' ? 'none' : 'standard'
+  );
   const [customHardwareName, setCustomHardwareName] = useState<string>('Premium Grip Set');
   const [customHardwarePrice, setCustomHardwarePrice] = useState<string>('250');
+
+  // Automatically switch to 'none' if mode becomes supply_only
+  useEffect(() => {
+    if (mode === 'supply_only') {
+      setHardwareType('none');
+    }
+  }, [mode]);
 
   // Upgrade Option
   const [hasUpgradeOption, setHasUpgradeOption] = useState<boolean>(false);
@@ -214,7 +226,7 @@ export function useDoorItemForm({
       setInksterBasePrice('1200');
       setQuantity('1');
       setHasUpgradeOption(false);
-      setHardwareType('standard');
+      setHardwareType(mode === 'supply_only' ? 'none' : 'standard');
       setNotes('');
       toast.info('Door form reset');
     }

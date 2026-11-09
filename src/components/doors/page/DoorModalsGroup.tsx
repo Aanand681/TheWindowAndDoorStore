@@ -31,6 +31,7 @@ interface DoorModalsGroupProps {
   lineItems: any[];
   mode: any;
   globalUpcharges: any[];
+  regionName?: string;
   isFirstNation: boolean;
   quoteNotes: string;
   setQuoteNotes: (notes: string) => void;
@@ -78,6 +79,7 @@ export function DoorModalsGroup({
   lineItems,
   mode,
   globalUpcharges,
+  regionName,
   isFirstNation,
   quoteNotes,
   setQuoteNotes,
@@ -131,6 +133,7 @@ export function DoorModalsGroup({
           preparedBy={user?.name || user?.username || 'The Window & Door Store'}
           hstRate={isFirstNation ? 8 : 13}
           isSupplyOnly={mode === 'supply_only'}
+          regionName={regionName}
           globalUpcharges={globalUpcharges}
           attachedWindowQuote={attachedWindowQuote}
           attachedSealedUnit={attachedSealedUnit}

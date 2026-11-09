@@ -60,6 +60,7 @@ export function useTaxCalculator({
     dbCasings,
     dbVehicleRate,
     dbCrewRates,
+    windowLabourSettings,
   } = useTaxInitialData({
     onSetupFeeDefault: useCallback((fee: string) => {
       regionStateRef.current.setupFeeSetter?.(fee);
@@ -190,6 +191,7 @@ export function useTaxCalculator({
       calculateTaxTotals({
         windows,
         region,
+        windowLabourSettings,
         effectiveIsSupplyOnly,
         dbAddons,
         addons,
@@ -220,7 +222,7 @@ export function useTaxCalculator({
       windows, region, addons, travel.manualKm, travel.manualHours, crew, travel.setupFee,
       jambId, jambName, jambRate, casingId, casingName, casingRate, discount, hstOn, includeLabour, includeMisc,
       includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly,
-      effectiveIsSupplyOnly, selectedRegionId, travel.coords, travel.travelInfo?.city,
+      effectiveIsSupplyOnly, selectedRegionId, travel.coords, travel.travelInfo?.city, windowLabourSettings,
     ]
   );
 

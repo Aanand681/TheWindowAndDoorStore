@@ -3,18 +3,24 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DoorPreset, DoorFormulaSettings, DoorLineItem } from '@/lib/doors/types';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { DoorPreset, DoorFormulaSettings, DoorLineItem, DoorQuotingMode } from '@/lib/doors/types';
 import { Plus, DoorClosed, CheckCircle2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DoorHardwareSection,
   DoorUpgradeSection,
-  DoorLivePreviewBox,
   DoorPresetSpecsSection,
   useDoorItemForm,
 } from './builder';
 
 interface DoorItemBuilderProps {
+  customerName?: string;
+  setCustomerName?: (name: string) => void;
+  quoteNumber?: string;
+  setQuoteNumber?: (num: string) => void;
+  mode?: DoorQuotingMode;
   presets: DoorPreset[];
   formula: DoorFormulaSettings;
   editingItem?: DoorLineItem | null;
@@ -25,6 +31,11 @@ interface DoorItemBuilderProps {
 }
 
 export function DoorItemBuilder({
+  customerName = '',
+  setCustomerName,
+  quoteNumber = '',
+  setQuoteNumber,
+  mode = 'installation',
   presets,
   formula,
   editingItem,
@@ -37,6 +48,7 @@ export function DoorItemBuilder({
     presets,
     formula,
     editingItem,
+    mode,
     onSaveItem,
     onResetQuote,
   });
@@ -81,6 +93,34 @@ export function DoorItemBuilder({
         </div>
       </CardHeader>
 
+      {/* Customer Name & Quote Number Header Section */}
+      {setCustomerName && setQuoteNumber && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2.5 px-3.5 sm:px-4 bg-muted/20 border-b border-border/40">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Quote/Order Number
+            </Label>
+            <Input
+              value={quoteNumber}
+              onChange={(e) => setQuoteNumber(e.target.value)}
+              placeholder="e.g. 400820"
+              className="bg-background shadow-xs h-9 text-sm font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Customer Name
+            </Label>
+            <Input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="e.g. Jason Schram"
+              className="bg-background shadow-xs h-9 text-sm"
+            />
+          </div>
+        </div>
+      )}
+
       <CardContent className="p-3.5 !pt-2.5">
         <form onSubmit={form.handleSubmit} className="space-y-3">
           <DoorPresetSpecsSection
@@ -119,8 +159,6 @@ export function DoorItemBuilder({
             upgradeDiff={form.upgradeDiff}
             parsedQuantity={form.parsedQuantity}
           />
-
-          <DoorLivePreviewBox previewItem={form.previewItem} />
 
           <Button
             type="submit"

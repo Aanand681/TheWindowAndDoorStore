@@ -1,8 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useSharedRegions } from '@/hooks/shared/useSharedRegions';
 
 export function useDoorTravel() {
+  const {
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    loading: regionsLoading,
+  } = useSharedRegions('Fort Frances');
+
   const [travelFeeType, setTravelFeeType] = useState<
     'none' | 'local_std' | 'far_std' | 'far_small' | 'custom'
   >('local_std');
@@ -13,6 +22,7 @@ export function useDoorTravel() {
   const [crewSize, setCrewSize] = useState<'2' | '3'>('3');
 
   const handleUpdateTravelParams = (updates: any) => {
+    if (updates.selectedRegionId !== undefined) setSelectedRegionId(updates.selectedRegionId);
     if (updates.travelFeeType !== undefined) setTravelFeeType(updates.travelFeeType);
     if (updates.customTravelFee !== undefined) setCustomTravelFee(updates.customTravelFee);
     if (updates.showOutTownTravel !== undefined) setShowOutTownTravel(updates.showOutTownTravel);
@@ -22,6 +32,11 @@ export function useDoorTravel() {
   };
 
   return {
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    regionsLoading,
     travelFeeType,
     setTravelFeeType,
     customTravelFee,

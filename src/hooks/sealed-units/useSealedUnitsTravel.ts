@@ -1,15 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useSharedRegions } from '@/hooks/shared/useSharedRegions';
 
 export function useSealedUnitsTravel() {
+  const {
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    loading: regionsLoading,
+  } = useSharedRegions('Fort Frances');
+
   const [sealedUnitMode, setSealedUnitMode] = useState<'installation' | 'supply_only' | 'service_only'>('installation');
   const isInstallation = sealedUnitMode === 'installation';
   const isServiceOnly = sealedUnitMode === 'service_only';
   const [serviceSqftInput, setServiceSqftInput] = useState<string>('');
   const [serviceLabourRateInput, setServiceLabourRateInput] = useState<string>('');
   const [serviceMiscRateInput, setServiceMiscRateInput] = useState<string>('');
-  const [travelFeeType, setTravelFeeType] = useState<'none' | 'far_std' | 'far_small' | 'custom'>('none');
+  const [travelFeeType, setTravelFeeType] = useState<'none' | 'local_std' | 'far_std' | 'far_small' | 'custom'>('local_std');
   const [customTravelFee, setCustomTravelFee] = useState<string>('');
   const [showOutTownTravel, setShowOutTownTravel] = useState<boolean>(false);
   const [travelKm, setTravelKm] = useState<string>('');
@@ -42,6 +51,7 @@ export function useSealedUnitsTravel() {
     crewHours,
     crewSize,
     hstRate,
+    selectedRegionId,
   };
 
   const formSetters = {
@@ -57,11 +67,17 @@ export function useSealedUnitsTravel() {
     setCrewHours,
     setCrewSize,
     setHstRate,
+    setSelectedRegionId,
   };
 
   return {
     ...formInputs,
     ...formSetters,
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    regionsLoading,
     formInputs,
     formSetters,
     handleSetSealedUnitMode,

@@ -15,12 +15,16 @@ import {
   DoorSetupPresetsSection,
   DoorMileageSection,
 } from './labour';
+import { SharedRegionOption } from '@/hooks/shared/useSharedRegions';
 
 interface DoorLabourTravelCardProps {
   mode: DoorQuotingMode;
   availableUpcharges: DoorUpchargeConfig[];
   globalUpcharges: DoorSelectedUpcharge[];
   onUpdateGlobalUpcharges: (upcharges: DoorSelectedUpcharge[]) => void;
+  regions?: SharedRegionOption[];
+  selectedRegionId?: string;
+  onSelectRegion?: (regionId: string) => void;
   travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;
@@ -29,6 +33,7 @@ interface DoorLabourTravelCardProps {
   crewSize: '2' | '3';
   logistics: DoorLogisticsSettings;
   onUpdateParams: (updates: {
+    selectedRegionId?: string;
     travelFeeType?: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
     customTravelFee?: string;
     showOutTownTravel?: boolean;
@@ -44,6 +49,9 @@ export function DoorLabourTravelCard({
   availableUpcharges,
   globalUpcharges,
   onUpdateGlobalUpcharges,
+  regions = [],
+  selectedRegionId = '',
+  onSelectRegion = () => {},
   travelFeeType,
   customTravelFee,
   showOutTownTravel,
@@ -94,6 +102,9 @@ export function DoorLabourTravelCard({
         />
 
         <DoorSetupPresetsSection
+          regions={regions}
+          selectedRegionId={selectedRegionId}
+          onSelectRegion={onSelectRegion}
           travelFeeType={travelFeeType}
           customTravelFee={customTravelFee}
           logistics={logistics}

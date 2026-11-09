@@ -65,6 +65,7 @@ interface SealedUnitsModalsGroupProps {
   lineItems: SealedUnitLineItem[];
   totals: SealedUnitTotals;
   isInstallation: boolean;
+  regionName?: string;
   hstRate: number;
 }
 
@@ -77,6 +78,7 @@ export function SealedUnitsModalsGroup({
   lineItems,
   totals,
   isInstallation,
+  regionName,
   hstRate,
 }: SealedUnitsModalsGroupProps) {
   return (
@@ -158,6 +160,7 @@ export function SealedUnitsModalsGroup({
           spacing={preview.quoteSpacing}
           hstRate={hstRate}
           isSupplyOnly={!isInstallation}
+          regionName={regionName}
           attachedWindowQuote={drafts.attachedWindowQuote}
           attachedDoorQuote={drafts.attachedDoorQuote}
         />
@@ -183,6 +186,7 @@ export function SealedUnitsModalsGroup({
         preparedBy={user?.name || user?.username || ''}
         hstRate={hstRate}
         isSupplyOnly={!isInstallation}
+        regionName={regionName}
         attachedWindowQuote={drafts.attachedWindowQuote}
         attachedDoorQuote={drafts.attachedDoorQuote}
       />

@@ -55,11 +55,28 @@ export async function GET() {
           { crewSize: '3', hourlyRate: 200 },
           { crewSize: '4', hourlyRate: 500 }
         ],
+        windowLabourPerSqft: 19,
+        windowMiscPerSqft: 8,
+        windowLabourMin: 325,
+        windowMiscMin: 74,
+        extraLinPerWindow: 2.17,
         labourUpgradeTiers: DEFAULT_LABOUR_UPGRADE_TIERS
       });
-    } else if (!settings.labourUpgradeTiers || settings.labourUpgradeTiers.length === 0) {
-      settings.labourUpgradeTiers = DEFAULT_LABOUR_UPGRADE_TIERS;
-      await settings.save();
+    } else {
+      let shouldSave = false;
+      if (!settings.labourUpgradeTiers || settings.labourUpgradeTiers.length === 0) {
+        settings.labourUpgradeTiers = DEFAULT_LABOUR_UPGRADE_TIERS;
+        shouldSave = true;
+      }
+      if (settings.windowLabourPerSqft === undefined) {
+        settings.windowLabourPerSqft = 19;
+        settings.windowMiscPerSqft = 8;
+        settings.windowLabourMin = 325;
+        settings.windowMiscMin = 74;
+        settings.extraLinPerWindow = 2.17;
+        shouldSave = true;
+      }
+      if (shouldSave) await settings.save();
     }
     
     cacheSet('settings:global', settings, 86400).catch(() => {});
@@ -90,6 +107,11 @@ export async function PUT(request: Request) {
     if (body.casings !== undefined) updateFields.casings = body.casings;
     if (body.vehicleRate !== undefined) updateFields.vehicleRate = body.vehicleRate;
     if (body.crewRates !== undefined) updateFields.crewRates = body.crewRates;
+    if (body.windowLabourPerSqft !== undefined) updateFields.windowLabourPerSqft = body.windowLabourPerSqft;
+    if (body.windowMiscPerSqft !== undefined) updateFields.windowMiscPerSqft = body.windowMiscPerSqft;
+    if (body.windowLabourMin !== undefined) updateFields.windowLabourMin = body.windowLabourMin;
+    if (body.windowMiscMin !== undefined) updateFields.windowMiscMin = body.windowMiscMin;
+    if (body.extraLinPerWindow !== undefined) updateFields.extraLinPerWindow = body.extraLinPerWindow;
     if (body.labourUpgradeTiers !== undefined) updateFields.labourUpgradeTiers = body.labourUpgradeTiers;
 
     // Upsert the first settings document

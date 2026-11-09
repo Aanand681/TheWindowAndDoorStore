@@ -9,7 +9,7 @@ export interface SealedUnitCalculationParams {
   serviceSqftInput: string;
   serviceLabourRateInput: string;
   serviceMiscRateInput: string;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;
   travelKm: string;

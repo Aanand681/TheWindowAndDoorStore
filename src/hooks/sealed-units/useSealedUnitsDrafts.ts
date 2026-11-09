@@ -29,13 +29,14 @@ export interface SealedUnitFormInputs {
   serviceSqftInput: string;
   serviceLabourRateInput: string;
   serviceMiscRateInput: string;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;
   travelKm: string;
   crewHours: string;
   crewSize: '2' | '3';
   hstRate: number;
+  selectedRegionId?: string;
 }
 
 export interface SealedUnitFormSetters {
@@ -44,13 +45,14 @@ export interface SealedUnitFormSetters {
   setServiceSqftInput: (val: string) => void;
   setServiceLabourRateInput: (val: string) => void;
   setServiceMiscRateInput: (val: string) => void;
-  setTravelFeeType: (val: 'none' | 'far_std' | 'far_small' | 'custom') => void;
+  setTravelFeeType: (val: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom') => void;
   setCustomTravelFee: (val: string) => void;
   setShowOutTownTravel: (val: boolean) => void;
   setTravelKm: (val: string) => void;
   setCrewHours: (val: string) => void;
   setCrewSize: (val: '2' | '3') => void;
   setHstRate: (val: number) => void;
+  setSelectedRegionId?: (val: string) => void;
 }
 
 interface UseSealedUnitsDraftsProps {

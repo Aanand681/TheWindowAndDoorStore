@@ -18,6 +18,11 @@ export interface ISettings extends Document {
   vehicleRate: number;
   crewRates: { crewSize: string, hourlyRate: number }[];
   labourUpgradeTiers?: ILabourUpgradeTier[];
+  windowLabourPerSqft?: number;
+  windowMiscPerSqft?: number;
+  windowLabourMin?: number;
+  windowMiscMin?: number;
+  extraLinPerWindow?: number;
 }
 
 const SettingsSchema = new Schema<ISettings>(
@@ -28,6 +33,11 @@ const SettingsSchema = new Schema<ISettings>(
     casings: [{ id: String, label: String, rate: Number }],
     vehicleRate: { type: Number, default: 0.98 },
     crewRates: [{ crewSize: String, hourlyRate: Number }],
+    windowLabourPerSqft: { type: Number, default: 19 },
+    windowMiscPerSqft: { type: Number, default: 8 },
+    windowLabourMin: { type: Number, default: 325 },
+    windowMiscMin: { type: Number, default: 74 },
+    extraLinPerWindow: { type: Number, default: 2.17 },
     labourUpgradeTiers: [
       {
         id: String,

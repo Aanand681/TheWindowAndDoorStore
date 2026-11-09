@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useRef, useMemo, useEffect } from 'react';
-import { Layers, Plus, RotateCcw } from 'lucide-react';
+import { Layers, Plus, RotateCcw, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   GlassTreatment,
   PaneType,
@@ -18,6 +20,11 @@ import { SealedUnitGlassSpecsForm } from './builder/SealedUnitGlassSpecsForm';
 import { SealedUnitGrillBuilder } from './builder/SealedUnitGrillBuilder';
 
 export interface SealedUnitItemBuilderProps {
+  customerName?: string;
+  setCustomerName?: (val: string) => void;
+  quoteNumber?: string;
+  setQuoteNumber?: (val: string) => void;
+  onRegenerateQuoteNumber?: () => void;
   treatment: GlassTreatment;
   setTreatment: (t: GlassTreatment) => void;
   availableCombos: ComboPricing[];
@@ -67,6 +74,11 @@ export interface SealedUnitItemBuilderProps {
 }
 
 export function SealedUnitItemBuilder({
+  customerName = '',
+  setCustomerName,
+  quoteNumber = '',
+  setQuoteNumber,
+  onRegenerateQuoteNumber,
   treatment,
   setTreatment,
   availableCombos,
@@ -153,6 +165,47 @@ export function SealedUnitItemBuilder({
           </Button>
         )}
       </div>
+
+      {/* Customer Name & Quote Number Header Section */}
+      {setCustomerName && setQuoteNumber && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2.5 px-3.5 bg-muted/20 border-b border-border/40">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Quote/Order Number
+              </Label>
+              {onRegenerateQuoteNumber && (
+                <button
+                  type="button"
+                  onClick={onRegenerateQuoteNumber}
+                  className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                  title="Generate a fresh unique 6-digit quote number"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Regenerate</span>
+                </button>
+              )}
+            </div>
+            <Input
+              value={quoteNumber}
+              onChange={(e) => setQuoteNumber(e.target.value)}
+              placeholder="e.g. 400820"
+              className="bg-background shadow-xs h-9 text-sm font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Customer Name
+            </Label>
+            <Input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="e.g. Jason Schram"
+              className="bg-background shadow-xs h-9 text-sm"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="p-3 sm:p-3.5 space-y-3">
         <form onSubmit={onAddItem} className="space-y-3">

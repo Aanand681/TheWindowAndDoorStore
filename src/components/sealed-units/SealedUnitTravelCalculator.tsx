@@ -1,20 +1,30 @@
 'use client';
 
 import React from 'react';
-import { Truck, MapPin, Users, Fuel } from 'lucide-react';
+import { MapPin, Fuel } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
-import { cn } from '@/lib/utils';
+import { SharedRegionOption } from '@/hooks/shared/useSharedRegions';
 
 export interface SealedUnitTravelCalculatorProps {
   labour: SealedUnitLabourSettings;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
-  setTravelFeeType: (val: 'none' | 'far_std' | 'far_small' | 'custom') => void;
+  regions?: SharedRegionOption[];
+  selectedRegionId?: string;
+  onSelectRegion?: (regionId: string) => void;
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
+  setTravelFeeType: (val: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom') => void;
   customTravelFee: string;
   setCustomTravelFee: (val: string) => void;
-  showOutTownTravel: boolean;
-  setShowOutTownTravel: (val: boolean) => void;
+  showOutTownTravel?: boolean;
+  setShowOutTownTravel?: (val: boolean) => void;
   travelKm: string;
   setTravelKm: (val: string) => void;
   crewHours: string;
@@ -28,237 +38,212 @@ export interface SealedUnitTravelCalculatorProps {
 
 export function SealedUnitTravelCalculator({
   labour,
+  regions = [],
+  selectedRegionId = '',
+  onSelectRegion = () => {},
   travelFeeType,
   setTravelFeeType,
   customTravelFee,
   setCustomTravelFee,
-  showOutTownTravel,
-  setShowOutTownTravel,
   travelKm,
   setTravelKm,
   crewHours,
   setCrewHours,
   crewSize,
   setCrewSize,
-  baseSetupFee: _baseSetupFee,
   totalTravelAndSetup,
   contextMode = 'installation',
 }: SealedUnitTravelCalculatorProps) {
   const farStandardFee = labour.setupFeeFarStandard || 727.5;
   const farSmallFee = labour.setupFeeFarSmall || 363.5;
+  const baseSetup = labour.setupFeeDefault || 140.0;
+  const selectedRegion = regions.find((r) => r._id === selectedRegionId);
+
+  const isDrydenOrRemote = Boolean(
+    selectedRegion?.name.toLowerCase().includes('dryden') ||
+      selectedRegion?.name.toLowerCase().includes('sioux')
+  );
+
+  let remoteExtra = 0;
+  if (isDrydenOrRemote) {
+    if (travelFeeType === 'far_std') remoteExtra = farStandardFee;
+    else if (travelFeeType === 'far_small') remoteExtra = farSmallFee;
+    else if (travelFeeType === 'custom') remoteExtra = Math.max(0, parseFloat(customTravelFee) || 0);
+  }
+
+  const isWaived = travelFeeType === 'none';
+  const setupTotal = isWaived ? 0 : baseSetup + remoteExtra;
+
+  const handleRegionChange = (newRegionId: string | null) => {
+    if (!newRegionId) return;
+    onSelectRegion(newRegionId);
+    const reg = regions.find((r) => r._id === newRegionId);
+    if (!reg) return;
+    if (reg.name.toLowerCase().includes('dryden') || reg.name.toLowerCase().includes('sioux')) {
+      setTravelFeeType('far_std');
+    } else {
+      setTravelFeeType('local_std');
+      setCustomTravelFee('');
+    }
+  };
+
+  const kmVal = parseFloat(travelKm) || 0;
+  const hrsVal = parseFloat(crewHours) || 0;
+  const vehicleRate = labour.vehicleRatePerKm || 0.98;
+  const crewHourlyRate = crewSize === '2' ? (labour.crewHourly2Men || 150) : (labour.crewHourly3Men || 200);
+
+  const feeTypeLabel =
+    travelFeeType === 'far_std'
+      ? `Standard Job Fee (+${farStandardFee.toFixed(2)})`
+      : travelFeeType === 'far_small'
+      ? `Small Job Fee (+${farSmallFee.toFixed(2)})`
+      : travelFeeType === 'custom'
+      ? `Custom Surcharge ($${parseFloat(customTravelFee) || 0})`
+      : 'Base Setup Only ($0.00 surcharge)';
 
   return (
-    <div className="space-y-3 pt-2 border-t border-border/60">
-      {/* Travel & Far Area Surcharge Presets */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 text-primary" />
-            <span>Travel &amp; Far Area Fee</span>
-          </Label>
-          <span className="text-[10px] text-muted-foreground">
-            {contextMode === 'service_only' ? 'Included in Service Labour' : 'Base setup: $140'}
-          </span>
+    <div className="space-y-3.5 pt-2 border-t border-border/60">
+      {/* 1. Region & Setup Mobilization Section */}
+      <div className="space-y-3 p-3.5 rounded-xl border border-border/70 bg-card/40">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-primary" />
+            <Label className="text-xs font-bold text-foreground">Region &amp; Setup Mobilization</Label>
+          </div>
+          <div className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 self-start sm:self-auto">
+            Setup Total: ${setupTotal.toFixed(2)}
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {/* Local ($0 extra) */}
-          <button
-            type="button"
-            onClick={() => setTravelFeeType('none')}
-            className={cn(
-              'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-              travelFeeType === 'none'
-                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-            )}
-          >
-            <span className="text-xs font-bold">Local</span>
-            <span className="text-[11px] font-mono opacity-90">$0.00 extra</span>
-          </button>
+        <div className={`grid gap-3 ${isDrydenOrRemote ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground">Region / Geographic Zone</Label>
+            <Select value={selectedRegionId} onValueChange={handleRegionChange}>
+              <SelectTrigger className="w-full h-9 text-xs font-medium bg-background">
+                <SelectValue placeholder="Select Region">
+                  {selectedRegion?.name || 'Select Region'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {regions.map((reg) => (
+                  <SelectItem key={reg._id} value={reg._id}>{reg.name}</SelectItem>
+                ))}
+                {regions.length === 0 && <SelectItem value="default_ff">Fort Frances (Local)</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {/* Far Small (+$363.50) */}
-          <button
-            type="button"
-            onClick={() => setTravelFeeType('far_small')}
-            className={cn(
-              'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-              travelFeeType === 'far_small'
-                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-            )}
-          >
-            <span className="text-xs font-bold">Far Small</span>
-            <span className="text-[11px] font-mono opacity-90">
-              +${farSmallFee.toFixed(2)}
-            </span>
-          </button>
-
-          {/* Far Standard / Dryden / Sioux Lookout (+$727.50) */}
-          <button
-            type="button"
-            onClick={() => setTravelFeeType('far_std')}
-            className={cn(
-              'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-              travelFeeType === 'far_std'
-                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold">Far Standard</span>
+          {isDrydenOrRemote && (
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Job Fee Type (Dryden / Sioux Lookout)
+              </Label>
+              <Select value={travelFeeType} onValueChange={(val: any) => { if (val) setTravelFeeType(val); }}>
+                <SelectTrigger className="w-full h-9 text-xs font-medium bg-background">
+                  <SelectValue placeholder="Select Fee Type">
+                    {feeTypeLabel}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="far_std">Standard Job Fee (+${farStandardFee.toFixed(2)})</SelectItem>
+                  <SelectItem value="far_small">Small Job Fee (+${farSmallFee.toFixed(2)})</SelectItem>
+                  <SelectItem value="local_std">Base Setup Only ($0.00 surcharge)</SelectItem>
+                  <SelectItem value="custom">Custom Surcharge Amount...</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <span className="text-[10px] opacity-80 leading-tight">Dryden / Sioux Lookout</span>
-            <span className="text-[11px] font-mono opacity-90">
-              +${farStandardFee.toFixed(2)}
-            </span>
-          </button>
-
-          {/* Custom Fee */}
-          <button
-            type="button"
-            onClick={() => setTravelFeeType('custom')}
-            className={cn(
-              'p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between',
-              travelFeeType === 'custom'
-                ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                : 'bg-muted/30 hover:bg-muted text-muted-foreground border-border/70'
-            )}
-          >
-            <span className="text-xs font-bold">Custom Fee</span>
-            <span className="text-[11px] font-mono opacity-90">Manual</span>
-          </button>
+          )}
         </div>
 
-        {/* Custom Travel Fee Input */}
-        {travelFeeType === 'custom' && (
-          <div className="flex items-center gap-2 p-2 bg-muted/40 rounded-xl border border-border/60 animate-in fade-in duration-150">
-            <Label htmlFor="customTravelInput" className="text-xs text-muted-foreground shrink-0 font-medium">
-              Custom Travel Amount ($):
-            </Label>
+        {isDrydenOrRemote && travelFeeType === 'custom' && (
+          <div className="pt-2 border-t border-border/40 max-w-xs space-y-1">
+            <Label className="text-xs font-semibold">Custom Surcharge on Top of $140 ($)</Label>
             <Input
-              id="customTravelInput"
               type="number"
-              step="0.01"
-              min="0"
+              step="any"
+              className="h-8.5 text-xs font-mono bg-background"
+              placeholder="0.00"
               value={customTravelFee}
               onChange={(e) => setCustomTravelFee(e.target.value)}
-              className="h-8 text-xs font-mono bg-background"
             />
           </div>
         )}
+
+        <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1">
+          <span>
+            {isDrydenOrRemote ? (
+              <>
+                Base mobilization: <strong>${baseSetup.toFixed(2)}</strong>
+                {remoteExtra > 0 && ` + remote surcharge: $${remoteExtra.toFixed(2)}`}
+              </>
+            ) : (
+              <>
+                Fixed Base Mobilization: <strong>${baseSetup.toFixed(2)}</strong> (Included)
+              </>
+            )}
+          </span>
+          {contextMode === 'service_only' && <span className="italic text-[10px] text-primary">Service Only</span>}
+        </div>
       </div>
 
-      {/* Out-of-Town Vehicle & Crew Travel Section */}
-      <div className="p-2.5 sm:p-3 bg-muted/20 border border-border/60 rounded-xl space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Fuel className="w-3.5 h-3.5 text-primary" />
-            <Label htmlFor="toggleOutTown" className="text-xs font-bold text-foreground cursor-pointer">
-              Out-of-Town Vehicle &amp; Crew Travel
-            </Label>
-          </div>
-          <button
-            id="toggleOutTown"
-            type="button"
-            onClick={() => setShowOutTownTravel(!showOutTownTravel)}
-            className={cn(
-              'text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors cursor-pointer',
-              showOutTownTravel
-                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
-                : 'bg-muted text-muted-foreground border border-border hover:text-foreground'
-            )}
-          >
-            {showOutTownTravel ? 'Enabled' : 'Add Travel'}
-          </button>
+      {/* 2. Out-of-Town Mileage & Crew Transit Hours */}
+      <div className="space-y-3 p-3.5 rounded-xl border border-border/70 bg-card/40">
+        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
+          <Fuel className="w-4 h-4 text-primary" />
+          <Label className="text-xs font-bold text-foreground">Out-of-Town Mileage &amp; Transit Hours</Label>
         </div>
 
-        {showOutTownTravel && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-border/40 animate-in fade-in duration-150">
-            {/* Travel Distance KM */}
-            <div className="space-y-1">
-              <Label htmlFor="travelKmInput" className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                <span>Roundtrip (KM)</span>
-              </Label>
-              <Input
-                id="travelKmInput"
-                type="number"
-                step="1"
-                min="0"
-                value={travelKm}
-                onChange={(e) => setTravelKm(e.target.value)}
-                className="h-7 text-xs font-mono bg-background"
-              />
-              <span className="text-[10px] text-muted-foreground">
-                @ ${(labour.vehicleRatePerKm || 0.98).toFixed(2)}/km
-              </span>
-            </div>
-
-            {/* Crew Travel Hours */}
-            <div className="space-y-1">
-              <Label htmlFor="crewHoursInput" className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                <span>Travel Hours</span>
-              </Label>
-              <Input
-                id="crewHoursInput"
-                type="number"
-                step="0.5"
-                min="0"
-                value={crewHours}
-                onChange={(e) => setCrewHours(e.target.value)}
-                className="h-7 text-xs font-mono bg-background"
-              />
-              <span className="text-[10px] text-muted-foreground">
-                Total hours traveled
-              </span>
-            </div>
-
-            {/* Crew Size Selector */}
-            <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground font-semibold">
-                Crew Size
-              </Label>
-              <div className="grid grid-cols-2 gap-1.5 h-7">
-                <button
-                  type="button"
-                  onClick={() => setCrewSize('2')}
-                  className={cn(
-                    'rounded-lg border text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1',
-                    crewSize === '2'
-                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                      : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/60'
-                  )}
-                >
-                  <span>2 Men</span>
-                  <span className="text-[9px] opacity-80">(${(labour.crewHourly2Men || 150).toFixed(0)}/h)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCrewSize('3')}
-                  className={cn(
-                    'rounded-lg border text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1',
-                    crewSize === '3'
-                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                      : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/60'
-                  )}
-                >
-                  <span>3 Men</span>
-                  <span className="text-[9px] opacity-80">(${(labour.crewHourly3Men || 200).toFixed(0)}/h)</span>
-                </button>
-              </div>
-              <span className="text-[10px] text-muted-foreground">
-                {crewSize === '2' ? '2-man crew travel rate' : '3-man crew travel rate'}
-              </span>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground">Roundtrip (KM)</Label>
+            <Input
+              type="number"
+              step="any"
+              min="0"
+              value={travelKm}
+              onChange={(e) => setTravelKm(e.target.value)}
+              placeholder="0"
+              className="h-9 text-xs font-mono bg-background"
+            />
+            <span className="text-[10px] text-muted-foreground block">
+              @ ${vehicleRate.toFixed(2)}/km = ${(kmVal * vehicleRate).toFixed(2)}
+            </span>
           </div>
-        )}
 
-        {/* Travel Total Banner */}
-        <div className="flex items-center justify-between px-2.5 py-1.5 bg-background/80 rounded-lg border border-border/50 text-xs">
-          <span className="text-muted-foreground font-medium">Total Travel &amp; Setup:</span>
-          <span className="font-mono font-bold text-foreground">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground">Transit Hours</Label>
+            <Input
+              type="number"
+              step="0.5"
+              min="0"
+              value={crewHours}
+              onChange={(e) => setCrewHours(e.target.value)}
+              placeholder="0.0"
+              className="h-9 text-xs font-mono bg-background"
+            />
+            <span className="text-[10px] text-muted-foreground block">
+              @ ${crewHourlyRate}/hr = ${(hrsVal * crewHourlyRate).toFixed(2)}
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold text-muted-foreground">Crew Configuration</Label>
+            <Select value={crewSize} onValueChange={(val: any) => { if (val) setCrewSize(val); }}>
+              <SelectTrigger className="w-full h-9 text-xs font-medium bg-background">
+                <SelectValue placeholder="Crew Size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3-Man Crew (${labour.crewHourly3Men || 200}/hr) [Standard]</SelectItem>
+                <SelectItem value="2">2-Man Crew (${labour.crewHourly2Men || 150}/hr)</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-[10px] text-muted-foreground block">Hourly transit billing per crew size</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-2 bg-background/80 rounded-lg border border-border/60 text-xs">
+          <span className="text-muted-foreground font-semibold">Total Travel &amp; Setup:</span>
+          <span className="font-mono font-bold text-foreground text-sm">
             ${totalTravelAndSetup.toFixed(2)}
           </span>
         </div>

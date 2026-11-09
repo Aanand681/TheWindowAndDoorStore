@@ -20,6 +20,19 @@ export function useTaxInitialData({ onSetupFeeDefault }: UseTaxInitialDataProps 
     { crewSize: '3', hourlyRate: 200 },
     { crewSize: '4', hourlyRate: 500 },
   ]);
+  const [windowLabourSettings, setWindowLabourSettings] = useState<{
+    labourPerSqft: number;
+    miscPerSqft: number;
+    labourMin: number;
+    miscMin: number;
+    extraLinPerWindow: number;
+  }>({
+    labourPerSqft: 19,
+    miscPerSqft: 8,
+    labourMin: 325,
+    miscMin: 74,
+    extraLinPerWindow: 2.17,
+  });
 
   useEffect(() => {
     fetch('/api/regions')
@@ -67,6 +80,15 @@ export function useTaxInitialData({ onSetupFeeDefault }: UseTaxInitialDataProps 
         if (d.casings?.length) setDbCasings(d.casings);
         if (d.vehicleRate !== undefined) setDbVehicleRate(d.vehicleRate);
         if (d.crewRates?.length) setDbCrewRates(d.crewRates);
+        if (d.windowLabourPerSqft !== undefined) {
+          setWindowLabourSettings({
+            labourPerSqft: Number(d.windowLabourPerSqft) || 19,
+            miscPerSqft: Number(d.windowMiscPerSqft) || 8,
+            labourMin: Number(d.windowLabourMin) || 325,
+            miscMin: Number(d.windowMiscMin) || 74,
+            extraLinPerWindow: Number(d.extraLinPerWindow) || 2.17,
+          });
+        }
       })
       .catch(console.error);
   }, []);
@@ -86,6 +108,7 @@ export function useTaxInitialData({ onSetupFeeDefault }: UseTaxInitialDataProps 
     setDbVehicleRate,
     dbCrewRates,
     setDbCrewRates,
+    windowLabourSettings,
   };
 }
 

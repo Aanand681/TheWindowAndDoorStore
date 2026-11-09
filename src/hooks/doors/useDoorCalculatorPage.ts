@@ -55,6 +55,11 @@ export function useDoorCalculatorPage() {
 
   // 6. Travel & Logistics Hook
   const {
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    regionsLoading,
     travelFeeType,
     setTravelFeeType,
     customTravelFee,
@@ -113,6 +118,8 @@ export function useDoorCalculatorPage() {
     setLineItems,
     globalUpcharges,
     setGlobalUpcharges,
+    selectedRegionId,
+    setSelectedRegionId,
     travelFeeType,
     setTravelFeeType,
     customTravelFee,
@@ -231,6 +238,11 @@ export function useDoorCalculatorPage() {
     handleEditItem,
     handleDuplicateItem,
     handleDeleteItem,
+    regions,
+    selectedRegionId,
+    setSelectedRegionId,
+    selectedRegion,
+    regionsLoading,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,

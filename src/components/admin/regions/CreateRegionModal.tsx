@@ -15,7 +15,7 @@ interface CreateRegionModalProps {
   setNewRegion: React.Dispatch<React.SetStateAction<NewRegionFormState>>;
   creating: boolean;
   geocoding: string | null;
-  onToggleSupplyOnly: (val: boolean) => void;
+  onToggleSupplyOnly?: (val: boolean) => void;
   onAutoLocate: (targetCity: string, isForNewRegion: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -27,7 +27,7 @@ export function CreateRegionModal({
   setNewRegion,
   creating,
   geocoding,
-  onToggleSupplyOnly,
+  onToggleSupplyOnly: _onToggleSupplyOnly,
   onAutoLocate,
   onSubmit,
 }: CreateRegionModalProps) {
@@ -44,7 +44,7 @@ export function CreateRegionModal({
             <div>
               <h3 className="text-lg font-bold">Add New Region</h3>
               <p className="text-xs text-muted-foreground">
-                Configure a standard installation or supply-only region.
+                Configure geographic coordinates, mobilization fee, and dynamic travel surcharges.
               </p>
             </div>
           </div>
@@ -58,48 +58,6 @@ export function CreateRegionModal({
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          {/* Region Type Selector */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Region Type
-            </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => onToggleSupplyOnly(false)}
-                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${
-                  !newRegion.isSupplyOnly
-                    ? 'border-primary bg-primary/10 text-foreground ring-1 ring-primary'
-                    : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40'
-                }`}
-              >
-                <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                  🏡 Standard Install
-                </span>
-                <span className="text-[11px] leading-snug">
-                  Full crew labour, travel calculations, and site installation.
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onToggleSupplyOnly(true)}
-                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col gap-1 ${
-                  newRegion.isSupplyOnly
-                    ? 'border-amber-500 bg-amber-500/10 text-foreground ring-1 ring-amber-500'
-                    : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/40'
-                }`}
-              >
-                <span className="font-semibold text-sm text-amber-500 flex items-center gap-1.5">
-                  ⚡ Supply Only
-                </span>
-                <span className="text-[11px] leading-snug">
-                  Window supply &amp; optional trim materials. $0 labour &amp; travel.
-                </span>
-              </button>
-            </div>
-          </div>
-
           {/* Region Name */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -126,18 +84,13 @@ export function CreateRegionModal({
             <Input
               id="region-name"
               required
-              placeholder={
-                newRegion.isSupplyOnly
-                  ? 'e.g., Supply Only'
-                  : 'e.g., Kenora, Thunder Bay, Dryden'
-              }
+              placeholder="e.g. Kenora, Thunder Bay, Dryden"
               value={newRegion.name}
               onChange={(e) =>
                 setNewRegion((prev) => ({ ...prev, name: e.target.value }))
               }
               onBlur={() => {
                 if (
-                  !newRegion.isSupplyOnly &&
                   newRegion.name.trim().length > 2 &&
                   newRegion.officeLat === 48.6017 &&
                   newRegion.officeLon === -93.3986
@@ -155,6 +108,7 @@ export function CreateRegionModal({
               <Input
                 type="number"
                 step="0.0001"
+                className="h-8.5 text-xs font-mono"
                 value={newRegion.officeLat}
                 onChange={(e) =>
                   setNewRegion((prev) => ({
@@ -169,6 +123,7 @@ export function CreateRegionModal({
               <Input
                 type="number"
                 step="0.0001"
+                className="h-8.5 text-xs font-mono"
                 value={newRegion.officeLon}
                 onChange={(e) =>
                   setNewRegion((prev) => ({
@@ -180,22 +135,10 @@ export function CreateRegionModal({
             </div>
           </div>
 
-          {newRegion.isSupplyOnly ? (
-            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-1 text-muted-foreground">
-              <span className="font-semibold text-amber-500 block">
-                Supply Only Defaults Configured
-              </span>
-              <p className="leading-relaxed">
-                All installation labour rates, travel fees, vehicle costs, and fixed setup fees will be locked to <strong>$0.00</strong>.
-                Window promo discounts and optional Jamb &amp; Casing materials apply normally.
-              </p>
-            </div>
-          ) : (
-            <CreateRegionStandardInstallFields
-              newRegion={newRegion}
-              setNewRegion={setNewRegion}
-            />
-          )}
+          <CreateRegionStandardInstallFields
+            newRegion={newRegion}
+            setNewRegion={setNewRegion}
+          />
 
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
             <Button

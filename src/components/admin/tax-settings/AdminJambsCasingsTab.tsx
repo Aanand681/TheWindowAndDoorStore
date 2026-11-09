@@ -1,0 +1,154 @@
+'use client';
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Layers } from 'lucide-react';
+
+interface AdminJambsCasingsTabProps {
+  jambs: any[];
+  setJambs: React.Dispatch<React.SetStateAction<any[]>>;
+  casings: any[];
+  setCasings: React.Dispatch<React.SetStateAction<any[]>>;
+  updateItem: (setter: any, index: number, field: string, value: any) => void;
+  removeItem: (setter: any, index: number) => void;
+  onAddJamb: () => void;
+  onAddCasing: () => void;
+}
+
+export function AdminJambsCasingsTab({
+  jambs,
+  setJambs,
+  casings,
+  setCasings,
+  updateItem,
+  removeItem,
+  onAddJamb,
+  onAddCasing,
+}: AdminJambsCasingsTabProps) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Jambs Card */}
+      <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
+        <CardHeader className="border-b border-border/50 pb-4">
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">Extension Jambs</CardTitle>
+                <CardDescription className="text-xs">Price per linear foot based on wall depth.</CardDescription>
+              </div>
+            </div>
+            <Button size="sm" onClick={onAddJamb} className="gap-1 text-xs cursor-pointer h-8 px-2.5">
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Jamb</span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-3">
+          {jambs.map((j, i) => (
+            <div key={j.id || i} className="flex gap-3 items-end bg-muted/20 p-2.5 rounded-xl border border-border/50">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs font-semibold">Jamb Specification</Label>
+                <Input
+                  className="h-8.5 text-xs"
+                  value={j.label}
+                  onChange={(e) => updateItem(setJambs, i, 'label', e.target.value)}
+                  placeholder="e.g. Vinyl Wrapped Jamb – 3/4 x 4 1/2"
+                />
+              </div>
+              <div className="w-24 space-y-1">
+                <Label className="text-xs font-semibold">Rate ($/ft)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="h-8.5 text-xs font-mono"
+                  value={j.rate === 0 ? '' : j.rate}
+                  onChange={(e) =>
+                    updateItem(setJambs, i, 'rate', e.target.value === '' ? 0 : Number(e.target.value))
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:bg-destructive/10 cursor-pointer h-8.5 w-8.5 shrink-0"
+                onClick={() => removeItem(setJambs, i)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+          {jambs.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center italic">No extension jambs defined.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Casings Card */}
+      <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
+        <CardHeader className="border-b border-border/50 pb-4">
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold">Trim &amp; Casings</CardTitle>
+                <CardDescription className="text-xs">Price per linear foot for interior/exterior trim.</CardDescription>
+              </div>
+            </div>
+            <Button size="sm" onClick={onAddCasing} className="gap-1 text-xs cursor-pointer h-8 px-2.5">
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Casing</span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-3">
+          {casings.map((c, i) => (
+            <div key={c.id || i} className="flex gap-3 items-end bg-muted/20 p-2.5 rounded-xl border border-border/50">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs font-semibold">Casing Specification</Label>
+                <Input
+                  className="h-8.5 text-xs"
+                  value={c.label}
+                  onChange={(e) => updateItem(setCasings, i, 'label', e.target.value)}
+                  placeholder="e.g. Vinyl casing charge"
+                />
+              </div>
+              <div className="w-24 space-y-1">
+                <Label className="text-xs font-semibold">Rate ($/ft)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="h-8.5 text-xs font-mono"
+                  value={c.rate === 0 ? '' : c.rate}
+                  onChange={(e) =>
+                    updateItem(setCasings, i, 'rate', e.target.value === '' ? 0 : Number(e.target.value))
+                  }
+                  placeholder="0.00"
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:bg-destructive/10 cursor-pointer h-8.5 w-8.5 shrink-0"
+                onClick={() => removeItem(setCasings, i)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+          {casings.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center italic">No casings defined.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -19,6 +19,8 @@ interface UseDoorAutoSaveProps {
   setLineItems: (items: any[]) => void;
   globalUpcharges: any[];
   setGlobalUpcharges: (u: any[]) => void;
+  selectedRegionId?: string;
+  setSelectedRegionId?: (id: string) => void;
   travelFeeType: any;
   setTravelFeeType: (t: any) => void;
   customTravelFee: string;
@@ -57,6 +59,8 @@ export function useDoorAutoSave({
   setLineItems,
   globalUpcharges,
   setGlobalUpcharges,
+  selectedRegionId,
+  setSelectedRegionId,
   travelFeeType,
   setTravelFeeType,
   customTravelFee,
@@ -96,6 +100,7 @@ export function useDoorAutoSave({
       if (d.mode) setMode(d.mode);
       if (Array.isArray(d.lineItems)) setLineItems(d.lineItems);
       if (Array.isArray(d.globalUpcharges)) setGlobalUpcharges(d.globalUpcharges);
+      if (d.selectedRegionId && setSelectedRegionId) setSelectedRegionId(d.selectedRegionId);
       if (d.travelFeeType) setTravelFeeType(d.travelFeeType);
       if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee);
       if (d.showOutTownTravel !== undefined) setShowOutTownTravel(d.showOutTownTravel);
@@ -148,6 +153,7 @@ export function useDoorAutoSave({
           mode,
           lineItems,
           globalUpcharges,
+          selectedRegionId: selectedRegionId || '',
           travelFeeType,
           customTravelFee,
           showOutTownTravel,

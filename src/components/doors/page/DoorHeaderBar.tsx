@@ -8,7 +8,6 @@ import {
   Settings as SettingsIcon,
   Bookmark,
   FolderOpen,
-  RotateCcw,
   Paperclip,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,7 +21,7 @@ interface DoorHeaderBarProps {
   onOpenAttach: () => void;
   onSaveDraft: () => void;
   onOpenSavedQuotes: () => void;
-  onOpenReset: () => void;
+  onOpenReset?: () => void;
 }
 
 export function DoorHeaderBar({
@@ -34,7 +33,7 @@ export function DoorHeaderBar({
   onOpenAttach,
   onSaveDraft,
   onOpenSavedQuotes,
-  onOpenReset,
+  onOpenReset: _onOpenReset,
 }: DoorHeaderBarProps) {
   const hasAttachment = Boolean(attachedWindowQuote || attachedSealedUnit);
 
@@ -132,18 +131,6 @@ export function DoorHeaderBar({
             </Button>
           </Link>
         )}
-
-        {/* 5. Reset Quote */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onOpenReset}
-          className="gap-1.5 text-xs h-8 px-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset</span>
-        </Button>
       </div>
     </div>
   );

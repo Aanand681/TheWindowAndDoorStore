@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
 import { SealedUnitTravelCalculator } from './SealedUnitTravelCalculator';
+import { SharedRegionOption } from '@/hooks/shared/useSharedRegions';
 
 export type SealedUnitMode = 'installation' | 'supply_only' | 'service_only';
 
@@ -18,8 +19,11 @@ export interface SealedUnitLabourTravelCardProps {
   isInstallation: boolean;
   setIsInstallation: (val: boolean) => void;
   labour: SealedUnitLabourSettings;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
-  setTravelFeeType: (val: 'none' | 'far_std' | 'far_small' | 'custom') => void;
+  regions?: SharedRegionOption[];
+  selectedRegionId?: string;
+  onSelectRegion?: (regionId: string) => void;
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
+  setTravelFeeType: (val: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom') => void;
   customTravelFee: string;
   setCustomTravelFee: (val: string) => void;
   showOutTownTravel: boolean;
@@ -64,6 +68,9 @@ export function SealedUnitLabourTravelCard({
   isInstallation,
   setIsInstallation: _setIsInstallation,
   labour,
+  regions = [],
+  selectedRegionId = '',
+  onSelectRegion = () => {},
   travelFeeType,
   setTravelFeeType,
   customTravelFee,
@@ -127,6 +134,9 @@ export function SealedUnitLabourTravelCard({
             {/* Travel & Out-of-Town Calculator */}
             <SealedUnitTravelCalculator
               labour={labour}
+              regions={regions}
+              selectedRegionId={selectedRegionId}
+              onSelectRegion={onSelectRegion}
               travelFeeType={travelFeeType}
               setTravelFeeType={setTravelFeeType}
               customTravelFee={customTravelFee}
@@ -196,6 +206,9 @@ export function SealedUnitLabourTravelCard({
             {/* Travel Calculator for Service Work */}
             <SealedUnitTravelCalculator
               labour={labour}
+              regions={regions}
+              selectedRegionId={selectedRegionId}
+              onSelectRegion={onSelectRegion}
               travelFeeType={travelFeeType}
               setTravelFeeType={setTravelFeeType}
               customTravelFee={customTravelFee}

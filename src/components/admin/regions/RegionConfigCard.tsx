@@ -34,15 +34,9 @@ export function RegionConfigCard({
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <CardTitle className="text-xl text-primary">{region.name}</CardTitle>
-            {region.isSupplyOnly ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30 tracking-wide uppercase">
-                Supply Only
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                Install &amp; Travel
-              </span>
-            )}
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              Install &amp; Mobilization Zone
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -66,9 +60,7 @@ export function RegionConfigCard({
           </div>
         </div>
         <CardDescription className="mt-1">
-          {region.isSupplyOnly
-            ? 'Supply-only window & material orders. Zero installation labour and zero travel fees.'
-            : 'Manage labour formulas and map coordinates for this region.'}
+          Universal geographic mobilization fees, origin coordinates, and interactive geofence boundary.
         </CardDescription>
       </CardHeader>
 

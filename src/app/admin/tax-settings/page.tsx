@@ -1,29 +1,49 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Settings, Plus, Trash2, Save } from 'lucide-react';
+import { Settings, Save, Wrench, PackagePlus, Layers, Truck } from 'lucide-react';
 import SmartBackButton from '@/components/shared/SmartBackButton';
 import { AppHeader } from '@/components/layout/AppHeader';
+import {
+  AdminWindowLabourTab,
+  AdminAddonsTab,
+  AdminJambsCasingsTab,
+  AdminTravelRatesTab,
+} from '@/components/admin/tax-settings';
 
 export default function TaxSettingsDashboard() {
+  const [activeTab, setActiveTab] = useState<'labour' | 'addons' | 'jambs' | 'travel'>('labour');
+
+  // Window Labour Rates
+  const [windowLabourPerSqft, setWindowLabourPerSqft] = useState<number>(19);
+  const [windowMiscPerSqft, setWindowMiscPerSqft] = useState<number>(8);
+  const [windowLabourMin, setWindowLabourMin] = useState<number>(325);
+  const [windowMiscMin, setWindowMiscMin] = useState<number>(74);
+  const [extraLinPerWindow, setExtraLinPerWindow] = useState<number>(2.17);
+
+  // Addons, Jambs, Casings, Travel
   const [addons, setAddons] = useState<any[]>([]);
   const [jambs, setJambs] = useState<any[]>([]);
   const [casings, setCasings] = useState<any[]>([]);
   const [vehicleRate, setVehicleRate] = useState<number>(0.98);
   const [crewRates, setCrewRates] = useState<any[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.windowLabourPerSqft !== undefined) setWindowLabourPerSqft(data.windowLabourPerSqft);
+        if (data.windowMiscPerSqft !== undefined) setWindowMiscPerSqft(data.windowMiscPerSqft);
+        if (data.windowLabourMin !== undefined) setWindowLabourMin(data.windowLabourMin);
+        if (data.windowMiscMin !== undefined) setWindowMiscMin(data.windowMiscMin);
+        if (data.extraLinPerWindow !== undefined) setExtraLinPerWindow(data.extraLinPerWindow);
+
         setAddons(data.addons || []);
         setJambs(data.jambs || []);
         setCasings(data.casings || []);
@@ -42,7 +62,18 @@ export default function TaxSettingsDashboard() {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addons, jambs, casings, vehicleRate, crewRates }),
+        body: JSON.stringify({
+          windowLabourPerSqft,
+          windowMiscPerSqft,
+          windowLabourMin,
+          windowMiscMin,
+          extraLinPerWindow,
+          addons,
+          jambs,
+          casings,
+          vehicleRate,
+          crewRates,
+        }),
       });
 
       const data = await res.json();
@@ -56,25 +87,18 @@ export default function TaxSettingsDashboard() {
     }
   };
 
-  const focusLastAddedItem = (e: React.MouseEvent) => {
-    setTimeout(() => {
-      const card = (e.target as HTMLElement).closest('.bg-card') || (e.target as HTMLElement).closest('.bg-card\\/50');
-      if (card) {
-        const rows = card.querySelectorAll('.bg-muted\\/20');
-        if (rows.length > 0) {
-          const lastRow = rows[rows.length - 1];
-          lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          const firstInput = lastRow.querySelector('input');
-          if (firstInput) firstInput.focus();
-        }
-      }
-    }, 50);
+  const handleAddAddon = () => {
+    setAddons([...addons, { id: `ext_${Date.now()}`, label: '', lab: 0, misc: 0 }]);
   };
-
-  const handleAddAddon = (e: React.MouseEvent) => { setAddons([...addons, { id: `ext_${Date.now()}`, label: '', lab: 0, misc: 0 }]); focusLastAddedItem(e); };
-  const handleAddJamb = (e: React.MouseEvent) => { setJambs([...jambs, { id: `j_${Date.now()}`, label: '', rate: 0 }]); focusLastAddedItem(e); };
-  const handleAddCasing = (e: React.MouseEvent) => { setCasings([...casings, { id: `c_${Date.now()}`, label: '', rate: 0 }]); focusLastAddedItem(e); };
-  const handleAddCrew = (e: React.MouseEvent) => { setCrewRates([...crewRates, { crewSize: '5', hourlyRate: 0 }]); focusLastAddedItem(e); };
+  const handleAddJamb = () => {
+    setJambs([...jambs, { id: `j_${Date.now()}`, label: '', rate: 0 }]);
+  };
+  const handleAddCasing = () => {
+    setCasings([...casings, { id: `c_${Date.now()}`, label: '', rate: 0 }]);
+  };
+  const handleAddCrew = () => {
+    setCrewRates([...crewRates, { crewSize: '5', hourlyRate: 0 }]);
+  };
 
   const updateItem = (setter: any, index: number, field: string, value: any) => {
     setter((prev: any[]) => {
@@ -91,185 +115,117 @@ export default function TaxSettingsDashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
-      
-      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-10 relative z-10 space-y-6 sm:space-y-8">
+
+      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-12 relative z-10 space-y-6 sm:space-y-8">
         <AppHeader currentPath="/admin/tax-settings" />
 
-        <div className="flex items-center justify-between gap-4 pb-2 border-b border-border/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/50">
           <div className="flex items-center gap-3 flex-wrap">
             <SmartBackButton fallbackUrl="/admin" title="Back to Admin" />
-            <div className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <Settings className="w-5 h-5 text-primary" />
-              <span className="text-base font-semibold tracking-wider uppercase">Tax &amp; Labour Pricing</span>
+            <div className="inline-flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Settings className="w-5 h-5" />
+              </span>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Window Tax &amp; Labour Settings</h1>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure window labour formulas, jobsite upcharges, extension jambs, casings, and travel fleet rates.
+                </p>
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button onClick={handleSave} disabled={saving} size="sm" className="shadow-md gap-1.5 cursor-pointer">
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Settings'}</span>
+            </Button>
           </div>
         </div>
 
-        {loading ? (
-          <p className="text-center text-muted-foreground">Loading settings...</p>
-        ) : (
-          <div className="space-y-8">
-            <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-              <CardHeader className="border-b border-border/50 pb-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-lg">Extras & Addons</CardTitle>
-                    <CardDescription>Manage rates for extra items like Brick, Siding, Caulk, etc.</CardDescription>
-                  </div>
-                  <Button size="sm" onClick={handleAddAddon}><Plus className="w-4 h-4 mr-2"/> Add Extra</Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid gap-4">
-                  {addons.map((a, i) => (
-                    <div key={i} className="flex gap-4 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
-                      <div className="flex-1 space-y-1">
-                        <Label>Label</Label>
-                        <Input value={a.label} onChange={e => updateItem(setAddons, i, 'label', e.target.value)} />
-                      </div>
-                      <div className="w-32 space-y-1">
-                        <Label>Labour ($)</Label>
-                        <Input type="number" value={a.lab === 0 ? '' : a.lab} onChange={e => updateItem(setAddons, i, 'lab', e.target.value === '' ? 0 : Number(e.target.value))} />
-                      </div>
-                      <div className="w-32 space-y-1">
-                        <Label>Misc ($)</Label>
-                        <Input type="number" value={a.misc === 0 ? '' : a.misc} onChange={e => updateItem(setAddons, i, 'misc', e.target.value === '' ? 0 : Number(e.target.value))} />
-                      </div>
-                      <Button variant="ghost" size="icon" className="text-destructive mb-0.5" onClick={() => removeItem(setAddons, i)}>
-                        <Trash2 className="w-4 h-4"/>
-                      </Button>
-                    </div>
-                  ))}
-                  {addons.length === 0 && <p className="text-sm text-muted-foreground">No extras defined.</p>}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-                <CardHeader className="border-b border-border/50 pb-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="text-lg">Jambs</CardTitle>
-                      <CardDescription>Price per linear foot</CardDescription>
-                    </div>
-                    <Button size="sm" onClick={handleAddJamb}><Plus className="w-4 h-4 mr-2"/> Add Jamb</Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid gap-4">
-                    {jambs.map((j, i) => (
-                      <div key={i} className="flex gap-4 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
-                        <div className="flex-1 space-y-1">
-                          <Label>Label</Label>
-                          <Input value={j.label} onChange={e => updateItem(setJambs, i, 'label', e.target.value)} />
-                        </div>
-                        <div className="w-24 space-y-1">
-                          <Label>Rate ($)</Label>
-                          <Input type="number" value={j.rate === 0 ? '' : j.rate} onChange={e => updateItem(setJambs, i, 'rate', e.target.value === '' ? 0 : Number(e.target.value))} />
-                        </div>
-                        <Button variant="ghost" size="icon" className="text-destructive mb-0.5" onClick={() => removeItem(setJambs, i)}>
-                          <Trash2 className="w-4 h-4"/>
-                        </Button>
-                      </div>
-                    ))}
-                    {jambs.length === 0 && <p className="text-sm text-muted-foreground">No jambs defined.</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-                <CardHeader className="border-b border-border/50 pb-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="text-lg">Casings</CardTitle>
-                      <CardDescription>Price per linear foot</CardDescription>
-                    </div>
-                    <Button size="sm" onClick={handleAddCasing}><Plus className="w-4 h-4 mr-2"/> Add Casing</Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid gap-4">
-                    {casings.map((c, i) => (
-                      <div key={i} className="flex gap-4 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
-                        <div className="flex-1 space-y-1">
-                          <Label>Label</Label>
-                          <Input value={c.label} onChange={e => updateItem(setCasings, i, 'label', e.target.value)} />
-                        </div>
-                        <div className="w-24 space-y-1">
-                          <Label>Rate ($)</Label>
-                          <Input type="number" value={c.rate === 0 ? '' : c.rate} onChange={e => updateItem(setCasings, i, 'rate', e.target.value === '' ? 0 : Number(e.target.value))} />
-                        </div>
-                        <Button variant="ghost" size="icon" className="text-destructive mb-0.5" onClick={() => removeItem(setCasings, i)}>
-                          <Trash2 className="w-4 h-4"/>
-                        </Button>
-                      </div>
-                    ))}
-                    {casings.length === 0 && <p className="text-sm text-muted-foreground">No casings defined.</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-                <CardHeader className="border-b border-border/50 pb-4">
-                  <CardTitle className="text-lg">Vehicle Travel Rate</CardTitle>
-                  <CardDescription>Cost per km for vehicle travel.</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-2 max-w-[200px]">
-                    <Label>Rate per km ($)</Label>
-                    <Input type="number" step="0.01" value={vehicleRate === 0 ? '' : vehicleRate} onChange={e => setVehicleRate(e.target.value === '' ? 0 : Number(e.target.value))} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
-                <CardHeader className="border-b border-border/50 pb-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="text-lg">Crew Hourly Rates</CardTitle>
-                      <CardDescription>Hourly cost for different crew sizes during travel.</CardDescription>
-                    </div>
-                    <Button size="sm" onClick={handleAddCrew}><Plus className="w-4 h-4 mr-2"/> Add Crew</Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid gap-4">
-                    {crewRates.map((cr, i) => (
-                      <div key={i} className="flex gap-4 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
-                        <div className="flex-1 space-y-1">
-                          <Label>Crew Size (Men)</Label>
-                          <Input value={cr.crewSize} onChange={e => updateItem(setCrewRates, i, 'crewSize', e.target.value)} />
-                        </div>
-                        <div className="w-32 space-y-1">
-                          <Label>Hourly Rate ($)</Label>
-                          <Input type="number" value={cr.hourlyRate === 0 ? '' : cr.hourlyRate} onChange={e => updateItem(setCrewRates, i, 'hourlyRate', e.target.value === '' ? 0 : Number(e.target.value))} />
-                        </div>
-                        <Button variant="ghost" size="icon" className="text-destructive mb-0.5" onClick={() => removeItem(setCrewRates, i)}>
-                          <Trash2 className="w-4 h-4"/>
-                        </Button>
-                      </div>
-                    ))}
-                    {crewRates.length === 0 && <p className="text-sm text-muted-foreground">No crew rates defined.</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="flex items-center gap-4 pt-4 border-t border-border">
-              <Button onClick={handleSave} disabled={saving} size="lg" className="w-full sm:w-auto shadow-lg">
-                <Save className="w-5 h-5 mr-2" />
-                {saving ? 'Saving...' : 'Save All Settings'}
-              </Button>
-              {message.text && (
-                <div className={`px-4 py-2 rounded-lg text-sm font-medium ${message.type === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                  {message.text}
-                </div>
-              )}
-            </div>
+        {message.text && (
+          <div
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium ${
+              message.type === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-emerald-500/10 text-emerald-500'
+            }`}
+          >
+            {message.text}
           </div>
+        )}
+
+        {loading ? (
+          <p className="text-center text-muted-foreground py-12">Loading settings...</p>
+        ) : (
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-6">
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-3xl bg-muted/50 p-1">
+              <TabsTrigger value="labour" className="gap-2 text-xs sm:text-sm">
+                <Wrench className="w-4 h-4" />
+                <span>Labour Base</span>
+              </TabsTrigger>
+              <TabsTrigger value="addons" className="gap-2 text-xs sm:text-sm">
+                <PackagePlus className="w-4 h-4" />
+                <span>Extras &amp; Addons ({addons.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="jambs" className="gap-2 text-xs sm:text-sm">
+                <Layers className="w-4 h-4" />
+                <span>Jambs &amp; Casings</span>
+              </TabsTrigger>
+              <TabsTrigger value="travel" className="gap-2 text-xs sm:text-sm">
+                <Truck className="w-4 h-4" />
+                <span>Travel &amp; Logistics</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="labour">
+              <AdminWindowLabourTab
+                windowLabourPerSqft={windowLabourPerSqft}
+                setWindowLabourPerSqft={setWindowLabourPerSqft}
+                windowMiscPerSqft={windowMiscPerSqft}
+                setWindowMiscPerSqft={setWindowMiscPerSqft}
+                windowLabourMin={windowLabourMin}
+                setWindowLabourMin={setWindowLabourMin}
+                windowMiscMin={windowMiscMin}
+                setWindowMiscMin={setWindowMiscMin}
+                extraLinPerWindow={extraLinPerWindow}
+                setExtraLinPerWindow={setExtraLinPerWindow}
+              />
+            </TabsContent>
+
+            <TabsContent value="addons">
+              <AdminAddonsTab
+                addons={addons}
+                setAddons={setAddons}
+                updateItem={updateItem}
+                removeItem={removeItem}
+                onAddAddon={handleAddAddon}
+              />
+            </TabsContent>
+
+            <TabsContent value="jambs">
+              <AdminJambsCasingsTab
+                jambs={jambs}
+                setJambs={setJambs}
+                casings={casings}
+                setCasings={setCasings}
+                updateItem={updateItem}
+                removeItem={removeItem}
+                onAddJamb={handleAddJamb}
+                onAddCasing={handleAddCasing}
+              />
+            </TabsContent>
+
+            <TabsContent value="travel">
+              <AdminTravelRatesTab
+                vehicleRate={vehicleRate}
+                setVehicleRate={setVehicleRate}
+                crewRates={crewRates}
+                setCrewRates={setCrewRates}
+                updateItem={updateItem}
+                removeItem={removeItem}
+                onAddCrew={handleAddCrew}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

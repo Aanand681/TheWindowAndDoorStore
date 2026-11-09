@@ -10,13 +10,14 @@ export interface SealedUnitSnapshotParams {
   serviceSqftInput: string;
   serviceLabourRateInput: string;
   serviceMiscRateInput: string;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;
   travelKm: string;
   crewHours: string;
   crewSize: '2' | '3';
   hstRate: number;
+  selectedRegionId?: string;
   attachedWindowQuote?: any | null;
   attachedDoorQuote?: any | null;
 }
@@ -53,13 +54,14 @@ export interface WorkspaceSetters {
   setServiceSqftInput: (val: string) => void;
   setServiceLabourRateInput: (val: string) => void;
   setServiceMiscRateInput: (val: string) => void;
-  setTravelFeeType: (val: 'none' | 'far_std' | 'far_small' | 'custom') => void;
+  setTravelFeeType: (val: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom') => void;
   setCustomTravelFee: (val: string) => void;
   setShowOutTownTravel: (val: boolean) => void;
   setTravelKm: (val: string) => void;
   setCrewHours: (val: string) => void;
   setCrewSize: (val: '2' | '3') => void;
   setHstRate: (val: number) => void;
+  setSelectedRegionId?: (val: string) => void;
   setAttachedWindowQuote: (val: any) => void;
   setAttachedDoorQuote: (val: any) => void;
 }
@@ -85,6 +87,7 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
   if (d.crewHours !== undefined) setters.setCrewHours(d.crewHours);
   if (d.crewSize !== undefined) setters.setCrewSize(d.crewSize);
   if (d.hstRate !== undefined) setters.setHstRate(d.hstRate);
+  if (d.selectedRegionId && setters.setSelectedRegionId) setters.setSelectedRegionId(d.selectedRegionId);
   if (d.attachedWindowQuote !== undefined) setters.setAttachedWindowQuote(d.attachedWindowQuote);
   if (d.attachedDoorQuote !== undefined) setters.setAttachedDoorQuote(d.attachedDoorQuote);
 }

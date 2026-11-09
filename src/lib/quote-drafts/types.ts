@@ -53,13 +53,14 @@ export interface SealedUnitQuoteDraftPayload {
   serviceSqftInput?: string;
   serviceLabourRateInput?: string;
   serviceMiscRateInput?: string;
-  travelFeeType: 'none' | 'far_std' | 'far_small' | 'custom';
+  travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;
   travelKm: string;
   crewHours: string;
   crewSize: '2' | '3';
   hstRate: number;
+  selectedRegionId?: string;
   attachedWindowQuote?: AttachedQuoteData | null;
   attachedDoorQuote?: AttachedQuoteData | null;
   wantsUpgrade?: boolean;
@@ -76,6 +77,7 @@ export interface DoorQuoteDraftPayload {
   mode: 'installation' | 'supply_only' | 'office_reference';
   lineItems: any[];
   globalUpcharges: any[];
+  selectedRegionId?: string;
   travelFeeType: 'none' | 'local_std' | 'far_std' | 'far_small' | 'custom';
   customTravelFee: string;
   showOutTownTravel: boolean;

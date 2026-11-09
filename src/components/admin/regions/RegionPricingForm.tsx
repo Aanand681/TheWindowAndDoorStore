@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus, MapPin, Loader2 } from 'lucide-react';
+import { Trash2, Plus, MapPin, Loader2, DollarSign } from 'lucide-react';
 
 interface RegionPricingFormProps {
   region: any;
@@ -20,65 +20,33 @@ export function RegionPricingForm({
   onAutoLocate,
 }: RegionPricingFormProps) {
   return (
-    <div className="grid md:grid-cols-3 gap-6">
-      {/* General Constants */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Geographic Logistics & Base Setup */}
       <div className="space-y-4">
         <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-          General Constants
+          Geographic Origin &amp; Base Mobilization
         </h3>
-        <div className="space-y-3">
-          <div className="p-2.5 rounded-lg border border-border/80 bg-muted/20 space-y-1">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold cursor-pointer">
-                Supply Only Region
-              </Label>
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                checked={Boolean(region.isSupplyOnly)}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  onUpdateRegion(region._id, 'isSupplyOnly', checked);
-                  if (checked) {
-                    onUpdateRegion(region._id, 'labourPerSqft', 0);
-                    onUpdateRegion(region._id, 'miscPerSqft', 0);
-                    onUpdateRegion(region._id, 'labourMin', 0);
-                    onUpdateRegion(region._id, 'miscMin', 0);
-                    onUpdateRegion(region._id, 'fixedSetupFee', 0);
-                    onUpdateRegion(region._id, 'baseTravelFee', 0);
-                  }
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-tight">
-              When enabled, installation labour, setup, and travel automatically default to $0.
-            </p>
-          </div>
-
+        <div className="space-y-3.5">
           <div>
-            <Label>Fixed Setup Fee / Job ($)</Label>
+            <Label className="text-xs font-semibold">Fixed Base Setup Fee / Job ($)</Label>
             <Input
               type="number"
-              value={region.fixedSetupFee}
+              className="h-9 text-xs font-mono"
+              value={region.fixedSetupFee ?? 140}
               onChange={(e) =>
                 onUpdateRegion(region._id, 'fixedSetupFee', Number(e.target.value))
               }
+              placeholder="140"
             />
+            <span className="text-[11px] text-muted-foreground mt-0.5 block">
+              Universal base dispatch &amp; vehicle setup fee applied to all installation jobs in this region.
+            </span>
           </div>
+
           <div>
-            <Label>Extra Linear Per Window (ft)</Label>
+            <Label className="text-xs font-semibold">Free Radius Cities (comma-separated)</Label>
             <Input
-              type="number"
-              step="0.01"
-              value={region.extraLinPerWindow}
-              onChange={(e) =>
-                onUpdateRegion(region._id, 'extraLinPerWindow', Number(e.target.value))
-              }
-            />
-          </div>
-          <div>
-            <Label>Free Radius Cities (comma-separated)</Label>
-            <Input
+              className="h-9 text-xs"
               value={region.freeCities?.join(', ') || ''}
               onChange={(e) =>
                 onUpdateRegion(
@@ -90,16 +58,21 @@ export function RegionPricingForm({
                     .filter(Boolean)
                 )
               }
+              placeholder="e.g. Kenora, Keewatin, Norman"
             />
+            <span className="text-[11px] text-muted-foreground mt-0.5 block">
+              Locations where mileage &amp; crew transit fees are waived ($0 travel).
+            </span>
           </div>
+
           <div className="pt-2 border-t border-border/60 space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">City Origin (Map Center)</Label>
+              <Label className="text-xs font-semibold">City Origin (Map Center Coordinates)</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-[11px] flex items-center gap-1 text-primary cursor-pointer hover:bg-primary/10"
+                className="h-7 px-2 text-[11px] flex items-center gap-1 text-primary cursor-pointer hover:bg-primary/10"
                 disabled={geocoding === region._id}
                 onClick={() => onAutoLocate(region.name, false, region._id)}
                 title="Locate city coordinates using OpenStreetMap"
@@ -120,6 +93,7 @@ export function RegionPricingForm({
                 <Input
                   type="number"
                   step="0.0001"
+                  className="h-8.5 text-xs font-mono"
                   value={region.officeLat}
                   onChange={(e) =>
                     onUpdateRegion(region._id, 'officeLat', Number(e.target.value))
@@ -133,6 +107,7 @@ export function RegionPricingForm({
                 <Input
                   type="number"
                   step="0.0001"
+                  className="h-8.5 text-xs font-mono"
                   value={region.officeLon}
                   onChange={(e) =>
                     onUpdateRegion(region._id, 'officeLon', Number(e.target.value))
@@ -144,63 +119,17 @@ export function RegionPricingForm({
         </div>
       </div>
 
-      {/* Window Labour Base */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-          Window Labour Base
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <Label>Labour Per Sq Ft ($)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={region.labourPerSqft}
-              onChange={(e) =>
-                onUpdateRegion(region._id, 'labourPerSqft', Number(e.target.value))
-              }
-            />
-          </div>
-          <div>
-            <Label>Misc Per Sq Ft ($)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={region.miscPerSqft}
-              onChange={(e) =>
-                onUpdateRegion(region._id, 'miscPerSqft', Number(e.target.value))
-              }
-            />
-          </div>
-          <div>
-            <Label>Min. Labour per Window ($)</Label>
-            <Input
-              type="number"
-              value={region.labourMin}
-              onChange={(e) =>
-                onUpdateRegion(region._id, 'labourMin', Number(e.target.value))
-              }
-            />
-          </div>
-          <div>
-            <Label>Min. Misc per Window ($)</Label>
-            <Input
-              type="number"
-              value={region.miscMin}
-              onChange={(e) =>
-                onUpdateRegion(region._id, 'miscMin', Number(e.target.value))
-              }
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Per-Job Dynamic Setup Fees */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-2">
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
-            Per-Job Dynamic Setup Fees
-          </h3>
+          <div>
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+              Per-Job Dynamic Setup Fees
+            </h3>
+            <span className="text-[11px] text-muted-foreground">
+              Remote surcharges available for Windows, Doors &amp; Sealed Units.
+            </span>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -219,15 +148,15 @@ export function RegionPricingForm({
         </div>
         <div className="space-y-2.5">
           {!region.setupFeeOptions || region.setupFeeOptions.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2 italic">
-              No dynamic setup fees defined. Click &quot;Add Fee Option&quot; above to add one.
+            <p className="text-xs text-muted-foreground py-4 text-center italic">
+              No dynamic setup fees defined. Click &quot;Add Fee Option&quot; above to add remote mobilization rates (e.g. Dryden $727.50).
             </p>
           ) : (
             region.setupFeeOptions.map((opt: any, idx: number) => (
-              <div key={idx} className="flex gap-2 items-center">
+              <div key={idx} className="flex gap-2 items-center bg-muted/20 p-2 rounded-xl border border-border/50">
                 <Input
-                  className="flex-1 text-xs"
-                  placeholder="Fee Label (e.g., Crane Fee)"
+                  className="flex-1 text-xs h-8.5"
+                  placeholder="Fee Label (e.g. Dryden / Sioux Lookout)"
                   value={opt.label}
                   onChange={(e) => {
                     const newOpts = [...(region.setupFeeOptions || [])];
@@ -235,14 +164,15 @@ export function RegionPricingForm({
                     onUpdateRegion(region._id, 'setupFeeOptions', newOpts);
                   }}
                 />
-                <div className="relative w-28">
+                <div className="relative w-32">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
                     $
                   </span>
                   <Input
-                    className="pl-6 text-xs"
+                    className="pl-6 text-xs h-8.5 font-mono"
                     type="number"
-                    placeholder="0"
+                    step="0.01"
+                    placeholder="0.00"
                     value={opt.value}
                     onChange={(e) => {
                       const newOpts = [...(region.setupFeeOptions || [])];
@@ -255,8 +185,7 @@ export function RegionPricingForm({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer"
-                  title="Delete fee option"
+                  className="h-8.5 w-8.5 text-destructive hover:bg-destructive/10 cursor-pointer shrink-0"
                   onClick={() => {
                     const newOpts = (region.setupFeeOptions || []).filter(
                       (_: any, i: number) => i !== idx
@@ -274,4 +203,3 @@ export function RegionPricingForm({
     </div>
   );
 }
-

@@ -3,6 +3,13 @@ import { parseInches } from '@/components/tax/types';
 interface CalculateTaxParams {
   windows: any[];
   region: any;
+  windowLabourSettings?: {
+    labourPerSqft?: number;
+    miscPerSqft?: number;
+    labourMin?: number;
+    miscMin?: number;
+    extraLinPerWindow?: number;
+  };
   effectiveIsSupplyOnly: boolean;
   dbAddons: any[];
   addons: Record<string, string>;
@@ -73,11 +80,16 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
     if (!W || !H || q <= 0) return null;
     const unitSq = (W * H) / 144;
     const sqft = unitSq * q;
-    const lin = ((W * 2 + H * 2) / 12) * q + q * (Number(region.extraLinPerWindow) || 0);
-    const labRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.labourPerSqft || 0);
-    const miscRaw = effectiveIsSupplyOnly ? 0 : unitSq * (region.miscPerSqft || 0);
-    const lab = effectiveIsSupplyOnly ? 0 : Math.max(labRaw, region.labourMin || 0) * q;
-    const misc = effectiveIsSupplyOnly ? 0 : Math.max(miscRaw, region.miscMin || 0) * q;
+    const extraLin = Number(p.windowLabourSettings?.extraLinPerWindow ?? region.extraLinPerWindow ?? 2.17);
+    const lin = ((W * 2 + H * 2) / 12) * q + q * extraLin;
+    const labRate = p.windowLabourSettings?.labourPerSqft ?? region.labourPerSqft ?? 19;
+    const miscRate = p.windowLabourSettings?.miscPerSqft ?? region.miscPerSqft ?? 8;
+    const labMin = p.windowLabourSettings?.labourMin ?? region.labourMin ?? 325;
+    const miscMin = p.windowLabourSettings?.miscMin ?? region.miscMin ?? 74;
+    const labRaw = effectiveIsSupplyOnly ? 0 : unitSq * labRate;
+    const miscRaw = effectiveIsSupplyOnly ? 0 : unitSq * miscRate;
+    const lab = effectiveIsSupplyOnly ? 0 : Math.max(labRaw, labMin) * q;
+    const misc = effectiveIsSupplyOnly ? 0 : Math.max(miscRaw, miscMin) * q;
     sq += sqft;
     ln += lin;
     wLab += lab;

@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { useDoorCalculatorPage } from '@/hooks/doors';
 import {
   DoorHeaderBar,
-  DoorCustomerInfoBar,
   DoorModalsGroup,
 } from '@/components/doors/page';
 
@@ -64,6 +63,10 @@ export default function DoorCalculatorPage() {
     handleEditItem,
     handleDuplicateItem,
     handleDeleteItem,
+    regions,
+    selectedRegionId,
+    selectedRegion,
+    setSelectedRegionId,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
@@ -114,15 +117,6 @@ export default function DoorCalculatorPage() {
           onOpenAttach={() => setIsAttachModalOpen(true)}
           onSaveDraft={handleExplicitSaveDraft}
           onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
-          onOpenReset={() => setShowResetModal(true)}
-        />
-
-        {/* Customer Info Bar */}
-        <DoorCustomerInfoBar
-          customerName={customerName}
-          setCustomerName={setCustomerName}
-          quoteNumber={quoteNumber}
-          setQuoteNumber={setQuoteNumber}
         />
 
         {/* Main Work Area: 2 Columns */}
@@ -130,6 +124,11 @@ export default function DoorCalculatorPage() {
           {/* Left Column: Item Builder, Items Table, Labour/Travel (7 cols) */}
           <div className="lg:col-span-7 space-y-5">
             <DoorItemBuilder
+              customerName={customerName}
+              setCustomerName={setCustomerName}
+              quoteNumber={quoteNumber}
+              setQuoteNumber={setQuoteNumber}
+              mode={mode}
               presets={presets}
               formula={formula}
               editingItem={editingItem}
@@ -151,6 +150,9 @@ export default function DoorCalculatorPage() {
               availableUpcharges={upcharges}
               globalUpcharges={globalUpcharges}
               onUpdateGlobalUpcharges={setGlobalUpcharges}
+              regions={regions}
+              selectedRegionId={selectedRegionId}
+              onSelectRegion={setSelectedRegionId}
               travelFeeType={travelFeeType}
               customTravelFee={customTravelFee}
               showOutTownTravel={showOutTownTravel}
@@ -217,6 +219,7 @@ export default function DoorCalculatorPage() {
           spacing={quoteSpacing}
           hstRate={isFirstNation ? 8 : 13}
           isSupplyOnly={mode === 'supply_only'}
+          regionName={mode === 'supply_only' ? undefined : selectedRegion?.name}
           globalUpcharges={globalUpcharges}
           attachedWindowQuote={attachedWindowQuote}
           attachedSealedUnit={attachedSealedUnit}
@@ -239,6 +242,7 @@ export default function DoorCalculatorPage() {
         quoteNumber={quoteNumber}
         lineItems={lineItems}
         mode={mode}
+        regionName={mode === 'supply_only' ? undefined : selectedRegion?.name}
         globalUpcharges={globalUpcharges}
         isFirstNation={isFirstNation}
         quoteNotes={quoteNotes}
