@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { formatMoney } from '@/lib/promo-logic';
+import { formatMoney, toCents } from '@/lib/promo-logic';
 import { formatDoorItemHeading } from '@/lib/doors/calculations';
 import { SummaryTaxSection } from './SummaryTaxSection';
 import { SummaryDepositSchedule } from './SummaryDepositSchedule';
@@ -150,28 +150,50 @@ export function CombinedLedgerSection({
         )}
 
         {/* Misc (Window + Attached) - Hidden on Supply Only */}
-        {!isSupplyOnly &&
-          renderEditableRow(
+        {!isSupplyOnly && (() => {
+          const attachedMiscCents = combinedData.combinedMiscCents - (customMisc !== '' ? toCents(customMisc) : taxMisc);
+          const defaultCombinedMiscCents = taxMisc + attachedMiscCents;
+          return renderEditableRow(
             'misc',
             'Miscellaneous',
             combinedData.combinedMiscCents,
             customMisc,
-            taxMisc,
-            (val) => setCustomMisc(val),
+            defaultCombinedMiscCents,
+            (val) => {
+              if (!val) {
+                setCustomMisc('');
+                return;
+              }
+              const totalDesiredCents = toCents(val);
+              const windowCents = Math.max(0, totalDesiredCents - attachedMiscCents);
+              setCustomMisc((windowCents / 100).toFixed(2));
+            },
             '(window + attached)'
-          )}
+          );
+        })()}
 
         {/* Labour (Window + Attached) - Hidden on Supply Only */}
-        {!isSupplyOnly &&
-          renderEditableRow(
+        {!isSupplyOnly && (() => {
+          const attachedLabourCents = combinedData.combinedLabourCents - (customLabour !== '' ? toCents(customLabour) : taxLabour);
+          const defaultCombinedLabourCents = taxLabour + attachedLabourCents;
+          return renderEditableRow(
             'labour',
             'Labour',
             combinedData.combinedLabourCents,
             customLabour,
-            taxLabour,
-            (val) => setCustomLabour(val),
+            defaultCombinedLabourCents,
+            (val) => {
+              if (!val) {
+                setCustomLabour('');
+                return;
+              }
+              const totalDesiredCents = toCents(val);
+              const windowCents = Math.max(0, totalDesiredCents - attachedLabourCents);
+              setCustomLabour((windowCents / 100).toFixed(2));
+            },
             '(window + attached)'
-          )}
+          );
+        })()}
 
         {/* Surcharge (Window + Attached 8%) */}
         <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">

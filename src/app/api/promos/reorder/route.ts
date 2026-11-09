@@ -4,6 +4,7 @@ import Promo from '@/models/Promo';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 import mongoose from 'mongoose';
 
@@ -12,7 +13,7 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== 'SUPERADMIN' && role !== 'ADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -50,6 +51,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ message: 'Promos reordered successfully' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

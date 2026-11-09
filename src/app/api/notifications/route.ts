@@ -3,13 +3,14 @@ import dbConnect from '@/lib/mongodb';
 import Notification from '@/models/Notification';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { handleApiError } from '@/lib/api-error';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const currentUsername = (session.user as any).name || (session.user as any).username;
+    const currentUsername = session.user.username || session.user.name || '';
     if (!currentUsername) return NextResponse.json([]);
 
     await dbConnect();
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ notifications, unreadCount });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -44,7 +45,7 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const currentUsername = (session.user as any).username || (session.user as any).name;
+    const currentUsername = session.user.username || session.user.name || '';
     const body = await request.json();
     const { notificationId, markAllAsRead } = body;
 
@@ -65,13 +66,23 @@ export async function PUT(request: Request) {
     }
 
     if (notificationId) {
-      await Notification.findByIdAndUpdate(notificationId, { isRead: true });
+      if (typeof notificationId !== 'string' || !/^[0-9a-fA-F]{24}$/.test(notificationId)) {
+        return NextResponse.json({ error: 'Invalid notification ID format' }, { status: 400 });
+      }
+
+      await Notification.updateOne(
+        {
+          _id: notificationId,
+          recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, 'i') },
+        },
+        { $set: { isRead: true } }
+      );
       return NextResponse.json({ message: 'Notification marked as read' });
     }
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

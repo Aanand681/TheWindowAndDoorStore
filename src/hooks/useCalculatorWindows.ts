@@ -127,6 +127,20 @@ export function useCalculatorWindows() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const MAX_PDF_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Invalid file type. Please upload a valid PDF document.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      toast.error('File size exceeds the 25 MB limit.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     try {
       toast.info('Parsing PDF...');
       const items = await readPdfItems(file);

@@ -4,6 +4,9 @@ import Promo from '@/models/Promo';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
+
+export const revalidate = 60;
 
 export async function GET(request: Request) {
   try {
@@ -31,31 +34,63 @@ export async function GET(request: Request) {
     
     return NextResponse.json(promos, { headers });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'SUPERADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const body = await request.json();
     await dbConnect();
 
+    const {
+      name,
+      type,
+      isActive,
+      buyQty,
+      getQty,
+      freeComponents,
+      discountPercentage,
+      applyPercentageAfterFreeParts,
+      order,
+    } = body;
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'Promo name is required.' }, { status: 400 });
+    }
+
+    if (!type || !['BOGO', 'FREE_PARTS', 'PERCENTAGE', 'COMBO'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid promo type.' }, { status: 400 });
+    }
+
     const count = await Promo.countDocuments();
-    const newPromo = await Promo.create({
-      ...body,
-      order: body.order !== undefined ? body.order : count,
-    });
+    const promoData: Record<string, unknown> = {
+      name: name.trim(),
+      type,
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      order: typeof order === 'number' ? order : count,
+    };
+
+    if (buyQty !== undefined) promoData.buyQty = Number(buyQty);
+    if (getQty !== undefined) promoData.getQty = Number(getQty);
+    if (Array.isArray(freeComponents)) promoData.freeComponents = freeComponents;
+    if (discountPercentage !== undefined) promoData.discountPercentage = Number(discountPercentage);
+    if (applyPercentageAfterFreeParts !== undefined) {
+      promoData.applyPercentageAfterFreeParts = Boolean(applyPercentageAfterFreeParts);
+    }
+
+    const newPromo = await Promo.create(promoData);
 
     // Invalidate promo caches
     cacheDel('promos:active', 'promos:all').catch(() => {});
 
     return NextResponse.json({ message: 'Promo created successfully', promo: newPromo }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

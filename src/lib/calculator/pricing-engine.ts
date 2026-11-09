@@ -90,7 +90,9 @@ export function computeCombinedQuoteFinancials(params: CombinedPricingParams): C
       Boolean(suTotals.isServiceOnly);
     suGlassCents = !isAttachedSUService ? Math.round((suTotals.glassBefore8PercentTotal || 0) * 100) : 0;
     suSurchargeCents = !isAttachedSUService ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100) : 0;
-    suLabourCents = Math.round((suTotals.serviceLabourTotal ?? suTotals.combinedLabourTotal ?? 0) * 100);
+    suLabourCents = Math.round(
+      (suTotals.serviceLabourTotal ?? suTotals.unitLabourSum ?? suTotals.combinedLabourTotal ?? 0) * 100
+    );
     suMiscCents = Math.round((suTotals.miscTotal || 0) * 100);
   }
 
@@ -107,7 +109,13 @@ export function computeCombinedQuoteFinancials(params: CombinedPricingParams): C
     const doorDiscountCents = Math.round((doorTotals.discountTotal || 0) * 100);
     doorMaterialsCents = Math.max(0, doorRawBaseCents - doorDiscountCents);
     doorSurchargeCents = Math.round((doorTotals.surchargeTotal || 0) * 100);
-    doorLabourCents = Math.round((doorTotals.combinedLabourTotal || 0) * 100);
+    const hasExplicitUnitLabour =
+      doorTotals.unitLabourTotal !== undefined || doorTotals.upchargesTotal !== undefined;
+    doorLabourCents = Math.round(
+      (hasExplicitUnitLabour
+        ? (doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)
+        : doorTotals.combinedLabourTotal || 0) * 100
+    );
     doorMiscCents = Math.round((doorTotals.miscTotal || 0) * 100);
   }
 

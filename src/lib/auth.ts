@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import dbConnect from './mongodb';
 import User from '@/models/User';
 import Department from '@/models/Department';
+import { cacheGet } from './redis';
 
 import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts } from './login-rate-limiter';
 
@@ -78,10 +79,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error(`Invalid username or password. (${failed.attemptsRemaining} attempt${failed.attemptsRemaining === 1 ? '' : 's'} remaining)`);
         }
 
-        const isValidPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const isValidPassword = user.password
+          ? await bcrypt.compare(credentials.password, user.password)
+          : false;
 
         if (!isValidPassword) {
           const failed = recordFailedLogin(rateTarget);
@@ -94,7 +94,7 @@ export const authOptions: NextAuthOptions = {
         // Login successful: reset rate limit tracking for both user and IP
         resetLoginAttempts(rateTarget);
 
-        const isSuper = user.role === 'SUPERADMIN' || user.username?.toLowerCase() === 'cheeku';
+        const isSuper = user.role === 'SUPERADMIN';
         let canAccessAdmin = isSuper || user.role === 'ADMIN';
         if (!canAccessAdmin) {
           if (user.customPermissions?.canAccessAdmin === true) {
@@ -127,30 +127,42 @@ export const authOptions: NextAuthOptions = {
       // Allows callback URLs on the same origin
       try {
         if (new URL(url).origin === baseUrl) return url;
-      } catch (_) {}
+      } catch {}
       return baseUrl;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.department = (user as any).department;
-        token.id = (user as any).id;
-        token.username = (user as any).name || (user as any).username;
-        token.landingPage = (user as any).landingPage || 'calculator';
-        token.muteNotifications = (user as any).muteNotifications || false;
-        token.canAccessAdmin = Boolean((user as any).canAccessAdmin);
+        token.role = user.role;
+        token.department = user.department;
+        token.id = user.id;
+        token.username = user.username || user.name || '';
+        token.landingPage = user.landingPage || 'calculator';
+        token.muteNotifications = user.muteNotifications || false;
+        token.canAccessAdmin = Boolean(user.canAccessAdmin);
+        token.authTime = Date.now();
+      } else if (token.id) {
+        // Revocation check (account deactivation or password reset)
+        try {
+          const revokedAt = await cacheGet<number>(`user:revoked:${token.id}`);
+          if (revokedAt && (!token.authTime || token.authTime < revokedAt)) {
+            return {};
+          }
+        } catch {}
       }
       return token;
     },
     async session({ session, token }) {
+      if (!token.id) {
+        return null as any;
+      }
       if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).department = token.department;
-        (session.user as any).id = token.id;
-        (session.user as any).username = (token as any).username || session.user.name;
-        (session.user as any).landingPage = token.landingPage || 'calculator';
-        (session.user as any).muteNotifications = token.muteNotifications || false;
-        (session.user as any).canAccessAdmin = Boolean(token.canAccessAdmin);
+        session.user.role = token.role || 'EMPLOYEE';
+        session.user.department = token.department;
+        session.user.id = token.id || '';
+        session.user.username = token.username || session.user.name || '';
+        session.user.landingPage = token.landingPage || 'calculator';
+        session.user.muteNotifications = token.muteNotifications || false;
+        session.user.canAccessAdmin = Boolean(token.canAccessAdmin);
       }
       return session;
     },

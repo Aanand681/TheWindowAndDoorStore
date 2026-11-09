@@ -14,14 +14,12 @@ export default async function AdminDashboard() {
     redirect('/login');
   }
 
-  const role = (session.user as any).role;
-  const canAccessAdmin = (session.user as any).canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
+  const role = session.user.role;
+  const canAccessAdmin = session.user.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
 
   if (!canAccessAdmin) {
     redirect('/login');
   }
-
-  const isSuperAdmin = role === 'SUPERADMIN';
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">

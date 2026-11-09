@@ -67,8 +67,15 @@ export function useQuotePdfStudio() {
 
   // Handle PDF file upload & extraction
   const handleFileUpload = async (file: File) => {
-    if (!file || (file.type !== 'application/pdf' && !file.name.endsWith('.pdf'))) {
+    const MAX_PDF_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    const isPdf = file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+    if (!isPdf) {
       toast.error('Please upload a valid PDF quote-list file.');
+      return;
+    }
+
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      toast.error('File size exceeds the 25 MB limit.');
       return;
     }
 
@@ -207,6 +214,15 @@ export function useQuotePdfStudio() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file (PNG, JPG, WebP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size exceeds the 5 MB limit.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -221,6 +237,15 @@ export function useQuotePdfStudio() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file for the company logo.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Logo file size exceeds the 5 MB limit.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = () => {

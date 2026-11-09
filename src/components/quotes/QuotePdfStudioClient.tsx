@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useQuotePdfStudio } from '@/hooks/useQuotePdfStudio';
 import { AppHeader } from '@/components/layout/AppHeader';
 import {
@@ -16,7 +15,6 @@ export default function QuotePdfStudioClient() {
   const {
     fileInputRef,
     logoInputRef,
-    user,
     quoteData,
     setQuoteData,
     loading,
@@ -35,10 +33,6 @@ export default function QuotePdfStudioClient() {
     handleImageUpload,
     handleLogoUpload,
   } = useQuotePdfStudio();
-
-  const canAccessAdmin = Boolean(
-    user?.canAccessAdmin || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN'
-  );
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">

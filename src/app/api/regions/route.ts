@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import RegionConfig from '@/models/RegionConfig';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET() {
   try {
@@ -21,12 +24,17 @@ export async function GET() {
     cacheSet(cacheKey, regions, 86400).catch(() => {});
     return NextResponse.json(regions, { headers });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN' && !session.user.canAccessAdmin)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
     await dbConnect();
     const data = await req.json();
     if (!data.name || !data.name.trim()) {
@@ -68,6 +76,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newRegion, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

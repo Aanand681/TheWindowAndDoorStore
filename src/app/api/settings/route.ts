@@ -5,8 +5,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
 import { DEFAULT_LABOUR_UPGRADE_TIERS } from '@/lib/promo-logic';
+import { handleApiError } from '@/lib/api-error';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET() {
   try {
@@ -64,7 +65,7 @@ export async function GET() {
     cacheSet('settings:global', settings, 86400).catch(() => {});
     return NextResponse.json(settings, { headers });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -73,8 +74,8 @@ export async function PUT(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const role = (session.user as any).role;
-    const canAccessAdmin = (session.user as any).canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
+    const role = session.user.role;
+    const canAccessAdmin = session.user.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
     if (!canAccessAdmin) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -103,6 +104,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ message: 'Settings updated successfully', settings: updatedSettings });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

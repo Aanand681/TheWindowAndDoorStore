@@ -26,7 +26,7 @@ export default function LoginPage() {
       try {
         localStorage.removeItem('vwd_last_active_time');
         sessionStorage.removeItem('vwd_tab_init_time');
-      } catch (e) {}
+      } catch {}
 
       const params = new URLSearchParams(window.location.search);
       if (params.get('expired') === 'true') {
@@ -72,7 +72,7 @@ export default function LoginPage() {
         const now = Date.now();
         localStorage.setItem('vwd_last_active_time', String(now));
         sessionStorage.setItem('vwd_tab_init_time', String(now));
-      } catch (err) {}
+      } catch {}
 
       let targetUrl = '/';
       try {

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
+import { cacheGet, cacheSet } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 const MATRIX_URLS = [
   'https://api.openrouteservice.org/v2/matrix/driving-car',
   'https://api.heigit.org/openrouteservice/v2/matrix/driving-car'
 ];
+
+const ROUTE_CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+};
 
 export async function GET(request: Request) {
   try {
@@ -13,15 +19,21 @@ export async function GET(request: Request) {
     const officeLon = Number(searchParams.get('officeLon'));
     const officeLat = Number(searchParams.get('officeLat'));
 
+    if (!Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(officeLon) || !Number.isFinite(officeLat)) {
+      return NextResponse.json({ error: 'Invalid coordinates provided.' }, { status: 400 });
+    }
+
+    const cacheKey = `route:${officeLon.toFixed(4)}:${officeLat.toFixed(4)}:${lon.toFixed(4)}:${lat.toFixed(4)}`;
+    const cached = await cacheGet<{ km: number; seconds: number }>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, { headers: ROUTE_CACHE_HEADERS });
+    }
+
     const rawKey = process.env.ORS_API_KEY;
     if (!rawKey) {
       return NextResponse.json({ error: 'Server is missing ORS_API_KEY. Enter km and hours manually.' }, { status: 500 });
     }
     const apiKey = rawKey.trim().replace(/^["']|["']$/g, '');
-
-    if (!Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(officeLon) || !Number.isFinite(officeLat)) {
-      return NextResponse.json({ error: 'Invalid coordinates provided.' }, { status: 400 });
-    }
 
     const body = JSON.stringify({
       locations: [
@@ -41,7 +53,8 @@ export async function GET(request: Request) {
         const response = await fetch(url, {
           method: 'POST',
           headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
-          body
+          body,
+          signal: AbortSignal.timeout(8000),
         });
 
         if (!response.ok) {
@@ -59,7 +72,11 @@ export async function GET(request: Request) {
           return NextResponse.json({ error: 'No driving route found from the selected office. Enter km and hours manually.' }, { status: 422 });
         }
 
-        return NextResponse.json({ km, seconds });
+        const result = { km, seconds };
+        // Cache for 7 days
+        cacheSet(cacheKey, result, 604800).catch(() => {});
+
+        return NextResponse.json(result, { headers: ROUTE_CACHE_HEADERS });
       } catch (error: any) {
         lastError = { status: 0, message: String(error?.message || error) };
       }
@@ -74,6 +91,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ error: errorMessage }, { status: 502 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

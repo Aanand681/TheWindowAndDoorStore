@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { 
   UserCircle, 
@@ -11,11 +10,10 @@ import {
   Calculator, 
   Inbox, 
   ChevronDown,
-  Settings,
   HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { cachedFetch, getCachedData } from '@/lib/client-cache';
+import { getCachedData } from '@/lib/client-cache';
 import { EstimatorGuideModal } from '@/components/calculator/EstimatorGuideModal';
 
 export interface UserProfileMenuProps {
@@ -36,7 +34,6 @@ export default function UserProfileMenu({ user: propUser, className }: UserProfi
   const [isOpen, setIsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   // If user wasn't passed as prop, fetch from profile endpoint with deduplication
   useEffect(() => {

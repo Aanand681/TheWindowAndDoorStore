@@ -18,7 +18,7 @@ export interface SealedUnitLineItemsTableProps {
 
 export function SealedUnitLineItemsTable({
   lineItems,
-  isInstallation,
+  isInstallation: _isInstallation,
   mode = 'installation',
   labourRate = 14.40,
   miscRate = 2.40,
@@ -27,7 +27,6 @@ export function SealedUnitLineItemsTable({
   onResetQuote,
 }: SealedUnitLineItemsTableProps) {
   const isService = mode === 'service_only';
-  const isSupply = mode === 'supply_only';
   const isInstall = mode === 'installation';
 
   return (

@@ -4,6 +4,7 @@ import SealedUnitSettings from '@/models/SealedUnitSettings';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 import {
   DEFAULT_SEALED_UNIT_COMBOS,
   DEFAULT_FORMULA_CONSTANTS,
@@ -12,17 +13,20 @@ import {
   DEFAULT_GRILL_SETTINGS,
 } from '@/lib/sealed-units-logic';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET() {
   try {
     const cacheKey = 'sealed_units:settings';
+    const headers = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
     const cached = (await cacheGet(cacheKey)) as any;
     if (cached) {
       if (!cached.grills) {
         cached.grills = DEFAULT_GRILL_SETTINGS;
       }
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers });
     }
 
     await dbConnect();
@@ -46,7 +50,7 @@ export async function GET() {
 
     // Cache in Redis for 1 day
     cacheSet(cacheKey, plain, 86400).catch(() => {});
-    return NextResponse.json(plain);
+    return NextResponse.json(plain, { headers });
   } catch (error: any) {
     console.error('Error fetching sealed unit settings:', error);
     // Graceful fallback to default constants if MongoDB is momentarily unreachable
@@ -67,9 +71,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user as any)?.role;
+    const role = session.user.role;
     const canAccessAdmin =
-      (session.user as any)?.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
+      session.user.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
 
     if (!canAccessAdmin) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -103,7 +107,6 @@ export async function PUT(request: Request) {
       settings: plain,
     });
   } catch (error: any) {
-    console.error('Error updating sealed unit settings:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -13,6 +13,7 @@ export interface SummaryUpgradeCardProps {
   upgrade?: any;
   shownUpgrade?: number;
   attachedDoorQuote?: any | null;
+  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null;
 }
 
 export function SummaryUpgradeCard({
@@ -22,9 +23,28 @@ export function SummaryUpgradeCard({
   upgrade,
   shownUpgrade = 0,
   attachedDoorQuote,
+  attachedUpgrade,
 }: SummaryUpgradeCardProps) {
   return (
     <>
+      {/* Option Callout for Attached Comparison Window Upgrade */}
+      {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
+        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1 text-xs mt-3">
+          <div className="font-bold flex items-center justify-between text-amber-800 dark:text-amber-300">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              Optional Window Upgrade:
+            </span>
+            <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
+              +{formatMoney(attachedUpgrade.amountPreTaxCents)}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {attachedUpgrade.title} (Optional upgrade from comparison, not included in total)
+          </p>
+        </div>
+      )}
+
       {/* 5-year free labour upgrade checkbox (placed right after 50/50 deposits) */}
       <div className="flex items-start space-x-2.5 bg-primary/5 p-3 rounded-xl border border-primary/15 mt-3">
         <Checkbox

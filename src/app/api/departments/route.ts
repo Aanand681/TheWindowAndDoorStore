@@ -3,9 +3,23 @@ import dbConnect from '@/lib/mongodb';
 import Department, { DEFAULT_DEPARTMENTS } from '@/models/Department';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
+
+export const revalidate = 60;
+
+const CACHE_KEY = 'departments:all';
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+};
 
 export async function GET() {
   try {
+    const cached = await cacheGet(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached, { headers: CACHE_HEADERS });
+    }
+
     await dbConnect();
     let departments = await Department.find({}).sort({ isSystem: -1, createdAt: 1 });
     
@@ -15,16 +29,19 @@ export async function GET() {
       departments = await Department.find({}).sort({ isSystem: -1, createdAt: 1 });
     }
 
-    return NextResponse.json(departments);
+    // Cache in Redis for 1 day
+    cacheSet(CACHE_KEY, departments, 86400).catch(() => {});
+
+    return NextResponse.json(departments, { headers: CACHE_HEADERS });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'SUPERADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Only Superadmin can create custom departments' }, { status: 403 });
     }
 
@@ -50,24 +67,30 @@ export async function POST(request: Request) {
       permissions: permissions || {},
     });
 
+    // Invalidate department and dependent user caches
+    await Promise.all([
+      cacheDel(CACHE_KEY).catch(() => {}),
+      cacheDelPattern('users:*').catch(() => {}),
+    ]);
+
     return NextResponse.json({ message: 'Department created successfully', department: newDept }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'SUPERADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Only Superadmin can update department permissions' }, { status: 403 });
     }
 
     const body = await request.json();
     const { id, name, description, permissions } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Department ID is required' }, { status: 400 });
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid department ID format' }, { status: 400 });
     }
 
     await dbConnect();
@@ -84,8 +107,14 @@ export async function PUT(request: Request) {
 
     await dept.save();
 
+    // Invalidate department and dependent user caches
+    await Promise.all([
+      cacheDel(CACHE_KEY).catch(() => {}),
+      cacheDelPattern('users:*').catch(() => {}),
+    ]);
+
     return NextResponse.json({ message: 'Department updated successfully', department: dept });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

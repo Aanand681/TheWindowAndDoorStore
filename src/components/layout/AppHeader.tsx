@@ -43,7 +43,6 @@ export function AppHeader({ currentPath, showQuotesBin = true }: AppHeaderProps)
 
   const isCalculatorActive = currentPath === '/calculator' || currentPath === '/';
   const isQuotesActive = currentPath === '/quotes';
-  const isStudioActive = currentPath === '/quote-studio';
   const isAdminActive = currentPath.startsWith('/admin');
 
   return (

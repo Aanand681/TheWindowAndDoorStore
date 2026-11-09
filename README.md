@@ -339,6 +339,13 @@ ANALYZE=true npm run build
 
 ## 📚 Documentation Links
 
+### Project Architecture & Domain Guides
+- [AI Development Rules](docs/AI_DEVELOPMENT_RULES.md) — Coding standards, pure logic extraction, and 300-line limits
+- [AI Quick Reference](docs/AI_QUICK_REFERENCE.md) — Architectural cheatsheet and rules summary
+- [Promotion Logic Specification](docs/PROMO_LOGIC.md) — Tier calculations, pricing formulas, and discount mechanics
+- [PDF Import Specification](docs/README_PDF_IMPORT.md) — Window schedule regex parsing and line-item extraction
+
+### Framework & Third-Party Docs
 - [Next.js 16 Docs](https://nextjs.org/docs)
 - [NextAuth v4 Docs](https://next-auth.js.org/)
 - [Mongoose Docs](https://mongoosejs.com/docs/)

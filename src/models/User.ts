@@ -1,6 +1,36 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
-const UserSchema = new mongoose.Schema(
+export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'EMPLOYEE';
+
+export interface IUserCustomPermissions {
+  canCreateQuote?: boolean;
+  canReviewQuote?: boolean;
+  canEditApprovedQuote?: boolean;
+  canAccessOdooQueue?: boolean;
+  canMarkOdooEntry?: boolean;
+  canAccessAdmin?: boolean;
+}
+
+export interface IUser extends Document {
+  username?: string;
+  email?: string;
+  password?: string;
+  role: UserRole;
+  isActive: boolean;
+  resetOtp?: string | null;
+  resetOtpExpiry?: Date | null;
+  resetOtpAttempts?: number;
+  landingPage?: 'calculator' | 'quotes' | 'admin';
+  muteNotifications?: boolean;
+  receiveQuoteEmails?: boolean;
+  favoriteTemplate?: 'modern' | 'executive' | 'cards' | 'compact' | 'breakdown';
+  department?: string;
+  customPermissions?: IUserCustomPermissions;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema = new Schema<IUser>(
   {
     username: {
       type: String,
@@ -35,6 +65,10 @@ const UserSchema = new mongoose.Schema(
     resetOtpExpiry: {
       type: Date,
       default: null,
+    },
+    resetOtpAttempts: {
+      type: Number,
+      default: 0,
     },
     landingPage: {
       type: String,
@@ -71,7 +105,8 @@ const UserSchema = new mongoose.Schema(
 );
 
 if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('receiveQuoteEmails') || !mongoose.models.User.schema.path('favoriteTemplate') || !mongoose.models.User.schema.path('customPermissions'))) {
-  delete (mongoose.models as any).User;
+  delete (mongoose.models as Record<string, unknown>).User;
 }
 
-export default mongoose.models.User || mongoose.model('User', UserSchema);
+const UserModel: Model<IUser> = (mongoose.models.User as Model<IUser>) || mongoose.model<IUser>('User', UserSchema);
+export default UserModel;

@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Enable React 19 Compiler
+  reactCompiler: true,
+
   // Package import optimization for tree-shaking
   experimental: {
     optimizePackageImports: [
@@ -29,10 +32,23 @@ const nextConfig: NextConfig = {
 
   // Security and static asset caching headers
   async headers() {
+    const cspHeader = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+      "worker-src 'self' blob: https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' blob: data: https://*.cdn.jsdelivr.net https://*.googleapis.com https://cdnjs.cloudflare.com https://*.tile.openstreetmap.org",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' blob: https://api.openrouteservice.org https://api.heigit.org https://geocoder.ca https://nominatim.openstreetmap.org https://*.pusher.com wss://*.pusher.com",
+      "frame-src 'self' blob:",
+      "frame-ancestors 'none'",
+    ].join('; ');
+
     return [
       {
         source: '/:path*',
         headers: [
+          { key: 'Content-Security-Policy', value: cspHeader },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },

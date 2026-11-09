@@ -160,3 +160,54 @@ export function resetLoginAttempts(target: string | RateLimitTarget) {
   }
 }
 
+const forgotPasswordMap = new Map<string, { count: number; resetAt: number }>();
+
+export function checkForgotPasswordRateLimit(clientIp: string): { allowed: boolean; minutesRemaining?: number } {
+  const now = Date.now();
+  const record = forgotPasswordMap.get(clientIp);
+  if (!record || now > record.resetAt) {
+    return { allowed: true };
+  }
+  if (record.count >= 4) {
+    const minutesRemaining = Math.max(1, Math.ceil((record.resetAt - now) / 60000));
+    return { allowed: false, minutesRemaining };
+  }
+  return { allowed: true };
+}
+
+export function recordForgotPasswordRequest(clientIp: string) {
+  const now = Date.now();
+  const record = forgotPasswordMap.get(clientIp);
+  if (!record || now > record.resetAt) {
+    forgotPasswordMap.set(clientIp, { count: 1, resetAt: now + 15 * 60 * 1000 });
+  } else {
+    record.count += 1;
+  }
+}
+
+const resetPasswordMap = new Map<string, { count: number; resetAt: number }>();
+
+export function checkResetPasswordRateLimit(clientIp: string): { allowed: boolean; minutesRemaining?: number } {
+  const now = Date.now();
+  const record = resetPasswordMap.get(clientIp);
+  if (!record || now > record.resetAt) {
+    return { allowed: true };
+  }
+  if (record.count >= 10) {
+    const minutesRemaining = Math.max(1, Math.ceil((record.resetAt - now) / 60000));
+    return { allowed: false, minutesRemaining };
+  }
+  return { allowed: true };
+}
+
+export function recordResetPasswordRequest(clientIp: string) {
+  const now = Date.now();
+  const record = resetPasswordMap.get(clientIp);
+  if (!record || now > record.resetAt) {
+    resetPasswordMap.set(clientIp, { count: 1, resetAt: now + 15 * 60 * 1000 });
+  } else {
+    record.count += 1;
+  }
+}
+
+

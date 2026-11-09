@@ -35,6 +35,20 @@ export const toCents = (val: number | string) => {
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
 };
 
+export function getJcSummaryLabel(taxTotals: any): string {
+  const hasJamb = Boolean(
+    taxTotals?.selectedJamb &&
+      (Number(taxTotals.selectedJamb.total) > 0 || Number(taxTotals.selectedJamb.rate) > 0)
+  );
+  const hasCasing = Boolean(
+    taxTotals?.selectedCasing &&
+      (Number(taxTotals.selectedCasing.total) > 0 || Number(taxTotals.selectedCasing.rate) > 0)
+  );
+  if (hasJamb && !hasCasing) return 'Jambs Only';
+  if (!hasJamb && hasCasing) return 'Casing Only';
+  return 'Jambs & Casing';
+}
+
 export function parseInches(v: string | undefined | null): number | null {
   const s = String(v ?? '').trim().replace(/"/g, '');
   if (!s) return null;
@@ -135,8 +149,8 @@ export function calculatePromo(
     let partsSum = 0;
     items.forEach(item => {
       promo.freeComponents!.forEach(part => {
-        // @ts-ignore
-        if (item[part]) partsSum += item[part];
+        const partVal = (item as Record<string, any>)[part];
+        if (typeof partVal === 'number' && Number.isFinite(partVal)) partsSum += partVal;
       });
     });
     promoDiscount = partsSum;
@@ -152,8 +166,8 @@ export function calculatePromo(
     let partsSum = 0;
     items.forEach(item => {
       promo.freeComponents!.forEach(part => {
-        // @ts-ignore
-        if (item[part]) partsSum += item[part];
+        const partVal = (item as Record<string, any>)[part];
+        if (typeof partVal === 'number' && Number.isFinite(partVal)) partsSum += partVal;
       });
     });
     

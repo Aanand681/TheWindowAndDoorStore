@@ -42,6 +42,7 @@ export default function QuotesBinPill({ className, badgeOnly = false }: QuotesBi
         pusher.unsubscribe('quotes-channel');
       };
     }
+    return undefined;
   }, [queryClient]);
 
   if (badgeOnly) {

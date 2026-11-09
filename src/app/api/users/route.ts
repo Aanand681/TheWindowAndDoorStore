@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
+import User, { UserRole } from '@/models/User';
 import Department from '@/models/Department';
 import bcrypt from 'bcryptjs';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { cacheGet, cacheSet, cacheDelPattern } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,15 +17,21 @@ const NO_CACHE_HEADERS = {
   'Expires': '0',
 };
 
+const USER_CACHE_TTL = 300; // 5 minutes server-side cache
+
 export async function GET(request: Request) {
   try {
-    await dbConnect();
     const { searchParams } = new URL(request.url);
     const reviewersOnly = searchParams.get('reviewersOnly') === 'true';
     const assignees = searchParams.get('assignees') === 'true';
     const roleParam = searchParams.get('role');
 
     if (assignees) {
+      const cacheKey = 'users:assignees';
+      const cached = await cacheGet(cacheKey);
+      if (cached) return NextResponse.json(cached, { headers: NO_CACHE_HEADERS });
+
+      await dbConnect();
       // Find departments that have Odoo permissions
       const odooDepts = await Department.find({
         $or: [
@@ -35,8 +45,7 @@ export async function GET(request: Request) {
       // Return staff who have Odoo permissions (department or custom individual override) or are Admin
       const staff = await User.find(
         {
-          role: { $nin: ['SUPERADMIN', 'superadmin'] },
-          username: { $not: /^cheeku$/i },
+          role: { $ne: 'SUPERADMIN' },
           isActive: { $ne: false },
           $or: [
             { department: { $in: odooDeptCodes } },
@@ -48,10 +57,17 @@ export async function GET(request: Request) {
         },
         'username role email department customPermissions'
       ).sort({ username: 1 });
+
+      cacheSet(cacheKey, staff, USER_CACHE_TTL).catch(() => {});
       return NextResponse.json(staff, { headers: NO_CACHE_HEADERS });
     }
 
     if (reviewersOnly) {
+      const cacheKey = 'users:reviewers';
+      const cached = await cacheGet(cacheKey);
+      if (cached) return NextResponse.json(cached, { headers: NO_CACHE_HEADERS });
+
+      await dbConnect();
       const reviewerDepts = await Department.find({
         $or: [
           { 'permissions.canReviewQuote': true },
@@ -63,8 +79,7 @@ export async function GET(request: Request) {
 
       const staff = await User.find(
         {
-          role: { $nin: ['SUPERADMIN', 'superadmin'] },
-          username: { $not: /^cheeku$/i },
+          role: { $ne: 'SUPERADMIN' },
           isActive: { $ne: false },
           $or: [
             { role: 'ADMIN' },
@@ -75,6 +90,8 @@ export async function GET(request: Request) {
         },
         'username role email department'
       ).sort({ username: 1 });
+
+      cacheSet(cacheKey, staff, USER_CACHE_TTL).catch(() => {});
       return NextResponse.json(staff, { headers: NO_CACHE_HEADERS });
     }
 
@@ -82,26 +99,44 @@ export async function GET(request: Request) {
       if (['SUPERADMIN', 'superadmin'].includes(roleParam)) {
         return NextResponse.json([], { headers: NO_CACHE_HEADERS });
       }
+      const cacheKey = `users:role:${roleParam}`;
+      const cached = await cacheGet(cacheKey);
+      if (cached) return NextResponse.json(cached, { headers: NO_CACHE_HEADERS });
+
+      await dbConnect();
       const users = await User.find({ 
-        role: roleParam,
-        username: { $not: /^cheeku$/i }
+        role: roleParam as UserRole,
       }, '-password').sort({ createdAt: -1 });
+
+      cacheSet(cacheKey, users, USER_CACHE_TTL).catch(() => {});
       return NextResponse.json(users, { headers: NO_CACHE_HEADERS });
     }
 
     // Exclude SUPERADMIN for general staff listings
+    const cacheKey = 'users:all';
+    const cached = await cacheGet(cacheKey);
+    if (cached) return NextResponse.json(cached, { headers: NO_CACHE_HEADERS });
+
+    await dbConnect();
     const users = await User.find({ 
-      role: { $nin: ['SUPERADMIN', 'superadmin'] },
-      username: { $not: /^cheeku$/i }
+      role: { $ne: 'SUPERADMIN' },
     }, '-password').sort({ createdAt: -1 });
+
+    cacheSet(cacheKey, users, USER_CACHE_TTL).catch(() => {});
     return NextResponse.json(users, { headers: NO_CACHE_HEADERS });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500, headers: NO_CACHE_HEADERS });
+    return handleApiError(error, NO_CACHE_HEADERS);
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
     const { username, password, role, email, department } = await request.json();
 
     if (!username || !password) {
@@ -135,6 +170,9 @@ export async function POST(request: Request) {
       department: assignedDept,
     });
 
+    // Invalidate user cache keys
+    cacheDelPattern('users:*').catch(() => {});
+
     return NextResponse.json({ 
       message: 'User created successfully', 
       user: { 
@@ -144,6 +182,6 @@ export async function POST(request: Request) {
       } 
     }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

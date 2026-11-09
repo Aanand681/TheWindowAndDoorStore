@@ -4,6 +4,8 @@ import User from '@/models/User';
 import Department from '@/models/Department';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheSet } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
@@ -12,10 +14,10 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await dbConnect();
-    const user = await User.findById((session.user as any).id, '-password');
+    const user = await User.findById(session.user.id, '-password');
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const userObj = user.toObject();
+    const userObj: Record<string, unknown> = { ...user.toObject() };
     let deptPermissions: Record<string, boolean> = {};
     if (user.department) {
       const dept = await Department.findOne({ code: user.department });
@@ -55,7 +57,7 @@ export async function GET() {
 
     return NextResponse.json(userObj);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -68,16 +70,18 @@ export async function PUT(request: Request) {
     const { username, email, currentPassword, newPassword } = body;
 
     await dbConnect();
-    const user = await User.findById((session.user as any).id);
+    const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     // Handle Password Change
     if (currentPassword && newPassword) {
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      const isValidPassword = user.password ? await bcrypt.compare(currentPassword, user.password) : false;
       if (!isValidPassword) {
         return NextResponse.json({ error: 'Incorrect current password' }, { status: 400 });
       }
       user.password = await bcrypt.hash(newPassword, 10);
+      // Revoke any other active sessions
+      await cacheSet(`user:revoked:${user._id.toString()}`, Date.now(), 86400).catch(() => {});
     }
 
     // Handle Username / Email Change
@@ -117,6 +121,6 @@ export async function PUT(request: Request) {
       muteNotifications: user.muteNotifications,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

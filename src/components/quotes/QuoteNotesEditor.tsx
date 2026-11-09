@@ -2,6 +2,11 @@
 
 import React, { useRef, useEffect } from 'react';
 import { Bold, List } from 'lucide-react';
+import {
+  executeBold,
+  executeBullet,
+  handleEditorKeyDown,
+} from './notes/notes-editor-helpers';
 
 interface QuoteNotesEditorProps {
   value: string;
@@ -63,190 +68,12 @@ export default function QuoteNotesEditor({
     onChange(editorRef.current.innerHTML);
   };
 
-  const handleBold = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-
-    const range = sel.getRangeAt(0);
-
-    // If no text is selected (cursor only on line), select the current block/line
-    if (range.collapsed) {
-      let node: Node | null = range.startContainer;
-      while (node && node.parentNode !== editorRef.current && node !== editorRef.current) {
-        node = node.parentNode;
-      }
-      if (node && node !== editorRef.current) {
-        const lineRange = document.createRange();
-        lineRange.selectNodeContents(node);
-        sel.removeAllRanges();
-        sel.addRange(lineRange);
-      }
-    }
-
-    document.execCommand('bold', false);
-    emitChange();
-  };
-
-  const handleBullet = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!editorRef.current) return;
-    editorRef.current.focus();
-
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-
-    const range = sel.getRangeAt(0);
-    let node: Node | null = range.startContainer;
-    while (node && node.parentNode !== editorRef.current && node !== editorRef.current) {
-      node = node.parentNode;
-    }
-
-    if (!node || node === editorRef.current) {
-      // Empty editor or root selection
-      const div = document.createElement('div');
-      div.innerHTML = '• &nbsp;';
-      editorRef.current.appendChild(div);
-      node = div;
-    } else if (node.nodeType === Node.TEXT_NODE && node.parentNode === editorRef.current) {
-      // Unwrapped text node at root
-      const div = document.createElement('div');
-      const text = (node.textContent || '').trim();
-      if (text.startsWith('•')) {
-        div.innerHTML = text.replace(/^•(&nbsp;|\s)*/, '') || '<br>';
-      } else {
-        div.innerHTML = `• &nbsp;${text}`;
-      }
-      editorRef.current.replaceChild(div, node);
-      node = div;
-    } else if (node instanceof HTMLElement) {
-      const text = (node.innerText || node.textContent || '').trim();
-      if (text.startsWith('•')) {
-        // Toggle bullet off
-        node.innerHTML = node.innerHTML.replace(/^•(&nbsp;|\s)*/, '');
-        if (!node.innerHTML.trim()) {
-          node.innerHTML = '<br>';
-        }
-      } else {
-        // Toggle bullet on: clear lone <br> if empty line
-        const inner = node.innerHTML.replace(/^<br\s*\/?>$/i, '');
-        node.innerHTML = `• &nbsp;${inner}`;
-      }
-    }
-
-    // Always reposition cursor right AFTER the bullet at the end of the line
-    if (node) {
-      const newRange = document.createRange();
-      newRange.selectNodeContents(node);
-      newRange.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
-    }
-
-    emitChange();
-  };
-
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
       if (editorRef.current) {
         editorRef.current.scrollTop = editorRef.current.scrollHeight;
       }
     });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter') {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0 || !editorRef.current) return;
-
-      const range = sel.getRangeAt(0);
-      let node: Node | null = range.startContainer;
-      while (node && node.parentNode !== editorRef.current && node !== editorRef.current) {
-        node = node.parentNode;
-      }
-
-      if (node && node !== editorRef.current) {
-        // If root text node, wrap in div for clean structure
-        if (node.nodeType === Node.TEXT_NODE && node.parentNode === editorRef.current) {
-          const wrapperDiv = document.createElement('div');
-          editorRef.current.insertBefore(wrapperDiv, node);
-          wrapperDiv.appendChild(node);
-          node = wrapperDiv;
-        }
-
-        const text = (node.textContent || '').trim();
-        // If on an empty bullet line, exit bullet mode cleanly
-        if (text === '•' || text === '• ' || text === '•\u00A0') {
-          e.preventDefault();
-          if (node instanceof HTMLElement) {
-            node.innerHTML = '<br>';
-          } else {
-            node.textContent = '';
-          }
-          const newRange = document.createRange();
-          newRange.selectNodeContents(node);
-          newRange.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
-          emitChange();
-          return;
-        }
-
-        // If on an active bullet line, insert bullet point on the next line
-        if (text.startsWith('•')) {
-          e.preventDefault();
-          const newDiv = document.createElement('div');
-          newDiv.innerHTML = '• &nbsp;';
-          if (node.nextSibling) {
-            editorRef.current.insertBefore(newDiv, node.nextSibling);
-          } else {
-            editorRef.current.appendChild(newDiv);
-          }
-          const newRange = document.createRange();
-          newRange.selectNodeContents(newDiv);
-          newRange.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
-          emitChange();
-          scrollToBottom();
-          return;
-        }
-
-        // Normal line: insert a single line break without skipping any line
-        e.preventDefault();
-        const newDiv = document.createElement('div');
-        newDiv.innerHTML = '<br>';
-        if (node.nextSibling) {
-          editorRef.current.insertBefore(newDiv, node.nextSibling);
-        } else {
-          editorRef.current.appendChild(newDiv);
-        }
-        const newRange = document.createRange();
-        newRange.setStart(newDiv, 0);
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-        emitChange();
-        scrollToBottom();
-        return;
-      }
-
-      // Root level Enter
-      e.preventDefault();
-      const newDiv = document.createElement('div');
-      newDiv.innerHTML = '<br>';
-      editorRef.current.appendChild(newDiv);
-      const newRange = document.createRange();
-      newRange.setStart(newDiv, 0);
-      newRange.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
-      emitChange();
-      scrollToBottom();
-    }
   };
 
   return (
@@ -260,7 +87,10 @@ export default function QuoteNotesEditor({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onMouseDown={handleBold}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                executeBold(editorRef.current, emitChange);
+              }}
               title="Make current line or selection bold (No asterisks)"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
             >
@@ -269,7 +99,10 @@ export default function QuoteNotesEditor({
             </button>
             <button
               type="button"
-              onMouseDown={handleBullet}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                executeBullet(editorRef.current, emitChange);
+              }}
               title="Add or toggle bullet point (• line)"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-primary/10 hover:text-primary border border-border text-foreground transition-colors cursor-pointer select-none"
             >
@@ -291,7 +124,11 @@ export default function QuoteNotesEditor({
           emitChange();
           scrollToBottom();
         }}
-        onKeyDown={readOnly ? undefined : handleKeyDown}
+        onKeyDown={
+          readOnly
+            ? undefined
+            : (e) => handleEditorKeyDown(e, editorRef.current, emitChange, scrollToBottom)
+        }
         data-placeholder={readOnly ? 'No notes provided' : placeholder}
         className={`w-full min-h-[56px] max-h-[135px] overflow-y-auto text-xs p-2.5 rounded-lg border border-border ${
           readOnly ? 'bg-muted/40 cursor-default opacity-90' : 'bg-background/50 focus:bg-background focus:ring-1 focus:ring-primary focus:outline-none'

@@ -6,8 +6,6 @@ import {
   DoorLogisticsSettings,
 } from '@/lib/doors/types';
 import {
-  DEFAULT_DOOR_PRESETS,
-  DEFAULT_DOOR_UPCHARGES,
   DEFAULT_DOOR_FORMULA,
   DEFAULT_DOOR_LOGISTICS,
 } from '@/lib/doors/constants';

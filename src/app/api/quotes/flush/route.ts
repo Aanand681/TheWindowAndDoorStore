@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
 import { triggerPusherEvent } from '@/lib/pusher-server';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET() {
   try {
@@ -35,7 +36,7 @@ export async function GET() {
       atlasQuotaKb: 512 * 1024, // 512 MB in KB
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== 'SUPERADMIN' && role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin permission required' }, { status: 403 });
     }
@@ -70,6 +71,6 @@ export async function POST(request: Request) {
       deletedCount: result.deletedCount,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,140 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { WindowItem } from './promo-logic';
+import { extractPdfMetadata } from './pdf/metadata-extractor';
 
-export function extractPdfMetadata(items: any[]): { quoteNumber: string; customerName: string } {
-  let quoteNumber = '';
-  let customerName = '';
-
-  // 1. MUST strictly only examine Page 1 (page === 0)
-  const page1Items = (items || [])
-    .filter(it => it.page === 0 && it.str && it.str.trim())
-    .map(it => ({ ...it, str: it.str.trim() }));
-
-  if (!page1Items.length) return { quoteNumber: '', customerName: '' };
-
-  // Sort page 1 items top-to-bottom, left-to-right
-  page1Items.sort((a, b) => a.y - b.y || a.x - b.x);
-
-  // --- STRATEGY 1: TABLE HEADING (ORDER / CUSTOMER REF) ON PAGE 1 ---
-  const custRefHeader = page1Items.find(it => /CUSTOMER\s*REF/i.test(it.str));
-  if (custRefHeader) {
-    const headerY = custRefHeader.y;
-
-    // Get all column headers on the same row as CUSTOMER REF (within 6 units vertical tolerance)
-    const rowHeaders = page1Items.filter(it => Math.abs(it.y - headerY) <= 6);
-
-    // Find the ORDER or QUOTE column header on this table row
-    const orderHeader = rowHeaders.find(it => /^(ORDER|QUOTE|ORDER\s*#|QUOTE\s*#)$/i.test(it.str));
-
-    // Find adjacent header to the right of CUSTOMER REF (e.g. TERMS) to establish column boundary
-    const rightHeader = rowHeaders.find(it => it.x > custRefHeader.x + 10);
-    const custMaxX = rightHeader ? rightHeader.x - 5 : custRefHeader.x + 220;
-    const custMinX = custRefHeader.x - 30;
-
-    // Next table section row below (e.g. ITEM / NO / DESCRIPTION / QTY)
-    const nextRow = page1Items.find(it => it.y > headerY + 18 && /^(ITEM|NO|DESCRIPTION|QTY)$/i.test(it.str));
-    const maxY = nextRow ? nextRow.y : headerY + 30;
-
-    // Collect all customer name text items under CUSTOMER REF
-    // Handles big names split across chunks or multiple lines
-    const nameItems = page1Items.filter(it =>
-      it.y > headerY + 3 &&
-      it.y < maxY &&
-      it.x >= custMinX &&
-      it.x <= custMaxX &&
-      /[a-zA-Z]/.test(it.str) // Customer name must contain letters
-    );
-
-    if (nameItems.length > 0) {
-      nameItems.sort((a, b) => a.y - b.y || a.x - b.x);
-      customerName = nameItems.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
-    }
-
-    // Look for quote/order number directly under the ORDER column
-    if (orderHeader) {
-      const dateHeader = rowHeaders.find(it => it.x > orderHeader.x && /DATE/i.test(it.str));
-      const orderMaxX = dateHeader ? dateHeader.x - 5 : orderHeader.x + 60;
-      const orderMinX = orderHeader.x - 20;
-
-      const orderItems = page1Items.filter(it =>
-        it.y > headerY + 3 &&
-        it.y < maxY &&
-        it.x >= orderMinX &&
-        it.x <= orderMaxX &&
-        /^\d+$/.test(it.str) // Quote/Order number MUST be numeric
-      );
-
-      if (orderItems.length > 0) {
-        orderItems.sort((a, b) => a.y - b.y);
-        quoteNumber = orderItems[0].str;
-      }
-    }
-  }
-
-  // --- STRATEGY 2: TOP HEADER LABELS ON PAGE 1 (QUOTE: <num>, # <num>) ---
-  if (!quoteNumber) {
-    for (let i = 0; i < page1Items.length; i++) {
-      const it = page1Items[i];
-      if (/^QUOTE\s*:?$/i.test(it.str) || /^ORDER\s*:?$/i.test(it.str)) {
-        // Look to the right on the same line or right below
-        const numMatch = page1Items.find(next =>
-          Math.abs(next.y - it.y) <= 8 &&
-          next.x > it.x &&
-          next.x < it.x + 80 &&
-          /^\d{4,8}$/.test(next.str)
-        );
-        if (numMatch) {
-          quoteNumber = numMatch.str;
-          break;
-        }
-      } else if (it.str === '#' && page1Items[i + 1] && /^\d{4,8}$/.test(page1Items[i + 1].str)) {
-        quoteNumber = page1Items[i + 1].str;
-        break;
-      }
-    }
-  }
-
-  // --- STRATEGY 3: TOP HEADER CUSTOMER LABELS (QUOTE NAME:, QUOTE CONTACT:) ---
-  if (!customerName) {
-    for (let i = 0; i < page1Items.length; i++) {
-      const it = page1Items[i];
-      if (/QUOTE\s*NAME\s*:/i.test(it.str)) {
-        const val = page1Items.find(next =>
-          Math.abs(next.y - it.y) <= 6 &&
-          next.x > it.x &&
-          /[a-zA-Z]/.test(next.str)
-        );
-        if (val) customerName = val.str;
-        break;
-      } else if (/QUOTE\s*CONTACT\s*:/i.test(it.str)) {
-        const val = page1Items.find(next =>
-          (Math.abs(next.y - it.y) <= 6 && next.x > it.x) ||
-          (next.y > it.y && next.y < it.y + 20 && Math.abs(next.x - it.x) < 40)
-        );
-        if (val && /[a-zA-Z]/.test(val.str)) customerName = val.str;
-        break;
-      }
-    }
-  }
-
-  // Final validation and cleaning
-  // Quote number MUST be purely digits
-  if (quoteNumber) {
-    const digitMatch = quoteNumber.match(/\b\d{4,8}\b/);
-    quoteNumber = digitMatch ? digitMatch[0] : '';
-  }
-
-  // Customer name MUST contain characters and not be purely digits or a date
-  if (customerName) {
-    if (/^\d+$/.test(customerName) || /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(customerName)) {
-      customerName = '';
-    } else {
-      customerName = customerName.replace(/\s+/g, ' ').trim();
-    }
-  }
-
-  return { quoteNumber, customerName };
-}
+export { extractPdfMetadata };
 
 export async function readPdfItems(file: File) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -169,7 +37,7 @@ export function pdfItemsToRows(items: any[]) {
     cur.items.push(it);
   }
   
-  return rowsOut.map(r => {
+  return rowsOut.map((r) => {
     const its = r.items.sort((a: any, b: any) => a.x - b.x);
     const money = (s: string) => Number(s.replace(/[$,]/g, ''));
     const out: any = { page: r.page, y: r.y, no: '', qty: null as number | null, label: '', list: null as number | null, total: null as number | null, size: '' };
@@ -190,7 +58,7 @@ export function pdfItemsToRows(items: any[]) {
     out.label = labelParts.join(' ').replace(/\s+/g, ' ').trim();
     out.size = sizeParts.join(' ').replace(/\s+/g, ' ').trim();
     return out;
-  }).filter(r => r.y < 740);
+  }).filter((r) => r.y < 740);
 }
 
 export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
@@ -258,7 +126,6 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
         }
       }
 
-      // Priority rule: if both present, count SOLAR GAIN; else if SOLAR SHIELD present, use it; else 0
       if (solarGainPrice !== null) return solarGainPrice;
       if (solarShieldPrice !== null) return solarShieldPrice;
       return 0;
@@ -266,7 +133,6 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
 
     const totalSolar = sections.reduce((s, sec) => s + resolveSectionSolar(sec[0], sec[1]), 0);
     
-    // Extract Width and Height strictly for parent window frame (FR: W X H)
     let txt = R[start].size || '';
     for (let r = start + 1; r < end; r++) {
       if (childRe.test(R[r].no)) break; 
@@ -278,19 +144,16 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
       }
     }
 
-    // Dimension pattern: strictly matches numbers, decimals, or fractions (e.g. 60, 48, 60.5, 60 1/2, 60-1/2, 48 3/8)
     const dimPattern = '(\\d+(?:\\.\\d+)?(?:\\s*(?:-|\\s)\\s*\\d+\\/\\d+)?|\\d+\\/\\d+)';
     const frRegex = new RegExp(`FR\\s*:\\s*${dimPattern}\\s*X\\s*${dimPattern}`, 'i');
     const m = txt.match(frRegex);
 
-    // Fallback: if no "FR:" prefix exists, search for numeric "W X H"
     const fallbackRegex = new RegExp(`(?:^|\\s)${dimPattern}\\s*X\\s*${dimPattern}(?:\\s|$)`, 'i');
     const fallbackM = !m ? txt.match(fallbackRegex) : null;
 
     const rawW = m ? m[1] : (fallbackM ? fallbackM[1] : '');
     const rawH = m ? m[2] : (fallbackM ? fallbackM[2] : '');
 
-    // Sanitizer: strip any non-dimension characters (only digits, decimals, slashes, dashes, spaces)
     const cleanDimension = (v: string) => {
       if (!v) return '';
       const cleaned = v.replace(/[^0-9\s./-]/g, '').replace(/\s+/g, ' ').trim();
@@ -299,8 +162,7 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
 
     const width = cleanDimension(rawW);
     const height = cleanDimension(rawH);
-    // User instruction: "if its white show white other wise replace it as painted"
-    // Filter out insect screen mesh, locks/hardware, and glazing specs so "BLACK MESH" is never mistaken for frame paint
+
     const frameLines: string[] = [];
     for (let r = start; r < end; r++) {
       const lbl = (R[r].label || '').toUpperCase();
@@ -312,7 +174,6 @@ export function parseManufacturerPdfItems(items: any[]): WindowItem[] {
     }
     const frameText = frameLines.join(' ');
     
-    // Check if painted or non-white color is present on the window frame
     let color: 'White' | 'Painted' = 'White';
     const hasPaint = /\b(PAINT|PAINTED|PAINTING|EXTERIOR PAINT|CUSTOM COLOR)\b/i.test(frameText);
     const nonWhiteColors = /\b(BLACK|BRONZE|COMMERCIAL BROWN|BROWN|CHARCOAL|PEBBLE|IRON ORE|SLATE|GREY|GRAY|SANDALWOOD|WICKER|ALMOND|BURGUNDY|FOREST GREEN|GREEN|RED|BLUE)\b/i.test(frameText);

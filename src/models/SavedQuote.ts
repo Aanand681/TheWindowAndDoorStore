@@ -1,4 +1,33 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
+
+export interface IQuoteWindowItem {
+  id: string;
+  w?: string;
+  h?: string;
+  qty?: number | string;
+  base?: string | number;
+  argon?: string | number;
+  solar?: string | number;
+  triple?: string | number;
+  color?: string;
+  [key: string]: unknown;
+}
+
+export interface IQuoteTaxTotals {
+  subtotalPreTax?: number;
+  taxAmount?: number;
+  grandTotal?: number;
+  labour?: number;
+  misc?: number;
+  jc?: number;
+  surcharge?: number;
+  [key: string]: unknown;
+}
+
+export interface IAttachedUpgrade {
+  title: string;
+  amountPreTaxCents: number;
+}
 
 export interface ISavedQuote extends Document {
   quoteNumber: string;
@@ -12,12 +41,12 @@ export interface ISavedQuote extends Document {
   reviewerNotes?: string;
   reviewChanges?: string[];
   isStarred?: boolean;
-  initialSnapshot?: any;
+  initialSnapshot?: Record<string, unknown>;
   
   // Snapshot Payload
-  windows: any[];
-  taxTotals: any;
-  quoteResult: any;
+  windows: IQuoteWindowItem[];
+  taxTotals?: IQuoteTaxTotals | Record<string, unknown>;
+  quoteResult?: Record<string, unknown>;
   quoteNotes: string;
   surchargeRate: number;
   activePromoId?: string;
@@ -27,12 +56,15 @@ export interface ISavedQuote extends Document {
   includeJCInPromo?: boolean;
   includeMiscInPromo?: boolean;
   includeLabourInPromo?: boolean;
-  attachedUpgrade?: any;
-  attachedSealedUnit?: any;
-  attachedDoorQuote?: any;
+  attachedUpgrade?: IAttachedUpgrade | null;
+  attachedSealedUnit?: Record<string, unknown> | null;
+  attachedDoorQuote?: Record<string, unknown> | null;
   wantsUpgrade?: boolean;
   isSupplyOnly?: boolean;
   isServiceOnly?: boolean;
+  quoteSummaryTotal?: number;
+  approvedBy?: string;
+  approvedAt?: Date;
 
   // Odoo Entry Tracking
   odooAssignedTo?: string;
@@ -56,12 +88,14 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       type: String,
       required: true,
       trim: true,
+      maxlength: 60,
       index: true,
     },
     customerName: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 200,
       index: true,
     },
     status: {
@@ -92,10 +126,12 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     preparerNotes: {
       type: String,
+      maxlength: 10000,
       default: '',
     },
     reviewerNotes: {
       type: String,
+      maxlength: 10000,
       default: '',
     },
     reviewChanges: {
@@ -121,6 +157,7 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     quoteNotes: {
       type: String,
+      maxlength: 10000,
       default: '',
     },
     surchargeRate: {
@@ -247,7 +284,8 @@ SavedQuoteSchema.index(
 );
 
 if (mongoose.models.SavedQuote && (!mongoose.models.SavedQuote.schema.path('quoteNumber') || !mongoose.models.SavedQuote.schema.path('odooStatus'))) {
-  delete (mongoose.models as any).SavedQuote;
+  delete (mongoose.models as Record<string, unknown>).SavedQuote;
 }
 
-export default mongoose.models.SavedQuote || mongoose.model<ISavedQuote>('SavedQuote', SavedQuoteSchema);
+const SavedQuoteModel: Model<ISavedQuote> = (mongoose.models.SavedQuote as Model<ISavedQuote>) || mongoose.model<ISavedQuote>('SavedQuote', SavedQuoteSchema);
+export default SavedQuoteModel;

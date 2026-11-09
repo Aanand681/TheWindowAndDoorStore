@@ -10,9 +10,9 @@ const THROTTLE_MS = 5 * 1000; // Throttle activity updates to once per 5 seconds
 const STORAGE_KEY = 'vwd_last_active_time';
 
 export function SessionTimeoutWatcher() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const pathname = usePathname();
-  const lastActivityRef = useRef<number>(Date.now());
+  const lastActivityRef = useRef<number>(0);
   const isLoggingOutRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -22,6 +22,9 @@ export function SessionTimeoutWatcher() {
     }
 
     const now = Date.now();
+    if (lastActivityRef.current === 0) {
+      lastActivityRef.current = now;
+    }
     const existing = Number(localStorage.getItem(STORAGE_KEY));
 
     // Check if this browser tab was freshly opened or authenticated within the last 60 seconds

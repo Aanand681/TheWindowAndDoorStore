@@ -5,16 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserCircle, ArrowLeft, ShieldCheck, Mail, KeyRound, Component, Calculator } from 'lucide-react';
+import { UserCircle, ShieldCheck, Mail, KeyRound, Component } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import NotificationBell from '@/components/shared/NotificationBell';
 import QuotesBinPill from '@/components/quotes/QuotesBinPill';
 import SmartBackButton from '@/components/shared/SmartBackButton';
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -223,7 +221,7 @@ export default function ProfilePage() {
                           Mute In-App Review Notifications
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Turn this on if you don't want to receive in-app notification popups when a reviewer approves or modifies your quotes.
+                          Turn this on if you don&apos;t want to receive in-app notification popups when a reviewer approves or modifies your quotes.
                         </p>
                       </div>
                       <input

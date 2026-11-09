@@ -2,9 +2,30 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import {
+  checkResetPasswordRateLimit,
+  recordResetPasswordRequest,
+} from '@/lib/login-rate-limiter';
+import { cacheSet } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(req: Request) {
   try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const clientIp = forwarded
+      ? forwarded.split(',')[0].trim()
+      : req.headers.get('x-real-ip') || '127.0.0.1';
+
+    const rateLimit = checkResetPasswordRateLimit(clientIp);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Too many password reset attempts. Please wait ${rateLimit.minutesRemaining ?? 15} minute(s) before trying again.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const { identifier, otp, newPassword } = await req.json();
 
     if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
@@ -54,11 +75,24 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check if max OTP attempts exceeded
+    if ((user.resetOtpAttempts || 0) >= 5) {
+      await User.updateOne(
+        { _id: user._id },
+        { $unset: { resetOtp: '', resetOtpExpiry: '', resetOtpAttempts: '' } },
+        { strict: false }
+      );
+      return NextResponse.json(
+        { error: 'Too many incorrect verification attempts. This code has been invalidated for security. Please request a new code.' },
+        { status: 400 }
+      );
+    }
+
     const now = new Date();
     if (now > new Date(user.resetOtpExpiry)) {
       await User.updateOne(
         { _id: user._id },
-        { $unset: { resetOtp: '', resetOtpExpiry: '' } },
+        { $unset: { resetOtp: '', resetOtpExpiry: '', resetOtpAttempts: '' } },
         { strict: false }
       );
       return NextResponse.json(
@@ -68,32 +102,53 @@ export async function POST(req: Request) {
     }
 
     if (user.resetOtp !== cleanOtp) {
+      recordResetPasswordRequest(clientIp);
+      const newAttempts = (user.resetOtpAttempts || 0) + 1;
+      const remaining = Math.max(0, 5 - newAttempts);
+
+      if (newAttempts >= 5) {
+        await User.updateOne(
+          { _id: user._id },
+          { $unset: { resetOtp: '', resetOtpExpiry: '', resetOtpAttempts: '' } },
+          { strict: false }
+        );
+        return NextResponse.json(
+          { error: 'Too many incorrect verification attempts. This code has been invalidated for security. Please request a new code.' },
+          { status: 400 }
+        );
+      }
+
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { resetOtpAttempts: newAttempts } },
+        { strict: false }
+      );
+
       return NextResponse.json(
-        { error: 'Invalid verification code. Please check the code and try again.' },
+        { error: `Invalid verification code. You have ${remaining} attempt(s) remaining.` },
         { status: 400 }
       );
     }
 
-    // Hash the new password
+    // Hash the new password and clear OTP tokens
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updateOne(
       { _id: user._id },
       {
         $set: { password: hashedPassword },
-        $unset: { resetOtp: '', resetOtpExpiry: '' },
+        $unset: { resetOtp: '', resetOtpExpiry: '', resetOtpAttempts: '' },
       },
       { strict: false }
     );
+
+    // Invalidate any active sessions for this user across all devices
+    await cacheSet(`user:revoked:${user._id.toString()}`, Date.now(), 86400).catch(() => {});
 
     return NextResponse.json({
       success: true,
       message: 'Your password has been reset successfully. You can now log in with your new password.',
     });
   } catch (error: any) {
-    console.error('Error in reset-password API:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred while resetting your password.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

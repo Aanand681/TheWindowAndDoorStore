@@ -5,10 +5,8 @@ import {
   SealedUnitLabourSettings,
   ThicknessBreak,
   SealedUnitGrillSettings,
-  DEFAULT_SEALED_UNIT_COMBOS,
   DEFAULT_FORMULA_CONSTANTS,
   DEFAULT_LABOUR_SETTINGS,
-  DEFAULT_THICKNESS_BREAKS,
   DEFAULT_GRILL_SETTINGS,
 } from '@/lib/sealed-units-logic';
 

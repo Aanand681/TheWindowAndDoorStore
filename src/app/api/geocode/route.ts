@@ -33,7 +33,9 @@ export async function GET(request: Request) {
 
     if (auth) params.set('auth', auth);
 
-    const response = await fetch(`https://geocoder.ca/?${params.toString()}`);
+    const response = await fetch(`https://geocoder.ca/?${params.toString()}`, {
+      signal: AbortSignal.timeout(8000),
+    });
 
     if (!response.ok) {
       return NextResponse.json({ error: `Geocoder.ca returned ${response.status}. Try again or paste coordinates manually.` }, { status: 502 });
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
     let data;
     try {
       data = JSON.parse(raw);
-    } catch (parseError) {
+    } catch {
       return NextResponse.json({ error: 'Geocoder.ca returned an unreadable response. Paste coordinates manually.' }, { status: 502 });
     }
 
@@ -82,7 +84,7 @@ export async function GET(request: Request) {
     cache.set(cacheKey, results);
     return NextResponse.json({ results }, { headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400' }});
 
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'The address service is unavailable. Try again or paste coordinates manually.' }, { status: 502 });
   }
 }

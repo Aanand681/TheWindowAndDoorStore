@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface INotification extends Document {
   recipientUsername: string;
@@ -75,8 +75,9 @@ NotificationSchema.index({ recipientUsername: 1, isRead: 1, createdAt: -1 }, { n
 NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
 
 if (process.env.NODE_ENV !== 'production') {
-  delete (mongoose.models as any).Notification;
+  delete (mongoose.models as Record<string, unknown>).Notification;
 }
 
-export default mongoose.models.Notification || mongoose.model<INotification>('Notification', NotificationSchema);
+const NotificationModel: Model<INotification> = (mongoose.models.Notification as Model<INotification>) || mongoose.model<INotification>('Notification', NotificationSchema);
+export default NotificationModel;
 

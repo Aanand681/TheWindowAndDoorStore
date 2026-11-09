@@ -1,4 +1,5 @@
 # dependencies
+/.graph-it
 /node_modules
 /.pnp
 .pnp.*
@@ -21,6 +22,7 @@
 # misc
 .DS_Store
 *.pem
+
 
 # debug
 npm-debug.log*

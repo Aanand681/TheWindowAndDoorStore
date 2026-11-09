@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Settings, Plus, Trash2, Save } from 'lucide-react';
-import Link from 'next/link';
 import SmartBackButton from '@/components/shared/SmartBackButton';
 import { AppHeader } from '@/components/layout/AppHeader';
 

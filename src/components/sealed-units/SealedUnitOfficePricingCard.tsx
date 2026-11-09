@@ -16,7 +16,6 @@ import {
   SealedUnitLabourSettings,
   SealedUnitLineItem,
 } from '@/lib/sealed-units-logic';
-import { cn } from '@/lib/utils';
 
 export interface SealedUnitOfficePricingCardProps {
   lineItems: SealedUnitLineItem[];
@@ -71,13 +70,11 @@ export function SealedUnitOfficePricingCard({
   // Formula constants
   const surchargeRate = formula?.surchargeRate ?? 0.27;
   const stepMultiplier = formula?.stepMultiplier ?? 2.5;
-  const finalAddonRate = formula?.finalAddonRate ?? 0.08;
 
   // Vitro raw surcharge (27%)
   const vitroSurchargeAmount = Math.round(rawCombinedTotal * surchargeRate * 100) / 100;
   const subtotalWith27 = Math.round((rawCombinedTotal + vitroSurchargeAmount) * 100) / 100;
   const multipliedPre8 = Math.round(subtotalWith27 * stepMultiplier * 100) / 100;
-  const surcharge8Amount = Math.round(multipliedPre8 * finalAddonRate * 100) / 100;
 
   // Estimated gross margin
   const totalRawDirectCost = rawCombinedTotal + totals.vehicleTravelFee + (isInstallation ? totals.baseSetupFee * 0.5 : 0);

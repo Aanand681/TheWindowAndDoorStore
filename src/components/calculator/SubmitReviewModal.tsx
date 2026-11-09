@@ -175,7 +175,7 @@ export function SubmitReviewModal({
               )}
             </select>
             <p className="text-[11px] text-muted-foreground">
-              The quote will be marked as Approved immediately and forwarded directly to this clerk's Odoo queue.
+              The quote will be marked as Approved immediately and forwarded directly to this clerk&apos;s Odoo queue.
             </p>
           </div>
         ) : (

@@ -3,8 +3,9 @@ import dbConnect from '@/lib/mongodb';
 import SavedQuote from '@/models/SavedQuote';
 import User from '@/models/User';
 import { sendQuoteReminderEmail } from '@/lib/email';
+import { handleApiError } from '@/lib/api-error';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     await dbConnect();
 
@@ -78,6 +79,6 @@ export async function GET(request: Request) {
       remindersSent,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

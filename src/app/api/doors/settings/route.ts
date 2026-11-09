@@ -4,16 +4,20 @@ import DoorSettings from '@/models/DoorSettings';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 import { DEFAULT_DOOR_SETTINGS_DATA } from '@/lib/doors/constants';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function GET() {
   try {
     const cacheKey = 'doors:settings';
+    const headers = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
     const cached = (await cacheGet(cacheKey)) as any;
     if (cached) {
-      return NextResponse.json(cached);
+      return NextResponse.json(cached, { headers });
     }
 
     await dbConnect();
@@ -27,7 +31,7 @@ export async function GET() {
 
     // Cache in Redis for 1 day
     cacheSet(cacheKey, plain, 86400).catch(() => { });
-    return NextResponse.json(plain);
+    return NextResponse.json(plain, { headers });
   } catch (error: any) {
     console.error('Error fetching door settings:', error);
     // Graceful fallback to spreadsheet defaults
@@ -42,9 +46,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = (session.user as any)?.role;
+    const role = session.user.role;
     const canAccessAdmin =
-      (session.user as any)?.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
+      session.user.canAccessAdmin || role === 'SUPERADMIN' || role === 'ADMIN';
 
     if (!canAccessAdmin) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -82,8 +86,7 @@ export async function PUT(request: Request) {
       settings: plain,
     });
   } catch (error: any) {
-    console.error('Error updating door settings:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update settings' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 

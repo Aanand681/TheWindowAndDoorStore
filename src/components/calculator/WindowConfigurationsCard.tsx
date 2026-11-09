@@ -6,11 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Component, FileUp, Plus, Trash2, Bookmark, FolderOpen, RotateCcw } from 'lucide-react';
+import { Component, FileUp, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIWindowItem } from '@/hooks/useCalculatorWindows';
-import { formatMoney } from '@/lib/promo-logic';
 
 export interface WindowConfigurationsCardProps {
   windows: UIWindowItem[];
@@ -45,7 +43,7 @@ export interface WindowConfigurationsCardProps {
 
 export function WindowConfigurationsCard({
   windows,
-  surchargeRate,
+  surchargeRate: _surchargeRate,
   quoteNumber,
   setQuoteNumber,
   customerName,
@@ -59,19 +57,19 @@ export function WindowConfigurationsCard({
   handleRemoveWindow,
   handleAddWindow,
   windowEndRef,
-  isSupplyOnly,
-  setIsSupplyOnly,
-  onOpenCompareModal,
-  attachedUpgrade,
-  onRemoveAttachedUpgrade,
-  attachedSealedUnit,
-  attachedDoorQuote,
-  onOpenAttachSealedUnitModal,
-  onRemoveAttachedSealedUnit,
-  onRemoveAttachedDoorQuote,
-  onSaveDraft,
-  onOpenSavedQuotes,
-  savedDraftsCount,
+  isSupplyOnly: _isSupplyOnly,
+  setIsSupplyOnly: _setIsSupplyOnly,
+  onOpenCompareModal: _onOpenCompareModal,
+  attachedUpgrade: _attachedUpgrade,
+  onRemoveAttachedUpgrade: _onRemoveAttachedUpgrade,
+  attachedSealedUnit: _attachedSealedUnit,
+  attachedDoorQuote: _attachedDoorQuote,
+  onOpenAttachSealedUnitModal: _onOpenAttachSealedUnitModal,
+  onRemoveAttachedSealedUnit: _onRemoveAttachedSealedUnit,
+  onRemoveAttachedDoorQuote: _onRemoveAttachedDoorQuote,
+  onSaveDraft: _onSaveDraft,
+  onOpenSavedQuotes: _onOpenSavedQuotes,
+  savedDraftsCount: _savedDraftsCount,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl py-0 gap-0 [--card-spacing:0px]">

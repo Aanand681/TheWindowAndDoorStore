@@ -3,9 +3,28 @@ import crypto from 'crypto';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendOtpEmail, maskEmail } from '@/lib/email';
+import {
+  checkForgotPasswordRateLimit,
+  recordForgotPasswordRequest,
+} from '@/lib/login-rate-limiter';
 
 export async function POST(req: Request) {
   try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const clientIp = forwarded
+      ? forwarded.split(',')[0].trim()
+      : req.headers.get('x-real-ip') || '127.0.0.1';
+
+    const rateLimit = checkForgotPasswordRateLimit(clientIp);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Too many password reset requests. Please wait ${rateLimit.minutesRemaining ?? 15} minute(s) before trying again.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const { identifier } = await req.json();
 
     if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
@@ -51,13 +70,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Record rate limit attempt
+    recordForgotPasswordRequest(clientIp);
+
     // Generate 6-digit cryptographic numeric OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     await User.updateOne(
       { _id: user._id },
-      { $set: { resetOtp: otp, resetOtpExpiry: expiry } },
+      { $set: { resetOtp: otp, resetOtpExpiry: expiry, resetOtpAttempts: 0 } },
       { strict: false }
     );
 

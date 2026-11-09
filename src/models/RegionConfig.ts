@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IRegionConfig extends Document {
   name: string;
@@ -42,4 +42,5 @@ const RegionConfigSchema = new Schema<IRegionConfig>(
   { timestamps: true }
 );
 
-export default mongoose.models.RegionConfig || mongoose.model<IRegionConfig>('RegionConfig', RegionConfigSchema);
+const RegionConfigModel: Model<IRegionConfig> = (mongoose.models.RegionConfig as Model<IRegionConfig>) || mongoose.model<IRegionConfig>('RegionConfig', RegionConfigSchema);
+export default RegionConfigModel;

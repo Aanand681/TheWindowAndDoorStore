@@ -4,32 +4,50 @@ import Promo from '@/models/Promo';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { cacheDel } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (role !== 'SUPERADMIN' && role !== 'ADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { id } = await params;
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid promo ID format' }, { status: 400 });
+    }
+
     const body = await request.json();
-    
     await dbConnect();
 
-    // If they are just an ADMIN, allow updating isActive and order
-    let updateData = { ...body };
+    const updateData: Record<string, unknown> = {};
+
     if (role === 'ADMIN') {
-      updateData = {};
-      if (body.isActive !== undefined) {
-        updateData.isActive = body.isActive;
+      if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive);
+      if (body.order !== undefined) updateData.order = Number(body.order);
+    } else {
+      // SUPERADMIN full update with strict schema allowlist
+      if (body.name !== undefined && typeof body.name === 'string' && body.name.trim()) {
+        updateData.name = body.name.trim();
       }
-      if (body.order !== undefined) {
-        updateData.order = body.order;
+      if (body.type && ['BOGO', 'FREE_PARTS', 'PERCENTAGE', 'COMBO'].includes(body.type)) {
+        updateData.type = body.type;
       }
+      if (body.isActive !== undefined) updateData.isActive = Boolean(body.isActive);
+      if (body.buyQty !== undefined) updateData.buyQty = Number(body.buyQty);
+      if (body.getQty !== undefined) updateData.getQty = Number(body.getQty);
+      if (Array.isArray(body.freeComponents)) updateData.freeComponents = body.freeComponents;
+      if (body.discountPercentage !== undefined) {
+        updateData.discountPercentage = Number(body.discountPercentage);
+      }
+      if (body.applyPercentageAfterFreeParts !== undefined) {
+        updateData.applyPercentageAfterFreeParts = Boolean(body.applyPercentageAfterFreeParts);
+      }
+      if (body.order !== undefined) updateData.order = Number(body.order);
     }
 
     const updatedPromo = await Promo.findByIdAndUpdate(
@@ -46,18 +64,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ message: 'Promo updated successfully', promo: updatedPromo });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'SUPERADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const { id } = await params;
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid promo ID format' }, { status: 400 });
+    }
+
     await dbConnect();
 
     const deletedPromo = await Promo.findByIdAndDelete(id);
@@ -70,6 +92,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     return NextResponse.json({ message: 'Promo deleted successfully' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

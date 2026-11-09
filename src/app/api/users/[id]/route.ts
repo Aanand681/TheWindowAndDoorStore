@@ -3,6 +3,8 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { cacheDelPattern, cacheSet } from '@/lib/redis';
+import { handleApiError } from '@/lib/api-error';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +13,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
     const { id } = await params;
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
+    }
+
     const body = await request.json();
     await dbConnect();
 
@@ -21,10 +31,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const currentUserId = (session.user as any)?.id;
-    const currentUsername = session.user?.name?.toLowerCase();
+    const currentUserId = session.user.id;
+    const currentUsername = session.user.username?.toLowerCase() || session.user.name?.toLowerCase();
     const isSelf = currentUserId === id || currentUsername === targetUser.username?.toLowerCase();
-    const isSuperAdmin = (session.user as any)?.role === 'SUPERADMIN' || currentUsername === 'cheeku';
+    const isSuperAdmin = session.user.role === 'SUPERADMIN';
 
     // Prevent deactivating own account
     if (isSelf && body.isActive === false) {
@@ -64,20 +74,34 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       { new: true }
     );
 
+    // Invalidate user cache and revoke active sessions if deactivated
+    cacheDelPattern('users:*').catch(() => {});
+    if (body.isActive === false) {
+      cacheSet(`user:revoked:${id}`, Date.now(), 86400).catch(() => {});
+    }
+
     return NextResponse.json({ message: 'User updated successfully', user: updatedUser });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
+
     const { id } = await params;
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 });
+    }
+
     await dbConnect();
 
     // Check target user
@@ -86,8 +110,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const currentUserId = (session.user as any)?.id;
-    const currentUsername = session.user?.name?.toLowerCase();
+    const currentUserId = session.user.id;
+    const currentUsername = session.user.username?.toLowerCase() || session.user.name?.toLowerCase();
     const isSelf = currentUserId === id || currentUsername === targetUser.username?.toLowerCase();
 
     // Prevent deleting self
@@ -102,8 +126,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     await User.findByIdAndDelete(id);
 
+    // Invalidate user cache and revoke any active sessions
+    cacheDelPattern('users:*').catch(() => {});
+    cacheSet(`user:revoked:${id}`, Date.now(), 86400).catch(() => {});
+
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IPromo extends Document {
   name: string;
@@ -69,7 +69,8 @@ const PromoSchema = new Schema<IPromo>(
 );
 
 if (mongoose.models.Promo && !mongoose.models.Promo.schema.path('order')) {
-  delete (mongoose.models as any).Promo;
+  delete (mongoose.models as Record<string, unknown>).Promo;
 }
 
-export default mongoose.models.Promo || mongoose.model<IPromo>('Promo', PromoSchema);
+const PromoModel: Model<IPromo> = (mongoose.models.Promo as Model<IPromo>) || mongoose.model<IPromo>('Promo', PromoSchema);
+export default PromoModel;

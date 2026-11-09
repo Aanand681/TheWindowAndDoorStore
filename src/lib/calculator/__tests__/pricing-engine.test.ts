@@ -121,5 +121,32 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
     expect(result.combinedTaxCents).toBe(12900);
     expect(result.combinedTotalCents).toBe(178000 + 12900);
   });
+
+  it('should deduplicate setup and travel fees when door quote has explicit unitLabourTotal', () => {
+    const result = computeCombinedQuoteFinancials({
+      quoteResult: { base: 100000, surcharge: 8000, promoDiscount: 0 },
+      attachedDoorQuote: {
+        totals: {
+          rawDoorBaseTotal: 1000,
+          stormDoorTotal: 0,
+          hardwareTotal: 0,
+          discountTotal: 0,
+          surchargeTotal: 80,
+          combinedLabourTotal: 500, // Includes $200 travel/setup
+          unitLabourTotal: 250, // Base install
+          upchargesTotal: 50, // Custom cuts upcharge
+          miscTotal: 20,
+        },
+      },
+      effectiveJC: 0,
+      effectiveMisc: 1000,
+      effectiveLabour: 20000,
+      hstRate: 13,
+    });
+
+    // Door labour should be unitLabourTotal (250) + upchargesTotal (50) = 300 (deduplicating the 200 travel/setup)
+    expect(result.doorLabourCents).toBe(30000);
+    expect(result.combinedLabourCents).toBe(20000 + 30000);
+  });
 });
 

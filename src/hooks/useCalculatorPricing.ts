@@ -15,6 +15,26 @@ export interface UseCalculatorPricingProps {
   labourUpgradeTiers?: ILabourUpgradeTier[];
 }
 
+export const DEFAULT_TAX_TOTALS = {
+  isSupplyOnly: false,
+  isServiceOnly: false,
+  standardLabourCents: 0,
+  miscLabourCents: 0,
+  finalLabour: 0,
+  finalMisc: 0,
+  jc: 0,
+  finalJC: 0,
+  jcLabourCents: 0,
+  selectedJamb: null,
+  selectedCasing: null,
+  jambId: 'j3',
+  casingId: 'vinyl',
+  jambRate: 0,
+  casingRate: 0,
+  jambTot: 0,
+  casingTot: 0,
+};
+
 export function useCalculatorPricing({ surchargeRate, labourUpgradeTiers }: UseCalculatorPricingProps) {
   const [availablePromos, setAvailablePromos] = useState<DBPromo[]>([]);
   const [activePromoId, setActivePromoId] = useState<string>('none');
@@ -23,7 +43,7 @@ export function useCalculatorPricing({ surchargeRate, labourUpgradeTiers }: UseC
   const [compareOptions, setCompareOptions] = useState<any[]>([]);
 
   // Additional costs & tax totals
-  const [taxTotals, setTaxTotals] = useState<any>(null);
+  const [taxTotals, setTaxTotals] = useState<any>(DEFAULT_TAX_TOTALS);
   const [customJC, setCustomJC] = useState<string>('');
   const [customMisc, setCustomMisc] = useState<string>('');
   const [customLabour, setCustomLabour] = useState<string>('');
@@ -62,11 +82,6 @@ export function useCalculatorPricing({ surchargeRate, labourUpgradeTiers }: UseC
       h: w.h || '',
       color: w.color || 'White',
     }));
-
-    const extraDiscountableCents =
-      (includeJCInPromo ? effectiveJC : 0) +
-      (includeMiscInPromo ? effectiveMisc : 0) +
-      (includeLabourInPromo ? effectiveLabour : 0);
 
     const options = availablePromos.map(p => calculatePromo(p, validWindows, surchargeRate));
     setCompareOptions(options);
@@ -128,7 +143,7 @@ export function useCalculatorPricing({ surchargeRate, labourUpgradeTiers }: UseC
     setIncludeLabourInPromo(true);
     setLockedPromoId(null);
     setActivePromoId('none');
-    setTaxTotals(null);
+    setTaxTotals(DEFAULT_TAX_TOTALS);
   };
 
   return {

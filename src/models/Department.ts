@@ -1,26 +1,29 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
+
+export interface IDepartmentPermissions {
+  canCreateQuote: boolean;
+  canReviewQuote: boolean;
+  canApproveQuote: boolean;
+  canEditApprovedQuote: boolean;
+  canAccessOdooQueue: boolean;
+  canMarkOdooEntry: boolean;
+  canAccessAdmin: boolean;
+  canManageSettings: boolean;
+  canManageStaff: boolean;
+  canManagePromos: boolean;
+}
 
 export interface IDepartment {
-  _id?: string;
   name: string;
   code: string;
   description?: string;
   isSystem?: boolean;
-  permissions: {
-    canCreateQuote: boolean;
-    canReviewQuote: boolean;
-    canApproveQuote: boolean;
-    canEditApprovedQuote: boolean;
-    canAccessOdooQueue: boolean;
-    canMarkOdooEntry: boolean;
-    canAccessAdmin: boolean;
-    canManageSettings: boolean;
-    canManageStaff: boolean;
-    canManagePromos: boolean;
-  };
+  permissions: IDepartmentPermissions;
 }
 
-const DepartmentSchema = new mongoose.Schema(
+export interface IDepartmentDocument extends IDepartment, Document {}
+
+const DepartmentSchema = new Schema<IDepartmentDocument>(
   {
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
@@ -99,4 +102,5 @@ export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, '_id'>> = [
   },
 ];
 
-export default mongoose.models.Department || mongoose.model('Department', DepartmentSchema);
+const DepartmentModel: Model<IDepartmentDocument> = (mongoose.models.Department as Model<IDepartmentDocument>) || mongoose.model<IDepartmentDocument>('Department', DepartmentSchema);
+export default DepartmentModel;

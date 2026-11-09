@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DoorLineItem, DoorQuoteTotals, DoorQuotingMode } from '@/lib/doors/types';
 import { FileSpreadsheet, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
@@ -17,8 +17,8 @@ interface DoorOfficePricingCardProps {
 
 export function DoorOfficePricingCard({
   totals,
-  lineItems,
-  mode,
+  lineItems: _lineItems,
+  mode: _mode,
   className,
 }: DoorOfficePricingCardProps) {
   const [isOpen, setIsOpen] = useState(false);

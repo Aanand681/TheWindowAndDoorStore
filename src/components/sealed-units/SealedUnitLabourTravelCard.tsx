@@ -6,9 +6,7 @@ import {
   DollarSign,
   ChevronDown,
   ChevronUp,
-  Truck,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
 import { SealedUnitTravelCalculator } from './SealedUnitTravelCalculator';
 
@@ -64,7 +62,7 @@ export function SealedUnitLabourTravelCard({
   mode = 'installation',
   setMode,
   isInstallation,
-  setIsInstallation,
+  setIsInstallation: _setIsInstallation,
   labour,
   travelFeeType,
   setTravelFeeType,
@@ -82,14 +80,6 @@ export function SealedUnitLabourTravelCard({
 }: SealedUnitLabourTravelCardProps) {
   const currentMode = setMode ? mode : (isInstallation ? 'installation' : 'supply_only');
   const [showLabourBreakdown, setShowLabourBreakdown] = React.useState(false);
-
-  const handleSelectMode = (m: SealedUnitMode) => {
-    if (setMode) {
-      setMode(m);
-    } else {
-      setIsInstallation(m === 'installation');
-    }
-  };
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl shadow-sm overflow-hidden">

@@ -1,49 +1,7 @@
-import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont, PDFImage } from 'pdf-lib';
-import { StudioQuoteData, StudioWindowItem } from './types';
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFImage } from 'pdf-lib';
+import { StudioQuoteData } from './types';
 import { pretty } from './extractor';
-
-const cash = (n: string | number) => {
-  const num = Number(n);
-  if (isNaN(num)) return '';
-  return num.toLocaleString('en-CA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const result: string[] = [];
-  let current = '';
-  const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ');
-
-  for (const word of words) {
-    if (!word) continue;
-    const next = current ? `${current} ${word}` : word;
-    if (current && font.widthOfTextAtSize(next, size) > maxWidth) {
-      result.push(current);
-      current = word;
-    } else {
-      current = next;
-    }
-  }
-  if (current) result.push(current);
-  return result;
-}
-
-async function embedImage(doc: PDFDocument, dataUrl: string): Promise<PDFImage | null> {
-  try {
-    const res = await fetch(dataUrl);
-    const bytes = await res.arrayBuffer();
-    if (dataUrl.startsWith('data:image/png')) {
-      return await doc.embedPng(bytes);
-    } else {
-      return await doc.embedJpg(bytes);
-    }
-  } catch (err) {
-    console.warn('Failed to embed image:', err);
-    return null;
-  }
-}
+import { cash, wrapText, embedImage, resolveCompanyLogo } from './generator-helpers';
 
 export async function generateStudioPdf(data: StudioQuoteData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -134,30 +92,7 @@ export async function generateStudioPdf(data: StudioQuoteData): Promise<Uint8Arr
 
     if (isFirst) {
       // Company Logo
-      let logoImage: PDFImage | null = null;
-      if (data.logoDataUrl) {
-        logoImage = await embedImage(doc, data.logoDataUrl);
-      } else {
-        // Try multiple standard public paths
-        const candidatePaths = [
-          '/images/logo.png',
-          '/images/logo.jpg',
-          '/logo.png',
-          '/logo.jpg',
-          '/Logo/Logo 3.jpg',
-          '/Logo 3.jpg',
-        ];
-        for (const p of candidatePaths) {
-          try {
-            const res = await fetch(p);
-            if (res.ok) {
-              const bytes = await res.arrayBuffer();
-              logoImage = p.endsWith('.png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-              if (logoImage) break;
-            }
-          } catch { }
-        }
-      }
+      const logoImage: PDFImage | null = await resolveCompanyLogo(doc, data.logoDataUrl || undefined);
 
       const top = 745;
       let logoH = 68;

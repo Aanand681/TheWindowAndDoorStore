@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Truck, MapPin, Users, Fuel, Sparkles } from 'lucide-react';
+import { Truck, MapPin, Users, Fuel } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SealedUnitLabourSettings } from '@/lib/sealed-units-logic';
@@ -40,7 +40,7 @@ export function SealedUnitTravelCalculator({
   setCrewHours,
   crewSize,
   setCrewSize,
-  baseSetupFee,
+  baseSetupFee: _baseSetupFee,
   totalTravelAndSetup,
   contextMode = 'installation',
 }: SealedUnitTravelCalculatorProps) {
