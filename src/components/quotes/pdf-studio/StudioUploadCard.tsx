@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { UploadCloud, CheckCircle2 } from 'lucide-react';
+import { UploadCloud, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface StudioUploadCardProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -10,6 +11,7 @@ interface StudioUploadCardProps {
   loadingStatus: string;
   itemCount: number;
   onFileUpload: (file: File) => void;
+  onReset?: () => void;
 }
 
 export function StudioUploadCard({
@@ -18,6 +20,7 @@ export function StudioUploadCard({
   loadingStatus,
   itemCount,
   onFileUpload,
+  onReset,
 }: StudioUploadCardProps) {
   return (
     <Card className="bg-card/70 border-border backdrop-blur-xl shadow-md">
@@ -29,12 +32,27 @@ export function StudioUploadCard({
             </span>
             <CardTitle className="text-base font-semibold">Upload Supplier Quote-List PDF</CardTitle>
           </div>
-          {itemCount > 0 && (
-            <span className="text-xs bg-emerald-500/10 text-emerald-500 font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              {itemCount} items extracted
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {itemCount > 0 && (
+              <span className="text-xs bg-emerald-500/10 text-emerald-500 font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                {itemCount} items extracted
+              </span>
+            )}
+            {itemCount > 0 && onReset && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onReset}
+                className="h-7 px-2 text-xs font-semibold cursor-pointer gap-1 text-destructive hover:bg-destructive/10 border-border/70 shadow-xs"
+                title="Reset quote & start fresh"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
+              </Button>
+            )}
+          </div>
         </div>
         <CardDescription>
           Upload the raw manufacturer/supplier PDF. Text and CAD diagrams will be auto-extracted.
@@ -60,18 +78,20 @@ export function StudioUploadCard({
             const f = e.dataTransfer.files?.[0];
             if (f) onFileUpload(f);
           }}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+          className={`border-2 border-dashed rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
             loading
-              ? 'border-primary bg-primary/5 animate-pulse'
-              : 'border-border/80 hover:border-primary/50 hover:bg-muted/30'
+              ? 'border-primary/50 bg-primary/5 cursor-wait'
+              : 'border-border/80 hover:border-primary/60 hover:bg-muted/30 bg-background/50'
           }`}
         >
-          <UploadCloud className="w-10 h-10 text-primary/70 mx-auto mb-2" />
-          <p className="font-medium text-sm">
-            {loading ? loadingStatus : 'Click to select or drag & drop supplier PDF here'}
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+            <UploadCloud className={`w-6 h-6 ${loading ? 'animate-bounce' : ''}`} />
+          </div>
+          <p className="text-sm font-semibold text-foreground">
+            {loading ? 'Processing Supplier PDF…' : 'Click to upload or drag & drop quote PDF'}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Extracts Quote #, Customer Name, Window Sizes, Options, and Outside CAD Drawings
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+            {loading ? loadingStatus : 'Supports raw Inkster Park Millwork Quote-List PDFs.'}
           </p>
         </div>
       </CardContent>

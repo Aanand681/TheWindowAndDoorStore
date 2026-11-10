@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ShieldCheck } from 'lucide-react';
-import SmartBackButton from '@/components/shared/SmartBackButton';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { formatMoney, toCents, calculateUpgrade, ILabourUpgradeTier } from '@/lib/promo-logic';
 import { toast } from 'sonner';
@@ -105,16 +104,13 @@ export default function LabourUpgradeCalculatorPage() {
         <AppHeader currentPath="/upgrade-calculator" />
 
         <div className="flex items-center justify-between gap-4 pb-2.5 border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <SmartBackButton fallbackUrl="/calculator" title="Back to Calculator" />
-            <div className="flex items-center gap-2">
-              <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <ShieldCheck className="w-4 h-4" />
-              </span>
-              <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                Labour Upgrade Calculator
-              </h1>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="w-4 h-4" />
+            </span>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+              Labour Upgrade Calculator
+            </h1>
           </div>
           <div className="text-xs text-muted-foreground hidden sm:block">
             Fast pre-tax fee estimator & customer breakdown

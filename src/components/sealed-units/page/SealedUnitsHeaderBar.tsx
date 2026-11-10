@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Layers, Sparkles, Bookmark, FolderOpen, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import SmartBackButton from '@/components/shared/SmartBackButton';
 import { AppHeader } from '@/components/layout/AppHeader';
 
 interface SealedUnitsHeaderBarProps {
@@ -35,21 +34,18 @@ export function SealedUnitsHeaderBar({
     <div className="space-y-4">
       <AppHeader currentPath="/sealed-units" />
 
-      {/* Sub-bar with SmartBackButton & Title */}
+      {/* Sub-bar with Title */}
       <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-border/50">
-        <div className="flex items-center gap-2.5">
-          <SmartBackButton fallbackUrl="/calculator" title="Back to Calculator" />
-          <div className="flex items-center gap-2">
-            <span className="p-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-              <Layers className="w-4 h-4" />
-            </span>
-            <h1 className="text-base font-bold tracking-tight text-foreground">
-              Sealed Unit Calculator
-            </h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
-              Official Shop Logic
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20">
+            <Layers className="w-4 h-4" />
+          </span>
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+            Sealed Unit Calculator
+          </h1>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+            Official Shop Logic
+          </span>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">

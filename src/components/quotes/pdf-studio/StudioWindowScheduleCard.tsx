@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StudioWindowItem } from '@/lib/pdf-studio/types';
@@ -17,6 +17,7 @@ interface StudioWindowScheduleCardProps {
   onUpdateItem: (index: number, field: keyof StudioWindowItem, value: any) => void;
   onImageUpload: (index: number, e: React.ChangeEvent<HTMLInputElement>) => void;
   onGeneratePdf: () => void;
+  onResetQuote?: () => void;
 }
 
 export function StudioWindowScheduleCard({
@@ -29,6 +30,7 @@ export function StudioWindowScheduleCard({
   onUpdateItem,
   onImageUpload,
   onGeneratePdf,
+  onResetQuote,
 }: StudioWindowScheduleCardProps) {
   return (
     <Card className="bg-card/70 border-border backdrop-blur-xl shadow-md">
@@ -43,6 +45,19 @@ export function StudioWindowScheduleCard({
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            {onResetQuote && items.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onResetQuote}
+                className="h-8 px-2.5 text-xs font-semibold cursor-pointer gap-1 text-destructive hover:bg-destructive/10 border-border/70 shadow-xs"
+                title="Reset quote & start fresh"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"

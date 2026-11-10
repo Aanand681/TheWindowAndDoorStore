@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import { ensurePdfWorker } from './pdf-init';
 import { StudioQuoteData, StudioWindowItem } from './types';
 
 export function plusOne(part: string): string | null {
@@ -175,8 +176,7 @@ export async function extractSupplierQuote(
   file: File,
   onProgress?: (status: string) => void
 ): Promise<StudioQuoteData> {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  ensurePdfWorker();
 
   onProgress?.('Loading supplier PDF…');
   const arrayBuffer = await file.arrayBuffer();
@@ -198,7 +198,9 @@ export async function extractSupplierQuote(
     // Render page canvas ONCE per page (huge speedup!)
     let pageCanvas: HTMLCanvasElement | null = null;
     const vp = page.getViewport({ scale: 4 });
-    const viewHeight = page.view[3];
+    const vp1 = page.getViewport({ scale: 1 });
+    const viewHeight = vp1.height;
+    const pageViewWidth = vp1.width;
 
     for (let i = 0; i < data.length; i++) {
       const m = rowPattern(data[i].text);
@@ -209,12 +211,11 @@ export async function extractSupplierQuote(
 
       const detail = optionsIn(data, i + 1, end);
       const id = m[1];
-      const pageViewWidth = page.view[2];
 
       // Match CAD drawing on the right side of the page near the line item Y
       const found = placements
         .filter(
-          b => b.x0 > pageViewWidth * 0.65 && Math.abs((b.y0 + b.y1) / 2 - data[i].y) < 125
+          b => b.x0 > pageViewWidth * 0.48 && Math.abs((b.y0 + b.y1) / 2 - data[i].y) < 140
         )
         .sort(
           (a, b) =>
@@ -227,8 +228,11 @@ export async function extractSupplierQuote(
           pageCanvas = document.createElement('canvas');
           pageCanvas.width = Math.ceil(vp.width);
           pageCanvas.height = Math.ceil(vp.height);
+          const pctx = pageCanvas.getContext('2d')!;
+          pctx.fillStyle = '#ffffff';
+          pctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
           await page.render({
-            canvasContext: pageCanvas.getContext('2d')!,
+            canvasContext: pctx,
             viewport: vp,
           }).promise;
         }

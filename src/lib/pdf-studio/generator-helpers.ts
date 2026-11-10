@@ -28,17 +28,58 @@ export function wrapText(text: string, font: PDFFont, size: number, maxWidth: nu
   return result;
 }
 
-export async function embedImage(doc: PDFDocument, dataUrl: string): Promise<PDFImage | null> {
+/**
+ * Decodes a base64 data URL into a Uint8Array in memory without calling fetch().
+ * Completely avoids browser fetch restrictions, CSP blocks, and URL length limits.
+ */
+export function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const commaIdx = dataUrl.indexOf(',');
+  const base64 = commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export async function embedImage(doc: PDFDocument, source: string): Promise<PDFImage | null> {
   try {
-    const res = await fetch(dataUrl);
-    const bytes = await res.arrayBuffer();
-    if (dataUrl.startsWith('data:image/png')) {
+    if (!source || typeof source !== 'string') return null;
+
+    if (source.startsWith('data:')) {
+      const bytes = dataUrlToBytes(source);
+      if (source.startsWith('data:image/png')) {
+        return await doc.embedPng(bytes);
+      } else if (
+        source.startsWith('data:image/jpeg') ||
+        source.startsWith('data:image/jpg')
+      ) {
+        return await doc.embedJpg(bytes);
+      } else {
+        // Fallback: try PNG then JPG
+        try {
+          return await doc.embedPng(bytes);
+        } catch {
+          return await doc.embedJpg(bytes);
+        }
+      }
+    }
+
+    // Remote or local static URL path (e.g. /images/logo.jpg)
+    const res = await fetch(source);
+    if (!res.ok) return null;
+    const ab = await res.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+
+    if (source.toLowerCase().endsWith('.png')) {
       return await doc.embedPng(bytes);
     } else {
       return await doc.embedJpg(bytes);
     }
   } catch (err) {
-    console.warn('Failed to embed image:', err);
+    console.warn('Failed to embed image in PDF:', err);
     return null;
   }
 }

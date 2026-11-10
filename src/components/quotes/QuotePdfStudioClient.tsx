@@ -1,38 +1,69 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import { useQuotePdfStudio } from '@/hooks/useQuotePdfStudio';
+import { useDoorPdfStudio } from '@/hooks/useDoorPdfStudio';
+import { classifyPdfFile, QuotePdfType } from '@/lib/pdf-studio/classifier';
 import { AppHeader } from '@/components/layout/AppHeader';
 import {
   StudioUploadCard,
   StudioBrandingCard,
   StudioWindowScheduleCard,
   StudioPdfPreviewCard,
+  StudioScopeBar,
+  StudioProductType,
+  StudioDoorBrandingCard,
+  StudioDoorScheduleCard,
 } from './pdf-studio';
 
 export default function QuotePdfStudioClient() {
-  const {
-    fileInputRef,
-    logoInputRef,
-    quoteData,
-    setQuoteData,
-    loading,
-    loadingStatus,
-    generating,
-    pdfUrl,
-    isDetailsOpen,
-    setIsDetailsOpen,
-    handleFileUpload,
-    handleGeneratePdf,
-    handleModeChange,
-    handleDownloadPdf,
-    handleAddItem,
-    handleRemoveItem,
-    handleUpdateItem,
-    handleImageUpload,
-    handleLogoUpload,
-  } = useQuotePdfStudio();
+  const [productType, setProductType] = useState<StudioProductType>('window');
+  const [detectedType, setDetectedType] = useState<QuotePdfType | null>(null);
+  const unifiedFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Window Studio Hook
+  const windowStudio = useQuotePdfStudio();
+
+  // Door Studio Hook
+  const doorStudio = useDoorPdfStudio();
+
+  // Unified File Upload with Auto-detection
+  const handleUnifiedFileUpload = async (file: File) => {
+    try {
+      const type = await classifyPdfFile(file);
+      setDetectedType(type);
+
+      if (type === 'door') {
+        setProductType('door');
+        await doorStudio.handleFileUpload(file);
+      } else if (type === 'window') {
+        setProductType('window');
+        await windowStudio.handleFileUpload(file);
+      } else {
+        if (productType === 'door') {
+          await doorStudio.handleFileUpload(file);
+        } else {
+          await windowStudio.handleFileUpload(file);
+        }
+      }
+    } catch {
+      if (productType === 'door') {
+        await doorStudio.handleFileUpload(file);
+      } else {
+        await windowStudio.handleFileUpload(file);
+      }
+    }
+  };
+
+  const isDoor = productType === 'door';
+  const activeLoading = isDoor ? doorStudio.loading : windowStudio.loading;
+  const activeLoadingStatus = isDoor ? doorStudio.loadingStatus : windowStudio.loadingStatus;
+  const activeItemCount = isDoor
+    ? doorStudio.doorQuoteData.lines.length
+    : windowStudio.quoteData.items.length;
+  const activePdfUrl = isDoor ? doorStudio.pdfUrl : windowStudio.pdfUrl;
+  const activeDownload = isDoor ? doorStudio.handleDownloadPdf : windowStudio.handleDownloadPdf;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
@@ -42,55 +73,98 @@ export default function QuotePdfStudioClient() {
         {/* Standard Unified Application Header */}
         <AppHeader currentPath="/quote-studio" />
 
-        {/* Page Title & Overview */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2.5">
-            <FileText className="w-7 h-7 text-primary" />
-            <span>Window Quote PDF Studio</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Generate clean customer-facing Supply or Install quote PDFs from raw supplier quote-list PDFs.
-          </p>
+        {/* Page Title & Scope Switcher */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2.5 border-b border-border/50">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+              <FileText className="w-6 h-6 text-primary" />
+              <span>Quote PDF Studio</span>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Generate clean customer-facing Window and Door quote PDFs from raw supplier quote-list PDFs.
+            </p>
+          </div>
+
+          {/* Product Type & Detection Badge */}
+          <StudioScopeBar
+            productType={productType}
+            onProductTypeChange={setProductType}
+            detectedType={detectedType}
+          />
         </div>
 
         {/* Workspace Layout: Left Editor / Right Preview */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Input, Controls, Window Editor */}
+          {/* Left Column: Input, Controls, Product Schedule Editor */}
           <div className="lg:col-span-6 xl:col-span-6 space-y-6">
             <StudioUploadCard
-              fileInputRef={fileInputRef}
-              loading={loading}
-              loadingStatus={loadingStatus}
-              itemCount={quoteData.items.length}
-              onFileUpload={handleFileUpload}
+              fileInputRef={unifiedFileInputRef}
+              loading={activeLoading}
+              loadingStatus={activeLoadingStatus}
+              itemCount={activeItemCount}
+              onFileUpload={handleUnifiedFileUpload}
+              onReset={isDoor ? doorStudio.handleResetQuote : windowStudio.handleResetQuote}
             />
 
-            <StudioBrandingCard
-              quoteData={quoteData}
-              logoInputRef={logoInputRef}
-              onModeChange={handleModeChange}
-              onUpdateQuoteData={setQuoteData}
-              onLogoUpload={handleLogoUpload}
-            />
+            {isDoor ? (
+              <>
+                <StudioDoorBrandingCard
+                  quoteData={doorStudio.doorQuoteData}
+                  onModeChange={doorStudio.handleModeChange}
+                  onUpdateQuoteData={doorStudio.setDoorQuoteData}
+                />
 
-            <StudioWindowScheduleCard
-              items={quoteData.items}
-              isDetailsOpen={isDetailsOpen}
-              generating={generating}
-              onToggleDetails={() => setIsDetailsOpen(!isDetailsOpen)}
-              onAddItem={handleAddItem}
-              onRemoveItem={handleRemoveItem}
-              onUpdateItem={handleUpdateItem}
-              onImageUpload={handleImageUpload}
-              onGeneratePdf={() => handleGeneratePdf()}
-            />
+                <StudioDoorScheduleCard
+                  lines={doorStudio.doorQuoteData.lines}
+                  allName={doorStudio.allName}
+                  allPrice={doorStudio.allPrice}
+                  generating={doorStudio.generating}
+                  onSetAllName={doorStudio.setAllName}
+                  onSetAllPrice={doorStudio.setAllPrice}
+                  onApplyAll={doorStudio.handleApplyAll}
+                  onUpdateLine={doorStudio.handleUpdateLine}
+                  onRecropLine={doorStudio.handleRecropLine}
+                  onReplaceDrawing={doorStudio.handleReplaceDrawing}
+                  onToggleSpecBold={doorStudio.handleToggleSpecBold}
+                  onUpdateSpecText={doorStudio.handleUpdateSpecText}
+                  onAddLine={doorStudio.handleAddLine}
+                  onRemoveLine={doorStudio.handleRemoveLine}
+                  onResetTrims={doorStudio.handleResetTrims}
+                  onResetQuote={doorStudio.handleResetQuote}
+                  onGeneratePdf={() => doorStudio.handleGeneratePdf()}
+                />
+              </>
+            ) : (
+              <>
+                <StudioBrandingCard
+                  quoteData={windowStudio.quoteData}
+                  logoInputRef={windowStudio.logoInputRef}
+                  onModeChange={windowStudio.handleModeChange}
+                  onUpdateQuoteData={windowStudio.setQuoteData}
+                  onLogoUpload={windowStudio.handleLogoUpload}
+                />
+
+                <StudioWindowScheduleCard
+                  items={windowStudio.quoteData.items}
+                  isDetailsOpen={windowStudio.isDetailsOpen}
+                  generating={windowStudio.generating}
+                  onToggleDetails={() => windowStudio.setIsDetailsOpen(!windowStudio.isDetailsOpen)}
+                  onAddItem={windowStudio.handleAddItem}
+                  onRemoveItem={windowStudio.handleRemoveItem}
+                  onUpdateItem={windowStudio.handleUpdateItem}
+                  onImageUpload={windowStudio.handleImageUpload}
+                  onResetQuote={windowStudio.handleResetQuote}
+                  onGeneratePdf={() => windowStudio.handleGeneratePdf()}
+                />
+              </>
+            )}
           </div>
 
           {/* Right Column: Live PDF Preview */}
           <div className="lg:col-span-6 xl:col-span-6 sticky top-6 space-y-4">
             <StudioPdfPreviewCard
-              pdfUrl={pdfUrl}
-              onDownloadPdf={handleDownloadPdf}
+              pdfUrl={activePdfUrl}
+              onDownloadPdf={activeDownload}
             />
           </div>
         </div>

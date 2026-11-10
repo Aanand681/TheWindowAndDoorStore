@@ -7,6 +7,16 @@ import { generateStudioPdf } from '@/lib/pdf-studio/generator';
 import { cachedFetch, getCachedData } from '@/lib/client-cache';
 import { toast } from 'sonner';
 
+const INITIAL_WINDOW_QUOTE: StudioQuoteData = {
+  quoteNumber: '',
+  customerName: '',
+  companyName: 'The Window & Door Store',
+  address: '305 Kirsti Pl\nHWY 11/71 W\nFort Frances, ON P9A 3V9\nPH: 1 807 274-0302',
+  logoDataUrl: null,
+  mode: 'supply',
+  items: [],
+};
+
 export function useQuotePdfStudio() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -23,23 +33,11 @@ export function useQuotePdfStudio() {
   } | null>(() => getCachedData<any>('/api/profile') || null);
 
   useEffect(() => {
-    cachedFetch<any>('/api/profile')
-      .then(data => {
-        if (data) setUser(data);
-      })
-      .catch(() => {});
+    cachedFetch<any>('/api/profile').then(data => { if (data) setUser(data); }).catch(() => {});
   }, []);
 
   // Studio Quote State
-  const [quoteData, setQuoteData] = useState<StudioQuoteData>({
-    quoteNumber: '',
-    customerName: '',
-    companyName: 'The Window & Door Store',
-    address: '305 Kirsti Pl\nHWY 11/71 W\nFort Frances, ON P9A 3V9\nPH: 1 807 274-0302',
-    logoDataUrl: null,
-    mode: 'supply',
-    items: [],
-  });
+  const [quoteData, setQuoteData] = useState<StudioQuoteData>(INITIAL_WINDOW_QUOTE);
 
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -257,6 +255,14 @@ export function useQuotePdfStudio() {
     reader.readAsDataURL(file);
   };
 
+  const handleResetQuote = () => {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setQuoteData(INITIAL_WINDOW_QUOTE);
+    setPdfUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    toast.info('Window quote reset to start fresh.');
+  };
+
   return {
     fileInputRef,
     logoInputRef,
@@ -279,5 +285,6 @@ export function useQuotePdfStudio() {
     handleUpdateItem,
     handleImageUpload,
     handleLogoUpload,
+    handleResetQuote,
   };
 }

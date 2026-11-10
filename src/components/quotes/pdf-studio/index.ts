@@ -3,3 +3,8 @@ export * from './StudioBrandingCard';
 export * from './StudioWindowItemRow';
 export * from './StudioWindowScheduleCard';
 export * from './StudioPdfPreviewCard';
+export * from './StudioScopeBar';
+export * from './StudioDoorBrandingCard';
+export * from './StudioDoorScheduleCard';
+export * from './StudioDoorLineCard';
+export * from './StudioDoorSpecList';

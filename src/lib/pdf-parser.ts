@@ -1,12 +1,12 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import { ensurePdfWorker } from './pdf-studio/pdf-init';
 import { WindowItem } from './promo-logic';
 import { extractPdfMetadata } from './pdf/metadata-extractor';
 
 export { extractPdfMetadata };
 
 export async function readPdfItems(file: File) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  ensurePdfWorker();
   
   const arrayBuffer = await file.arrayBuffer();
   const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
