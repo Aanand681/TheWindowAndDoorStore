@@ -30,100 +30,89 @@ export function useDoorItemForm({
   onSaveItem,
   onResetQuote,
 }: UseDoorItemFormOptions) {
-  // Preset & Identity
+  // Cascading Dropdown 1: Door Type
+  const [doorType, setDoorType] = useState<DoorCategory>('entry');
+
+  // Filtered options based on doorType
+  const typeOptions = useMemo(() => {
+    const matched = presets.filter((p) => p.category === doorType);
+    return matched.length > 0 ? matched : presets;
+  }, [presets, doorType]);
+
+  // Selected Option / Preset
   const [selectedPresetId, setSelectedPresetId] = useState<string>(
-    presets[0]?.id || 'single_regular'
+    typeOptions[0]?.id || 'single_regular'
   );
+
+  const currentPreset = useMemo(() => {
+    return presets.find((p) => p.id === selectedPresetId) || typeOptions[0] || presets[0];
+  }, [presets, selectedPresetId, typeOptions]);
+
+  // Editable fields in single row
   const [customDescription, setCustomDescription] = useState<string>(
     presets[0]?.description?.trim() || presets[0]?.label || ''
   );
-  const [category, setCategory] = useState<DoorCategory>('entry');
   const [quantity, setQuantity] = useState<string>('1');
-
-  // Pricing
   const [inksterBasePrice, setInksterBasePrice] = useState<string>('1200');
+  const [labourInput, setLabourInput] = useState<string>(String(presets[0]?.labour ?? 715));
+  const [miscInput, setMiscInput] = useState<string>(String(presets[0]?.misc ?? 115.2));
 
-  // Hardware (defaults to 'none' if in supply_only mode)
+  // Hardware
   const [hardwareType, setHardwareType] = useState<DoorHardwareType>(
     mode === 'supply_only' ? 'none' : 'standard'
   );
-  const [customHardwareName, setCustomHardwareName] = useState<string>('Premium Grip Set');
+  const [customHardwareName, setCustomHardwareName] = useState<string>('Custom Hardware');
   const [customHardwarePrice, setCustomHardwarePrice] = useState<string>('250');
 
-  // Automatically switch to 'none' if mode becomes supply_only
   useEffect(() => {
-    if (mode === 'supply_only') {
-      setHardwareType('none');
-    }
+    if (mode === 'supply_only') setHardwareType('none');
   }, [mode]);
 
   // Upgrade Option
   const [hasUpgradeOption, setHasUpgradeOption] = useState<boolean>(false);
   const [upgradeTitle, setUpgradeTitle] = useState<string>('Triple Pane Glass Upgrade');
   const [upgradeInksterPrice, setUpgradeInksterPrice] = useState<string>('1450');
-
-  // Additional Notes
   const [notes, setNotes] = useState<string>('');
 
-  // Selected preset object
-  const currentPreset = useMemo(() => {
-    return presets.find((p) => p.id === selectedPresetId) || presets[0];
-  }, [presets, selectedPresetId]);
-
-  // When preset changes, automatically sync category and description if untouched
-  const handlePresetSelect = (presetId: string) => {
-    setSelectedPresetId(presetId);
-    const found = presets.find((p) => p.id === presetId);
-    if (found) {
-      setCategory(found.category);
-      const isDefault =
-        !customDescription ||
-        presets.some(
-          (p) =>
-            p.label === customDescription ||
-            (p.description && p.description.trim() === customDescription.trim())
-        );
-      if (isDefault) {
-        setCustomDescription(found.description?.trim() || found.label);
-      }
+  // Handle changing Door Type (Dropdown 1)
+  const handleDoorTypeChange = (newType: DoorCategory) => {
+    setDoorType(newType);
+    const firstForType = presets.find((p) => p.category === newType);
+    if (firstForType) {
+      setSelectedPresetId(firstForType.id);
+      setLabourInput(String(firstForType.labour));
+      setMiscInput(String(firstForType.misc));
+      setCustomDescription(firstForType.description?.trim() || firstForType.label);
     }
   };
 
-  // Sync initial description when database presets finish loading
-  useEffect(() => {
-    if (!editingItem && presets.length > 0) {
-      const current = presets.find((p) => p.id === selectedPresetId) || presets[0];
-      if (current) {
-        const isDefault =
-          !customDescription ||
-          presets.some(
-            (p) =>
-              p.label === customDescription ||
-              (p.description && p.description.trim() === customDescription.trim())
-          );
-        if (isDefault) {
-          setCustomDescription(current.description?.trim() || current.label);
-          setCategory(current.category);
-        }
-      }
+  // Handle changing Option (Dropdown 2)
+  const handleOptionChange = (presetId: string) => {
+    setSelectedPresetId(presetId);
+    const found = presets.find((p) => p.id === presetId);
+    if (found) {
+      setLabourInput(String(found.labour));
+      setMiscInput(String(found.misc));
+      setCustomDescription(found.description?.trim() || found.label);
     }
-  }, [presets, editingItem, selectedPresetId, customDescription]);
+  };
 
   // Populate from editingItem
   useEffect(() => {
     if (editingItem) {
+      setDoorType(editingItem.category);
       setSelectedPresetId(editingItem.presetId);
       setCustomDescription(editingItem.customDescription || editingItem.presetLabel);
-      setCategory(editingItem.category);
       setQuantity(String(editingItem.quantity || 1));
       setInksterBasePrice(String(editingItem.inksterBasePrice));
-      setHardwareType(editingItem.hardwareType);
+      setLabourInput(String(editingItem.unitLabour));
+      setMiscInput(String(editingItem.unitMisc));
+      setHardwareType(editingItem.hardwareType === 'customer_supplied' ? 'none' : editingItem.hardwareType);
       if (editingItem.customHardwareName) setCustomHardwareName(editingItem.customHardwareName);
       if (editingItem.customHardwarePrice !== undefined) {
         setCustomHardwarePrice(String(editingItem.customHardwarePrice));
       }
       setNotes(editingItem.notes || '');
-
       if (editingItem.upgradeOption?.enabled) {
         setHasUpgradeOption(true);
         setUpgradeTitle(editingItem.upgradeOption.title);
@@ -134,25 +123,25 @@ export function useDoorItemForm({
     }
   }, [editingItem]);
 
-  // Upgrade option calculations
+  // Upgrade difference
   const upgradeDiff = useMemo(() => {
     if (!hasUpgradeOption) return null;
-    const baseP = parseFloat(inksterBasePrice) || 0;
-    const optP = parseFloat(upgradeInksterPrice) || 0;
     return calculateDoorUpgradeDifference(
-      baseP,
-      optP,
-      category,
+      parseFloat(inksterBasePrice) || 0,
+      parseFloat(upgradeInksterPrice) || 0,
+      doorType,
       formula.surchargeRate,
       formula.doorDiscountPercent
     );
-  }, [hasUpgradeOption, inksterBasePrice, upgradeInksterPrice, category, formula]);
+  }, [hasUpgradeOption, inksterBasePrice, upgradeInksterPrice, doorType, formula]);
 
   const parsedQuantity = Math.max(1, parseInt(quantity, 10) || 1);
 
-  // Preview Line Item with ID preservation
+  // Line item preview
   const previewItem = useMemo(() => {
     const baseP = parseFloat(inksterBasePrice) || 0;
+    const labP = parseFloat(labourInput);
+    const miscP = parseFloat(miscInput);
     const customHwP = hardwareType === 'custom' ? parseFloat(customHardwarePrice) || 0 : undefined;
 
     let upgradeObj: DoorUpgradeOption | undefined = undefined;
@@ -171,9 +160,11 @@ export function useDoorItemForm({
       id: editingItem?.id,
       preset: currentPreset,
       customDescription: customDescription.trim() || currentPreset.description?.trim() || currentPreset.label,
-      category,
+      category: doorType,
       inksterBasePrice: baseP,
       quantity: parsedQuantity,
+      unitLabour: isNaN(labP) ? currentPreset.labour : labP,
+      unitMisc: isNaN(miscP) ? currentPreset.misc : miscP,
       hardwareType,
       customHardwareName: hardwareType === 'custom' ? customHardwareName : undefined,
       customHardwarePrice: customHwP,
@@ -185,9 +176,11 @@ export function useDoorItemForm({
     editingItem,
     currentPreset,
     customDescription,
-    category,
+    doorType,
     inksterBasePrice,
     parsedQuantity,
+    labourInput,
+    miscInput,
     hardwareType,
     customHardwareName,
     customHardwarePrice,
@@ -199,18 +192,15 @@ export function useDoorItemForm({
     notes,
   ]);
 
-  // Submit Handler
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const baseP = parseFloat(inksterBasePrice) || 0;
     if (baseP <= 0) {
       toast.error('Please enter a valid Inkster base price');
       return;
     }
-
     onSaveItem(previewItem);
     toast.success(editingItem ? 'Door updated successfully' : 'Door added to quote');
-
     if (!editingItem) {
       setInksterBasePrice('1200');
       setQuantity('1');
@@ -233,16 +223,21 @@ export function useDoorItemForm({
   };
 
   return {
+    doorType,
+    handleDoorTypeChange,
+    typeOptions,
     selectedPresetId,
-    handlePresetSelect,
-    category,
-    setCategory,
+    handleOptionChange,
     customDescription,
     setCustomDescription,
     quantity,
     setQuantity,
     inksterBasePrice,
     setInksterBasePrice,
+    labourInput,
+    setLabourInput,
+    miscInput,
+    setMiscInput,
     hardwareType,
     setHardwareType,
     customHardwareName,
@@ -263,4 +258,3 @@ export function useDoorItemForm({
     currentPreset,
   };
 }
-

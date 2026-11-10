@@ -21,6 +21,8 @@ export function buildDoorLineItem(params: {
   widthIn?: number;
   heightIn?: number;
   quantity?: number;
+  unitLabour?: number;
+  unitMisc?: number;
   formula: DoorFormulaSettings;
   hardwareType?: DoorHardwareType;
   customHardwareName?: string;
@@ -38,6 +40,8 @@ export function buildDoorLineItem(params: {
     widthIn,
     heightIn,
     quantity = 1,
+    unitLabour: paramLabour,
+    unitMisc: paramMisc,
     formula,
     hardwareType = 'none',
     customHardwareName,
@@ -91,8 +95,9 @@ export function buildDoorLineItem(params: {
   const upchargesTotal = calculatedUpcharges.reduce((acc, u) => acc + u.total, 0);
 
   // Line calculations: customerHardwareFee is factored into unitLabour
-  const unitLabour = Math.max(0, Number(preset.labour) || 0) + customerHardwareFee;
-  const unitMisc = Math.max(0, Number(preset.misc) || 0);
+  const baseLabour = paramLabour !== undefined ? Math.max(0, Number(paramLabour)) : Math.max(0, Number(preset.labour) || 0);
+  const unitLabour = baseLabour + customerHardwareFee;
+  const unitMisc = paramMisc !== undefined ? Math.max(0, Number(paramMisc)) : Math.max(0, Number(preset.misc) || 0);
 
   // Line door supply total is purely basePrice * quantity (clean base price entered)
   const lineDoorSupplyTotal = Math.round(basePrice * validQty * 100) / 100;

@@ -9,35 +9,35 @@ import {
 export const DEFAULT_DOOR_PRESETS: DoorPreset[] = [
   {
     id: 'single_regular',
-    label: 'Single Door Regular Height',
+    label: 'With regular height',
     category: 'entry',
     labour: 715.0,
     misc: 115.2,
-    description: 'Steel Single Entry Door',
+    description: 'Single Door Regular Height',
   },
   {
     id: 'single_extra_height',
-    label: 'Single Door with Extra Height',
+    label: 'With extra height',
     category: 'entry',
     labour: 775.0,
     misc: 115.2,
-    description: 'Steel Single Entry Door',
+    description: 'Single Door with Extra Height',
   },
   {
     id: 'door_1_sidelite',
-    label: 'Door with 1 Sidelite',
+    label: 'With 1 sidelite',
     category: 'entry',
     labour: 1040.0,
     misc: 153.6,
-    description: 'Steel Single Entry door with one sidelite',
+    description: 'Door with 1 Sidelite',
   },
   {
     id: 'door_2_sidelites',
-    label: 'Door with 2 Sidelites',
+    label: 'With 2 sidelite',
     category: 'entry',
     labour: 1560.0,
     misc: 194.4,
-    description: 'Steel Single Entry door with Two sidelite',
+    description: 'Door with 2 Sidelites',
   },
   {
     id: 'garden_terrace_double',
@@ -124,6 +124,13 @@ export const DEFAULT_DOOR_PRESETS: DoorPreset[] = [
 
 export const DEFAULT_DOOR_UPCHARGES: DoorUpchargeConfig[] = [
   {
+    id: 'customer_db_ls',
+    label: 'Reinstall Customer Hardware (DB & LS)',
+    rate: 80.0,
+    unit: 'per each door',
+    description: 'Preparation and installation of customer-provided deadbolt and lockset',
+  },
+  {
     id: 'siding_removal',
     label: 'Removal or cutting of siding',
     rate: 130.0,
@@ -150,13 +157,6 @@ export const DEFAULT_DOOR_UPCHARGES: DoorUpchargeConfig[] = [
     rate: 130.0,
     unit: '1 Hour',
     description: 'Custom wide trim/casing installation and carpentry fitting',
-  },
-  {
-    id: 'customer_db_ls',
-    label: 'If customer supplied DB & or LS',
-    rate: 80.0,
-    unit: 'per each door',
-    description: 'Preparation and installation of customer-provided deadbolt and lockset',
   },
   {
     id: 'concrete_wall',

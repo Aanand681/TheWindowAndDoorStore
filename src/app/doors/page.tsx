@@ -119,10 +119,10 @@ export default function DoorCalculatorPage() {
           onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
         />
 
-        {/* Main Work Area: 2 Columns */}
+        {/* Main Work Area: 2 Columns (8 cols left for wide single-row builder, 4 cols right for summary) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-          {/* Left Column: Item Builder, Items Table, Labour/Travel (7 cols) */}
-          <div className="lg:col-span-7 space-y-5">
+          {/* Left Column: Item Builder, Items Table, Labour/Travel (8 cols) */}
+          <div className="lg:col-span-8 space-y-5">
             <DoorItemBuilder
               customerName={customerName}
               setCustomerName={setCustomerName}
@@ -164,8 +164,8 @@ export default function DoorCalculatorPage() {
             />
           </div>
 
-          {/* Right Column: Quote Summary & Office Reference (5 cols) */}
-          <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-5">
+          {/* Right Column: Quote Summary & Office Reference (4 cols) */}
+          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-5">
             <DoorQuoteSummaryCard
               customerName={customerName}
               quoteNumber={quoteNumber}

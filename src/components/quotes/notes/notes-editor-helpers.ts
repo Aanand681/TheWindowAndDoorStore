@@ -30,6 +30,81 @@ export function executeBold(
   emitChange();
 }
 
+function normalizeLines(editor: HTMLDivElement): HTMLElement[] {
+  const childNodes = Array.from(editor.childNodes);
+  if (childNodes.length === 0) {
+    const div = document.createElement('div');
+    div.innerHTML = '<br>';
+    editor.appendChild(div);
+    return [div];
+  }
+
+  for (const child of childNodes) {
+    if (child instanceof HTMLElement && (child.tagName === 'DIV' || child.tagName === 'P')) {
+      continue;
+    }
+    const div = document.createElement('div');
+    editor.insertBefore(div, child);
+    div.appendChild(child);
+  }
+
+  return Array.from(editor.children) as HTMLElement[];
+}
+
+function getSelectedLineElements(editor: HTMLDivElement, range: Range): HTMLElement[] {
+  const lines = normalizeLines(editor);
+  if (lines.length === 0) return [];
+
+  if (range.collapsed) {
+    let node: Node | null = range.startContainer;
+    while (node && node.parentElement !== editor && node !== editor) {
+      node = node.parentElement;
+    }
+    if (node instanceof HTMLElement && node !== editor) {
+      return [node];
+    }
+    return [lines[0]];
+  }
+
+  let startLine: HTMLElement | null = null;
+  let node: Node | null = range.startContainer;
+  while (node && node.parentElement !== editor && node !== editor) {
+    node = node.parentElement;
+  }
+  if (node instanceof HTMLElement && node !== editor) {
+    startLine = node;
+  }
+
+  let endLine: HTMLElement | null = null;
+  node = range.endContainer;
+  while (node && node.parentElement !== editor && node !== editor) {
+    node = node.parentElement;
+  }
+  if (node instanceof HTMLElement && node !== editor) {
+    endLine = node;
+  }
+
+  if (startLine && endLine) {
+    const sIdx = lines.indexOf(startLine);
+    const eIdx = lines.indexOf(endLine);
+    if (sIdx !== -1 && eIdx !== -1) {
+      const min = Math.min(sIdx, eIdx);
+      const max = Math.max(sIdx, eIdx);
+      return lines.slice(min, max + 1);
+    }
+  }
+
+  const intersected = lines.filter((line) => {
+    try {
+      return range.intersectsNode(line);
+    } catch {
+      return false;
+    }
+  });
+
+  return intersected.length > 0 ? intersected : lines;
+}
+
 export function executeBullet(
   editor: HTMLDivElement | null,
   emitChange: () => void
@@ -41,50 +116,49 @@ export function executeBullet(
   if (!sel || sel.rangeCount === 0) return;
 
   const range = sel.getRangeAt(0);
-  let node: Node | null = range.startContainer;
-  while (node && node.parentNode !== editor && node !== editor) {
-    node = node.parentNode;
-  }
+  const selectedLines = getSelectedLineElements(editor, range);
+  if (selectedLines.length === 0) return;
 
-  if (!node || node === editor) {
-    // Empty editor or root selection
-    const div = document.createElement('div');
-    div.innerHTML = '• &nbsp;';
-    editor.appendChild(div);
-    node = div;
-  } else if (node.nodeType === Node.TEXT_NODE && node.parentNode === editor) {
-    // Unwrapped text node at root
-    const div = document.createElement('div');
-    const text = (node.textContent || '').trim();
-    if (text.startsWith('•')) {
-      div.innerHTML = text.replace(/^•(&nbsp;|\s)*/, '') || '<br>';
-    } else {
-      div.innerHTML = `• &nbsp;${text}`;
-    }
-    editor.replaceChild(div, node);
-    node = div;
-  } else if (node instanceof HTMLElement) {
-    const text = (node.innerText || node.textContent || '').trim();
-    if (text.startsWith('•')) {
-      // Toggle bullet off
-      node.innerHTML = node.innerHTML.replace(/^•(&nbsp;|\s)*/, '');
-      if (!node.innerHTML.trim()) {
-        node.innerHTML = '<br>';
+  // Check if ALL non-empty selected lines already have a bullet
+  const nonEmpties = selectedLines.filter((l) => (l.textContent || '').trim().length > 0);
+  const allBulleted =
+    nonEmpties.length > 0 &&
+    nonEmpties.every((l) => (l.textContent || '').trim().startsWith('•'));
+
+  for (const line of selectedLines) {
+    const text = (line.textContent || '').trim();
+    if (allBulleted) {
+      line.innerHTML = line.innerHTML.replace(/^•(&nbsp;|\s)*/, '');
+      if (!line.innerHTML.trim()) {
+        line.innerHTML = '<br>';
       }
     } else {
-      // Toggle bullet on: clear lone <br> if empty line
-      const inner = node.innerHTML.replace(/^<br\s*\/?>$/i, '');
-      node.innerHTML = `• &nbsp;${inner}`;
+      if (!text.startsWith('•')) {
+        const inner = line.innerHTML.replace(/^<br\s*\/?>$/i, '');
+        line.innerHTML = `• &nbsp;${inner}`;
+      }
     }
   }
 
-  // Always reposition cursor right AFTER the bullet at the end of the line
-  if (node) {
-    const newRange = document.createRange();
-    newRange.selectNodeContents(node);
-    newRange.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
+  if (range.collapsed) {
+    const target = selectedLines[0];
+    if (target) {
+      const newRange = document.createRange();
+      newRange.selectNodeContents(target);
+      newRange.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+  } else {
+    const first = selectedLines[0];
+    const last = selectedLines[selectedLines.length - 1];
+    if (first && last) {
+      const newRange = document.createRange();
+      newRange.setStart(first, 0);
+      newRange.setEnd(last, last.childNodes.length);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
   }
 
   emitChange();

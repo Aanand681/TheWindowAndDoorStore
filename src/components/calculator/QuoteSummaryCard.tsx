@@ -12,7 +12,6 @@ import { StandardLedgerSection } from './summary/StandardLedgerSection';
 import { SummaryUpgradeCard } from './summary/SummaryUpgradeCard';
 import { SummaryReviewActions } from './summary/SummaryReviewActions';
 import { ReviewerRevisionAlert } from './summary/ReviewerRevisionAlert';
-import { QuoteSummaryNotesSection } from './summary/QuoteSummaryNotesSection';
 import type { QuoteSummaryCardProps } from './summary/types';
 
 export type { QuoteSummaryCardProps };
@@ -210,13 +209,6 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
               {reviewQuote?.status === 'RETURNED' && (
                 <ReviewerRevisionAlert notes={reviewQuote.reviewerNotes} />
               )}
-
-              {/* Special Notes & Instructions (Printed on PDF Quotation) */}
-              <QuoteSummaryNotesSection
-                quoteNotes={quoteNotes}
-                setQuoteNotes={setQuoteNotes}
-                isReadOnly={isReadOnly}
-              />
 
               {/* Action Buttons */}
               <SummaryReviewActions {...props} />
