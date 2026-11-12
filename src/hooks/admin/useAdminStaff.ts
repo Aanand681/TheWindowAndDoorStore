@@ -1,172 +1,185 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { UserType, DepartmentType, PERMISSION_CONFIG } from '@/components/admin/staff/types';
+import { useState, useEffect } from "react"
+import { toast } from "sonner"
+import {
+  UserType,
+  DepartmentType,
+  PERMISSION_CONFIG,
+} from "@/components/admin/staff/types"
 
 export function useAdminStaff() {
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [departments, setDepartments] = useState<DepartmentType[]>([]);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<UserType[]>([])
+  const [departments, setDepartments] = useState<DepartmentType[]>([])
+  const [currentProfile, setCurrentProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   // New User Form State
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('EMPLOYEE');
-  const [department, setDepartment] = useState('SALES');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState("EMPLOYEE")
+  const [department, setDepartment] = useState("SALES")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
   // Edit State
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editRole, setEditRole] = useState('');
-  const [editDepartment, setEditDepartment] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editRole, setEditRole] = useState("")
+  const [editDepartment, setEditDepartment] = useState("")
 
   // Delete Modal State
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
   // Custom User Permissions Modal State (Superadmin)
-  const [userForCustomPerms, setUserForCustomPerms] = useState<UserType | null>(null);
-  const [userCustomPerms, setUserCustomPerms] = useState<Record<string, boolean>>({});
-  const [savingUserPerms, setSavingUserPerms] = useState(false);
+  const [userForCustomPerms, setUserForCustomPerms] = useState<UserType | null>(
+    null
+  )
+  const [userCustomPerms, setUserCustomPerms] = useState<
+    Record<string, boolean>
+  >({})
+  const [savingUserPerms, setSavingUserPerms] = useState(false)
 
   const fetchUsersAndDepts = async () => {
     try {
       const [uRes, dRes, pRes] = await Promise.all([
-        fetch('/api/users'),
-        fetch('/api/departments'),
-        fetch('/api/profile'),
-      ]);
+        fetch("/api/users"),
+        fetch("/api/departments"),
+        fetch("/api/profile"),
+      ])
       const [uData, dData, pData] = await Promise.all([
         uRes.json(),
         dRes.json(),
         pRes.ok ? pRes.json() : null,
-      ]);
+      ])
 
-      if (Array.isArray(uData)) setUsers(uData);
-      if (Array.isArray(dData)) setDepartments(dData);
-      if (pData) setCurrentProfile(pData);
+      if (Array.isArray(uData)) setUsers(uData)
+      if (Array.isArray(dData)) setDepartments(dData)
+      if (pData) setCurrentProfile(pData)
     } catch (err) {
-      console.error('Failed to fetch data', err);
+      console.error("Failed to fetch data", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchUsersAndDepts();
-  }, []);
+    fetchUsersAndDepts()
+  }, [])
 
   const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+    e.preventDefault()
+    setError("")
+    setSuccess("")
 
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role, email, department }),
-      });
+      })
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create user');
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to create user")
 
-      setSuccess('User created successfully!');
-      toast.success(`Account for ${username} created!`);
-      setUsername('');
-      setPassword('');
-      setEmail('');
-      setRole('EMPLOYEE');
-      setDepartment('SALES');
-      fetchUsersAndDepts();
+      setSuccess("User created successfully!")
+      toast.success(`Account for ${username} created!`)
+      setUsername("")
+      setPassword("")
+      setEmail("")
+      setRole("EMPLOYEE")
+      setDepartment("SALES")
+      fetchUsersAndDepts()
     } catch (err: any) {
-      setError(err.message);
-      toast.error(err.message);
+      setError(err.message)
+      toast.error(err.message)
     }
-  };
+  }
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
       await fetch(`/api/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentStatus }),
-      });
-      fetchUsersAndDepts();
+      })
+      fetchUsersAndDepts()
     } catch (err) {
-      console.error(err);
+      console.error(err)
     }
-  };
+  }
 
   const confirmDelete = async () => {
-    if (!userToDelete) return;
+    if (!userToDelete) return
     try {
-      const res = await fetch(`/api/users/${userToDelete}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete user');
-      setUserToDelete(null);
-      toast.success('User deleted permanently.');
-      fetchUsersAndDepts();
+      const res = await fetch(`/api/users/${userToDelete}`, {
+        method: "DELETE",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to delete user")
+      setUserToDelete(null)
+      toast.success("User deleted permanently.")
+      fetchUsersAndDepts()
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete user');
-      console.error(err);
+      toast.error(err.message || "Failed to delete user")
+      console.error(err)
     }
-  };
+  }
 
   const handleOpenCustomPerms = (u: UserType) => {
-    setUserForCustomPerms(u);
-    const userDept = departments.find((d) => d.code === u.department);
-    const initialPerms: Record<string, boolean> = {};
+    setUserForCustomPerms(u)
+    const userDept = departments.find((d) => d.code === u.department)
+    const initialPerms: Record<string, boolean> = {}
     PERMISSION_CONFIG.forEach((p) => {
       if (u.customPermissions && u.customPermissions[p.key] !== undefined) {
-        initialPerms[p.key] = Boolean(u.customPermissions[p.key]);
+        initialPerms[p.key] = Boolean(u.customPermissions[p.key])
       } else {
-        initialPerms[p.key] = p.isDeptDefault(u.department, u.role, userDept);
+        initialPerms[p.key] = p.isDeptDefault(u.department, u.role, userDept)
       }
-    });
-    setUserCustomPerms(initialPerms);
-  };
+    })
+    setUserCustomPerms(initialPerms)
+  }
 
   const handleSaveUserCustomPerms = async () => {
-    if (!userForCustomPerms) return;
-    setSavingUserPerms(true);
+    if (!userForCustomPerms) return
+    setSavingUserPerms(true)
     try {
       const res = await fetch(`/api/users/${userForCustomPerms._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customPermissions: userCustomPerms }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update custom permissions');
-      toast.success(`Custom permissions updated for ${userForCustomPerms.username}!`);
-      setUserForCustomPerms(null);
-      fetchUsersAndDepts();
+      })
+      const data = await res.json()
+      if (!res.ok)
+        throw new Error(data.error || "Failed to update custom permissions")
+      toast.success(
+        `Custom permissions updated for ${userForCustomPerms.username}!`
+      )
+      setUserForCustomPerms(null)
+      fetchUsersAndDepts()
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update custom permissions');
+      toast.error(err.message || "Failed to update custom permissions")
     } finally {
-      setSavingUserPerms(false);
+      setSavingUserPerms(false)
     }
-  };
+  }
 
   const handleSaveRole = async (id: string) => {
     try {
       await fetch(`/api/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: editRole, department: editDepartment }),
-      });
-      setEditingId(null);
-      toast.success('User updated successfully.');
-      fetchUsersAndDepts();
+      })
+      setEditingId(null)
+      toast.success("User updated successfully.")
+      fetchUsersAndDepts()
     } catch (err) {
-      console.error(err);
+      console.error(err)
     }
-  };
+  }
 
-  const isSuperAdmin = currentProfile?.role === 'SUPERADMIN';
+  const isSuperAdmin = currentProfile?.role === "SUPERADMIN"
 
   return {
     users,
@@ -206,5 +219,5 @@ export function useAdminStaff() {
     handleSaveRole,
     isSuperAdmin,
     fetchUsersAndDepts,
-  };
+  }
 }

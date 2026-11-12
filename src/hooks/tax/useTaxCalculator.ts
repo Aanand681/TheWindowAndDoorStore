@@ -1,20 +1,21 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useTaxTravelRoute } from './useTaxTravelRoute';
-import { calculateTaxTotals } from './tax-calculations';
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import type { CustomMaterialItem } from "@/types/calculator"
+import { useTaxTravelRoute } from "./useTaxTravelRoute"
+import { calculateTaxTotals } from "./tax-calculations"
 import {
   restoreSavedTaxState,
   computeTaxQuoteKey,
   resetTaxState,
-} from './tax-restoration';
-import { useTaxInitialData } from './useTaxInitialData';
+} from "./tax-restoration"
+import { useTaxInitialData } from "./useTaxInitialData"
 
 interface UseTaxCalculatorProps {
-  windows: any[];
-  isSupplyOnlyProp?: boolean;
-  savedTaxTotals?: any;
-  onCalculated?: (totals: any) => void;
+  windows: any[]
+  isSupplyOnlyProp?: boolean
+  savedTaxTotals?: any
+  onCalculated?: (totals: any) => void
 }
 
 export function useTaxCalculator({
@@ -23,32 +24,39 @@ export function useTaxCalculator({
   savedTaxTotals,
   onCalculated,
 }: UseTaxCalculatorProps) {
-  const isSupplyOnly = Boolean(isSupplyOnlyProp);
-  const [addons, setAddons] = useState<Record<string, string>>({});
-  const [crew, setCrew] = useState('3');
+  const isSupplyOnly = Boolean(isSupplyOnlyProp)
+  const [addons, setAddons] = useState<Record<string, string>>({})
+  const [crew, setCrew] = useState("3")
 
   // Jambs & Casing
   const [jambId, setJambId] = useState<string>(() =>
-    !isSupplyOnly && !savedTaxTotals ? 'j3' : 'none'
-  );
-  const [jambName, setJambName] = useState('');
-  const [jambRate, setJambRate] = useState('');
+    !isSupplyOnly && !savedTaxTotals ? "j3" : "none"
+  )
+  const [jambName, setJambName] = useState("")
+  const [jambRate, setJambRate] = useState("")
 
   const [casingId, setCasingId] = useState<string>(() =>
-    !isSupplyOnly && !savedTaxTotals ? 'vinyl' : 'none'
-  );
-  const [casingName, setCasingName] = useState('');
-  const [casingRate, setCasingRate] = useState('');
+    !isSupplyOnly && !savedTaxTotals ? "vinyl" : "none"
+  )
+  const [casingName, setCasingName] = useState("")
+  const [casingRate, setCasingRate] = useState("")
 
-  const [discount, setDiscount] = useState('');
-  const [hstOn, setHstOn] = useState(true);
+  const [customMaterials, setCustomMaterials] = useState<CustomMaterialItem[]>(
+    () =>
+      Array.isArray(savedTaxTotals?.customMaterials)
+        ? savedTaxTotals.customMaterials
+        : []
+  )
+
+  const [discount, setDiscount] = useState("")
+  const [hstOn, setHstOn] = useState(true)
 
   // Toggles for Quote Type
-  const [includeLabour, setIncludeLabour] = useState(true);
-  const [includeMisc, setIncludeMisc] = useState(true);
-  const [includeJC, setIncludeJC] = useState(true);
+  const [includeLabour, setIncludeLabour] = useState(true)
+  const [includeMisc, setIncludeMisc] = useState(true)
+  const [includeJC, setIncludeJC] = useState(true)
 
-  const regionStateRef = useRef<{ setupFeeSetter?: (fee: string) => void }>({});
+  const regionStateRef = useRef<{ setupFeeSetter?: (fee: string) => void }>({})
 
   const {
     regions,
@@ -63,55 +71,59 @@ export function useTaxCalculator({
     windowLabourSettings,
   } = useTaxInitialData({
     onSetupFeeDefault: useCallback((fee: string) => {
-      regionStateRef.current.setupFeeSetter?.(fee);
+      regionStateRef.current.setupFeeSetter?.(fee)
     }, []),
-  });
+  })
 
-  const region = regions.find((r) => r._id === selectedRegionId);
+  const region = regions.find((r) => r._id === selectedRegionId)
   const effectiveIsSupplyOnly =
     isSupplyOnly ||
     Boolean(
       isSupplyOnlyProp ||
-        region?.isSupplyOnly ||
-        region?.name?.toLowerCase().includes('supply')
-    );
+      region?.isSupplyOnly ||
+      region?.name?.toLowerCase().includes("supply")
+    )
 
-  const travel = useTaxTravelRoute(region);
+  const travel = useTaxTravelRoute(region)
   useEffect(() => {
-    regionStateRef.current.setupFeeSetter = travel.setSetupFee;
-  }, [travel.setSetupFee]);
+    regionStateRef.current.setupFeeSetter = travel.setSetupFee
+  }, [travel.setSetupFee])
 
   const handleRegionSelect = (regId: string, currentRegions = regions) => {
-    setSelectedRegionId(regId);
-    const reg = currentRegions.find((r) => r._id === regId);
-    if (!reg) return;
+    setSelectedRegionId(regId)
+    const reg = currentRegions.find((r) => r._id === regId)
+    if (!reg) return
     const isSupply = Boolean(
-      isSupplyOnlyProp || reg.isSupplyOnly || reg.name?.toLowerCase().includes('supply')
-    );
+      isSupplyOnlyProp ||
+      reg.isSupplyOnly ||
+      reg.name?.toLowerCase().includes("supply")
+    )
     if (isSupply) {
-      travel.setSetupFee('0');
-      travel.setManualKm('0');
-      travel.setManualHours('0');
-      travel.setTravelInfo(null);
-      setCrew('none');
-      setJambId('none');
-      setCasingId('none');
-      setJambRate('0');
-      setCasingRate('0');
-      return;
+      travel.setSetupFee("0")
+      travel.setManualKm("0")
+      travel.setManualHours("0")
+      travel.setTravelInfo(null)
+      setCrew("none")
+      setJambId("none")
+      setCasingId("none")
+      setJambRate("0")
+      setCasingRate("0")
+      return
     }
     if (
-      reg.name.toLowerCase().includes('dryden') ||
-      reg.name.toLowerCase().includes('sioux')
+      reg.name.toLowerCase().includes("dryden") ||
+      reg.name.toLowerCase().includes("sioux")
     ) {
-      const std = reg.setupFeeOptions?.find((o: any) => Math.abs(o.value - 727.5) < 0.01);
-      travel.setSetupFee(std ? String(std.value) : '727.5');
+      const std = reg.setupFeeOptions?.find(
+        (o: any) => Math.abs(o.value - 727.5) < 0.01
+      )
+      travel.setSetupFee(std ? String(std.value) : "727.5")
     } else {
-      travel.setSetupFee('0');
+      travel.setSetupFee("0")
     }
-  };
+  }
 
-  const restoredQuoteKeyRef = useRef<string | null>(null);
+  const restoredQuoteKeyRef = useRef<string | null>(null)
 
   const settersMap = useMemo(
     () => ({
@@ -124,6 +136,7 @@ export function useTaxCalculator({
       setCasingId,
       setCasingName,
       setCasingRate,
+      setCustomMaterials,
       setCoords: travel.setCoords,
       setManualKm: travel.setManualKm,
       setManualHours: travel.setManualHours,
@@ -135,56 +148,77 @@ export function useTaxCalculator({
       setIncludeMisc,
       setIncludeJC,
     }),
-    [travel.setCoords, travel.setManualKm, travel.setManualHours, travel.setSetupFee]
-  );
+    [
+      travel.setCoords,
+      travel.setManualKm,
+      travel.setManualHours,
+      travel.setSetupFee,
+    ]
+  )
 
   useEffect(() => {
     if (!savedTaxTotals) {
       if (restoredQuoteKeyRef.current !== null) {
-        restoredQuoteKeyRef.current = null;
-        resetTaxState(settersMap);
+        restoredQuoteKeyRef.current = null
+        resetTaxState(settersMap)
       }
-      return;
+      return
     }
 
-    const quoteKey = computeTaxQuoteKey(savedTaxTotals);
+    const quoteKey = computeTaxQuoteKey(savedTaxTotals)
 
     if (restoredQuoteKeyRef.current === quoteKey) {
-      if ((!selectedRegionId || selectedRegionId === '') && regions.length > 0) {
+      if (
+        (!selectedRegionId || selectedRegionId === "") &&
+        regions.length > 0
+      ) {
         if (savedTaxTotals.selectedRegionId) {
-          setSelectedRegionId(savedTaxTotals.selectedRegionId);
+          setSelectedRegionId(savedTaxTotals.selectedRegionId)
         } else if (savedTaxTotals.regionName) {
           const match = regions.find(
-            (r) => r.name.toLowerCase() === savedTaxTotals.regionName.toLowerCase()
-          );
-          if (match) setSelectedRegionId(match._id);
+            (r) =>
+              r.name.toLowerCase() === savedTaxTotals.regionName.toLowerCase()
+          )
+          if (match) setSelectedRegionId(match._id)
         }
       }
-      return;
+      return
     }
-    restoredQuoteKeyRef.current = quoteKey;
+    restoredQuoteKeyRef.current = quoteKey
 
-    restoreSavedTaxState(savedTaxTotals, settersMap, { regions, dbJambs, dbCasings });
-  }, [savedTaxTotals, regions, dbJambs, dbCasings, settersMap, selectedRegionId, setSelectedRegionId]);
+    restoreSavedTaxState(savedTaxTotals, settersMap, {
+      regions,
+      dbJambs,
+      dbCasings,
+    })
+  }, [
+    savedTaxTotals,
+    regions,
+    dbJambs,
+    dbCasings,
+    settersMap,
+    selectedRegionId,
+    setSelectedRegionId,
+  ])
 
-  const lastInstallJambIdRef = useRef<string>('j3');
-  const lastInstallCasingIdRef = useRef<string>('vinyl');
+  const lastInstallJambIdRef = useRef<string>("j3")
+  const lastInstallCasingIdRef = useRef<string>("vinyl")
 
   useEffect(() => {
     if (effectiveIsSupplyOnly) {
-      if (jambId !== 'none') lastInstallJambIdRef.current = jambId;
-      if (casingId !== 'none') lastInstallCasingIdRef.current = casingId;
-      setJambId('none');
-      setCasingId('none');
+      if (jambId !== "none") lastInstallJambIdRef.current = jambId
+      if (casingId !== "none") lastInstallCasingIdRef.current = casingId
+      setJambId("none")
+      setCasingId("none")
     } else {
-      if (jambId === 'none') {
-        setJambId(lastInstallJambIdRef.current || 'j3');
+      if (jambId === "none") {
+        setJambId(lastInstallJambIdRef.current || "j3")
       }
-      if (casingId === 'none') {
-        setCasingId(lastInstallCasingIdRef.current || 'vinyl');
+      if (casingId === "none") {
+        setCasingId(lastInstallCasingIdRef.current || "vinyl")
       }
     }
-  }, [effectiveIsSupplyOnly]);
+  }, [effectiveIsSupplyOnly])
 
   const calculatedTotals = useMemo(
     () =>
@@ -209,6 +243,7 @@ export function useTaxCalculator({
         casingName,
         casingRate,
         dbCasings,
+        customMaterials,
         includeLabour,
         includeMisc,
         includeJC,
@@ -219,23 +254,49 @@ export function useTaxCalculator({
         travelCity: travel.travelInfo?.city,
       }),
     [
-      windows, region, addons, travel.manualKm, travel.manualHours, crew, travel.setupFee,
-      jambId, jambName, jambRate, casingId, casingName, casingRate, discount, hstOn, includeLabour, includeMisc,
-      includeJC, dbAddons, dbJambs, dbCasings, dbVehicleRate, dbCrewRates, isSupplyOnly,
-      effectiveIsSupplyOnly, selectedRegionId, travel.coords, travel.travelInfo?.city, windowLabourSettings,
+      windows,
+      region,
+      addons,
+      travel.manualKm,
+      travel.manualHours,
+      crew,
+      travel.setupFee,
+      jambId,
+      jambName,
+      jambRate,
+      casingId,
+      casingName,
+      casingRate,
+      customMaterials,
+      discount,
+      hstOn,
+      includeLabour,
+      includeMisc,
+      includeJC,
+      dbAddons,
+      dbJambs,
+      dbCasings,
+      dbVehicleRate,
+      dbCrewRates,
+      isSupplyOnly,
+      effectiveIsSupplyOnly,
+      selectedRegionId,
+      travel.coords,
+      travel.travelInfo?.city,
+      windowLabourSettings,
     ]
-  );
+  )
 
-  const onCalculatedRef = useRef(onCalculated);
+  const onCalculatedRef = useRef(onCalculated)
   useEffect(() => {
-    onCalculatedRef.current = onCalculated;
-  });
+    onCalculatedRef.current = onCalculated
+  })
 
   useEffect(() => {
     if (onCalculatedRef.current && calculatedTotals) {
-      onCalculatedRef.current(calculatedTotals);
+      onCalculatedRef.current(calculatedTotals)
     }
-  }, [calculatedTotals]);
+  }, [calculatedTotals])
 
   return {
     regions,
@@ -266,6 +327,8 @@ export function useTaxCalculator({
     setCasingName,
     casingRate,
     setCasingRate,
+    customMaterials,
+    setCustomMaterials,
     discount,
     setDiscount,
     hstOn,
@@ -277,5 +340,5 @@ export function useTaxCalculator({
     includeJC,
     setIncludeJC,
     calculatedTotals,
-  };
+  }
 }

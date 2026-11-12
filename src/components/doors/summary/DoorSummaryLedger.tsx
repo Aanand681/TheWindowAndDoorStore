@@ -1,52 +1,60 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { DoorLineItem, DoorQuoteTotals } from '@/lib/doors/types';
-import { formatDoorItemHeading } from '@/lib/doors/calculations';
-import { cn } from '@/lib/utils';
-import { DoorSummaryEditableRow } from './DoorSummaryEditableRow';
+import React from "react"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { DoorLineItem, DoorQuoteTotals } from "@/lib/doors/types"
+import { formatDoorItemHeading } from "@/lib/doors/calculations"
+import { cn } from "@/lib/utils"
+import { DoorSummaryEditableRow } from "./DoorSummaryEditableRow"
 
 export interface DoorSummaryLedgerProps {
-  lineItems: DoorLineItem[];
-  totals: DoorQuoteTotals;
-  isInstallation: boolean;
-  hasAttachedWindow: boolean;
-  hasAttachedSU: boolean;
-  attachedWindowQuote?: any;
-  attachedWinSentence: string;
-  attachedSUSentence: string;
-  winBase: number;
-  winJC: number;
-  winJCDescription: string;
-  suGlass: number;
-  combinedLabour: number;
-  customLabour: string;
-  defaultDoorLabour: number;
-  winLabour: number;
-  suLabour: number;
-  setCustomLabour?: (val: string) => void;
-  combinedMisc: number;
-  customMisc: string;
-  defaultDoorMisc: number;
-  winMisc: number;
-  suMisc: number;
-  setCustomMisc?: (val: string) => void;
-  hasAnyAttached: boolean;
-  combinedSurcharge: number;
-  winDiscount: number;
-  combinedSubtotal: number;
-  isFirstNation: boolean;
-  onToggleFirstNation: (val: boolean) => void;
-  combinedTax: number;
-  displayGrandTotal: number;
-  firstPayment: number;
-  secondPayment: number;
-  editingField: 'labour' | 'misc' | null;
-  setEditingField: (field: 'labour' | 'misc' | null) => void;
-  tempEditVal: string;
-  setTempEditVal: (val: string) => void;
+  lineItems: DoorLineItem[]
+  totals: DoorQuoteTotals
+  isInstallation: boolean
+  hasAttachedWindow: boolean
+  hasAttachedSU: boolean
+  attachedWindowQuote?: any
+  attachedWinSentence: string
+  attachedSUSentence: string
+  winBase: number
+  winJC: number
+  winJCDescription: string
+  suGlass: number
+  combinedLabour: number
+  customLabour: string
+  defaultDoorLabour: number
+  winLabour: number
+  suLabour: number
+  setCustomLabour?: (val: string) => void
+  combinedMisc: number
+  customMisc: string
+  defaultDoorMisc: number
+  winMisc: number
+  suMisc: number
+  setCustomMisc?: (val: string) => void
+  hasAnyAttached: boolean
+  combinedSurcharge: number
+  winDiscount: number
+  combinedSubtotal: number
+  isFirstNation: boolean
+  onToggleFirstNation: (val: boolean) => void
+  hstRate?: number
+  setHstRate?: (val: number) => void
+  combinedTax: number
+  displayGrandTotal: number
+  firstPayment: number
+  secondPayment: number
+  editingField: "labour" | "misc" | null
+  setEditingField: (field: "labour" | "misc" | null) => void
+  tempEditVal: string
+  setTempEditVal: (val: string) => void
 }
 
 export function DoorSummaryLedger({
@@ -80,6 +88,8 @@ export function DoorSummaryLedger({
   combinedSubtotal,
   isFirstNation,
   onToggleFirstNation,
+  hstRate,
+  setHstRate,
   combinedTax,
   displayGrandTotal,
   firstPayment,
@@ -93,54 +103,69 @@ export function DoorSummaryLedger({
     <div className="space-y-2 text-xs sm:text-sm">
       {lineItems.length > 0 ? (
         lineItems.map((item, idx) => {
-          const qty = item.quantity || 1;
-          const heading = formatDoorItemHeading(item);
-          const itemBaseTotal = item.inksterBasePrice * qty;
+          const qty = item.quantity || 1
+          const heading = formatDoorItemHeading(item)
+          const itemBaseTotal = item.inksterBasePrice * qty
 
           return (
             <div
               key={item.id || idx}
-              className="flex items-start justify-between gap-2 pb-1.5 border-b border-border/30"
+              className="flex items-start justify-between gap-2 border-b border-border/30 pb-1.5"
             >
               <div className="min-w-0">
-                <div className="font-semibold text-foreground text-xs sm:text-sm">{heading}</div>
+                <div className="text-xs font-semibold text-foreground sm:text-sm">
+                  {heading}
+                </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Preset: {item.presetLabel} • ${item.inksterBasePrice.toFixed(2)}/ea
+                  Preset: {item.presetLabel} • $
+                  {item.inksterBasePrice.toFixed(2)}/ea
                 </div>
               </div>
-              <div className="font-mono font-semibold text-xs sm:text-sm shrink-0">
+              <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">
                 ${itemBaseTotal.toFixed(2)}
               </div>
             </div>
-          );
+          )
         })
       ) : (
-        <div className="flex items-start justify-between gap-2 pb-1.5 border-b border-border/30">
+        <div className="flex items-start justify-between gap-2 border-b border-border/30 pb-1.5">
           <div className="min-w-0">
-            <div className="font-semibold text-foreground text-xs sm:text-sm">Door Units</div>
-            <div className="text-[11px] text-muted-foreground">No doors configured yet</div>
+            <div className="text-xs font-semibold text-foreground sm:text-sm">
+              Door Units
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              No doors configured yet
+            </div>
           </div>
-          <div className="font-mono font-semibold text-xs sm:text-sm shrink-0">$0.00</div>
+          <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">
+            $0.00
+          </div>
         </div>
       )}
 
       {hasAttachedWindow && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground truncate">{attachedWinSentence}</span>
+          <span className="truncate text-muted-foreground">
+            {attachedWinSentence}
+          </span>
           <span className="font-mono font-medium">+${winBase.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedWindow && winJC > 0 && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground truncate">{winJCDescription}</span>
+          <span className="truncate text-muted-foreground">
+            {winJCDescription}
+          </span>
           <span className="font-mono font-medium">+${winJC.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedSU && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground truncate">{attachedSUSentence}</span>
+          <span className="truncate text-muted-foreground">
+            {attachedSUSentence}
+          </span>
           <span className="font-mono font-medium">+${suGlass.toFixed(2)}</span>
         </div>
       )}
@@ -158,7 +183,7 @@ export function DoorSummaryLedger({
           tempEditVal={tempEditVal}
           setTempEditVal={setTempEditVal}
           setter={setCustomLabour}
-          suffix={hasAnyAttached ? '(all quotes)' : undefined}
+          suffix={hasAnyAttached ? "(all quotes)" : undefined}
         />
       )}
 
@@ -175,19 +200,23 @@ export function DoorSummaryLedger({
           tempEditVal={tempEditVal}
           setTempEditVal={setTempEditVal}
           setter={setCustomMisc}
-          suffix={hasAnyAttached ? '(all quotes)' : undefined}
+          suffix={hasAnyAttached ? "(all quotes)" : undefined}
         />
       )}
 
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Surcharge (8% on materials)</span>
-        <span className="font-mono font-medium">${combinedSurcharge.toFixed(2)}</span>
+        <span className="text-muted-foreground">
+          Surcharge (8% on materials)
+        </span>
+        <span className="font-mono font-medium">
+          ${combinedSurcharge.toFixed(2)}
+        </span>
       </div>
 
       {totals.discountTotal > 0 && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-            10% Discount (Non-Storm Doors)
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+            10% Discount
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
             -${totals.discountTotal.toFixed(2)}
@@ -197,11 +226,11 @@ export function DoorSummaryLedger({
 
       {winDiscount > 0 && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
             Promo Discount (
             {attachedWindowQuote?.promoName ||
               attachedWindowQuote?.quoteResult?.promoName ||
-              'Attached Window Promo'}
+              "Attached Window Promo"}
             )
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
@@ -213,11 +242,13 @@ export function DoorSummaryLedger({
       {totals.hardwareTotal > 0 && (
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Lockset &amp; Hardware</span>
-          <span className="font-mono font-medium">${totals.hardwareTotal.toFixed(2)}</span>
+          <span className="font-mono font-medium">
+            ${totals.hardwareTotal.toFixed(2)}
+          </span>
         </div>
       )}
 
-      <div className="pt-1 border-t border-border/60" />
+      <div className="border-t border-border/60 pt-1" />
 
       <div className="flex items-center justify-between text-sm font-semibold">
         <span>Subtotal</span>
@@ -226,69 +257,100 @@ export function DoorSummaryLedger({
         </span>
       </div>
 
-      <div className="pt-1 space-y-1.5 border-t border-border/40">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">
-            {isFirstNation ? '5% GST (First Nations Material Exemption)' : '13% HST'}
-          </span>
-          <span className="font-mono font-medium">${combinedTax.toFixed(2)}</span>
+      <div className="space-y-2 border-t border-border/40 pt-2">
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs font-medium whitespace-nowrap text-muted-foreground">
+              Tax Option:
+            </Label>
+            <Select
+              value={String(
+                hstRate !== undefined ? hstRate : isFirstNation ? 8 : 13
+              )}
+              onValueChange={(val) => {
+                const num = Number(val)
+                if (setHstRate) setHstRate(num)
+                onToggleFirstNation(num === 8)
+              }}
+            >
+              <SelectTrigger className="h-7 w-[190px] bg-background/50 text-xs font-medium shadow-none">
+                <SelectValue>
+                  {(hstRate !== undefined ? hstRate : isFirstNation ? 8 : 13) === 8
+                    ? "8% Material Exemption"
+                    : (hstRate !== undefined ? hstRate : isFirstNation ? 8 : 13) === 0
+                      ? "0% No Tax (Exempt)"
+                      : "13% HST (Standard)"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="13">13% HST (Standard)</SelectItem>
+                <SelectItem value="8">8% Material Exemption</SelectItem>
+                <SelectItem value="0">0% No Tax (Exempt)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(hstRate === 13 || (!hstRate && !isFirstNation)) && (
+            <span className="font-mono font-medium">
+              +${combinedTax.toFixed(2)}
+            </span>
+          )}
+          {hstRate === 0 && (
+            <span className="font-mono text-muted-foreground">$0.00</span>
+          )}
         </div>
 
-        <div className="flex items-center justify-between text-xs pt-0.5">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="doorFirstNationCheckbox"
-              checked={isFirstNation}
-              onCheckedChange={(c) => onToggleFirstNation(Boolean(c))}
-            />
-            <Label
-              htmlFor="doorFirstNationCheckbox"
-              className="cursor-pointer text-muted-foreground font-normal text-xs"
-            >
-              8% First Nations Material Exemption
-            </Label>
+        {(isFirstNation || hstRate === 8) && (
+          <div className="space-y-1 rounded-md border border-border/50 bg-muted/40 p-2 text-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span>13% HST (on all):</span>
+              <span className="font-mono font-medium text-foreground">
+                +$
+                {(
+                  totals.hstBase ??
+                  combinedTax + (totals.materialExemption || 0)
+                ).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between font-medium text-emerald-500">
+              <span>8% Tax Rebate (Material Exemption):</span>
+              <span className="font-mono">
+                -${(totals.materialExemption || 0).toFixed(2)}
+              </span>
+            </div>
           </div>
-          <span
-            className={cn(
-              'font-mono text-xs',
-              isFirstNation
-                ? 'text-emerald-500 font-semibold'
-                : 'text-muted-foreground opacity-40 line-through'
-            )}
-          >
-            {isFirstNation ? '-8% PST' : 'Standard'}
-          </span>
-        </div>
+        )}
       </div>
 
       <div className="pt-2">
-        <div className="flex justify-between items-baseline mb-2.5">
-          <span className="text-base font-bold text-foreground">Total incl. HST</span>
-          <span className="text-2xl font-black font-mono tracking-tight text-primary whitespace-nowrap shrink-0">
+        <div className="mb-2.5 flex items-baseline justify-between">
+          <span className="text-base font-bold text-foreground">
+            Total incl. HST
+          </span>
+          <span className="shrink-0 font-mono text-2xl font-black tracking-tight whitespace-nowrap text-primary">
             ${displayGrandTotal.toFixed(2)}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60 text-center sm:text-left">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">
+          <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5 text-center sm:text-left">
+            <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
               First 50%
             </div>
-            <div className="font-mono font-bold text-primary text-base whitespace-nowrap">
+            <div className="font-mono text-base font-bold whitespace-nowrap text-primary">
               ${firstPayment.toFixed(2)}
             </div>
           </div>
-          <div className="bg-muted/60 rounded-xl p-2.5 border border-border/60 text-center sm:text-left">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">
+          <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5 text-center sm:text-left">
+            <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
               Final 50%
             </div>
-            <div className="font-mono font-bold text-primary text-base whitespace-nowrap">
+            <div className="font-mono text-base font-bold whitespace-nowrap text-primary">
               ${secondPayment.toFixed(2)}
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
-

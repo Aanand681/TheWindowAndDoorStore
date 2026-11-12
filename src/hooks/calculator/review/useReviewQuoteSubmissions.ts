@@ -1,14 +1,26 @@
-'use client';
+"use client"
 
-import { useQuoteReviewSubmissionState, UseQuoteReviewSubmissionStateParams } from './useQuoteReviewSubmissionState';
-import { useReviewWorkflowActions, UseReviewWorkflowActionsParams } from './useReviewWorkflowActions';
+import {
+  useQuoteReviewSubmissionState,
+  UseQuoteReviewSubmissionStateParams,
+} from "./useQuoteReviewSubmissionState"
+import {
+  useReviewWorkflowActions,
+  UseReviewWorkflowActionsParams,
+} from "./useReviewWorkflowActions"
 
 export interface UseReviewQuoteSubmissionsParams
-  extends UseQuoteReviewSubmissionStateParams,
-    Omit<UseReviewWorkflowActionsParams, 'selectedOdooClerk' | 'setSelectedOdooClerk' | 'staffList' | 'clerkList'> {}
+  extends
+    UseQuoteReviewSubmissionStateParams,
+    Omit<
+      UseReviewWorkflowActionsParams,
+      "selectedOdooClerk" | "setSelectedOdooClerk" | "staffList" | "clerkList"
+    > {}
 
-export function useReviewQuoteSubmissions(params: UseReviewQuoteSubmissionsParams) {
-  const submissionState = useQuoteReviewSubmissionState(params);
+export function useReviewQuoteSubmissions(
+  params: UseReviewQuoteSubmissionsParams
+) {
+  const submissionState = useQuoteReviewSubmissionState(params)
 
   const workflowActions = useReviewWorkflowActions({
     ...params,
@@ -16,10 +28,10 @@ export function useReviewQuoteSubmissions(params: UseReviewQuoteSubmissionsParam
     setSelectedOdooClerk: submissionState.setSelectedOdooClerk,
     staffList: submissionState.staffList,
     clerkList: submissionState.clerkList,
-  });
+  })
 
   return {
     ...submissionState,
     ...workflowActions,
-  };
+  }
 }

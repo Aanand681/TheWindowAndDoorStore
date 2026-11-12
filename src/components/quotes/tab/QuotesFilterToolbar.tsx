@@ -1,27 +1,27 @@
-import React from 'react';
-import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import type { QuotesSubTabType } from './types';
+import React from "react"
+import { Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import type { QuotesSubTabType } from "./types"
 
 export interface QuotesFilterToolbarProps {
-  search: string;
-  setSearch: (val: string) => void;
-  activeTab: QuotesSubTabType;
-  handleTabChange: (tab: QuotesSubTabType) => void;
-  statusFilter: string;
-  setStatusFilter: (val: string) => void;
-  canReview: boolean;
-  isClerk: boolean;
-  isEmployee: boolean;
-  hasOdooAccess: boolean;
-  adminPendingCount: number;
-  adminOdooCount: number;
-  employeeInReviewCount: number;
-  employeeOdooDoneCount: number;
-  clerkPendingCount: number;
-  clerkCompletedCount: number;
-  clerkTotalAssignedCount: number;
+  search: string
+  setSearch: (val: string) => void
+  activeTab: QuotesSubTabType
+  handleTabChange: (tab: QuotesSubTabType) => void
+  statusFilter: string
+  setStatusFilter: (val: string) => void
+  canReview: boolean
+  isClerk: boolean
+  isEmployee: boolean
+  hasOdooAccess: boolean
+  adminPendingCount: number
+  adminOdooCount: number
+  employeeInReviewCount: number
+  employeeOdooDoneCount: number
+  clerkPendingCount: number
+  clerkCompletedCount: number
+  clerkTotalAssignedCount: number
 }
 
 export function QuotesFilterToolbar({
@@ -44,20 +44,20 @@ export function QuotesFilterToolbar({
   clerkTotalAssignedCount,
 }: QuotesFilterToolbarProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card/40 border border-border/70 p-3 rounded-xl backdrop-blur">
+    <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/40 p-3 backdrop-blur sm:flex-row">
       <div className="relative w-full sm:w-96">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by Quote #, Odoo Sales Order #, Customer, Staff..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 pr-8 h-9 bg-background/80 text-sm"
+          className="h-9 bg-background/80 pr-8 pl-9 text-sm"
         />
         {search && (
           <button
             type="button"
-            onClick={() => setSearch('')}
-            className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
+            onClick={() => setSearch("")}
+            className="absolute top-2.5 right-2.5 cursor-pointer text-xs font-bold text-muted-foreground hover:text-foreground"
             title="Clear search"
           >
             ✕
@@ -65,38 +65,38 @@ export function QuotesFilterToolbar({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-        <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border">
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1">
           {canReview && (
             <>
               <Button
-                variant={activeTab === 'review' ? 'secondary' : 'ghost'}
+                variant={activeTab === "review" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('review')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("review")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 Pending ({adminPendingCount})
               </Button>
               <Button
-                variant={activeTab === 'odoo' ? 'secondary' : 'ghost'}
+                variant={activeTab === "odoo" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('odoo')}
-                className={`h-7 text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
-                  adminOdooCount > 0 ? 'text-indigo-500 font-bold' : ''
+                onClick={() => handleTabChange("odoo")}
+                className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                  adminOdooCount > 0 ? "font-bold text-indigo-500" : ""
                 }`}
               >
                 <span>Odoo Queue</span>
                 {adminOdooCount > 0 && (
-                  <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                  <span className="py-0.2 rounded-full bg-indigo-500 px-1.5 text-[10px] font-bold text-white">
                     {adminOdooCount}
                   </span>
                 )}
               </Button>
               <Button
-                variant={activeTab === 'all' ? 'secondary' : 'ghost'}
+                variant={activeTab === "all" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('all')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("all")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 All Quotes
               </Button>
@@ -106,44 +106,46 @@ export function QuotesFilterToolbar({
           {isEmployee && (
             <>
               <Button
-                variant={activeTab === 'review' ? 'secondary' : 'ghost'}
+                variant={activeTab === "review" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('review')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("review")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 In Review ({employeeInReviewCount})
               </Button>
               {hasOdooAccess ? (
                 <Button
-                  variant={activeTab === 'odoo' ? 'secondary' : 'ghost'}
+                  variant={activeTab === "odoo" ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => handleTabChange('odoo')}
-                  className={`h-7 text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
-                    adminOdooCount > 0 ? 'text-indigo-500 font-bold' : ''
+                  onClick={() => handleTabChange("odoo")}
+                  className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                    adminOdooCount > 0 ? "font-bold text-indigo-500" : ""
                   }`}
                 >
                   <span>Odoo Queue</span>
                   {adminOdooCount > 0 && (
-                    <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    <span className="py-0.2 rounded-full bg-indigo-500 px-1.5 text-[10px] font-bold text-white">
                       {adminOdooCount}
                     </span>
                   )}
                 </Button>
               ) : (
                 <Button
-                  variant={activeTab === 'odoo_completed' ? 'secondary' : 'ghost'}
+                  variant={
+                    activeTab === "odoo_completed" ? "secondary" : "ghost"
+                  }
                   size="sm"
-                  onClick={() => handleTabChange('odoo_completed')}
-                  className="h-7 text-xs font-semibold cursor-pointer"
+                  onClick={() => handleTabChange("odoo_completed")}
+                  className="h-7 cursor-pointer text-xs font-semibold"
                 >
                   Entered in Odoo ({employeeOdooDoneCount})
                 </Button>
               )}
               <Button
-                variant={activeTab === 'my' ? 'secondary' : 'ghost'}
+                variant={activeTab === "my" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('my')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("my")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 My History
               </Button>
@@ -153,33 +155,33 @@ export function QuotesFilterToolbar({
           {isClerk && (
             <>
               <Button
-                variant={activeTab === 'odoo' ? 'secondary' : 'ghost'}
+                variant={activeTab === "odoo" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('odoo')}
-                className={`h-7 text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
-                  clerkPendingCount > 0 ? 'text-indigo-500 font-bold' : ''
+                onClick={() => handleTabChange("odoo")}
+                className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                  clerkPendingCount > 0 ? "font-bold text-indigo-500" : ""
                 }`}
               >
                 <span>Pending Entry</span>
                 {clerkPendingCount > 0 && (
-                  <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                  <span className="py-0.2 rounded-full bg-indigo-500 px-1.5 text-[10px] font-bold text-white">
                     {clerkPendingCount}
                   </span>
                 )}
               </Button>
               <Button
-                variant={activeTab === 'odoo_completed' ? 'secondary' : 'ghost'}
+                variant={activeTab === "odoo_completed" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('odoo_completed')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("odoo_completed")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 Completed ({clerkCompletedCount})
               </Button>
               <Button
-                variant={activeTab === 'all_assigned' ? 'secondary' : 'ghost'}
+                variant={activeTab === "all_assigned" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => handleTabChange('all_assigned')}
-                className="h-7 text-xs font-semibold cursor-pointer"
+                onClick={() => handleTabChange("all_assigned")}
+                className="h-7 cursor-pointer text-xs font-semibold"
               >
                 Total Assigned ({clerkTotalAssignedCount})
               </Button>
@@ -190,7 +192,7 @@ export function QuotesFilterToolbar({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 px-2.5 rounded-lg border border-border bg-background text-xs font-medium focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+          className="h-9 cursor-pointer rounded-lg border border-border bg-background px-2.5 text-xs font-medium outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="all">All Statuses</option>
           <option value="PENDING_REVIEW">Pending Review</option>
@@ -202,6 +204,5 @@ export function QuotesFilterToolbar({
         </select>
       </div>
     </div>
-  );
+  )
 }
-

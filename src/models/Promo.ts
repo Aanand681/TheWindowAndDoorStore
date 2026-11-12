@@ -1,39 +1,39 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface IPromo extends Document {
-  name: string;
-  type: 'BOGO' | 'FREE_PARTS' | 'PERCENTAGE' | 'COMBO';
-  isActive: boolean;
-  
+  name: string
+  type: "BOGO" | "FREE_PARTS" | "PERCENTAGE" | "COMBO"
+  isActive: boolean
+
   // BOGO Fields
-  buyQty?: number;
-  getQty?: number;
-  
+  buyQty?: number
+  getQty?: number
+
   // FREE_PARTS / COMBO Fields
-  freeComponents?: string[]; // e.g., ['argon', 'solar', 'triple']
-  
+  freeComponents?: string[] // e.g., ['argon', 'solar', 'triple']
+
   // PERCENTAGE / COMBO Fields
-  discountPercentage?: number;
-  
+  discountPercentage?: number
+
   // Control math order for COMBO
-  applyPercentageAfterFreeParts?: boolean;
+  applyPercentageAfterFreeParts?: boolean
 
-  order?: number;
+  order?: number
 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date
+  updatedAt: Date
 }
 
 const PromoSchema = new Schema<IPromo>(
   {
     name: {
       type: String,
-      required: [true, 'Promo name is required'],
+      required: [true, "Promo name is required"],
       trim: true,
     },
     type: {
       type: String,
-      enum: ['BOGO', 'FREE_PARTS', 'PERCENTAGE', 'COMBO'],
+      enum: ["BOGO", "FREE_PARTS", "PERCENTAGE", "COMBO"],
       required: true,
     },
     isActive: {
@@ -66,11 +66,13 @@ const PromoSchema = new Schema<IPromo>(
     },
   },
   { timestamps: true, strict: false }
-);
+)
 
-if (mongoose.models.Promo && !mongoose.models.Promo.schema.path('order')) {
-  delete (mongoose.models as Record<string, unknown>).Promo;
+if (mongoose.models.Promo && !mongoose.models.Promo.schema.path("order")) {
+  delete (mongoose.models as Record<string, unknown>).Promo
 }
 
-const PromoModel: Model<IPromo> = (mongoose.models.Promo as Model<IPromo>) || mongoose.model<IPromo>('Promo', PromoSchema);
-export default PromoModel;
+const PromoModel: Model<IPromo> =
+  (mongoose.models.Promo as Model<IPromo>) ||
+  mongoose.model<IPromo>("Promo", PromoSchema)
+export default PromoModel

@@ -1,37 +1,40 @@
-import { useMemo } from 'react';
-import { formatDoorSummarySentence } from '@/lib/doors/calculations';
-import { formatSealedUnitSummarySentence, getSealedUnitServiceSummaryLabel } from '@/lib/sealed-units-logic';
+import { useMemo } from "react"
+import { formatDoorSummarySentence } from "@/lib/doors/calculations"
+import {
+  formatSealedUnitSummarySentence,
+  getSealedUnitServiceSummaryLabel,
+} from "@/lib/sealed-units-logic"
 
 export interface CombinedQuoteData {
-  hasSU: boolean;
-  hasDoor: boolean;
-  windowBaseCents: number;
-  suGlassCents: number;
-  suSummarySentence: string;
-  isAttachedSUService: boolean;
-  doorMaterialsCents: number;
-  doorSummarySentence: string;
-  doorDiscountCents: number;
-  effectiveJCCents: number;
-  combinedMiscCents: number;
-  combinedLabourCents: number;
-  combinedSurchargeCents: number;
-  windowDiscountCents: number;
-  combinedSubtotalCents: number;
-  combinedTaxCents: number;
-  combinedTotalCents: number;
-  combinedFirstPayment: number;
-  combinedSecondPayment: number;
+  hasSU: boolean
+  hasDoor: boolean
+  windowBaseCents: number
+  suGlassCents: number
+  suSummarySentence: string
+  isAttachedSUService: boolean
+  doorMaterialsCents: number
+  doorSummarySentence: string
+  doorDiscountCents: number
+  effectiveJCCents: number
+  combinedMiscCents: number
+  combinedLabourCents: number
+  combinedSurchargeCents: number
+  windowDiscountCents: number
+  combinedSubtotalCents: number
+  combinedTaxCents: number
+  combinedTotalCents: number
+  combinedFirstPayment: number
+  combinedSecondPayment: number
 }
 
 export interface UseCombinedQuoteDataParams {
-  attachedSealedUnit?: any | null;
-  attachedDoorQuote?: any | null;
-  quoteResult?: any;
-  effectiveMiscCents: number;
-  effectiveLabourCents: number;
-  effectiveJCCents: number;
-  hstRate: number;
+  attachedSealedUnit?: any | null
+  attachedDoorQuote?: any | null
+  quoteResult?: any
+  effectiveMiscCents: number
+  effectiveLabourCents: number
+  effectiveJCCents: number
+  hstRate: number
 }
 
 /**
@@ -48,25 +51,31 @@ export function useCombinedQuoteData({
   hstRate,
 }: UseCombinedQuoteDataParams): CombinedQuoteData | null {
   return useMemo(() => {
-    if (!attachedSealedUnit && !attachedDoorQuote) return null;
+    if (!attachedSealedUnit && !attachedDoorQuote) return null
 
-    const hasSU = Boolean(attachedSealedUnit);
-    const suTotals = attachedSealedUnit?.totals || {};
+    const hasSU = Boolean(attachedSealedUnit)
+    const suTotals = attachedSealedUnit?.totals || {}
     const isAttachedSUService =
-      attachedSealedUnit?.sealedUnitMode === 'service_only' ||
-      attachedSealedUnit?.data?.sealedUnitMode === 'service_only' ||
-      Boolean(suTotals.isServiceOnly);
+      attachedSealedUnit?.sealedUnitMode === "service_only" ||
+      attachedSealedUnit?.data?.sealedUnitMode === "service_only" ||
+      Boolean(suTotals.isServiceOnly)
     const suGlassCents =
-      hasSU && !isAttachedSUService ? Math.round((suTotals.glassBefore8PercentTotal || 0) * 100) : 0;
+      hasSU && !isAttachedSUService
+        ? Math.round((suTotals.glassBefore8PercentTotal || 0) * 100)
+        : 0
     const suSurchargeCents =
-      hasSU && !isAttachedSUService ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100) : 0;
+      hasSU && !isAttachedSUService
+        ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100)
+        : 0
     const suLabourCents = hasSU
-      ? Math.round((suTotals.serviceLabourTotal ?? suTotals.unitLabourSum ?? 0) * 100)
-      : 0;
-    const suMiscCents = hasSU ? Math.round((suTotals.miscTotal || 0) * 100) : 0;
+      ? Math.round(
+          (suTotals.serviceLabourTotal ?? suTotals.unitLabourSum ?? 0) * 100
+        )
+      : 0
+    const suMiscCents = hasSU ? Math.round((suTotals.miscTotal || 0) * 100) : 0
 
-    const hasDoor = Boolean(attachedDoorQuote);
-    const doorTotals = attachedDoorQuote?.totals || {};
+    const hasDoor = Boolean(attachedDoorQuote)
+    const doorTotals = attachedDoorQuote?.totals || {}
     const doorRawBaseCents = hasDoor
       ? Math.round(
           ((doorTotals.rawDoorBaseTotal || 0) +
@@ -74,22 +83,34 @@ export function useCombinedQuoteData({
             (doorTotals.hardwareTotal || 0)) *
             100
         )
-      : 0;
-    const doorDiscountCents = hasDoor ? Math.round((doorTotals.discountTotal || 0) * 100) : 0;
-    const doorMaterialsCents = doorRawBaseCents;
-    const doorSurchargeCents = hasDoor ? Math.round((doorTotals.surchargeTotal || 0) * 100) : 0;
+      : 0
+    const doorDiscountCents = hasDoor
+      ? Math.round((doorTotals.discountTotal || 0) * 100)
+      : 0
+    const doorMaterialsCents = doorRawBaseCents
+    const doorSurchargeCents = hasDoor
+      ? Math.round((doorTotals.surchargeTotal || 0) * 100)
+      : 0
     const doorLabourCents = hasDoor
-      ? Math.round(((doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)) * 100)
-      : 0;
-    const doorMiscCents = hasDoor ? Math.round((doorTotals.miscTotal || 0) * 100) : 0;
+      ? Math.round(
+          ((doorTotals.unitLabourTotal || 0) +
+            (doorTotals.upchargesTotal || 0)) *
+            100
+        )
+      : 0
+    const doorMiscCents = hasDoor
+      ? Math.round((doorTotals.miscTotal || 0) * 100)
+      : 0
 
-    const windowBaseCents = quoteResult?.base || 0;
-    const windowSurchargeCents = quoteResult?.surcharge || 0;
-    const windowDiscountCents = quoteResult?.promoDiscount || 0;
+    const windowBaseCents = quoteResult?.base || 0
+    const windowSurchargeCents = quoteResult?.surcharge || 0
+    const windowDiscountCents = quoteResult?.promoDiscount || 0
 
-    const combinedMiscCents = effectiveMiscCents + suMiscCents + doorMiscCents;
-    const combinedLabourCents = effectiveLabourCents + suLabourCents + doorLabourCents;
-    const combinedSurchargeCents = windowSurchargeCents + suSurchargeCents + doorSurchargeCents;
+    const combinedMiscCents = effectiveMiscCents + suMiscCents + doorMiscCents
+    const combinedLabourCents =
+      effectiveLabourCents + suLabourCents + doorLabourCents
+    const combinedSurchargeCents =
+      windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 
     const combinedSubtotalCents =
       windowBaseCents -
@@ -99,46 +120,59 @@ export function useCombinedQuoteData({
       effectiveJCCents +
       combinedMiscCents +
       combinedLabourCents +
-      combinedSurchargeCents;
+      combinedSurchargeCents
 
-    let combinedTaxCents = 0;
+    let combinedTaxCents = 0
+    let combinedHstBaseCents = 0
+    let combinedMaterialExemptionCents = 0
+
     if (hstRate === 13) {
-      combinedTaxCents = Math.round(combinedSubtotalCents * 0.13);
+      combinedTaxCents = Math.round(combinedSubtotalCents * 0.13)
+      combinedHstBaseCents = combinedTaxCents
+      combinedMaterialExemptionCents = 0
     } else if (hstRate === 8) {
+      // Factory surcharges are EXCLUDED from materials (treated as handling/service).
       const materialsCents = Math.max(
         0,
         windowBaseCents -
           windowDiscountCents +
-          windowSurchargeCents +
           effectiveJCCents +
           suGlassCents +
-          suSurchargeCents +
-          (doorRawBaseCents - doorDiscountCents) +
-          doorSurchargeCents
-      );
-      const servicesCents = Math.max(0, combinedLabourCents + combinedMiscCents);
-      combinedTaxCents = Math.round(materialsCents * 0.05 + servicesCents * 0.13);
+          (doorRawBaseCents - doorDiscountCents)
+      )
+      combinedHstBaseCents = Math.round(combinedSubtotalCents * 0.13)
+      combinedMaterialExemptionCents = Math.round(materialsCents * 0.08)
+      combinedTaxCents = Math.max(
+        0,
+        combinedHstBaseCents - combinedMaterialExemptionCents
+      )
     } else {
-      combinedTaxCents = 0;
+      // 0% No Tax (Exempt)
+      combinedTaxCents = 0
+      combinedHstBaseCents = 0
+      combinedMaterialExemptionCents = 0
     }
 
-    const combinedTotalCents = combinedSubtotalCents + combinedTaxCents;
-    const combinedFirstPayment = Math.round(combinedTotalCents / 2);
-    const combinedSecondPayment = combinedTotalCents - combinedFirstPayment;
+    const combinedTotalCents = combinedSubtotalCents + combinedTaxCents
+    const combinedFirstPayment = Math.round(combinedTotalCents / 2)
+    const combinedSecondPayment = combinedTotalCents - combinedFirstPayment
 
-    const suLineItems = attachedSealedUnit?.lineItems || [];
-    let suSummarySentence = 'Sealed Unit';
+    const suLineItems = attachedSealedUnit?.lineItems || []
+    let suSummarySentence = "Sealed Unit"
     if (isAttachedSUService) {
-      suSummarySentence = getSealedUnitServiceSummaryLabel(suLineItems, suTotals.totalSqft);
+      suSummarySentence = getSealedUnitServiceSummaryLabel(
+        suLineItems,
+        suTotals.totalSqft
+      )
     } else if (suLineItems.length > 0) {
-      suSummarySentence = formatSealedUnitSummarySentence(suLineItems);
+      suSummarySentence = formatSealedUnitSummarySentence(suLineItems)
     }
 
-    const doorLineItems = attachedDoorQuote?.lineItems || [];
+    const doorLineItems = attachedDoorQuote?.lineItems || []
     const doorSummarySentence =
       doorLineItems.length > 0
         ? formatDoorSummarySentence(doorLineItems)
-        : `${attachedDoorQuote?.itemCount || 1} Door Unit${(attachedDoorQuote?.itemCount || 1) !== 1 ? 's' : ''}`;
+        : `${attachedDoorQuote?.itemCount || 1} Door Unit${(attachedDoorQuote?.itemCount || 1) !== 1 ? "s" : ""}`
 
     return {
       hasSU,
@@ -157,10 +191,12 @@ export function useCombinedQuoteData({
       windowDiscountCents,
       combinedSubtotalCents,
       combinedTaxCents,
+      combinedHstBaseCents,
+      combinedMaterialExemptionCents,
       combinedTotalCents,
       combinedFirstPayment,
       combinedSecondPayment,
-    };
+    }
   }, [
     attachedSealedUnit,
     attachedDoorQuote,
@@ -169,6 +205,5 @@ export function useCombinedQuoteData({
     effectiveLabourCents,
     effectiveJCCents,
     hstRate,
-  ]);
+  ])
 }
-

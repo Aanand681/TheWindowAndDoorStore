@@ -1,25 +1,25 @@
-'use client';
+"use client"
 
-import React from 'react';
-import QuotePreviewModal from '../../QuotePreviewModal';
-import { computeQuotePricing } from '../quote-pricing-helper';
-import type { QuoteTemplateType } from '@/components/quotes/invoice/types';
+import React from "react"
+import QuotePreviewModal from "../../QuotePreviewModal"
+import { computeQuotePricing } from "../quote-pricing-helper"
+import type { QuoteTemplateType } from "@/components/quotes/invoice/types"
 
 interface QuotePreviewModalWrapperProps {
-  previewQuote: any;
-  setPreviewQuote: (val: any) => void;
-  isPreviewOpen: boolean;
-  setIsPreviewOpen: (val: boolean) => void;
-  previewTemplate: QuoteTemplateType;
-  setPreviewTemplate: (val: QuoteTemplateType) => void;
-  previewFontSize: number;
-  setPreviewFontSize: (val: number) => void;
-  previewSpacing: number;
-  setPreviewSpacing: (val: number) => void;
-  previewNotes: string;
-  setPreviewNotes: (val: string) => void;
-  canReview: boolean;
-  currentUser: any;
+  previewQuote: any
+  setPreviewQuote: (val: any) => void
+  isPreviewOpen: boolean
+  setIsPreviewOpen: (val: boolean) => void
+  previewTemplate: QuoteTemplateType
+  setPreviewTemplate: (val: QuoteTemplateType) => void
+  previewFontSize: number
+  setPreviewFontSize: (val: number) => void
+  previewSpacing: number
+  setPreviewSpacing: (val: number) => void
+  previewNotes: string
+  setPreviewNotes: (val: string) => void
+  canReview: boolean
+  currentUser: any
 }
 
 export function QuotePreviewModalWrapper({
@@ -38,17 +38,17 @@ export function QuotePreviewModalWrapper({
   canReview,
   currentUser,
 }: QuotePreviewModalWrapperProps) {
-  if (!previewQuote) return null;
+  if (!previewQuote) return null
 
-  const financials = computeQuotePricing(previewQuote);
-  if (!financials) return null;
+  const financials = computeQuotePricing(previewQuote)
+  if (!financials) return null
 
   return (
     <QuotePreviewModal
       isOpen={isPreviewOpen}
       onClose={() => {
-        setIsPreviewOpen(false);
-        setPreviewQuote(null);
+        setIsPreviewOpen(false)
+        setPreviewQuote(null)
       }}
       customerName={previewQuote.customerName}
       quoteNumber={previewQuote.quoteNumber}
@@ -58,7 +58,7 @@ export function QuotePreviewModalWrapper({
       activePromo={
         financials.promoDiscount > 0
           ? {
-              name: previewQuote.quoteResult?.promoName || 'Applied Promo',
+              name: previewQuote.quoteResult?.promoName || "Applied Promo",
               discount: financials.promoDiscount,
             }
           : null
@@ -73,7 +73,9 @@ export function QuotePreviewModalWrapper({
       afterDiscount={financials.afterDiscount}
       firstPayment={financials.firstPayment}
       secondPayment={financials.secondPayment}
-      regionName={previewQuote.taxTotals?.regionName || previewQuote.taxTotals?.city}
+      regionName={
+        previewQuote.taxTotals?.regionName || previewQuote.taxTotals?.city
+      }
       includeLabourInPromo={financials.includeLabourInPromo}
       includeMiscInPromo={financials.includeMiscInPromo}
       includeJCInPromo={financials.includeJCInPromo}
@@ -96,5 +98,5 @@ export function QuotePreviewModalWrapper({
           : setPreviewNotes
       }
     />
-  );
+  )
 }

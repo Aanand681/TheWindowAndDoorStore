@@ -1,10 +1,10 @@
-'use client';
+"use client"
 
-import React, { useState, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import { SealedUnitLineItem } from '@/lib/sealed-units-logic';
-import { calculateSealedUnitTotals } from '@/lib/sealed-units/calculations';
+import React, { useState, useMemo } from "react"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
+import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
+import { calculateSealedUnitTotals } from "@/lib/sealed-units/calculations"
 import {
   SealedUnitItemBuilder,
   SealedUnitLabourTravelCard,
@@ -12,31 +12,32 @@ import {
   SealedUnitLineItemsTable,
   SealedUnitOfficePricingCard,
   SealedUnitTemplateType,
-} from '@/components/sealed-units';
-import { useSealedUnitsSettings } from '@/hooks/sealed-units/useSealedUnitsSettings';
-import { useSealedUnitsTravel } from '@/hooks/sealed-units/useSealedUnitsTravel';
-import { useSealedUnitsItemBuilder } from '@/hooks/sealed-units/useSealedUnitsItemBuilder';
-import { useSealedUnitsDrafts } from '@/hooks/sealed-units/useSealedUnitsDrafts';
-import { useSealedUnitsReviewSubmit } from '@/hooks/sealed-units/useSealedUnitsReviewSubmit';
-import { SealedUnitsHeaderBar } from '@/components/sealed-units/page/SealedUnitsHeaderBar';
-import { SealedUnitsModalsGroup } from '@/components/sealed-units/page/SealedUnitsModalsGroup';
+} from "@/components/sealed-units"
+import { useSealedUnitsSettings } from "@/hooks/sealed-units/useSealedUnitsSettings"
+import { useSealedUnitsTravel } from "@/hooks/sealed-units/useSealedUnitsTravel"
+import { useSealedUnitsItemBuilder } from "@/hooks/sealed-units/useSealedUnitsItemBuilder"
+import { useSealedUnitsDrafts } from "@/hooks/sealed-units/useSealedUnitsDrafts"
+import { useSealedUnitsReviewSubmit } from "@/hooks/sealed-units/useSealedUnitsReviewSubmit"
+import { SealedUnitsHeaderBar } from "@/components/sealed-units/page/SealedUnitsHeaderBar"
+import { SealedUnitsModalsGroup } from "@/components/sealed-units/page/SealedUnitsModalsGroup"
 
 export default function SealedUnitsCalculatorPage() {
-  const { data: session } = useSession();
-  const user = session?.user as any;
+  const { data: session } = useSession()
+  const user = session?.user as any
 
   // 1. Settings & Staff Lists Hook (with SuperAdmin masking)
-  const settings = useSealedUnitsSettings();
+  const settings = useSealedUnitsSettings()
 
   // 2. Base Line Items & Travel/Service Hook
-  const [lineItems, setLineItems] = useState<SealedUnitLineItem[]>([]);
-  const travel = useSealedUnitsTravel();
+  const [lineItems, setLineItems] = useState<SealedUnitLineItem[]>([])
+  const travel = useSealedUnitsTravel()
 
   // 3. Print & Interactive Preview State
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
-  const [quoteTemplate, setQuoteTemplate] = useState<SealedUnitTemplateType>('window_style');
-  const [quoteFontSize, setQuoteFontSize] = useState<number>(8.5);
-  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false)
+  const [quoteTemplate, setQuoteTemplate] =
+    useState<SealedUnitTemplateType>("window_style")
+  const [quoteFontSize, setQuoteFontSize] = useState<number>(8.5)
+  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0)
 
   // 4. Financial Calculations
   const totals = useMemo(() => {
@@ -44,9 +45,9 @@ export default function SealedUnitsCalculatorPage() {
       lineItems,
       ...travel.formInputs,
       labour: settings.labour,
-    });
-    return { ...calc, isServiceOnly: travel.isServiceOnly };
-  }, [lineItems, travel.formInputs, travel.isServiceOnly, settings.labour]);
+    })
+    return { ...calc, isServiceOnly: travel.isServiceOnly }
+  }, [lineItems, travel.formInputs, travel.isServiceOnly, settings.labour])
 
   // 5. Item Builder Hook
   const builder = useSealedUnitsItemBuilder({
@@ -56,7 +57,7 @@ export default function SealedUnitsCalculatorPage() {
     thicknessBreaks: settings.thicknessBreaks,
     grills: settings.grills,
     setLineItems,
-  });
+  })
 
   // 6. Drafts & Auto-Recovery Hook
   const drafts = useSealedUnitsDrafts({
@@ -65,7 +66,7 @@ export default function SealedUnitsCalculatorPage() {
     formInputs: travel.formInputs,
     formSetters: travel.formSetters,
     totals,
-  });
+  })
 
   // 7. Review & Submit Hook
   const review = useSealedUnitsReviewSubmit({
@@ -80,7 +81,9 @@ export default function SealedUnitsCalculatorPage() {
     totals,
     assignedReviewer: settings.assignedReviewer,
     selectedOdooClerk: settings.selectedOdooClerk,
-  });
+    attachedWindowQuote: drafts.attachedWindowQuote,
+    attachedDoorQuote: drafts.attachedDoorQuote,
+  })
 
   const handlePrint = () => {
     if (
@@ -89,64 +92,80 @@ export default function SealedUnitsCalculatorPage() {
       !drafts.attachedWindowQuote &&
       !drafts.attachedDoorQuote
     ) {
-      toast.error('Add at least one line item, enter service sq ft, or attach a quote before previewing.');
-      return;
+      toast.error(
+        "Add at least one line item, enter service sq ft, or attach a quote before previewing."
+      )
+      return
     }
-    setIsPreviewOpen(true);
-  };
+    setIsPreviewOpen(true)
+  }
 
   const handleOpenSubmitModal = () => {
     if (!drafts.quoteNumber.trim() || !drafts.customerName.trim()) {
-      toast.error('Please enter a Customer Name and Quote Number before submitting!');
-      return;
+      toast.error(
+        "Please enter a Customer Name and Quote Number before submitting!"
+      )
+      return
     }
-    if (lineItems.length === 0 && !(travel.isServiceOnly && (totals.totalSqft || 0) > 0)) {
-      toast.error('Add at least one line item or enter service sq ft before submitting!');
-      return;
+    if (
+      lineItems.length === 0 &&
+      !(travel.isServiceOnly && (totals.totalSqft || 0) > 0)
+    ) {
+      toast.error(
+        "Add at least one line item or enter service sq ft before submitting!"
+      )
+      return
     }
     const otherReviewers = settings.staffList.filter(
       (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
-    );
+    )
     if (
       otherReviewers.length > 0 &&
       (!settings.assignedReviewer ||
-        settings.assignedReviewer.toLowerCase() === user?.username?.toLowerCase() ||
-        settings.assignedReviewer === 'Admin')
+        settings.assignedReviewer.toLowerCase() ===
+          user?.username?.toLowerCase() ||
+        settings.assignedReviewer === "Admin")
     ) {
-      settings.setAssignedReviewer(otherReviewers[0].username);
+      settings.setAssignedReviewer(otherReviewers[0].username)
     }
     if (!settings.selectedOdooClerk && settings.clerkList.length > 0) {
-      const defaultClerk = settings.clerkList.find((c) => c.department === 'CLERK') || settings.clerkList[0];
-      if (defaultClerk) settings.setSelectedOdooClerk(defaultClerk.username);
+      const defaultClerk =
+        settings.clerkList.find((c) => c.department === "CLERK") ||
+        settings.clerkList[0]
+      if (defaultClerk) settings.setSelectedOdooClerk(defaultClerk.username)
     }
-    review.setShowSubmitModal(true);
-  };
+    review.setShowSubmitModal(true)
+  }
 
   return (
     <>
-      <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 su-no-print">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+      <div className="su-no-print min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
-        <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-10 relative z-10 space-y-4">
+        <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-4 px-4 pt-5 pb-10 sm:px-6 sm:pt-6 lg:px-8">
           <SealedUnitsHeaderBar
             user={user}
             lastSavedAt={drafts.lastSavedAt}
-            hasAttachedQuote={Boolean(drafts.attachedWindowQuote || drafts.attachedDoorQuote)}
+            hasAttachedQuote={Boolean(
+              drafts.attachedWindowQuote || drafts.attachedDoorQuote
+            )}
             savedDraftsCount={drafts.savedDraftsCount}
             onOpenAttachModal={() => drafts.setIsAttachModalOpen(true)}
             onSaveDraft={drafts.handleSaveDraft}
             onOpenSavedQuotes={() => drafts.setIsSavedQuotesOpen(true)}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+          <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12">
             {/* Left Column (7 cols): Builder, Table, Travel */}
-            <div className="lg:col-span-7 space-y-3.5">
+            <div className="space-y-3.5 lg:col-span-7">
               <SealedUnitItemBuilder
                 customerName={drafts.customerName}
                 setCustomerName={drafts.setCustomerName}
                 quoteNumber={drafts.quoteNumber}
                 setQuoteNumber={drafts.setQuoteNumber}
-                onRegenerateQuoteNumber={() => drafts.setQuoteNumber(drafts.generateQuoteNumber())}
+                onRegenerateQuoteNumber={() =>
+                  drafts.setQuoteNumber(drafts.generateQuoteNumber())
+                }
                 {...builder}
                 grills={settings.grills}
                 onResetQuote={() => drafts.setShowResetModal(true)}
@@ -199,7 +218,7 @@ export default function SealedUnitsCalculatorPage() {
             </div>
 
             {/* Right Column (5 cols, sticky): Quote Summary */}
-            <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-4">
+            <div className="space-y-3.5 lg:sticky lg:top-4 lg:col-span-5">
               <SealedUnitQuoteSummaryCard
                 lineItems={lineItems}
                 lineItemsCount={lineItems.length}
@@ -224,12 +243,12 @@ export default function SealedUnitsCalculatorPage() {
                 attachedDoorQuote={drafts.attachedDoorQuote}
                 onOpenAttachModal={() => drafts.setIsAttachModalOpen(true)}
                 onRemoveAttachedWindowQuote={() => {
-                  drafts.setAttachedWindowQuote(null);
-                  toast.info('Detached Window Quote');
+                  drafts.setAttachedWindowQuote(null)
+                  toast.info("Detached Window Quote")
                 }}
                 onRemoveAttachedDoorQuote={() => {
-                  drafts.setAttachedDoorQuote(null);
-                  toast.info('Detached Door Quote');
+                  drafts.setAttachedDoorQuote(null)
+                  toast.info("Detached Door Quote")
                 }}
               />
 
@@ -267,9 +286,11 @@ export default function SealedUnitsCalculatorPage() {
         lineItems={lineItems}
         totals={totals}
         isInstallation={travel.isInstallation}
-        regionName={travel.isInstallation ? travel.selectedRegion?.name : undefined}
+        regionName={
+          travel.isInstallation ? travel.selectedRegion?.name : undefined
+        }
         hstRate={travel.hstRate}
       />
     </>
-  );
+  )
 }

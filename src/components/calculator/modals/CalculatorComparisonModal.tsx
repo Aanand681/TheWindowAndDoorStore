@@ -1,9 +1,9 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { toCents } from '@/lib/promo-logic';
-import { ComparisonModalWrapper } from './index';
-import { CalculatorComparisonModalProps } from './types';
+import React from "react"
+import { toCents } from "@/lib/promo-logic"
+import { ComparisonModalWrapper } from "./index"
+import { CalculatorComparisonModalProps } from "./types"
 
 export function CalculatorComparisonModal({
   isCompareModalOpen,
@@ -51,7 +51,11 @@ export function CalculatorComparisonModal({
           total,
           firstPayment,
           secondPayment,
-          effectiveJC: isSupplyOnly ? (customJC ? toCents(customJC) : 0) : effectiveJC,
+          effectiveJC: isSupplyOnly
+            ? customJC
+              ? toCents(customJC)
+              : 0
+            : effectiveJC,
           effectiveMisc: isSupplyOnly ? 0 : effectiveMisc,
           effectiveLabour: isSupplyOnly ? 0 : effectiveLabour,
           activePromoId,
@@ -63,7 +67,9 @@ export function CalculatorComparisonModal({
             : taxTotals?.selectedJamb?.name || taxTotals?.jambName,
           supplyJambRate: isSupplyOnly
             ? supplyJambRate
-            : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ''),
+            : String(
+                taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || ""
+              ),
           supplyCasingId: isSupplyOnly
             ? supplyCasingId
             : taxTotals?.selectedCasing?.id || taxTotals?.casingId,
@@ -72,11 +78,13 @@ export function CalculatorComparisonModal({
             : taxTotals?.selectedCasing?.name || taxTotals?.casingName,
           supplyCasingRate: isSupplyOnly
             ? supplyCasingRate
-            : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ''),
+            : String(
+                taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ""
+              ),
           customerName,
           quoteNumber,
         }
-      : undefined;
+      : undefined
 
   return (
     <ComparisonModalWrapper
@@ -85,82 +93,94 @@ export function CalculatorComparisonModal({
       currentWindows={
         baseSnapshotA
           ? baseSnapshotA.windows
-          : appliedOption === 'B' && baseWindowsA
-          ? baseWindowsA
-          : windows
+          : appliedOption === "B" && baseWindowsA
+            ? baseWindowsA
+            : windows
       }
       customerName={baseSnapshotA ? baseSnapshotA.customerName : customerName}
       quoteNumber={baseSnapshotA ? baseSnapshotA.quoteNumber : quoteNumber}
-      surchargeRate={baseSnapshotA ? baseSnapshotA.surchargeRate : surchargeRate}
+      surchargeRate={
+        baseSnapshotA ? baseSnapshotA.surchargeRate : surchargeRate
+      }
       isSupplyOnly={baseSnapshotA ? baseSnapshotA.isSupplyOnly : isSupplyOnly}
       supplyJambId={
         baseSnapshotA
           ? baseSnapshotA.supplyJambId
           : isSupplyOnly
-          ? supplyJambId
-          : taxTotals?.selectedJamb?.id || taxTotals?.jambId || 'none'
+            ? supplyJambId
+            : taxTotals?.selectedJamb?.id || taxTotals?.jambId || "none"
       }
       supplyJambName={
         baseSnapshotA
           ? baseSnapshotA.supplyJambName
           : isSupplyOnly
-          ? supplyJambName
-          : taxTotals?.selectedJamb?.name || taxTotals?.jambName || ''
+            ? supplyJambName
+            : taxTotals?.selectedJamb?.name || taxTotals?.jambName || ""
       }
       supplyJambRate={
         baseSnapshotA
           ? baseSnapshotA.supplyJambRate
           : isSupplyOnly
-          ? supplyJambRate
-          : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || '')
+            ? supplyJambRate
+            : String(taxTotals?.selectedJamb?.rate || taxTotals?.jambRate || "")
       }
       supplyCasingId={
         baseSnapshotA
           ? baseSnapshotA.supplyCasingId
           : isSupplyOnly
-          ? supplyCasingId
-          : taxTotals?.selectedCasing?.id || taxTotals?.casingId || 'none'
+            ? supplyCasingId
+            : taxTotals?.selectedCasing?.id || taxTotals?.casingId || "none"
       }
       supplyCasingName={
         baseSnapshotA
           ? baseSnapshotA.supplyCasingName
           : isSupplyOnly
-          ? supplyCasingName
-          : taxTotals?.selectedCasing?.name || taxTotals?.casingName || ''
+            ? supplyCasingName
+            : taxTotals?.selectedCasing?.name || taxTotals?.casingName || ""
       }
       supplyCasingRate={
         baseSnapshotA
           ? baseSnapshotA.supplyCasingRate
           : isSupplyOnly
-          ? supplyCasingRate
-          : String(taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || '')
+            ? supplyCasingRate
+            : String(
+                taxTotals?.selectedCasing?.rate || taxTotals?.casingRate || ""
+              )
       }
       effectiveJC={
         baseSnapshotA
-          ? baseSnapshotA.taxTotals?.jcLabourCents ??
-            (baseSnapshotA.customJC ? toCents(baseSnapshotA.customJC) : 0)
+          ? (baseSnapshotA.taxTotals?.jcLabourCents ??
+            (baseSnapshotA.customJC ? toCents(baseSnapshotA.customJC) : 0))
           : effectiveJC
       }
       effectiveMisc={
         baseSnapshotA
-          ? baseSnapshotA.taxTotals?.miscLabourCents ??
-            (baseSnapshotA.customMisc ? toCents(baseSnapshotA.customMisc) : 0)
+          ? (baseSnapshotA.taxTotals?.miscLabourCents ??
+            (baseSnapshotA.customMisc ? toCents(baseSnapshotA.customMisc) : 0))
           : effectiveMisc
       }
       effectiveLabour={
         baseSnapshotA
-          ? baseSnapshotA.taxTotals?.standardLabourCents ??
-            (baseSnapshotA.customLabour ? toCents(baseSnapshotA.customLabour) : 0)
+          ? (baseSnapshotA.taxTotals?.standardLabourCents ??
+            (baseSnapshotA.customLabour
+              ? toCents(baseSnapshotA.customLabour)
+              : 0))
           : effectiveLabour
       }
       availablePromos={availablePromos}
-      activePromoId={baseSnapshotA ? baseSnapshotA.activePromoId : activePromoId}
+      activePromoId={
+        baseSnapshotA ? baseSnapshotA.activePromoId : activePromoId
+      }
       hstRate={baseSnapshotA ? baseSnapshotA.hstRate : hstRate}
       quoteResultA={baseSnapshotA ? baseSnapshotA.quoteResult : quoteResult}
-      afterDiscountA={baseSnapshotA ? baseSnapshotA.afterDiscount : afterDiscount}
+      afterDiscountA={
+        baseSnapshotA ? baseSnapshotA.afterDiscount : afterDiscount
+      }
       totalA={baseSnapshotA ? baseSnapshotA.total : total}
       firstPaymentA={baseSnapshotA ? baseSnapshotA.firstPayment : firstPayment}
-      secondPaymentA={baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment}
+      secondPaymentA={
+        baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment
+      }
       appliedOption={appliedOption}
       isComparisonStaging={isComparisonStaging}
       stagedOptionB={stagedOptionB}
@@ -170,6 +190,5 @@ export function CalculatorComparisonModal({
       attachedUpgrade={attachedUpgrade}
       onAttachUpgrade={setAttachedUpgrade}
     />
-  );
+  )
 }
-

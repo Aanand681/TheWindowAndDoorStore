@@ -1,31 +1,35 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from "react"
+import { toast } from "sonner"
 
 export interface UseQuoteReviewSubmissionStateParams {
-  user: any;
-  quoteNumber: string;
-  customerName: string;
-  windows: any[];
-  taxTotals: any;
-  quoteResult: any;
-  quoteNotes: string;
-  surchargeRate: number;
-  activePromoId: string;
-  customJC: string;
-  customMisc: string;
-  customLabour: string;
-  includeJCInPromo: boolean;
-  includeMiscInPromo: boolean;
-  includeLabourInPromo: boolean;
-  attachedUpgrade?: any;
-  attachedDoorQuote?: any;
-  attachedSealedUnit?: any;
-  wantsUpgrade?: boolean;
-  isSupplyOnly?: boolean;
-  isServiceOnly?: boolean;
-  total: number;
+  user: any
+  quoteNumber: string
+  customerName: string
+  windows: any[]
+  taxTotals: any
+  quoteResult: any
+  quoteNotes: string
+  surchargeRate: number
+  activePromoId: string
+  customJC: string
+  customMisc: string
+  customLabour: string
+  includeJCInPromo: boolean
+  includeMiscInPromo: boolean
+  includeLabourInPromo: boolean
+  attachedUpgrade?: any
+  attachedDoorQuote?: any
+  attachedSealedUnit?: any
+  supplyJambId?: string
+  supplyJambRate?: string
+  supplyCasingId?: string
+  supplyCasingRate?: string
+  wantsUpgrade?: boolean
+  isSupplyOnly?: boolean
+  isServiceOnly?: boolean
+  total: number
 }
 
 export function useQuoteReviewSubmissionState({
@@ -47,49 +51,55 @@ export function useQuoteReviewSubmissionState({
   attachedUpgrade,
   attachedDoorQuote,
   attachedSealedUnit,
+  supplyJambId,
+  supplyJambRate,
+  supplyCasingId,
+  supplyCasingRate,
   wantsUpgrade,
   isSupplyOnly,
   isServiceOnly,
   total,
 }: UseQuoteReviewSubmissionStateParams) {
-  const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
-  const [assignedReviewer, setAssignedReviewer] = useState<string>('');
-  const [preparerNotes, setPreparerNotes] = useState<string>('');
-  const [submittingQuote, setSubmittingQuote] = useState<boolean>(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [clerkList, setClerkList] = useState<any[]>([]);
-  const [adminSubmitMode, setAdminSubmitMode] = useState<'direct_approve' | 'submit_review'>('direct_approve');
-  const [selectedOdooClerk, setSelectedOdooClerk] = useState<string>('');
+  const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
+  const [assignedReviewer, setAssignedReviewer] = useState<string>("")
+  const [preparerNotes, setPreparerNotes] = useState<string>("")
+  const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
+  const [staffList, setStaffList] = useState<any[]>([])
+  const [clerkList, setClerkList] = useState<any[]>([])
+  const [adminSubmitMode, setAdminSubmitMode] = useState<
+    "direct_approve" | "submit_review"
+  >("direct_approve")
+  const [selectedOdooClerk, setSelectedOdooClerk] = useState<string>("")
 
   const handleSubmitForReview = async () => {
     if (!quoteNumber.trim() || !customerName.trim()) {
-      toast.error('Please enter a Quote Number and Customer Name');
-      return;
+      toast.error("Please enter a Quote Number and Customer Name")
+      return
     }
 
     const isDirectApprove = Boolean(
-      (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') &&
-        adminSubmitMode === 'direct_approve'
-    );
+      (user?.role === "ADMIN" || user?.role === "SUPERADMIN") &&
+      adminSubmitMode === "direct_approve"
+    )
 
     if (isDirectApprove && !selectedOdooClerk) {
-      toast.error('Please select an Odoo clerk to assign this quote to');
-      return;
+      toast.error("Please select an Odoo clerk to assign this quote to")
+      return
     }
     if (!isDirectApprove && !assignedReviewer) {
-      toast.error('Please select a reviewer to submit this quote to');
-      return;
+      toast.error("Please select a reviewer to submit this quote to")
+      return
     }
 
-    setSubmittingQuote(true);
+    setSubmittingQuote(true)
     try {
-      const res = await fetch('/api/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quoteNumber,
           customerName,
-          assignedTo: isDirectApprove ? user?.username || '' : assignedReviewer,
+          assignedTo: isDirectApprove ? user?.username || "" : assignedReviewer,
           directApprove: isDirectApprove,
           odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
           preparerNotes,
@@ -108,31 +118,37 @@ export function useQuoteReviewSubmissionState({
           attachedUpgrade,
           attachedDoorQuote,
           attachedSealedUnit,
+          supplyJambId,
+          supplyJambRate,
+          supplyCasingId,
+          supplyCasingRate,
           wantsUpgrade,
           isSupplyOnly,
           isServiceOnly,
           quoteSummaryTotal: total,
         }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to submit quote');
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to submit quote")
 
       if (isDirectApprove) {
         toast.success(
           `Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
-        );
+        )
       } else {
-        toast.success(`Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`);
+        toast.success(
+          `Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`
+        )
       }
-      setShowSubmitModal(false);
-      setPreparerNotes('');
-      window.dispatchEvent(new CustomEvent('quote-count-updated'));
+      setShowSubmitModal(false)
+      setPreparerNotes("")
+      window.dispatchEvent(new CustomEvent("quote-count-updated"))
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit quote');
+      toast.error(err.message || "Failed to submit quote")
     } finally {
-      setSubmittingQuote(false);
+      setSubmittingQuote(false)
     }
-  };
+  }
 
   return {
     showSubmitModal,
@@ -151,6 +167,5 @@ export function useQuoteReviewSubmissionState({
     selectedOdooClerk,
     setSelectedOdooClerk,
     handleSubmitForReview,
-  };
+  }
 }
-

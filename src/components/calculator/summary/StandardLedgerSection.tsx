@@ -1,45 +1,48 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Info } from 'lucide-react';
-import { formatMoney } from '@/lib/promo-logic';
-import { SummaryTaxSection } from './SummaryTaxSection';
-import { SummaryDepositSchedule } from './SummaryDepositSchedule';
+import React from "react"
+import { Info } from "lucide-react"
+import { formatMoney } from "@/lib/promo-logic"
+import { SummaryTaxSection } from "./SummaryTaxSection"
+import { SummaryDepositSchedule } from "./SummaryDepositSchedule"
 
 export interface StandardLedgerSectionProps {
-  summaryWindowGroups: any[];
-  quoteResult: any;
+  summaryWindowGroups: any[]
+  quoteResult: any
   renderEditableRow: (
-    field: 'jc' | 'labour' | 'misc',
+    field: "jc" | "labour" | "misc",
     label: string,
     amountCents: number,
     customVal: string,
     defaultCents: number,
     setter: (val: string) => void,
     suffix?: string
-  ) => React.ReactNode;
-  jcSummaryLabel: string;
-  effectiveJCCents: number;
-  effectiveLabourCents: number;
-  effectiveMiscCents: number;
-  customJC: string;
-  customMisc: string;
-  customLabour: string;
-  taxJC: number;
-  taxMisc: number;
-  taxLabour: number;
-  setCustomJC: (val: string) => void;
-  setCustomMisc: (val: string) => void;
-  setCustomLabour: (val: string) => void;
-  isSupplyOnly: boolean;
-  surchargeRate: number;
-  afterDiscount: number;
-  total: number;
-  firstPayment: number;
-  secondPayment: number;
-  hstRate: number;
-  setHstRate: (val: number) => void;
-  isReadOnly?: boolean;
+  ) => React.ReactNode
+  jcSummaryLabel: string
+  effectiveJCCents: number
+  effectiveLabourCents: number
+  effectiveMiscCents: number
+  customJC: string
+  customMisc: string
+  customLabour: string
+  taxJC: number
+  taxMisc: number
+  taxLabour: number
+  setCustomJC: (val: string) => void
+  setCustomMisc: (val: string) => void
+  setCustomLabour: (val: string) => void
+  isSupplyOnly: boolean
+  surchargeRate: number
+  afterDiscount: number
+  total: number
+  firstPayment: number
+  secondPayment: number
+  hstRate: number
+  setHstRate: (val: number) => void
+  taxTotals?: any
+  hstBaseCents?: number
+  materialExemptionCents?: number
+  isReadOnly?: boolean
 }
 
 export function StandardLedgerSection({
@@ -67,45 +70,77 @@ export function StandardLedgerSection({
   secondPayment,
   hstRate,
   setHstRate,
+  taxTotals,
+  hstBaseCents,
+  materialExemptionCents,
   isReadOnly = false,
 }: StandardLedgerSectionProps) {
   return (
     <>
       {/* Window configurations */}
-      <div className="space-y-1.5 pb-2.5 border-b border-border/50">
+      <div className="space-y-1.5 border-b border-border/50 pb-2.5">
         {summaryWindowGroups.length > 0 ? (
           summaryWindowGroups.map((g) => (
-            <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
-              <span className="text-muted-foreground font-medium truncate capitalize">{g.label}</span>
-              <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+            <div
+              key={g.key}
+              className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
+            >
+              <span className="truncate font-medium text-muted-foreground capitalize">
+                {g.label}
+              </span>
+              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 {formatMoney(g.baseCents)}
               </span>
             </div>
           ))
         ) : (
-          <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-            <span className="text-muted-foreground font-medium">Base window price</span>
-            <span className="font-mono font-semibold whitespace-nowrap shrink-0">
+          <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+            <span className="font-medium text-muted-foreground">
+              Base window price
+            </span>
+            <span className="shrink-0 font-mono font-semibold whitespace-nowrap">
               {formatMoney(quoteResult?.base || 0)}
             </span>
           </div>
         )}
 
         {/* Jambs & Casing */}
-        {renderEditableRow(
-          'jc',
-          jcSummaryLabel,
-          effectiveJCCents,
-          customJC,
-          taxJC,
-          (val) => setCustomJC(val)
-        )}
+        {(!isSupplyOnly || effectiveJCCents > 0) &&
+          renderEditableRow(
+            "jc",
+            jcSummaryLabel,
+            effectiveJCCents,
+            customJC,
+            taxJC,
+            (val) => setCustomJC(val)
+          )}
+
+        {/* Additional Materials */}
+        {taxTotals?.customMaterials &&
+          Array.isArray(taxTotals.customMaterials) &&
+          taxTotals.customMaterials.map((mat: any) => {
+            const amt = Number(mat.amount) || 0
+            if (amt <= 0 && !mat.label) return null
+            return (
+              <div
+                key={mat.id}
+                className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
+              >
+                <span className="text-muted-foreground">
+                  {mat.label ? `Material: ${mat.label}` : "Additional Material"}
+                </span>
+                <span className="shrink-0 font-mono whitespace-nowrap text-foreground">
+                  +{formatMoney(Math.round(amt * 100))}
+                </span>
+              </div>
+            )
+          })}
 
         {/* Labour - Completely hidden on Supply Only */}
         {!isSupplyOnly &&
           renderEditableRow(
-            'labour',
-            'Labour',
+            "labour",
+            "Labour",
             effectiveLabourCents,
             customLabour,
             taxLabour,
@@ -115,8 +150,8 @@ export function StandardLedgerSection({
         {/* Miscellaneous - Completely hidden on Supply Only */}
         {!isSupplyOnly &&
           renderEditableRow(
-            'misc',
-            'Miscellaneous',
+            "misc",
+            "Miscellaneous",
             effectiveMiscCents,
             customMisc,
             taxMisc,
@@ -124,9 +159,11 @@ export function StandardLedgerSection({
           )}
 
         {/* Surcharge */}
-        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-          <span className="text-muted-foreground">Surcharge ({surchargeRate}%)</span>
-          <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">
+        <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+          <span className="text-muted-foreground">
+            Surcharge ({surchargeRate}%)
+          </span>
+          <span className="shrink-0 font-mono whitespace-nowrap text-muted-foreground">
             +{formatMoney(quoteResult?.surcharge || 0)}
           </span>
         </div>
@@ -134,15 +171,15 @@ export function StandardLedgerSection({
         {/* Promo discount */}
         {(quoteResult?.promoDiscount || 0) > 0 && (
           <>
-            <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-500">
+            <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-500 sm:text-sm">
               <span>Promo discount</span>
-              <span className="font-mono whitespace-nowrap shrink-0">
+              <span className="shrink-0 font-mono whitespace-nowrap">
                 -{formatMoney(quoteResult?.promoDiscount || 0)}
               </span>
             </div>
             {quoteResult?.text && (
-              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 my-1.5 bg-muted/50 p-2.5 rounded-lg border border-border/60">
-                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
+              <p className="my-1.5 flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                 <span>{quoteResult.text}</span>
               </p>
             )}
@@ -151,10 +188,10 @@ export function StandardLedgerSection({
       </div>
 
       {/* Subtotal (After Discount) */}
-      <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
+      <div className="border-b border-border/50 pb-2.5 text-xs sm:text-sm">
         <div className="flex items-center justify-between font-medium">
           <span className="text-foreground">Subtotal</span>
-          <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">
+          <span className="shrink-0 font-mono font-bold whitespace-nowrap text-primary">
             {formatMoney(afterDiscount)}
           </span>
         </div>
@@ -165,6 +202,8 @@ export function StandardLedgerSection({
         hstRate={hstRate}
         setHstRate={setHstRate}
         taxCents={total - afterDiscount}
+        hstBaseCents={hstBaseCents}
+        materialExemptionCents={materialExemptionCents}
         isReadOnly={isReadOnly}
         idPrefix="promo"
       />
@@ -176,6 +215,5 @@ export function StandardLedgerSection({
         secondPaymentCents={secondPayment}
       />
     </>
-  );
+  )
 }
-

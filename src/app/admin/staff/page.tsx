@@ -1,8 +1,8 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { useAdminStaff } from '@/hooks/admin/useAdminStaff';
-import { useAdminDepartments } from '@/hooks/admin/useAdminDepartments';
+import React from "react"
+import { useAdminStaff } from "@/hooks/admin/useAdminStaff"
+import { useAdminDepartments } from "@/hooks/admin/useAdminDepartments"
 import {
   AdminStaffHeader,
   CreateStaffCard,
@@ -10,18 +10,18 @@ import {
   StaffDeleteModal,
   StaffCustomPermissionsModal,
   DepartmentsManagementModal,
-} from '@/components/admin/staff';
+} from "@/components/admin/staff"
 
 export default function StaffDirectory() {
-  const staff = useAdminStaff();
+  const staff = useAdminStaff()
   const depts = useAdminDepartments({
     onRefresh: staff.fetchUsersAndDepts,
-  });
+  })
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Background radial gradient accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="pointer-events-none absolute top-0 left-1/2 h-[400px] w-[1000px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
 
       {/* Staff Delete Confirmation Modal */}
       <StaffDeleteModal
@@ -66,12 +66,14 @@ export default function StaffDirectory() {
         handleCreateDepartment={depts.handleCreateDepartment}
       />
 
-      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
-        <AdminStaffHeader onOpenDeptModal={() => depts.setShowDeptModal(true)} />
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+        <AdminStaffHeader
+          onOpenDeptModal={() => depts.setShowDeptModal(true)}
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Create User Form */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="space-y-6 lg:col-span-4">
             <CreateStaffCard
               departments={staff.departments}
               department={staff.department}
@@ -91,7 +93,7 @@ export default function StaffDirectory() {
           </div>
 
           {/* User List */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="space-y-6 lg:col-span-8">
             <StaffListCard
               users={staff.users}
               departments={staff.departments}
@@ -113,5 +115,5 @@ export default function StaffDirectory() {
         </div>
       </div>
     </div>
-  );
+  )
 }

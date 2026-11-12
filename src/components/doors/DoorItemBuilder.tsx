@@ -1,41 +1,52 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { DoorPreset, DoorFormulaSettings, DoorLineItem, DoorQuotingMode } from '@/lib/doors/types';
-import { Plus, DoorClosed, CheckCircle2, RotateCcw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  DoorPreset,
+  DoorFormulaSettings,
+  DoorLineItem,
+  DoorQuotingMode,
+} from "@/lib/doors/types"
+import { Plus, DoorClosed, CheckCircle2, RotateCcw } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   DoorHardwareSection,
   DoorUpgradeSection,
   DoorPresetSpecsSection,
   useDoorItemForm,
-} from './builder';
+} from "./builder"
 
 interface DoorItemBuilderProps {
-  customerName?: string;
-  setCustomerName?: (name: string) => void;
-  quoteNumber?: string;
-  setQuoteNumber?: (num: string) => void;
-  mode?: DoorQuotingMode;
-  presets: DoorPreset[];
-  formula: DoorFormulaSettings;
-  editingItem?: DoorLineItem | null;
-  onSaveItem: (item: DoorLineItem) => void;
-  onCancelEdit?: () => void;
-  onResetQuote?: () => void;
-  className?: string;
+  customerName?: string
+  setCustomerName?: (name: string) => void
+  quoteNumber?: string
+  setQuoteNumber?: (num: string) => void
+  mode?: DoorQuotingMode
+  presets: DoorPreset[]
+  formula: DoorFormulaSettings
+  editingItem?: DoorLineItem | null
+  onSaveItem: (item: DoorLineItem) => void
+  onCancelEdit?: () => void
+  onResetQuote?: () => void
+  className?: string
 }
 
 export function DoorItemBuilder({
-  customerName = '',
+  customerName = "",
   setCustomerName,
-  quoteNumber = '',
+  quoteNumber = "",
   setQuoteNumber,
-  mode = 'installation',
+  mode = "installation",
   presets,
   formula,
   editingItem,
@@ -51,29 +62,36 @@ export function DoorItemBuilder({
     mode,
     onSaveItem,
     onResetQuote,
-  });
+  })
 
   return (
-    <Card className={cn('bg-card/70 backdrop-blur-md border-border shadow-md !py-0 !gap-0 [--card-spacing:0px]', className)}>
-      <CardHeader className="p-3.5 !pb-2.5 border-b border-border/50">
+    <Card
+      className={cn(
+        "!gap-0 border-border bg-card/70 !py-0 shadow-md backdrop-blur-md [--card-spacing:0px]",
+        className
+      )}
+    >
+      <CardHeader className="border-b border-border/50 p-3.5 !pb-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-              <DoorClosed className="w-4 h-4" />
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+              <DoorClosed className="h-4 w-4" />
             </div>
             <div>
-              <CardTitle className="text-sm sm:text-base font-bold">
-                {editingItem ? 'Edit Door Unit' : 'Configure Door Unit'}
+              <CardTitle className="text-sm font-bold sm:text-base">
+                {editingItem ? "Edit Door Unit" : "Configure Door Unit"}
               </CardTitle>
-              <CardDescription className="text-[11px]">
-                Select door type &amp; option, enter Inkster price, and add to schedule.
-              </CardDescription>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
             {editingItem && onCancelEdit && (
-              <Button variant="ghost" size="sm" onClick={onCancelEdit} className="text-xs h-7 px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancelEdit}
+                className="h-7 px-2 text-xs"
+              >
                 Cancel Edit
               </Button>
             )}
@@ -83,10 +101,10 @@ export function DoorItemBuilder({
               variant="outline"
               size="sm"
               onClick={form.handleResetClick}
-              className="gap-1 text-xs text-destructive hover:bg-destructive/10 h-7 px-2 cursor-pointer"
+              className="h-7 cursor-pointer gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
               title="Reset quote & start fresh"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="h-3 w-3" />
               <span>Reset</span>
             </Button>
           </div>
@@ -95,27 +113,27 @@ export function DoorItemBuilder({
 
       {/* Customer Name & Quote Number Header Section */}
       {setCustomerName && setQuoteNumber && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2 px-3.5 sm:px-4 bg-muted/20 border-b border-border/40">
+        <div className="grid grid-cols-1 gap-3 border-b border-border/40 bg-muted/20 px-3.5 py-2 sm:px-4 md:grid-cols-2">
           <div className="space-y-1">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Quote/Order Number
             </Label>
             <Input
               value={quoteNumber}
               onChange={(e) => setQuoteNumber(e.target.value)}
-              placeholder="e.g. 400820"
-              className="bg-background shadow-xs h-8.5 text-xs font-mono"
+              placeholder="Quote #"
+              className="h-8.5 bg-background font-mono text-xs shadow-xs"
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <Label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Customer Name
             </Label>
             <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="e.g. Jason Schram"
-              className="bg-background shadow-xs h-8.5 text-xs"
+              placeholder="Customer Name"
+              className="h-8.5 bg-background text-xs shadow-xs"
             />
           </div>
         </div>
@@ -166,16 +184,16 @@ export function DoorItemBuilder({
           <div className="flex items-center gap-2 pt-1">
             <Button
               type="submit"
-              className="flex-1 h-9 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-semibold gap-1.5 shadow-sm text-xs cursor-pointer"
+              className="h-9 flex-1 cursor-pointer gap-1.5 bg-black text-xs font-semibold text-white shadow-sm hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
             >
               {editingItem ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                   Update Door Unit
                 </>
               ) : (
                 <>
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                   Add Door Unit
                 </>
               )}
@@ -186,7 +204,7 @@ export function DoorItemBuilder({
                 variant="outline"
                 size="sm"
                 onClick={onCancelEdit}
-                className="h-9 text-xs px-3"
+                className="h-9 px-3 text-xs"
               >
                 Cancel
               </Button>
@@ -195,5 +213,5 @@ export function DoorItemBuilder({
         </form>
       </CardContent>
     </Card>
-  );
+  )
 }

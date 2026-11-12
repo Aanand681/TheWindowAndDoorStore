@@ -1,12 +1,12 @@
-'use client';
+"use client"
 
-import React from 'react';
+import React from "react"
 import {
   SavedQuotesModalWrapper,
   AttachQuoteModalWrapper,
   ResetModalWrapper,
-} from './index';
-import { CalculatorUtilityModalsProps } from './types';
+} from "./index"
+import { CalculatorUtilityModalsProps } from "./types"
 
 export function CalculatorUtilityModals({
   isSavedQuotesOpen,
@@ -49,6 +49,5 @@ export function CalculatorUtilityModals({
         onConfirm={handleConfirmReset}
       />
     </>
-  );
+  )
 }
-

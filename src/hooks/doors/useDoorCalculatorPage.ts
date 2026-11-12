@@ -1,45 +1,60 @@
-'use client';
+"use client"
 
-import { useState, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
-import { DoorQuotingMode, DoorSelectedUpcharge } from '@/lib/doors/types';
-import { calculateDoorQuoteTotals } from '@/lib/doors/calculations';
-import { QuoteTemplateType } from '@/components/quotes/QuoteInvoice';
-import { useDoorSettings } from './useDoorSettings';
-import { useDoorItemBuilder } from './useDoorItemBuilder';
-import { useDoorTravel } from './useDoorTravel';
-import { useDoorDrafts } from './useDoorDrafts';
-import { useDoorAutoSave } from './useDoorAutoSave';
-import { useDoorReviewSubmit } from './useDoorReviewSubmit';
+import { useState, useMemo, useCallback } from "react"
+import { useSession } from "next-auth/react"
+import { DoorQuotingMode, DoorSelectedUpcharge } from "@/lib/doors/types"
+import { calculateDoorQuoteTotals } from "@/lib/doors/calculations"
+import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
+import { useDoorSettings } from "./useDoorSettings"
+import { useDoorItemBuilder } from "./useDoorItemBuilder"
+import { useDoorTravel } from "./useDoorTravel"
+import { useDoorDrafts } from "./useDoorDrafts"
+import { useDoorAutoSave } from "./useDoorAutoSave"
+import { useDoorReviewSubmit } from "./useDoorReviewSubmit"
 
 export function useDoorCalculatorPage() {
-  const { data: session } = useSession();
-  const user = session?.user as any;
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const { data: session } = useSession()
+  const user = session?.user as any
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN"
 
   // 1. Settings Hook
-  const { presets, upcharges, formula, logistics } = useDoorSettings();
+  const { presets, upcharges, formula, logistics } = useDoorSettings()
 
   // 2. Base Quote Customer & Mode State
-  const [customerName, setCustomerName] = useState<string>('');
-  const [quoteNumber, setQuoteNumber] = useState<string>('');
-  const [mode, setMode] = useState<DoorQuotingMode>('installation');
-  const [globalUpcharges, setGlobalUpcharges] = useState<DoorSelectedUpcharge[]>([]);
+  const [customerName, setCustomerName] = useState<string>("")
+  const [quoteNumber, setQuoteNumber] = useState<string>("")
+  const [mode, setMode] = useState<DoorQuotingMode>("installation")
+  const [globalUpcharges, setGlobalUpcharges] = useState<
+    DoorSelectedUpcharge[]
+  >([])
 
   // 3. Customer / Notes / Tax / Attached Quotes State
-  const [quoteNotes, setQuoteNotes] = useState<string>('');
-  const [isFirstNation, setIsFirstNation] = useState<boolean>(false);
-  const [customLabour, setCustomLabour] = useState<string>('');
-  const [customMisc, setCustomMisc] = useState<string>('');
-  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null);
-  const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null);
+  const [quoteNotes, setQuoteNotes] = useState<string>("")
+  const [isFirstNation, setIsFirstNation] = useState<boolean>(false)
+  const [hstRate, setHstRateState] = useState<number>(13)
+
+  const setHstRate = useCallback((rate: number) => {
+    setHstRateState(rate)
+    setIsFirstNation(rate === 8)
+  }, [])
+
+  const handleToggleFirstNation = useCallback((val: boolean) => {
+    setIsFirstNation(val)
+    setHstRateState(val ? 8 : 13)
+  }, [])
+  const [customLabour, setCustomLabour] = useState<string>("")
+  const [customMisc, setCustomMisc] = useState<string>("")
+  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(
+    null
+  )
+  const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
 
   // 4. Print / Preview Configuration State
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>('cards');
-  const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5);
-  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0);
-  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
-  const [isAttachModalOpen, setIsAttachModalOpen] = useState<boolean>(false);
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("cards")
+  const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5)
+  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0)
+  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false)
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState<boolean>(false)
 
   // 5. Line Item Builder Hook
   const {
@@ -51,7 +66,7 @@ export function useDoorCalculatorPage() {
     handleEditItem,
     handleDuplicateItem,
     handleDeleteItem,
-  } = useDoorItemBuilder();
+  } = useDoorItemBuilder()
 
   // 6. Travel & Logistics Hook
   const {
@@ -73,7 +88,7 @@ export function useDoorCalculatorPage() {
     crewSize,
     setCrewSize,
     handleUpdateTravelParams,
-  } = useDoorTravel();
+  } = useDoorTravel()
 
   // 7. Calculate Totals using Pure Calculation Engine
   const totals = useMemo(() => {
@@ -87,11 +102,11 @@ export function useDoorCalculatorPage() {
       travelKm,
       crewHours,
       crewSize,
-      hstRate: isFirstNation ? 8 : 13,
+      hstRate,
       isFirstNation,
       formula,
       logistics,
-    });
+    })
   }, [
     lineItems,
     mode,
@@ -102,10 +117,11 @@ export function useDoorCalculatorPage() {
     travelKm,
     crewHours,
     crewSize,
+    hstRate,
     isFirstNation,
     formula,
     logistics,
-  ]);
+  ])
 
   const sharedSyncProps = {
     customerName,
@@ -135,7 +151,9 @@ export function useDoorCalculatorPage() {
     quoteNotes,
     setQuoteNotes,
     isFirstNation,
-    setIsFirstNation,
+    setIsFirstNation: handleToggleFirstNation,
+    hstRate,
+    setHstRate,
     customLabour,
     setCustomLabour,
     customMisc,
@@ -145,10 +163,10 @@ export function useDoorCalculatorPage() {
     attachedSealedUnit,
     setAttachedSealedUnit,
     totals,
-  };
+  }
 
   // 8. Auto-Save Hook
-  const { lastSavedAt, setLastSavedAt } = useDoorAutoSave(sharedSyncProps);
+  const { lastSavedAt, setLastSavedAt } = useDoorAutoSave(sharedSyncProps)
 
   // 9. Drafts & Workspace Reset Hook
   const {
@@ -164,7 +182,7 @@ export function useDoorCalculatorPage() {
     ...sharedSyncProps,
     setEditingItem,
     setLastSavedAt,
-  });
+  })
 
   // 10. Submit & Review Workflow Hook
   const {
@@ -192,7 +210,9 @@ export function useDoorCalculatorPage() {
     quoteNotes,
     isFirstNation,
     totals,
-  });
+    attachedWindowQuote,
+    attachedSealedUnit,
+  })
 
   return {
     user,
@@ -212,7 +232,9 @@ export function useDoorCalculatorPage() {
     quoteNotes,
     setQuoteNotes,
     isFirstNation,
-    setIsFirstNation,
+    setIsFirstNation: handleToggleFirstNation,
+    hstRate,
+    setHstRate,
     customLabour,
     setCustomLabour,
     customMisc,
@@ -274,5 +296,5 @@ export function useDoorCalculatorPage() {
     staffList,
     clerkList,
     handleSubmitQuote,
-  };
+  }
 }

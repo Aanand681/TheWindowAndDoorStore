@@ -1,24 +1,24 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from "mongoose"
 
 export interface IDepartmentPermissions {
-  canCreateQuote: boolean;
-  canReviewQuote: boolean;
-  canApproveQuote: boolean;
-  canEditApprovedQuote: boolean;
-  canAccessOdooQueue: boolean;
-  canMarkOdooEntry: boolean;
-  canAccessAdmin: boolean;
-  canManageSettings: boolean;
-  canManageStaff: boolean;
-  canManagePromos: boolean;
+  canCreateQuote: boolean
+  canReviewQuote: boolean
+  canApproveQuote: boolean
+  canEditApprovedQuote: boolean
+  canAccessOdooQueue: boolean
+  canMarkOdooEntry: boolean
+  canAccessAdmin: boolean
+  canManageSettings: boolean
+  canManageStaff: boolean
+  canManagePromos: boolean
 }
 
 export interface IDepartment {
-  name: string;
-  code: string;
-  description?: string;
-  isSystem?: boolean;
-  permissions: IDepartmentPermissions;
+  name: string
+  code: string
+  description?: string
+  isSystem?: boolean
+  permissions: IDepartmentPermissions
 }
 
 export interface IDepartmentDocument extends IDepartment, Document {}
@@ -26,8 +26,14 @@ export interface IDepartmentDocument extends IDepartment, Document {}
 const DepartmentSchema = new Schema<IDepartmentDocument>(
   {
     name: { type: String, required: true, trim: true },
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    description: { type: String, default: '' },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+    },
+    description: { type: String, default: "" },
     isSystem: { type: Boolean, default: false },
     permissions: {
       canCreateQuote: { type: Boolean, default: true },
@@ -43,13 +49,14 @@ const DepartmentSchema = new Schema<IDepartmentDocument>(
     },
   },
   { timestamps: true }
-);
+)
 
-export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, '_id'>> = [
+export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, "_id">> = [
   {
-    name: 'Manager',
-    code: 'MANAGER',
-    description: 'Reviews employee quotes, adjusts prices, approves quotes, and manages reassignments.',
+    name: "Manager",
+    code: "MANAGER",
+    description:
+      "Reviews employee quotes, adjusts prices, approves quotes, and manages reassignments.",
     isSystem: true,
     permissions: {
       canCreateQuote: true,
@@ -65,9 +72,10 @@ export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, '_id'>> = [
     },
   },
   {
-    name: 'Sales Associate',
-    code: 'SALES',
-    description: 'Builds customer quotes, imports manufacturer PDFs, and submits quotes for manager review.',
+    name: "Sales Associate",
+    code: "SALES",
+    description:
+      "Builds customer quotes, imports manufacturer PDFs, and submits quotes for manager review.",
     isSystem: true,
     permissions: {
       canCreateQuote: true,
@@ -83,9 +91,10 @@ export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, '_id'>> = [
     },
   },
   {
-    name: 'Clerk',
-    code: 'CLERK',
-    description: 'Handles approved quote files, previews/prints invoices, and enters orders into Odoo.',
+    name: "Clerk",
+    code: "CLERK",
+    description:
+      "Handles approved quote files, previews/prints invoices, and enters orders into Odoo.",
     isSystem: true,
     permissions: {
       canCreateQuote: false,
@@ -100,7 +109,9 @@ export const DEFAULT_DEPARTMENTS: Array<Omit<IDepartment, '_id'>> = [
       canManagePromos: false,
     },
   },
-];
+]
 
-const DepartmentModel: Model<IDepartmentDocument> = (mongoose.models.Department as Model<IDepartmentDocument>) || mongoose.model<IDepartmentDocument>('Department', DepartmentSchema);
-export default DepartmentModel;
+const DepartmentModel: Model<IDepartmentDocument> =
+  (mongoose.models.Department as Model<IDepartmentDocument>) ||
+  mongoose.model<IDepartmentDocument>("Department", DepartmentSchema)
+export default DepartmentModel

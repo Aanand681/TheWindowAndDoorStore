@@ -1,14 +1,14 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ShieldCheck, Send, Printer } from 'lucide-react';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { ShieldCheck, Send, Printer } from "lucide-react"
 
 export interface DoorSummaryActionsProps {
-  isAdmin?: boolean;
-  canSubmit: boolean;
-  onSubmitQuote: () => void;
-  onPrintPreview: () => void;
+  isAdmin?: boolean
+  canSubmit: boolean
+  onSubmitQuote: () => void
+  onPrintPreview: () => void
 }
 
 export function DoorSummaryActions({
@@ -18,22 +18,22 @@ export function DoorSummaryActions({
   onPrintPreview,
 }: DoorSummaryActionsProps) {
   return (
-    <div className="space-y-2 pt-2 border-t border-border/50">
+    <div className="space-y-2 border-t border-border/50 pt-2">
       {/* Button 1: Submit / Approve & Assign Quote */}
       <Button
         type="button"
         onClick={onSubmitQuote}
         disabled={!canSubmit}
-        className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-sm text-xs sm:text-sm cursor-pointer"
+        className="h-10 w-full cursor-pointer gap-2 bg-emerald-600 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:text-sm"
       >
         {isAdmin ? (
           <>
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="h-4 w-4" />
             Approve &amp; Assign Quote
           </>
         ) : (
           <>
-            <Send className="w-4 h-4" />
+            <Send className="h-4 w-4" />
             Submit Quote for Review
           </>
         )}
@@ -44,12 +44,11 @@ export function DoorSummaryActions({
         type="button"
         onClick={onPrintPreview}
         disabled={!canSubmit}
-        className="w-full h-10 bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-bold gap-2 shadow-sm text-xs sm:text-sm cursor-pointer"
+        className="h-10 w-full cursor-pointer gap-2 bg-black text-xs font-bold text-white shadow-sm hover:bg-neutral-800 sm:text-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
       >
-        <Printer className="w-4 h-4" />
+        <Printer className="h-4 w-4" />
         Preview &amp; Print Door Quote
       </Button>
     </div>
-  );
+  )
 }
-

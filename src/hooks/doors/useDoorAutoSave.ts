@@ -1,51 +1,54 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react"
 import {
   saveActiveAutoSave,
   getActiveAutoSave,
   clearActiveAutoSave,
-} from '@/lib/quote-drafts-storage';
-import { formatDoorSummarySentence } from '@/lib/doors/calculations';
+} from "@/lib/quote-drafts-storage"
+import {
+  formatDoorSummarySentence,
+  computeEffectiveDoorGrandTotal,
+} from "@/lib/doors/calculations"
 
 interface UseDoorAutoSaveProps {
-  customerName: string;
-  setCustomerName: (name: string) => void;
-  quoteNumber: string;
-  setQuoteNumber: (num: string) => void;
-  mode: any;
-  setMode: (mode: any) => void;
-  lineItems: any[];
-  setLineItems: (items: any[]) => void;
-  globalUpcharges: any[];
-  setGlobalUpcharges: (u: any[]) => void;
-  selectedRegionId?: string;
-  setSelectedRegionId?: (id: string) => void;
-  travelFeeType: any;
-  setTravelFeeType: (t: any) => void;
-  customTravelFee: string;
-  setCustomTravelFee: (f: string) => void;
-  showOutTownTravel: boolean;
-  setShowOutTownTravel: (show: boolean) => void;
-  travelKm: string;
-  setTravelKm: (km: string) => void;
-  crewHours: string;
-  setCrewHours: (h: string) => void;
-  crewSize: '2' | '3';
-  setCrewSize: (s: '2' | '3') => void;
-  quoteNotes: string;
-  setQuoteNotes: (notes: string) => void;
-  isFirstNation: boolean;
-  setIsFirstNation: (fn: boolean) => void;
-  customLabour: string;
-  setCustomLabour: (l: string) => void;
-  customMisc: string;
-  setCustomMisc: (m: string) => void;
-  attachedWindowQuote: any;
-  setAttachedWindowQuote: (q: any) => void;
-  attachedSealedUnit: any;
-  setAttachedSealedUnit: (u: any) => void;
-  totals: any;
+  customerName: string
+  setCustomerName: (name: string) => void
+  quoteNumber: string
+  setQuoteNumber: (num: string) => void
+  mode: any
+  setMode: (mode: any) => void
+  lineItems: any[]
+  setLineItems: (items: any[]) => void
+  globalUpcharges: any[]
+  setGlobalUpcharges: (u: any[]) => void
+  selectedRegionId?: string
+  setSelectedRegionId?: (id: string) => void
+  travelFeeType: any
+  setTravelFeeType: (t: any) => void
+  customTravelFee: string
+  setCustomTravelFee: (f: string) => void
+  showOutTownTravel: boolean
+  setShowOutTownTravel: (show: boolean) => void
+  travelKm: string
+  setTravelKm: (km: string) => void
+  crewHours: string
+  setCrewHours: (h: string) => void
+  crewSize: "2" | "3"
+  setCrewSize: (s: "2" | "3") => void
+  quoteNotes: string
+  setQuoteNotes: (notes: string) => void
+  isFirstNation: boolean
+  setIsFirstNation: (fn: boolean) => void
+  customLabour: string
+  setCustomLabour: (l: string) => void
+  customMisc: string
+  setCustomMisc: (m: string) => void
+  attachedWindowQuote: any
+  setAttachedWindowQuote: (q: any) => void
+  attachedSealedUnit: any
+  setAttachedSealedUnit: (u: any) => void
+  totals: any
 }
 
 export function useDoorAutoSave({
@@ -87,64 +90,82 @@ export function useDoorAutoSave({
   setAttachedSealedUnit,
   totals,
 }: UseDoorAutoSaveProps) {
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const initialLoadDone = useRef(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const initialLoadDone = useRef(false)
 
   // Load Active Auto-save Draft on Mount
   useEffect(() => {
-    const autoSave = getActiveAutoSave('door');
+    const autoSave = getActiveAutoSave("door")
     if (autoSave && autoSave.data) {
-      const d = autoSave.data as any;
-      if (d.customerName) setCustomerName(d.customerName);
-      if (d.quoteNumber) setQuoteNumber(d.quoteNumber);
-      if (d.mode) setMode(d.mode);
-      if (Array.isArray(d.lineItems)) setLineItems(d.lineItems);
-      if (Array.isArray(d.globalUpcharges)) setGlobalUpcharges(d.globalUpcharges);
-      if (d.selectedRegionId && setSelectedRegionId) setSelectedRegionId(d.selectedRegionId);
-      if (d.travelFeeType) setTravelFeeType(d.travelFeeType);
-      if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee);
-      if (d.showOutTownTravel !== undefined) setShowOutTownTravel(d.showOutTownTravel);
-      if (d.travelKm !== undefined) setTravelKm(d.travelKm);
-      if (d.crewHours !== undefined) setCrewHours(d.crewHours);
-      if (d.crewSize) setCrewSize(d.crewSize);
-      if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes);
-      if (d.isFirstNation !== undefined) setIsFirstNation(d.isFirstNation);
-      if (d.customLabour !== undefined) setCustomLabour(String(d.customLabour));
-      if (d.customMisc !== undefined) setCustomMisc(String(d.customMisc));
-      if (d.attachedWindowQuote !== undefined) setAttachedWindowQuote(d.attachedWindowQuote);
-      if (d.attachedSealedUnit !== undefined) setAttachedSealedUnit(d.attachedSealedUnit);
+      const d = autoSave.data as any
+      if (d.customerName) setCustomerName(d.customerName)
+      if (d.quoteNumber) setQuoteNumber(d.quoteNumber)
+      if (d.mode) setMode(d.mode)
+      if (Array.isArray(d.lineItems)) setLineItems(d.lineItems)
+      if (Array.isArray(d.globalUpcharges))
+        setGlobalUpcharges(d.globalUpcharges)
+      if (d.selectedRegionId && setSelectedRegionId)
+        setSelectedRegionId(d.selectedRegionId)
+      if (d.travelFeeType) setTravelFeeType(d.travelFeeType)
+      if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee)
+      if (d.showOutTownTravel !== undefined)
+        setShowOutTownTravel(d.showOutTownTravel)
+      if (d.travelKm !== undefined) setTravelKm(d.travelKm)
+      if (d.crewHours !== undefined) setCrewHours(d.crewHours)
+      if (d.crewSize) setCrewSize(d.crewSize)
+      if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes)
+      if (d.isFirstNation !== undefined) setIsFirstNation(d.isFirstNation)
+      if (d.customLabour !== undefined) setCustomLabour(String(d.customLabour))
+      if (d.customMisc !== undefined) setCustomMisc(String(d.customMisc))
+      if (d.attachedWindowQuote !== undefined)
+        setAttachedWindowQuote(d.attachedWindowQuote)
+      if (d.attachedSealedUnit !== undefined)
+        setAttachedSealedUnit(d.attachedSealedUnit)
       if (autoSave.timestamp) {
         setLastSavedAt(
           new Date(autoSave.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
+            hour: "2-digit",
+            minute: "2-digit",
           })
-        );
+        )
       }
     }
-    initialLoadDone.current = true;
-  }, []);
+    initialLoadDone.current = true
+  }, [])
 
   // Debounced Auto-Save
   useEffect(() => {
-    if (!initialLoadDone.current) return;
+    if (!initialLoadDone.current) return
     const timer = setTimeout(() => {
       if (
         lineItems.length === 0 &&
         !attachedWindowQuote &&
         !attachedSealedUnit &&
-        (!customerName || customerName === 'Valued Customer')
+        (!customerName || customerName === "Valued Customer")
       ) {
-        clearActiveAutoSave('door');
-        return;
+        clearActiveAutoSave("door")
+        return
       }
 
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      saveActiveAutoSave('door', {
+      const nowStr = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      const effectiveTotals = computeEffectiveDoorGrandTotal({
+        totals,
+        mode,
+        customLabour,
+        customMisc,
+        isFirstNation,
+        attachedWindowQuote,
+        attachedSealedUnit,
+      })
+
+      saveActiveAutoSave("door", {
         quoteNumber,
         customerName,
         itemCount: lineItems.length,
-        grandTotal: totals.grandTotal,
+        grandTotal: effectiveTotals.grandTotal,
         summaryLabel: formatDoorSummarySentence(lineItems),
         data: {
           quoteNumber,
@@ -153,7 +174,7 @@ export function useDoorAutoSave({
           mode,
           lineItems,
           globalUpcharges,
-          selectedRegionId: selectedRegionId || '',
+          selectedRegionId: selectedRegionId || "",
           travelFeeType,
           customTravelFee,
           showOutTownTravel,
@@ -165,16 +186,16 @@ export function useDoorAutoSave({
           customMisc,
           attachedWindowQuote,
           attachedSealedUnit,
-          subtotal: totals.subtotalPreTax,
-          grandTotal: totals.grandTotal,
+          subtotal: effectiveTotals.combinedSubtotal,
+          grandTotal: effectiveTotals.grandTotal,
           itemCount: lineItems.length,
           totals,
         },
-      });
-      setLastSavedAt(nowStr);
-    }, 700);
+      })
+      setLastSavedAt(nowStr)
+    }, 700)
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(timer)
   }, [
     customerName,
     quoteNumber,
@@ -194,11 +215,10 @@ export function useDoorAutoSave({
     attachedWindowQuote,
     attachedSealedUnit,
     totals,
-  ]);
+  ])
 
   return {
     lastSavedAt,
     setLastSavedAt,
-  };
+  }
 }
-

@@ -4,182 +4,184 @@ import {
   DoorFormulaSettings,
   DoorLogisticsSettings,
   IDoorSettingsData,
-} from './types';
+} from "./types"
 
 export const DEFAULT_DOOR_PRESETS: DoorPreset[] = [
   {
-    id: 'single_regular',
-    label: 'With regular height',
-    category: 'entry',
+    id: "single_regular",
+    label: "With regular height",
+    category: "entry",
     labour: 715.0,
     misc: 115.2,
-    description: 'Single Door Regular Height',
+    description: "Single Door Regular Height",
   },
   {
-    id: 'single_extra_height',
-    label: 'With extra height',
-    category: 'entry',
+    id: "single_extra_height",
+    label: "With extra height",
+    category: "entry",
     labour: 775.0,
     misc: 115.2,
-    description: 'Single Door with Extra Height',
+    description: "Single Door with Extra Height",
   },
   {
-    id: 'door_1_sidelite',
-    label: 'With 1 sidelite',
-    category: 'entry',
+    id: "door_1_sidelite",
+    label: "With 1 sidelite",
+    category: "entry",
     labour: 1040.0,
     misc: 153.6,
-    description: 'Door with 1 Sidelite',
+    description: "Door with 1 Sidelite",
   },
   {
-    id: 'door_2_sidelites',
-    label: 'With 2 sidelite',
-    category: 'entry',
+    id: "door_2_sidelites",
+    label: "With 2 sidelite",
+    category: "entry",
     labour: 1560.0,
     misc: 194.4,
-    description: 'Door with 2 Sidelites',
+    description: "Door with 2 Sidelites",
   },
   {
-    id: 'garden_terrace_double',
-    label: 'Garden / Terrace / Double Door',
-    category: 'garden',
+    id: "garden_terrace_double",
+    label: "Garden / Terrace / Double Door",
+    category: "garden",
     labour: 1560.0,
     misc: 194.4,
-    description: 'Steel Garden Door',
+    description: "Steel Garden Door",
   },
   {
-    id: 'patio_5ft',
+    id: "patio_5ft",
     label: "5' Patio Door",
-    category: 'patio',
+    category: "patio",
     labour: 1040.0,
     misc: 162.0,
-    description: 'Patio Door',
+    description: "Patio Door",
   },
   {
-    id: 'patio_6ft',
+    id: "patio_6ft",
     label: "6' Patio Door",
-    category: 'patio',
+    category: "patio",
     labour: 1040.0,
     misc: 194.4,
-    description: 'Patio Door',
+    description: "Patio Door",
   },
   {
-    id: 'patio_8ft',
+    id: "patio_8ft",
     label: "8' Patio Door",
-    category: 'patio',
+    category: "patio",
     labour: 1040.0,
     misc: 259.2,
-    description: 'Patio Door',
+    description: "Patio Door",
   },
   {
-    id: 'patio_3panel_9ft',
+    id: "patio_3panel_9ft",
     label: "3 Panel Patio Door 9'",
-    category: 'patio',
+    category: "patio",
     labour: 1062.0,
     misc: 291.6,
-    description: 'Patio Door with 3-panel sliding system',
+    description: "Patio Door with 3-panel sliding system",
   },
   {
-    id: 'patio_panel_12ft',
+    id: "patio_panel_12ft",
     label: "3 or 4 Patio Panel Door 12'",
-    category: 'patio',
+    category: "patio",
     labour: 1416.0,
     misc: 388.8,
-    description: 'Patio Door with 3 or 4 panel sliding system',
+    description: "Patio Door with 3 or 4 panel sliding system",
   },
   {
-    id: 'patio_panel_16ft',
+    id: "patio_panel_16ft",
     label: "3 or 4 Patio Panel Door 16'",
-    category: 'patio',
+    category: "patio",
     labour: 1888.0,
     misc: 518.4,
-    description: 'Patio Door with 3 or 4 panel sliding system',
+    description: "Patio Door with 3 or 4 panel sliding system",
   },
   {
-    id: 'storm_same_time',
-    label: 'Storm Door (Same Time as Door)',
-    category: 'storm',
+    id: "storm_same_time",
+    label: "Storm Door (Same Time as Door)",
+    category: "storm",
     labour: 175.0,
     misc: 0.0,
-    description: 'Self Storing Storm Door',
+    description: "Self Storing Storm Door",
   },
   {
-    id: 'storm_only',
-    label: 'Storm Door Only (Stand-alone)',
-    category: 'storm',
+    id: "storm_only",
+    label: "Storm Door Only (Stand-alone)",
+    category: "storm",
     labour: 335.0,
     misc: 0.0,
-    description: 'Self Storing Storm Door',
+    description: "Self Storing Storm Door",
   },
   {
-    id: 'custom_door',
-    label: 'Custom Door Configuration',
-    category: 'custom',
+    id: "custom_door",
+    label: "Custom Door Configuration",
+    category: "custom",
     labour: 715.0,
     misc: 115.2,
-    description: 'Custom Door',
+    description: "Custom Door",
     isCustom: true,
   },
-];
+]
 
 export const DEFAULT_DOOR_UPCHARGES: DoorUpchargeConfig[] = [
   {
-    id: 'customer_db_ls',
-    label: 'Reinstall Customer Hardware (DB & LS)',
+    id: "customer_db_ls",
+    label: "Reinstall Customer Hardware (DB & LS)",
     rate: 80.0,
-    unit: 'per each door',
-    description: 'Preparation and installation of customer-provided deadbolt and lockset',
+    unit: "per each door",
+    description:
+      "Preparation and installation of customer-provided deadbolt and lockset",
   },
   {
-    id: 'siding_removal',
-    label: 'Removal or cutting of siding',
+    id: "siding_removal",
+    label: "Removal or cutting of siding",
     rate: 130.0,
-    unit: '1 Hour',
-    description: 'Siding modification/cutting for brick mould or frame clearance',
+    unit: "1 Hour",
+    description:
+      "Siding modification/cutting for brick mould or frame clearance",
   },
   {
-    id: 'bm_build_up',
-    label: 'If BM needs to be built up',
+    id: "bm_build_up",
+    label: "If BM needs to be built up",
     rate: 130.0,
-    unit: '1 Hour',
-    description: 'Brick mould extension or build-up to bridge wall depth',
+    unit: "1 Hour",
+    description: "Brick mould extension or build-up to bridge wall depth",
   },
   {
-    id: 'jambs_added',
-    label: 'If interior of jambs needs to be added to',
+    id: "jambs_added",
+    label: "If interior of jambs needs to be added to",
     rate: 130.0,
-    unit: '1 Hour',
-    description: 'Jamb extensions on non-standard interior reveals',
+    unit: "1 Hour",
+    description: "Jamb extensions on non-standard interior reveals",
   },
   {
-    id: 'casing_wide',
+    id: "casing_wide",
     label: 'If interior Casings are wider than 3.25"',
     rate: 130.0,
-    unit: '1 Hour',
-    description: 'Custom wide trim/casing installation and carpentry fitting',
+    unit: "1 Hour",
+    description: "Custom wide trim/casing installation and carpentry fitting",
   },
   {
-    id: 'concrete_wall',
-    label: 'If into concrete wall some or all height',
+    id: "concrete_wall",
+    label: "If into concrete wall some or all height",
     rate: 162.5,
-    unit: '1.25 Hours',
-    description: 'Masonry tapcon anchoring into concrete foundation or block',
+    unit: "1.25 Hours",
+    description: "Masonry tapcon anchoring into concrete foundation or block",
   },
   {
-    id: 'frame_narrower',
-    label: 'If Patio door or door need to frame narrower',
+    id: "frame_narrower",
+    label: "If Patio door or door need to frame narrower",
     rate: 162.5,
-    unit: '1.25 Hours',
-    description: 'Rough opening reframing to fit a narrower door unit',
+    unit: "1.25 Hours",
+    description: "Rough opening reframing to fit a narrower door unit",
   },
-];
+]
 
 export const DEFAULT_DOOR_FORMULA: DoorFormulaSettings = {
   surchargeRate: 8, // 8% manufacturer surcharge
   doorDiscountPercent: 10, // 10% standard door discount (except storm)
   locksetDeadboltPrice: 158.0, // $158 standard lockset & deadbolt
   customerSuppliedHardwareFee: 80.0, // $80 install customer hardware
-};
+}
 
 export const DEFAULT_DOOR_LOGISTICS: DoorLogisticsSettings = {
   setupFeeDefault: 140.0, // $140 local setup
@@ -188,12 +190,11 @@ export const DEFAULT_DOOR_LOGISTICS: DoorLogisticsSettings = {
   vehicleRatePerKm: 0.98, // $0.98 / km
   crewHourly2Men: 150.0, // $150 / hr (2 men)
   crewHourly3Men: 200.0, // $200 / hr (3 men)
-};
+}
 
 export const DEFAULT_DOOR_SETTINGS_DATA: IDoorSettingsData = {
   presets: DEFAULT_DOOR_PRESETS,
   upcharges: DEFAULT_DOOR_UPCHARGES,
   formula: DEFAULT_DOOR_FORMULA,
   logistics: DEFAULT_DOOR_LOGISTICS,
-};
-
+}

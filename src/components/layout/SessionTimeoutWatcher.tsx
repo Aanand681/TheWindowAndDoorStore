@@ -1,122 +1,126 @@
-'use client';
+"use client"
 
-import { useEffect, useRef } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { usePathname } from "next/navigation"
 
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
-const CHECK_INTERVAL_MS = 15 * 1000; // Check every 15 seconds
-const THROTTLE_MS = 5 * 1000; // Throttle activity updates to once per 5 seconds
-const STORAGE_KEY = 'vwd_last_active_time';
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000 // 1 hour
+const CHECK_INTERVAL_MS = 15 * 1000 // Check every 15 seconds
+const THROTTLE_MS = 5 * 1000 // Throttle activity updates to once per 5 seconds
+const STORAGE_KEY = "vwd_last_active_time"
 
 export function SessionTimeoutWatcher() {
-  const { status } = useSession();
-  const pathname = usePathname();
-  const lastActivityRef = useRef<number>(0);
-  const isLoggingOutRef = useRef<boolean>(false);
+  const { status } = useSession()
+  const pathname = usePathname()
+  const lastActivityRef = useRef<number>(0)
+  const isLoggingOutRef = useRef<boolean>(false)
 
   useEffect(() => {
     // Only monitor authenticated users who are not already on the login page
-    if (status !== 'authenticated' || pathname === '/login') {
-      return;
+    if (status !== "authenticated" || pathname === "/login") {
+      return
     }
 
-    const now = Date.now();
+    const now = Date.now()
     if (lastActivityRef.current === 0) {
-      lastActivityRef.current = now;
+      lastActivityRef.current = now
     }
-    const existing = Number(localStorage.getItem(STORAGE_KEY));
+    const existing = Number(localStorage.getItem(STORAGE_KEY))
 
     // Check if this browser tab was freshly opened or authenticated within the last 60 seconds
-    const tabInitTime = Number(sessionStorage.getItem('vwd_tab_init_time'));
-    const isFreshTab = !tabInitTime || (now - tabInitTime < 60000);
+    const tabInitTime = Number(sessionStorage.getItem("vwd_tab_init_time"))
+    const isFreshTab = !tabInitTime || now - tabInitTime < 60000
     if (!tabInitTime) {
-      sessionStorage.setItem('vwd_tab_init_time', String(now));
+      sessionStorage.setItem("vwd_tab_init_time", String(now))
     }
 
     if (existing && !isNaN(existing) && existing > 0 && !isFreshTab) {
-      lastActivityRef.current = existing;
+      lastActivityRef.current = existing
     } else {
       // Fresh tab or newly authenticated: reset the activity timer to right now
-      lastActivityRef.current = now;
-      localStorage.setItem(STORAGE_KEY, String(now));
+      lastActivityRef.current = now
+      localStorage.setItem(STORAGE_KEY, String(now))
     }
-    isLoggingOutRef.current = false;
+    isLoggingOutRef.current = false
 
     const triggerLogout = async () => {
-      if (isLoggingOutRef.current) return;
-      isLoggingOutRef.current = true;
+      if (isLoggingOutRef.current) return
+      isLoggingOutRef.current = true
       try {
-        localStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem('vwd_tab_init_time');
-        await signOut({ redirect: false });
+        localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem("vwd_tab_init_time")
+        await signOut({ redirect: false })
       } catch (err) {
-        console.warn('[SessionTimeoutWatcher] signOut error:', err);
+        console.warn("[SessionTimeoutWatcher] signOut error:", err)
       }
-      window.location.href = '/login?expired=true';
-    };
+      window.location.href = "/login?expired=true"
+    }
 
     const checkExpiration = () => {
-      if (isLoggingOutRef.current) return;
-      const stored = Number(localStorage.getItem(STORAGE_KEY) || lastActivityRef.current);
-      const currentTime = Date.now();
+      if (isLoggingOutRef.current) return
+      const stored = Number(
+        localStorage.getItem(STORAGE_KEY) || lastActivityRef.current
+      )
+      const currentTime = Date.now()
       if (currentTime - stored >= INACTIVITY_TIMEOUT_MS) {
-        triggerLogout();
+        triggerLogout()
       }
-    };
+    }
 
     // Immediate check on mount (only for ongoing sessions, not fresh logins)
     if (!isFreshTab) {
-      checkExpiration();
+      checkExpiration()
     }
 
-    let lastRecord = 0;
+    let lastRecord = 0
     const handleUserActivity = () => {
-      const currentTime = Date.now();
-      const stored = Number(localStorage.getItem(STORAGE_KEY) || lastActivityRef.current);
-      
+      const currentTime = Date.now()
+      const stored = Number(
+        localStorage.getItem(STORAGE_KEY) || lastActivityRef.current
+      )
+
       // If user acts AFTER 60 min of inactivity, log them out immediately rather than extending
       if (currentTime - stored >= INACTIVITY_TIMEOUT_MS) {
-        triggerLogout();
-        return;
+        triggerLogout()
+        return
       }
 
       if (currentTime - lastRecord > THROTTLE_MS) {
-        lastRecord = currentTime;
-        lastActivityRef.current = currentTime;
-        localStorage.setItem(STORAGE_KEY, String(currentTime));
+        lastRecord = currentTime
+        lastActivityRef.current = currentTime
+        localStorage.setItem(STORAGE_KEY, String(currentTime))
       }
-    };
+    }
 
-    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+    const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"]
     events.forEach((evt) => {
-      window.addEventListener(evt, handleUserActivity, { passive: true });
-    });
+      window.addEventListener(evt, handleUserActivity, { passive: true })
+    })
 
     // Instant check when laptop wakes up or tab becomes visible / focused
     const handleVisibilityOrFocus = () => {
       if (!document.hidden) {
-        checkExpiration();
+        checkExpiration()
       }
-    };
+    }
 
-    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus)
+    window.addEventListener("focus", handleVisibilityOrFocus)
 
     // Periodic check interval
-    const interval = setInterval(checkExpiration, CHECK_INTERVAL_MS);
+    const interval = setInterval(checkExpiration, CHECK_INTERVAL_MS)
 
     return () => {
-      clearInterval(interval);
+      clearInterval(interval)
       events.forEach((evt) => {
-        window.removeEventListener(evt, handleUserActivity);
-      });
-      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-      window.removeEventListener('focus', handleVisibilityOrFocus);
-    };
-  }, [status, pathname]);
+        window.removeEventListener(evt, handleUserActivity)
+      })
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus)
+      window.removeEventListener("focus", handleVisibilityOrFocus)
+    }
+  }, [status, pathname])
 
-  return null;
+  return null
 }
 
-export default SessionTimeoutWatcher;
+export default SessionTimeoutWatcher

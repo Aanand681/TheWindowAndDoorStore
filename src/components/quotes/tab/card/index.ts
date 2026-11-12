@@ -1,4 +1,3 @@
-export * from './QuoteCardHeader';
-export * from './QuoteCardNotes';
-export * from './QuoteCardActions';
-
+export * from "./QuoteCardHeader"
+export * from "./QuoteCardNotes"
+export * from "./QuoteCardActions"

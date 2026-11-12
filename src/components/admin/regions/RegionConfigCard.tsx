@@ -1,21 +1,31 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Save, Trash2 } from 'lucide-react';
-import { RegionPricingForm } from './RegionPricingForm';
-import { RegionGeofenceSection } from './RegionGeofenceSection';
+import React from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Save, Trash2 } from "lucide-react"
+import { RegionPricingForm } from "./RegionPricingForm"
+import { RegionGeofenceSection } from "./RegionGeofenceSection"
 
 interface RegionConfigCardProps {
-  region: any;
-  saving: boolean;
-  geocoding: string | null;
-  onSave: (region: any) => void;
-  onDeleteConfirm: (region: any) => void;
-  onUpdateRegion: (id: string, field: string, value: any) => void;
-  onAutoLocate: (targetCity: string, isForNewRegion: boolean, regionId?: string) => void;
-  onOpenFullscreen: (regionId: string) => void;
+  region: any
+  saving: boolean
+  geocoding: string | null
+  onSave: (region: any) => void
+  onDeleteConfirm: (region: any) => void
+  onUpdateRegion: (id: string, field: string, value: any) => void
+  onAutoLocate: (
+    targetCity: string,
+    isForNewRegion: boolean,
+    regionId?: string
+  ) => void
+  onOpenFullscreen: (regionId: string) => void
 }
 
 export function RegionConfigCard({
@@ -29,12 +39,14 @@ export function RegionConfigCard({
   onOpenFullscreen,
 }: RegionConfigCardProps) {
   return (
-    <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
+    <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl">
       <CardHeader className="border-b border-border/50 pb-4">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
-            <CardTitle className="text-xl text-primary">{region.name}</CardTitle>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-3">
+            <CardTitle className="text-xl text-primary">
+              {region.name}
+            </CardTitle>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">
               Install &amp; Mobilization Zone
             </span>
           </div>
@@ -45,7 +57,7 @@ export function RegionConfigCard({
               size="sm"
               className="cursor-pointer"
             >
-              <Save className="w-4 h-4 mr-1.5" /> Save {region.name}
+              <Save className="mr-1.5 h-4 w-4" /> Save {region.name}
             </Button>
             <Button
               type="button"
@@ -53,14 +65,15 @@ export function RegionConfigCard({
               size="sm"
               onClick={() => onDeleteConfirm(region)}
               disabled={saving}
-              className="text-destructive border-destructive/20 hover:bg-destructive hover:text-white cursor-pointer"
+              className="cursor-pointer border-destructive/20 text-destructive hover:bg-destructive hover:text-white"
             >
-              <Trash2 className="w-4 h-4 mr-1.5" /> Delete
+              <Trash2 className="mr-1.5 h-4 w-4" /> Delete
             </Button>
           </div>
         </div>
         <CardDescription className="mt-1">
-          Universal geographic mobilization fees, origin coordinates, and interactive geofence boundary.
+          Universal geographic mobilization fees, origin coordinates, and
+          interactive geofence boundary.
         </CardDescription>
       </CardHeader>
 
@@ -79,5 +92,5 @@ export function RegionConfigCard({
         />
       </CardContent>
     </Card>
-  );
+  )
 }

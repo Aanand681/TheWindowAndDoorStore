@@ -1,19 +1,19 @@
-'use client';
+"use client"
 
-import { toast } from 'sonner';
-import { generateId } from '@/hooks/useCalculatorWindows';
-import { useCalculatorComparison } from '@/hooks/calculator/useCalculatorComparison';
-import { useCalculatorReviewActions } from '@/hooks/useCalculatorReviewActions';
+import { toast } from "sonner"
+import { generateId } from "@/hooks/useCalculatorWindows"
+import { useCalculatorComparison } from "@/hooks/calculator/useCalculatorComparison"
+import { useCalculatorReviewActions } from "@/hooks/useCalculatorReviewActions"
 
 export function useCalculatorWorkflows(p: {
-  base: any;
-  windowsContext: any;
-  pricing: any;
-  supply: any;
-  drafts: any;
+  base: any
+  windowsContext: any
+  pricing: any
+  supply: any
+  drafts: any
 }) {
-  const { base, windowsContext, pricing, supply, drafts } = p;
-  const { windows, setWindows, fileInputRef } = windowsContext;
+  const { base, windowsContext, pricing, supply, drafts } = p
+  const { windows, setWindows, fileInputRef } = windowsContext
 
   const comparison = useCalculatorComparison({
     windows,
@@ -56,31 +56,43 @@ export function useCalculatorWorkflows(p: {
     total: pricing.total,
     firstPayment: pricing.firstPayment,
     secondPayment: pricing.secondPayment,
-  });
+  })
 
   const resetCalculatorDefaults = () => {
-    setWindows([{ id: generateId(), qty: '1', base: '', argon: '', solar: '', triple: '', w: '', h: '', color: 'White' }]);
-    base.setCustomerName('');
-    base.setQuoteNumber('');
-    base.setQuoteNotes('');
-    base.setSurchargeRate(8);
-    supply.resetSupplyMode();
-    comparison.setAppliedOption('A');
-    comparison.setBaseWindowsA(null);
-    base.setAttachedUpgrade(null);
-    base.setAttachedSealedUnit(null);
-    base.setAttachedDoorQuote(null);
-    comparison.setIsComparisonStaging(false);
-    comparison.setBaseSnapshotA(null);
-    pricing.resetPricingOverrides();
-    drafts.resetDraftState();
-  };
+    setWindows([
+      {
+        id: generateId(),
+        qty: "1",
+        base: "",
+        argon: "",
+        solar: "",
+        triple: "",
+        w: "",
+        h: "",
+        color: "White",
+      },
+    ])
+    base.setCustomerName("")
+    base.setQuoteNumber("")
+    base.setQuoteNotes("")
+    base.setSurchargeRate(8)
+    supply.resetSupplyMode()
+    comparison.setAppliedOption("A")
+    comparison.setBaseWindowsA(null)
+    base.setAttachedUpgrade(null)
+    base.setAttachedSealedUnit(null)
+    base.setAttachedDoorQuote(null)
+    comparison.setIsComparisonStaging(false)
+    comparison.setBaseSnapshotA(null)
+    pricing.resetPricingOverrides()
+    drafts.resetDraftState()
+  }
 
   const handleConfirmReset = () => {
-    resetCalculatorDefaults();
-    base.setShowResetModal(false);
-    toast.success('Window quote reset. Workspace is fresh and ready.');
-  };
+    resetCalculatorDefaults()
+    base.setShowResetModal(false)
+    toast.success("Window quote reset. Workspace is fresh and ready.")
+  }
 
   const review = useCalculatorReviewActions({
     user: base.user,
@@ -125,18 +137,25 @@ export function useCalculatorWorkflows(p: {
     setIsSupplyOnly: supply.handleToggleSupplyOnly,
     isServiceOnly: supply.isServiceOnly,
     setIsServiceOnly: supply.setIsServiceOnly,
+    supplyJambId: supply.supplyJambId,
+    setSupplyJambId: supply.setSupplyJambId,
+    supplyJambRate: supply.supplyJambRate,
+    setSupplyJambRate: supply.setSupplyJambRate,
+    supplyCasingId: supply.supplyCasingId,
+    setSupplyCasingId: supply.setSupplyCasingId,
+    supplyCasingRate: supply.supplyCasingRate,
+    setSupplyCasingRate: supply.setSupplyCasingRate,
     quotesSubTab: base.quotesSubTab,
     setQuotesSubTab: base.setQuotesSubTab,
     setActiveTab: base.setActiveTab,
     fileInputRef,
     resetCalculatorDefaults,
-  });
+  })
 
   return {
     comparison,
     review,
     resetCalculatorDefaults,
     handleConfirmReset,
-  };
+  }
 }
-

@@ -1,19 +1,19 @@
-'use client';
+"use client"
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic"
 
 const QuotePdfStudioClient = dynamic(
-  () => import('@/components/quotes/QuotePdfStudioClient'),
+  () => import("@/components/quotes/QuotePdfStudioClient"),
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm font-medium animate-pulse">
+      <div className="flex min-h-screen animate-pulse items-center justify-center bg-background text-sm font-medium text-muted-foreground">
         Loading Quote PDF Studio...
       </div>
     ),
   }
-);
+)
 
 export default function QuoteStudioPage() {
-  return <QuotePdfStudioClient />;
+  return <QuotePdfStudioClient />
 }

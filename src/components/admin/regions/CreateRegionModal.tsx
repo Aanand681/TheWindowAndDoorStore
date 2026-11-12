@@ -1,23 +1,23 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, X, MapPin, Loader2 } from 'lucide-react';
-import { NewRegionFormState } from '@/hooks/admin/useAdminRegions';
-import { CreateRegionStandardInstallFields } from './CreateRegionStandardInstallFields';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Plus, X, MapPin, Loader2 } from "lucide-react"
+import { NewRegionFormState } from "@/hooks/admin/useAdminRegions"
+import { CreateRegionStandardInstallFields } from "./CreateRegionStandardInstallFields"
 
 interface CreateRegionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  newRegion: NewRegionFormState;
-  setNewRegion: React.Dispatch<React.SetStateAction<NewRegionFormState>>;
-  creating: boolean;
-  geocoding: string | null;
-  onToggleSupplyOnly?: (val: boolean) => void;
-  onAutoLocate: (targetCity: string, isForNewRegion: boolean) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  isOpen: boolean
+  onClose: () => void
+  newRegion: NewRegionFormState
+  setNewRegion: React.Dispatch<React.SetStateAction<NewRegionFormState>>
+  creating: boolean
+  geocoding: string | null
+  onToggleSupplyOnly?: (val: boolean) => void
+  onAutoLocate: (targetCity: string, isForNewRegion: boolean) => void
+  onSubmit: (e: React.FormEvent) => void
 }
 
 export function CreateRegionModal({
@@ -31,29 +31,30 @@ export function CreateRegionModal({
   onAutoLocate,
   onSubmit,
 }: CreateRegionModalProps) {
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="bg-card border border-border shadow-2xl rounded-2xl max-w-xl w-full p-6 space-y-6 relative max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-border">
+    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm duration-150 fade-in">
+      <div className="relative max-h-[90vh] w-full max-w-xl space-y-6 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <Plus className="w-5 h-5" />
+            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+              <Plus className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-lg font-bold">Add New Region</h3>
               <p className="text-xs text-muted-foreground">
-                Configure geographic coordinates, mobilization fee, and dynamic travel surcharges.
+                Configure geographic coordinates, mobilization fee, and dynamic
+                travel surcharges.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-md cursor-pointer"
+            className="cursor-pointer rounded-md p-1 text-muted-foreground hover:text-foreground"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
@@ -68,15 +69,15 @@ export function CreateRegionModal({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 text-[11px] flex items-center gap-1 text-primary cursor-pointer hover:bg-primary/10"
-                disabled={geocoding === 'new' || !newRegion.name.trim()}
+                className="flex h-6 cursor-pointer items-center gap-1 px-2 text-[11px] text-primary hover:bg-primary/10"
+                disabled={geocoding === "new" || !newRegion.name.trim()}
                 onClick={() => onAutoLocate(newRegion.name, true)}
                 title="Auto-detect city coordinates on OpenStreetMap"
               >
-                {geocoding === 'new' ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                {geocoding === "new" ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <MapPin className="w-3 h-3" />
+                  <MapPin className="h-3 w-3" />
                 )}
                 <span>Auto-Locate City</span>
               </Button>
@@ -95,20 +96,22 @@ export function CreateRegionModal({
                   newRegion.officeLat === 48.6017 &&
                   newRegion.officeLon === -93.3986
                 ) {
-                  onAutoLocate(newRegion.name, true);
+                  onAutoLocate(newRegion.name, true)
                 }
               }}
             />
           </div>
 
           {/* City Center Coordinates */}
-          <div className="grid grid-cols-2 gap-3 p-2.5 rounded-lg border border-border/70 bg-muted/20">
+          <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/70 bg-muted/20 p-2.5">
             <div>
-              <Label className="text-[11px] text-muted-foreground">Office / Center Latitude</Label>
+              <Label className="text-[11px] text-muted-foreground">
+                Office / Center Latitude
+              </Label>
               <Input
                 type="number"
                 step="0.0001"
-                className="h-8.5 text-xs font-mono"
+                className="h-8.5 font-mono text-xs"
                 value={newRegion.officeLat}
                 onChange={(e) =>
                   setNewRegion((prev) => ({
@@ -119,11 +122,13 @@ export function CreateRegionModal({
               />
             </div>
             <div>
-              <Label className="text-[11px] text-muted-foreground">Office / Center Longitude</Label>
+              <Label className="text-[11px] text-muted-foreground">
+                Office / Center Longitude
+              </Label>
               <Input
                 type="number"
                 step="0.0001"
-                className="h-8.5 text-xs font-mono"
+                className="h-8.5 font-mono text-xs"
                 value={newRegion.officeLon}
                 onChange={(e) =>
                   setNewRegion((prev) => ({
@@ -140,7 +145,7 @@ export function CreateRegionModal({
             setNewRegion={setNewRegion}
           />
 
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
+          <div className="flex items-center justify-end gap-2.5 border-t border-border pt-4">
             <Button
               type="button"
               variant="outline"
@@ -152,13 +157,13 @@ export function CreateRegionModal({
             <Button
               type="submit"
               disabled={creating || !newRegion.name.trim()}
-              className="bg-primary text-primary-foreground font-semibold"
+              className="bg-primary font-semibold text-primary-foreground"
             >
-              {creating ? 'Creating...' : 'Create Region'}
+              {creating ? "Creating..." : "Create Region"}
             </Button>
           </div>
         </form>
       </div>
     </div>
-  );
+  )
 }

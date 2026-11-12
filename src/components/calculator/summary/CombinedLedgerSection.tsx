@@ -1,39 +1,39 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { formatMoney, toCents } from '@/lib/promo-logic';
-import { formatDoorItemHeading } from '@/lib/doors/calculations';
-import { SummaryTaxSection } from './SummaryTaxSection';
-import { SummaryDepositSchedule } from './SummaryDepositSchedule';
+import React from "react"
+import { cn } from "@/lib/utils"
+import { formatMoney, toCents } from "@/lib/promo-logic"
+import { formatDoorItemHeading } from "@/lib/doors/calculations"
+import { SummaryTaxSection } from "./SummaryTaxSection"
+import { SummaryDepositSchedule } from "./SummaryDepositSchedule"
 
 export interface CombinedLedgerSectionProps {
-  combinedData: any;
-  summaryWindowGroups: any[];
-  attachedDoorQuote: any | null;
+  combinedData: any
+  summaryWindowGroups: any[]
+  attachedDoorQuote: any | null
   renderEditableRow: (
-    field: 'jc' | 'labour' | 'misc',
+    field: "jc" | "labour" | "misc",
     label: string,
     amountCents: number,
     customVal: string,
     defaultCents: number,
     setter: (val: string) => void,
     suffix?: string
-  ) => React.ReactNode;
-  jcSummaryLabel: string;
-  customJC: string;
-  customMisc: string;
-  customLabour: string;
-  taxJC: number;
-  taxMisc: number;
-  taxLabour: number;
-  setCustomJC: (val: string) => void;
-  setCustomMisc: (val: string) => void;
-  setCustomLabour: (val: string) => void;
-  isSupplyOnly: boolean;
-  hstRate: number;
-  setHstRate: (val: number) => void;
-  isReadOnly?: boolean;
+  ) => React.ReactNode
+  jcSummaryLabel: string
+  customJC: string
+  customMisc: string
+  customLabour: string
+  taxJC: number
+  taxMisc: number
+  taxLabour: number
+  setCustomJC: (val: string) => void
+  setCustomMisc: (val: string) => void
+  setCustomLabour: (val: string) => void
+  isSupplyOnly: boolean
+  hstRate: number
+  setHstRate: (val: number) => void
+  isReadOnly?: boolean
 }
 
 export function CombinedLedgerSection({
@@ -58,44 +58,50 @@ export function CombinedLedgerSection({
 }: CombinedLedgerSectionProps) {
   return (
     <>
-      <div className="space-y-1.5 pb-2.5 border-b border-border/50">
+      <div className="space-y-1.5 border-b border-border/50 pb-2.5">
         {/* Window glass configurations */}
-        {summaryWindowGroups.length > 0 ? (
-          summaryWindowGroups.map((g) => (
-            <div key={g.key} className="flex items-center justify-between gap-3 text-xs sm:text-sm py-0.5">
-              <span className="text-muted-foreground font-medium truncate capitalize">{g.label}</span>
-              <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-                {formatMoney(g.baseCents)}
-              </span>
-            </div>
-          ))
-        ) : (
-          combinedData.windowBaseCents > 0 && (
-            <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-              <span className="text-muted-foreground font-medium">Window base price</span>
-              <span className="font-mono font-semibold whitespace-nowrap shrink-0">
-                {formatMoney(combinedData.windowBaseCents)}
-              </span>
-            </div>
-          )
-        )}
+        {summaryWindowGroups.length > 0
+          ? summaryWindowGroups.map((g) => (
+              <div
+                key={g.key}
+                className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
+              >
+                <span className="truncate font-medium text-muted-foreground capitalize">
+                  {g.label}
+                </span>
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                  {formatMoney(g.baseCents)}
+                </span>
+              </div>
+            ))
+          : combinedData.windowBaseCents > 0 && (
+              <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+                <span className="font-medium text-muted-foreground">
+                  Window base price
+                </span>
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap">
+                  {formatMoney(combinedData.windowBaseCents)}
+                </span>
+              </div>
+            )}
 
         {/* Sealed unit glass price */}
         {combinedData.hasSU && (
-          <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+          <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
             <span
               className={cn(
-                'font-medium truncate',
+                "truncate font-medium",
                 combinedData.isAttachedSUService
-                  ? 'text-blue-700 dark:text-blue-400'
-                  : 'text-emerald-700 dark:text-emerald-400'
+                  ? "text-blue-700 dark:text-blue-400"
+                  : "text-emerald-700 dark:text-emerald-400"
               )}
             >
               {combinedData.suSummarySentence}
             </span>
-            <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-              {combinedData.isAttachedSUService && combinedData.suGlassCents === 0
-                ? '$0.00 (Labour below)'
+            <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+              {combinedData.isAttachedSUService &&
+              combinedData.suGlassCents === 0
+                ? "$0.00 (Labour below)"
                 : `+${formatMoney(combinedData.suGlassCents)}`}
             </span>
           </div>
@@ -103,134 +109,176 @@ export function CombinedLedgerSection({
 
         {/* Door units materials price (Itemized as headings) */}
         {combinedData.hasDoor &&
-          (attachedDoorQuote?.lineItems && attachedDoorQuote.lineItems.length > 0 ? (
+          (attachedDoorQuote?.lineItems &&
+          attachedDoorQuote.lineItems.length > 0 ? (
             attachedDoorQuote.lineItems.map((dItem: any, dIdx: number) => {
-              const q = dItem.quantity || 1;
-              const heading = formatDoorItemHeading(dItem);
-              const itemBaseCents = Math.round((dItem.inksterBasePrice || 0) * q * 100);
+              const q = dItem.quantity || 1
+              const heading = formatDoorItemHeading(dItem)
+              const itemBaseCents = Math.round(
+                (dItem.inksterBasePrice || 0) * q * 100
+              )
               return (
-                <div key={dItem.id || dIdx} className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-                  <span className="font-medium truncate text-amber-700 dark:text-amber-400">{heading}</span>
-                  <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+                <div
+                  key={dItem.id || dIdx}
+                  className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
+                >
+                  <span className="truncate font-medium text-amber-700 dark:text-amber-400">
+                    {heading}
+                  </span>
+                  <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                     +{formatMoney(itemBaseCents)}
                   </span>
                 </div>
-              );
+              )
             })
           ) : (
-            <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-              <span className="font-medium truncate text-amber-700 dark:text-amber-400">
+            <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+              <span className="truncate font-medium text-amber-700 dark:text-amber-400">
                 {combinedData.doorSummarySentence}
               </span>
-              <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
+              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 +{formatMoney(combinedData.doorMaterialsCents)}
               </span>
             </div>
           ))}
 
         {/* Attached Door Hardware if any */}
-        {combinedData.hasDoor && Boolean((attachedDoorQuote?.totals?.hardwareTotal || 0) > 0) && (
-          <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
-            <span className="text-muted-foreground font-medium truncate">Door Lockset &amp; Hardware</span>
-            <span className="font-mono font-semibold whitespace-nowrap shrink-0 text-foreground">
-              +{formatMoney(Math.round(Number(attachedDoorQuote.totals.hardwareTotal) * 100))}
-            </span>
-          </div>
-        )}
+        {combinedData.hasDoor &&
+          Boolean((attachedDoorQuote?.totals?.hardwareTotal || 0) > 0) && (
+            <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+              <span className="truncate font-medium text-muted-foreground">
+                Door Lockset &amp; Hardware
+              </span>
+              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                +
+                {formatMoney(
+                  Math.round(
+                    Number(attachedDoorQuote.totals.hardwareTotal) * 100
+                  )
+                )}
+              </span>
+            </div>
+          )}
 
         {/* Jambs & Casing (Window only) */}
-        {renderEditableRow(
-          'jc',
-          jcSummaryLabel,
-          combinedData.effectiveJCCents,
-          customJC,
-          taxJC,
-          (val) => setCustomJC(val),
-          '(window only)'
-        )}
+        {(!isSupplyOnly || combinedData.effectiveJCCents > 0) &&
+          renderEditableRow(
+            "jc",
+            jcSummaryLabel,
+            combinedData.effectiveJCCents,
+            customJC,
+            taxJC,
+            (val) => setCustomJC(val),
+            "(window only)"
+          )}
 
         {/* Misc (Window + Attached) - Hidden on Supply Only */}
-        {!isSupplyOnly && (() => {
-          const attachedMiscCents = combinedData.combinedMiscCents - (customMisc !== '' ? toCents(customMisc) : taxMisc);
-          const defaultCombinedMiscCents = taxMisc + attachedMiscCents;
-          return renderEditableRow(
-            'misc',
-            'Miscellaneous',
-            combinedData.combinedMiscCents,
-            customMisc,
-            defaultCombinedMiscCents,
-            (val) => {
-              if (!val) {
-                setCustomMisc('');
-                return;
-              }
-              const totalDesiredCents = toCents(val);
-              const windowCents = Math.max(0, totalDesiredCents - attachedMiscCents);
-              setCustomMisc((windowCents / 100).toFixed(2));
-            },
-            '(window + attached)'
-          );
-        })()}
+        {!isSupplyOnly &&
+          (() => {
+            const attachedMiscCents =
+              combinedData.combinedMiscCents -
+              (customMisc !== "" ? toCents(customMisc) : taxMisc)
+            const defaultCombinedMiscCents = taxMisc + attachedMiscCents
+            return renderEditableRow(
+              "misc",
+              "Miscellaneous",
+              combinedData.combinedMiscCents,
+              customMisc,
+              defaultCombinedMiscCents,
+              (val) => {
+                if (!val) {
+                  setCustomMisc("")
+                  return
+                }
+                const totalDesiredCents = toCents(val)
+                const windowCents = Math.max(
+                  0,
+                  totalDesiredCents - attachedMiscCents
+                )
+                setCustomMisc((windowCents / 100).toFixed(2))
+              },
+              "(window + attached)"
+            )
+          })()}
 
         {/* Labour (Window + Attached) - Hidden on Supply Only */}
-        {!isSupplyOnly && (() => {
-          const attachedLabourCents = combinedData.combinedLabourCents - (customLabour !== '' ? toCents(customLabour) : taxLabour);
-          const defaultCombinedLabourCents = taxLabour + attachedLabourCents;
-          return renderEditableRow(
-            'labour',
-            'Labour',
-            combinedData.combinedLabourCents,
-            customLabour,
-            defaultCombinedLabourCents,
-            (val) => {
-              if (!val) {
-                setCustomLabour('');
-                return;
-              }
-              const totalDesiredCents = toCents(val);
-              const windowCents = Math.max(0, totalDesiredCents - attachedLabourCents);
-              setCustomLabour((windowCents / 100).toFixed(2));
-            },
-            '(window + attached)'
-          );
-        })()}
+        {!isSupplyOnly &&
+          (() => {
+            const attachedLabourCents =
+              combinedData.combinedLabourCents -
+              (customLabour !== "" ? toCents(customLabour) : taxLabour)
+            const defaultCombinedLabourCents = taxLabour + attachedLabourCents
+            return renderEditableRow(
+              "labour",
+              "Labour",
+              combinedData.combinedLabourCents,
+              customLabour,
+              defaultCombinedLabourCents,
+              (val) => {
+                if (!val) {
+                  setCustomLabour("")
+                  return
+                }
+                const totalDesiredCents = toCents(val)
+                const windowCents = Math.max(
+                  0,
+                  totalDesiredCents - attachedLabourCents
+                )
+                setCustomLabour((windowCents / 100).toFixed(2))
+              },
+              "(window + attached)"
+            )
+          })()}
 
         {/* Surcharge (Window + Attached 8%) */}
-        <div className="flex items-center justify-between text-xs sm:text-sm py-0.5">
+        <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
           <span className="text-muted-foreground">
-            Surcharge <span className="text-[10px] text-muted-foreground/70">(8% on materials)</span>
+            Surcharge{" "}
+            <span className="text-[10px] text-muted-foreground/70">
+              (8% on materials)
+            </span>
           </span>
-          <span className="font-mono text-muted-foreground whitespace-nowrap shrink-0">
+          <span className="shrink-0 font-mono whitespace-nowrap text-muted-foreground">
             +{formatMoney(combinedData.combinedSurchargeCents)}
           </span>
         </div>
 
         {/* Promo discount (Window only) */}
         {combinedData.windowDiscountCents > 0 && (
-          <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
             <span>
-              Promo discount <span className="text-[10px] text-muted-foreground/70">(window only)</span>
+              Promo discount{" "}
+              <span className="text-[10px] text-muted-foreground/70">
+                (window only)
+              </span>
             </span>
-            <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(combinedData.windowDiscountCents)}</span>
+            <span className="shrink-0 font-mono whitespace-nowrap">
+              -{formatMoney(combinedData.windowDiscountCents)}
+            </span>
           </div>
         )}
 
         {/* 10% Door Discount (Separated) */}
         {combinedData.doorDiscountCents > 0 && (
-          <div className="flex items-center justify-between text-xs sm:text-sm py-0.5 font-medium text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
             <span>
-              10% Door Discount <span className="text-[10px] text-muted-foreground/70">(non-storm doors)</span>
+              10% Door Discount{" "}
+              <span className="text-[10px] text-muted-foreground/70">
+                (non-storm doors)
+              </span>
             </span>
-            <span className="font-mono whitespace-nowrap shrink-0">-{formatMoney(combinedData.doorDiscountCents)}</span>
+            <span className="shrink-0 font-mono whitespace-nowrap">
+              -{formatMoney(combinedData.doorDiscountCents)}
+            </span>
           </div>
         )}
       </div>
 
       {/* Subtotal */}
-      <div className="pb-2.5 border-b border-border/50 text-xs sm:text-sm">
+      <div className="border-b border-border/50 pb-2.5 text-xs sm:text-sm">
         <div className="flex items-center justify-between font-medium">
           <span className="text-foreground">Combined Subtotal</span>
-          <span className="font-mono font-bold text-primary whitespace-nowrap shrink-0">
+          <span className="shrink-0 font-mono font-bold whitespace-nowrap text-primary">
             {formatMoney(combinedData.combinedSubtotalCents)}
           </span>
         </div>
@@ -241,6 +289,8 @@ export function CombinedLedgerSection({
         hstRate={hstRate}
         setHstRate={setHstRate}
         taxCents={combinedData.combinedTaxCents}
+        hstBaseCents={combinedData.combinedHstBaseCents}
+        materialExemptionCents={combinedData.combinedMaterialExemptionCents}
         isReadOnly={isReadOnly}
         idPrefix="promoCombined"
       />
@@ -252,6 +302,5 @@ export function CombinedLedgerSection({
         secondPaymentCents={combinedData.combinedSecondPayment}
       />
     </>
-  );
+  )
 }
-

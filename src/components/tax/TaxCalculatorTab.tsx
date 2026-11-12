@@ -1,14 +1,14 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Lock } from 'lucide-react';
-import { TaxCalculatorTabProps } from './types';
-import { useTaxCalculator } from '@/hooks/tax/useTaxCalculator';
-import { RegionProfileCard } from './RegionProfileCard';
-import { WindowsSizesLabourCard } from './WindowsSizesLabourCard';
-import { TravelSetupCard } from './TravelSetupCard';
-import { ExtrasAndJambsCard } from './ExtrasAndJambsCard';
-import { TaxSummarySidebar } from './TaxSummarySidebar';
+import React from "react"
+import { Lock } from "lucide-react"
+import { TaxCalculatorTabProps } from "./types"
+import { useTaxCalculator } from "@/hooks/tax/useTaxCalculator"
+import { RegionProfileCard } from "./RegionProfileCard"
+import { WindowsSizesLabourCard } from "./WindowsSizesLabourCard"
+import { TravelSetupCard } from "./TravelSetupCard"
+import { ExtrasAndJambsCard } from "./ExtrasAndJambsCard"
+import { TaxSummarySidebar } from "./TaxSummarySidebar"
 
 export default function TaxCalculatorTab({
   windows,
@@ -51,6 +51,8 @@ export default function TaxCalculatorTab({
     setCasingName,
     casingRate,
     setCasingRate,
+    customMaterials,
+    setCustomMaterials,
     discount,
     setDiscount,
     hstOn,
@@ -67,22 +69,23 @@ export default function TaxCalculatorTab({
     isSupplyOnlyProp,
     savedTaxTotals,
     onCalculated,
-  });
+  })
 
-  if (!region) return <div>Loading region data...</div>;
+  if (!region) return <div>Loading region data...</div>
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+    <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
       {readOnly && (
-        <div className="lg:col-span-12 bg-amber-500/10 border-2 border-amber-500/30 rounded-xl p-3 flex items-center gap-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 animate-in fade-in">
-          <Lock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="flex animate-in items-center gap-2.5 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 fade-in lg:col-span-12 dark:text-amber-300">
+          <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
-            Tax &amp; Labour Calculator is in Read-Only Mode. Values and extras are locked and cannot be edited.
+            Tax &amp; Labour Calculator is in Read-Only Mode. Values and extras
+            are locked and cannot be edited.
           </span>
         </div>
       )}
 
-      <div className="lg:col-span-8 space-y-4 sm:space-y-5">
+      <div className="space-y-4 sm:space-y-5 lg:col-span-8">
         <RegionProfileCard
           region={region}
           regions={regions}
@@ -132,6 +135,8 @@ export default function TaxCalculatorTab({
           setCasingName={setCasingName}
           casingRate={casingRate}
           setCasingRate={setCasingRate}
+          customMaterials={customMaterials}
+          setCustomMaterials={setCustomMaterials}
         />
       </div>
 
@@ -153,7 +158,7 @@ export default function TaxCalculatorTab({
         summarySlot={summarySlot}
       />
     </div>
-  );
+  )
 }
 
-export { TaxCalculatorTab };
+export { TaxCalculatorTab }

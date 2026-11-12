@@ -1,23 +1,24 @@
-import React from 'react';
-import { formatMoney } from '@/lib/promo-logic';
-import type { InvoiceCalculationsResult, AttachedUpgradeOption } from '../types';
-import { WindowsScheduleTable } from '../tables/WindowsScheduleTable';
-import { SealedUnitsScheduleTable } from '../tables/SealedUnitsScheduleTable';
-import { DoorsScheduleTable } from '../tables/DoorsScheduleTable';
-import { InvoiceSummaryRows } from '../tables/InvoiceSummaryRows';
-import { InvoiceBreakdownTables } from '../tables/InvoiceBreakdownTables';
+import React from "react"
+import { formatMoney } from "@/lib/promo-logic"
+import type { InvoiceCalculationsResult, AttachedUpgradeOption } from "../types"
+import { WindowsScheduleTable } from "../tables/WindowsScheduleTable"
+import { SealedUnitsScheduleTable } from "../tables/SealedUnitsScheduleTable"
+import { DoorsScheduleTable } from "../tables/DoorsScheduleTable"
+import { InvoiceSummaryRows } from "../tables/InvoiceSummaryRows"
+import { InvoiceBreakdownTables } from "../tables/InvoiceBreakdownTables"
 
 export interface ModernInvoiceTemplateProps {
-  calc: InvoiceCalculationsResult;
-  customerName?: string;
-  quoteNumber?: string;
-  regionName?: string;
-  preparedBy?: string;
-  wantsUpgrade?: boolean;
-  shownUpgrade?: number;
-  attachedUpgrade?: AttachedUpgradeOption | null;
-  quoteNotes?: string;
-  globalUpcharges?: any[];
+  calc: InvoiceCalculationsResult
+  customerName?: string
+  quoteNumber?: string
+  regionName?: string
+  preparedBy?: string
+  wantsUpgrade?: boolean
+  shownUpgrade?: number
+  attachedUpgrade?: AttachedUpgradeOption | null
+  quoteNotes?: string
+  globalUpcharges?: any[]
+  isDualOption?: boolean
 }
 
 export function ModernInvoiceTemplate({
@@ -31,6 +32,7 @@ export function ModernInvoiceTemplate({
   attachedUpgrade,
   quoteNotes,
   globalUpcharges,
+  isDualOption = false,
 }: ModernInvoiceTemplateProps) {
   const {
     titleFs,
@@ -44,23 +46,23 @@ export function ModernInvoiceTemplate({
     finalTotalCents,
     finalFirstPayment,
     finalSecondPayment,
-  } = calc;
+  } = calc
 
   return (
     <>
       {/* Header: Modern Minimalist Header */}
-      <div className="border-t-4 border-indigo-600 border-b border-slate-300 py-2.5 mb-3 bg-slate-50/50 px-2 rounded-t">
-        <div className="flex justify-between items-baseline">
+      <div className="mb-3 rounded-t border-t-4 border-b border-indigo-600 border-slate-300 bg-slate-50/50 px-2 py-2.5">
+        <div className="flex items-baseline justify-between">
           <div>
             <h1
               style={{ fontSize: `${titleFs}px` }}
-              className="font-extrabold tracking-tight text-slate-900 m-0 uppercase leading-none"
+              className="m-0 leading-none font-extrabold tracking-tight text-slate-900 uppercase"
             >
               The Window &amp; Door Store
             </h1>
             <div
               style={{ fontSize: `${smallFs}px` }}
-              className="text-indigo-600 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap"
+              className="mt-0.5 flex flex-wrap items-center gap-2 font-bold tracking-wider text-indigo-600 uppercase"
             >
               <span>{invoiceSubtitle}</span>
             </div>
@@ -70,11 +72,11 @@ export function ModernInvoiceTemplate({
               style={{ fontSize: `${h2Fs}px` }}
               className="font-mono font-bold text-slate-900"
             >
-              {quoteNumber || 'REF-QUOTE'}
+              {quoteNumber || "REF-QUOTE"}
             </div>
             <div
               style={{ fontSize: `${smallFs}px` }}
-              className="text-slate-500 font-medium"
+              className="font-medium text-slate-500"
               suppressHydrationWarning
             >
               {currentDate}
@@ -86,32 +88,38 @@ export function ModernInvoiceTemplate({
         {(customerName || regionName || preparedBy) && (
           <div
             style={{ fontSize: `${bodyFs}px` }}
-            className="mt-1 pt-1 border-t border-slate-200 flex justify-between items-center text-[#0f172a] flex-wrap gap-2"
+            className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-1 text-[#0f172a]"
           >
             <div className="flex items-center gap-3">
               {customerName && (
                 <div>
-                  <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">
+                  <span className="mr-1 text-[9px] font-bold text-slate-500 uppercase">
                     Client:
                   </span>
-                  <span className="font-bold text-slate-900">{customerName}</span>
+                  <span className="font-bold text-slate-900">
+                    {customerName}
+                  </span>
                 </div>
               )}
               {regionName && (
                 <div>
-                  <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">
+                  <span className="mr-1 text-[9px] font-bold text-slate-500 uppercase">
                     Region:
                   </span>
-                  <span className="font-semibold text-slate-800">{regionName}</span>
+                  <span className="font-semibold text-slate-800">
+                    {regionName}
+                  </span>
                 </div>
               )}
             </div>
             {preparedBy && (
               <div>
-                <span className="text-slate-500 uppercase font-bold text-[9px] mr-1">
+                <span className="mr-1 text-[9px] font-bold text-slate-500 uppercase">
                   Prepared By:
                 </span>
-                <span className="font-semibold text-slate-800">{preparedBy}</span>
+                <span className="font-semibold text-slate-800">
+                  {preparedBy}
+                </span>
               </div>
             )}
           </div>
@@ -121,10 +129,14 @@ export function ModernInvoiceTemplate({
       {/* Product Schedules */}
       <WindowsScheduleTable theme="modern" calc={calc} />
       <SealedUnitsScheduleTable theme="modern" calc={calc} />
-      <DoorsScheduleTable theme="modern" calc={calc} globalUpcharges={globalUpcharges} />
+      <DoorsScheduleTable
+        theme="modern"
+        calc={calc}
+        globalUpcharges={globalUpcharges}
+      />
 
-      {/* Two-Column Layout */}
-      <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t border-[#cbd5e1] pt-2">
+      {/* Two-Column Specification & Accounting Breakdown */}
+      <div className="grid grid-cols-[1.1fr_1.15fr] items-start gap-4 border-t border-[#cbd5e1] pt-2">
         {/* Left Column: Details & Extras */}
         <InvoiceBreakdownTables
           calc={calc}
@@ -132,26 +144,33 @@ export function ModernInvoiceTemplate({
           shownUpgrade={shownUpgrade}
           attachedUpgrade={attachedUpgrade}
           quoteNotes={quoteNotes}
+          isDualOption={isDualOption}
         />
 
         {/* Right Column: Financial Summary */}
         <div>
           <div
             style={{ fontSize: `${h2Fs}px` }}
-            className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-[1.5px] border-[#0f172a]"
+            className="mb-1 border-b-[1.5px] border-[#0f172a] pb-0.5 font-bold tracking-wider text-[#0f172a] uppercase"
           >
             Summary
           </div>
 
-          <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+          <table
+            className="w-full border-collapse"
+            style={{ fontSize: `${bodyFs}px` }}
+          >
             <tbody>
               <InvoiceSummaryRows calc={calc} textColor="text-[#0f172a]" />
             </tbody>
           </table>
 
           {/* Total */}
-          <div className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded p-2 flex justify-between items-center font-extrabold mt-2">
-            <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">
+          <div className="mt-2 flex items-center justify-between rounded border-2 border-[#0f172a] bg-white p-2 font-extrabold text-[#0f172a]">
+            <span
+              style={{ fontSize: `${h2Fs}px` }}
+              className="tracking-wide text-[#0f172a] uppercase"
+            >
               Total
             </span>
             <span
@@ -163,31 +182,31 @@ export function ModernInvoiceTemplate({
           </div>
 
           {/* 50% Deposit & Final 50% Balance */}
-          <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-            <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
+          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[#cbd5e1] pt-1.5">
+            <div className="rounded border border-[#cbd5e1] bg-white p-1.5">
               <div
                 style={{ fontSize: `${microFs}px` }}
-                className="text-[#334155] uppercase tracking-wider font-semibold"
+                className="font-semibold tracking-wider text-[#334155] uppercase"
               >
                 50% Deposit
               </div>
               <div
                 style={{ fontSize: `${bodyFs}px` }}
-                className="font-mono font-bold text-[#0f172a] mt-0.5"
+                className="mt-0.5 font-mono font-bold text-[#0f172a]"
               >
                 {formatMoney(finalFirstPayment)}
               </div>
             </div>
-            <div className="bg-white p-1.5 rounded border border-[#cbd5e1]">
+            <div className="rounded border border-[#cbd5e1] bg-white p-1.5">
               <div
                 style={{ fontSize: `${microFs}px` }}
-                className="text-[#334155] uppercase tracking-wider font-semibold"
+                className="font-semibold tracking-wider text-[#334155] uppercase"
               >
                 Final 50% Balance
               </div>
               <div
                 style={{ fontSize: `${bodyFs}px` }}
-                className="font-mono font-bold text-[#0f172a] mt-0.5"
+                className="mt-0.5 font-mono font-bold text-[#0f172a]"
               >
                 {formatMoney(finalSecondPayment)}
               </div>
@@ -196,6 +215,5 @@ export function ModernInvoiceTemplate({
         </div>
       </div>
     </>
-  );
+  )
 }
-

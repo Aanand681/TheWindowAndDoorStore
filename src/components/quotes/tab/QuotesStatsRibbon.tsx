@@ -1,25 +1,25 @@
-import React from 'react';
-import type { QuotesSubTabType } from './types';
-import { AdminStatsCards } from './ribbon/AdminStatsCards';
-import { EmployeeStatsCards } from './ribbon/EmployeeStatsCards';
-import { ClerkStatsCards } from './ribbon/ClerkStatsCards';
+import React from "react"
+import type { QuotesSubTabType } from "./types"
+import { AdminStatsCards } from "./ribbon/AdminStatsCards"
+import { EmployeeStatsCards } from "./ribbon/EmployeeStatsCards"
+import { ClerkStatsCards } from "./ribbon/ClerkStatsCards"
 
 export interface QuotesStatsRibbonProps {
-  canReview: boolean;
-  isEmployee: boolean;
-  isClerk: boolean;
-  hasOdooAccess: boolean;
-  activeTab: QuotesSubTabType;
-  handleTabChange: (tab: QuotesSubTabType) => void;
-  adminPendingCount: number;
-  adminOdooCount: number;
-  adminArchiveCount: number;
-  employeeInReviewCount: number;
-  employeeOdooDoneCount: number;
-  employeeHistoryCount: number;
-  clerkPendingCount: number;
-  clerkCompletedCount: number;
-  clerkTotalAssignedCount: number;
+  canReview: boolean
+  isEmployee: boolean
+  isClerk: boolean
+  hasOdooAccess: boolean
+  activeTab: QuotesSubTabType
+  handleTabChange: (tab: QuotesSubTabType) => void
+  adminPendingCount: number
+  adminOdooCount: number
+  adminArchiveCount: number
+  employeeInReviewCount: number
+  employeeOdooDoneCount: number
+  employeeHistoryCount: number
+  clerkPendingCount: number
+  clerkCompletedCount: number
+  clerkTotalAssignedCount: number
 }
 
 export function QuotesStatsRibbon({
@@ -40,7 +40,7 @@ export function QuotesStatsRibbon({
   clerkTotalAssignedCount,
 }: QuotesStatsRibbonProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {canReview && (
         <AdminStatsCards
           activeTab={activeTab}
@@ -71,5 +71,5 @@ export function QuotesStatsRibbon({
         />
       )}
     </div>
-  );
+  )
 }

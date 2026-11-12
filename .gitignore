@@ -1,5 +1,6 @@
 # dependencies
 /.graph-it
+/docs/*
 /node_modules
 /.pnp
 .pnp.*

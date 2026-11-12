@@ -1,17 +1,17 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { DoorClosed, Wrench, Percent, Truck } from 'lucide-react';
-import { AppHeader } from '@/components/layout/AppHeader';
-import { useAdminDoors } from '@/hooks/admin/useAdminDoors';
+import React from "react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { DoorClosed, Wrench, Percent, Truck } from "lucide-react"
+import { AppHeader } from "@/components/layout/AppHeader"
+import { useAdminDoors } from "@/hooks/admin/useAdminDoors"
 import {
   AdminDoorsHeader,
   AdminDoorPresetsTab,
   AdminDoorUpchargesTab,
   AdminDoorFormulaTab,
   AdminDoorLogisticsTab,
-} from '@/components/admin/doors';
+} from "@/components/admin/doors"
 
 export default function AdminDoorsPage() {
   const {
@@ -33,13 +33,13 @@ export default function AdminDoorsPage() {
     handleUpdateUpcharge,
     handleAddUpcharge,
     handleDeleteUpcharge,
-  } = useAdminDoors();
+  } = useAdminDoors()
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
-      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-12 relative z-10 space-y-6 sm:space-y-8">
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
         <AppHeader currentPath="/admin/doors" />
 
         <AdminDoorsHeader
@@ -55,21 +55,21 @@ export default function AdminDoorsPage() {
           onValueChange={(val) => setActiveTab(val as any)}
           className="space-y-6"
         >
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full max-w-3xl bg-muted/50 p-1">
+          <TabsList className="grid w-full max-w-3xl grid-cols-2 bg-muted/50 p-1 md:grid-cols-4">
             <TabsTrigger value="presets" className="gap-2 text-xs sm:text-sm">
-              <DoorClosed className="w-4 h-4" />
+              <DoorClosed className="h-4 w-4" />
               <span>Door Presets ({presets.length})</span>
             </TabsTrigger>
             <TabsTrigger value="upcharges" className="gap-2 text-xs sm:text-sm">
-              <Wrench className="w-4 h-4" />
+              <Wrench className="h-4 w-4" />
               <span>Upcharges &amp; Hardware</span>
             </TabsTrigger>
             <TabsTrigger value="formula" className="gap-2 text-xs sm:text-sm">
-              <Percent className="w-4 h-4" />
+              <Percent className="h-4 w-4" />
               <span>Surcharges &amp; Discounts</span>
             </TabsTrigger>
             <TabsTrigger value="logistics" className="gap-2 text-xs sm:text-sm">
-              <Truck className="w-4 h-4" />
+              <Truck className="h-4 w-4" />
               <span>Travel &amp; Logistics</span>
             </TabsTrigger>
           </TabsList>
@@ -99,10 +99,13 @@ export default function AdminDoorsPage() {
           </TabsContent>
 
           <TabsContent value="logistics" className="space-y-4">
-            <AdminDoorLogisticsTab logistics={logistics} setLogistics={setLogistics} />
+            <AdminDoorLogisticsTab
+              logistics={logistics}
+              setLogistics={setLogistics}
+            />
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  );
+  )
 }

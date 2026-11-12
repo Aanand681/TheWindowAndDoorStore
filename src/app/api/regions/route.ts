@@ -1,55 +1,73 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import RegionConfig from '@/models/RegionConfig';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { cacheGet, cacheSet, cacheDel } from '@/lib/redis';
-import { handleApiError } from '@/lib/api-error';
+import { NextResponse } from "next/server"
+import dbConnect from "@/lib/mongodb"
+import RegionConfig from "@/models/RegionConfig"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
+import { handleApiError } from "@/lib/api-error"
 
-export const revalidate = 60;
+export const revalidate = 60
 
 export async function GET() {
   try {
-    const cacheKey = 'regions:all';
+    const cacheKey = "regions:all"
     const headers = {
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-    };
-    const cached = await cacheGet(cacheKey);
+      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+    }
+    const cached = await cacheGet(cacheKey)
     if (cached) {
-      return NextResponse.json(cached, { headers });
+      return NextResponse.json(cached, { headers })
     }
 
-    await dbConnect();
-    const regions = await RegionConfig.find().sort({ name: 1 });
-    cacheSet(cacheKey, regions, 86400).catch(() => {});
-    return NextResponse.json(regions, { headers });
+    await dbConnect()
+    const regions = await RegionConfig.find().sort({ name: 1 })
+    cacheSet(cacheKey, regions, 86400).catch(() => {})
+    return NextResponse.json(regions, { headers })
   } catch (error: any) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user.role !== 'SUPERADMIN' && session.user.role !== 'ADMIN' && !session.user.canAccessAdmin)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const session = await getServerSession(authOptions)
+    if (
+      !session ||
+      (session.user.role !== "SUPERADMIN" &&
+        session.user.role !== "ADMIN" &&
+        !session.user.canAccessAdmin)
+    ) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
-    await dbConnect();
-    const data = await req.json();
+    await dbConnect()
+    const data = await req.json()
     if (!data.name || !data.name.trim()) {
-      return NextResponse.json({ error: 'Region name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Region name is required" },
+        { status: 400 }
+      )
     }
 
-    const trimmedName = data.name.trim();
+    const trimmedName = data.name.trim()
     const existing = await RegionConfig.findOne({
-      name: { $regex: new RegExp(`^${trimmedName.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') }
-    });
+      name: {
+        $regex: new RegExp(
+          `^${trimmedName.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}$`,
+          "i"
+        ),
+      },
+    })
     if (existing) {
-      return NextResponse.json({ error: 'A region with this name already exists' }, { status: 400 });
+      return NextResponse.json(
+        { error: "A region with this name already exists" },
+        { status: 400 }
+      )
     }
 
-    const isSupplyOnly = Boolean(data.isSupplyOnly || trimmedName.toLowerCase().includes('supply'));
+    const isSupplyOnly = Boolean(
+      data.isSupplyOnly || trimmedName.toLowerCase().includes("supply")
+    )
 
     const newRegion = await RegionConfig.create({
       name: trimmedName,
@@ -57,25 +75,29 @@ export async function POST(req: Request) {
       officeLat: Number(data.officeLat) || 48.6017,
       officeLon: Number(data.officeLon) || -93.3986,
       freeCities: Array.isArray(data.freeCities) ? data.freeCities : [],
-      setupFeeOptions: data.setupFeeOptions && data.setupFeeOptions.length > 0 
-        ? data.setupFeeOptions 
-        : isSupplyOnly 
-          ? [{ label: 'Supply Only (No Setup)', value: 0 }] 
-          : [{ label: 'Standard Setup', value: 140 }],
+      setupFeeOptions:
+        data.setupFeeOptions && data.setupFeeOptions.length > 0
+          ? data.setupFeeOptions
+          : isSupplyOnly
+            ? [{ label: "Supply Only (No Setup)", value: 0 }]
+            : [{ label: "Standard Setup", value: 140 }],
       labourPerSqft: isSupplyOnly ? 0 : (Number(data.labourPerSqft) ?? 19),
       miscPerSqft: isSupplyOnly ? 0 : (Number(data.miscPerSqft) ?? 8),
       labourMin: isSupplyOnly ? 0 : (Number(data.labourMin) ?? 325),
       miscMin: isSupplyOnly ? 0 : (Number(data.miscMin) ?? 74),
-      extraLinPerWindow: Number(data.extraLinPerWindow) > 0 ? Number(data.extraLinPerWindow) : 2.17,
+      extraLinPerWindow:
+        Number(data.extraLinPerWindow) > 0
+          ? Number(data.extraLinPerWindow)
+          : 2.17,
       fixedSetupFee: isSupplyOnly ? 0 : (Number(data.fixedSetupFee) ?? 140),
       baseTravelFee: isSupplyOnly ? 0 : (Number(data.baseTravelFee) ?? 0),
       polygon: Array.isArray(data.polygon) ? data.polygon : [],
-    });
+    })
 
-    cacheDel('regions:all').catch(() => {});
+    cacheDel("regions:all").catch(() => {})
 
-    return NextResponse.json(newRegion, { status: 201 });
+    return NextResponse.json(newRegion, { status: 201 })
   } catch (error: any) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }

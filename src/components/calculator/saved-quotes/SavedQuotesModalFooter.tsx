@@ -1,17 +1,17 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { QuoteType } from '@/lib/quote-drafts-storage';
+import React from "react"
+import { Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { QuoteType } from "@/lib/quote-drafts-storage"
 
 interface SavedQuotesModalFooterProps {
-  totalDraftsCount: number;
-  selectedTab: QuoteType | 'all';
-  isConfirmingDeleteAll: boolean;
-  setIsConfirmingDeleteAll: (val: boolean) => void;
-  handleDeleteAll: () => void;
-  onClose: () => void;
+  totalDraftsCount: number
+  selectedTab: QuoteType | "all"
+  isConfirmingDeleteAll: boolean
+  setIsConfirmingDeleteAll: (val: boolean) => void
+  handleDeleteAll: () => void
+  onClose: () => void
 }
 
 export function SavedQuotesModalFooter({
@@ -23,25 +23,34 @@ export function SavedQuotesModalFooter({
   onClose,
 }: SavedQuotesModalFooterProps) {
   return (
-    <div className="p-3.5 sm:p-4 border-t border-border/70 bg-muted/20 flex flex-wrap items-center justify-between gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 bg-muted/20 p-3.5 sm:p-4">
       <div className="flex items-center gap-3">
         <div className="text-xs text-muted-foreground">
-          {totalDraftsCount} total saved {totalDraftsCount === 1 ? 'quote' : 'quotes'}
+          {totalDraftsCount} total saved{" "}
+          {totalDraftsCount === 1 ? "quote" : "quotes"}
         </div>
 
         {totalDraftsCount > 0 && (
           <>
             {isConfirmingDeleteAll ? (
-              <div className="flex items-center gap-1.5 bg-destructive/10 px-2 py-1 rounded-lg border border-destructive/30">
+              <div className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-2 py-1">
                 <span className="text-xs font-bold text-destructive">
-                  Delete all {selectedTab === 'all' ? 'quotes' : selectedTab === 'window' ? 'window quotes' : 'sealed unit quotes'}?
+                  Delete all{" "}
+                  {selectedTab === "all"
+                    ? "quotes"
+                    : selectedTab === "window"
+                      ? "window quotes"
+                      : selectedTab === "door"
+                        ? "door quotes"
+                        : "sealed unit quotes"}
+                  ?
                 </span>
                 <Button
                   type="button"
                   size="sm"
                   variant="destructive"
                   onClick={handleDeleteAll}
-                  className="h-6 px-2 text-xs font-bold cursor-pointer"
+                  className="h-6 cursor-pointer px-2 text-xs font-bold"
                 >
                   Yes, Delete All
                 </Button>
@@ -50,7 +59,7 @@ export function SavedQuotesModalFooter({
                   size="sm"
                   variant="ghost"
                   onClick={() => setIsConfirmingDeleteAll(false)}
-                  className="h-6 px-1.5 text-xs cursor-pointer"
+                  className="h-6 cursor-pointer px-1.5 text-xs"
                 >
                   Cancel
                 </Button>
@@ -61,10 +70,10 @@ export function SavedQuotesModalFooter({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsConfirmingDeleteAll(true)}
-                className="h-7 px-2 text-xs font-semibold text-destructive/80 hover:text-destructive hover:bg-destructive/10 gap-1 cursor-pointer"
+                className="h-7 cursor-pointer gap-1 px-2 text-xs font-semibold text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
                 title="Delete all saved quotes"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="h-3.5 w-3.5" />
                 <span>Delete All</span>
               </Button>
             )}
@@ -77,11 +86,10 @@ export function SavedQuotesModalFooter({
         variant="outline"
         size="sm"
         onClick={onClose}
-        className="h-8 text-xs font-semibold cursor-pointer ml-auto"
+        className="ml-auto h-8 cursor-pointer text-xs font-semibold"
       >
         Close
       </Button>
     </div>
-  );
+  )
 }
-

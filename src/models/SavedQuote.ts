@@ -1,85 +1,90 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface IQuoteWindowItem {
-  id: string;
-  w?: string;
-  h?: string;
-  qty?: number | string;
-  base?: string | number;
-  argon?: string | number;
-  solar?: string | number;
-  triple?: string | number;
-  color?: string;
-  [key: string]: unknown;
+  id: string
+  w?: string
+  h?: string
+  qty?: number | string
+  base?: string | number
+  argon?: string | number
+  solar?: string | number
+  triple?: string | number
+  color?: string
+  [key: string]: unknown
 }
 
 export interface IQuoteTaxTotals {
-  subtotalPreTax?: number;
-  taxAmount?: number;
-  grandTotal?: number;
-  labour?: number;
-  misc?: number;
-  jc?: number;
-  surcharge?: number;
-  [key: string]: unknown;
+  subtotalPreTax?: number
+  taxAmount?: number
+  grandTotal?: number
+  labour?: number
+  misc?: number
+  jc?: number
+  surcharge?: number
+  [key: string]: unknown
 }
 
 export interface IAttachedUpgrade {
-  title: string;
-  amountPreTaxCents: number;
+  title: string
+  amountPreTaxCents: number
 }
 
 export interface ISavedQuote extends Document {
-  quoteNumber: string;
-  customerName: string;
-  status: 'PENDING_REVIEW' | 'APPROVED' | 'MODIFIED' | 'RETURNED';
-  preparedBy: string;
-  preparedByEmail?: string;
-  assignedTo: string;
-  assignedToEmail?: string;
-  preparerNotes?: string;
-  reviewerNotes?: string;
-  reviewChanges?: string[];
-  isStarred?: boolean;
-  initialSnapshot?: Record<string, unknown>;
-  
+  quoteNumber: string
+  customerName: string
+  status: "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "MODIFIED" | "RETURNED"
+  preparedBy: string
+  preparedByEmail?: string
+  assignedTo: string
+  assignedToEmail?: string
+  preparerNotes?: string
+  reviewerNotes?: string
+  reviewChanges?: string[]
+  isStarred?: boolean
+  initialSnapshot?: Record<string, unknown>
+
   // Snapshot Payload
-  windows: IQuoteWindowItem[];
-  taxTotals?: IQuoteTaxTotals | Record<string, unknown>;
-  quoteResult?: Record<string, unknown>;
-  quoteNotes: string;
-  surchargeRate: number;
-  activePromoId?: string;
-  customJC?: string | number;
-  customMisc?: string | number;
-  customLabour?: string | number;
-  includeJCInPromo?: boolean;
-  includeMiscInPromo?: boolean;
-  includeLabourInPromo?: boolean;
-  attachedUpgrade?: IAttachedUpgrade | null;
-  attachedSealedUnit?: Record<string, unknown> | null;
-  attachedDoorQuote?: Record<string, unknown> | null;
-  wantsUpgrade?: boolean;
-  isSupplyOnly?: boolean;
-  isServiceOnly?: boolean;
-  quoteSummaryTotal?: number;
-  approvedBy?: string;
-  approvedAt?: Date;
+  windows: IQuoteWindowItem[]
+  taxTotals?: IQuoteTaxTotals | Record<string, unknown>
+  quoteResult?: Record<string, unknown>
+  quoteNotes: string
+  surchargeRate: number
+  activePromoId?: string
+  customJC?: string | number
+  customMisc?: string | number
+  customLabour?: string | number
+  includeJCInPromo?: boolean
+  includeMiscInPromo?: boolean
+  includeLabourInPromo?: boolean
+  attachedUpgrade?: IAttachedUpgrade | null
+  attachedSealedUnit?: Record<string, unknown> | null
+  attachedDoorQuote?: Record<string, unknown> | null
+  attachedWindowQuote?: Record<string, unknown> | null
+  supplyJambId?: string
+  supplyJambRate?: string
+  supplyCasingId?: string
+  supplyCasingRate?: string
+  wantsUpgrade?: boolean
+  isSupplyOnly?: boolean
+  isServiceOnly?: boolean
+  quoteSummaryTotal?: number
+  approvedBy?: string
+  approvedAt?: Date
 
   // Odoo Entry Tracking
-  odooAssignedTo?: string;
-  odooAssignedToEmail?: string;
-  odooStatus?: 'PENDING_ENTRY' | 'COMPLETED';
-  odooCompletedAt?: Date;
-  odooCompletedBy?: string;
-  odooOrderNumber?: string;
+  odooAssignedTo?: string
+  odooAssignedToEmail?: string
+  odooStatus?: "PENDING_ENTRY" | "COMPLETED"
+  odooCompletedAt?: Date
+  odooCompletedBy?: string
+  odooOrderNumber?: string
 
-  reviewedAt?: Date;
-  reviewedBy?: string;
-  reviewedByRole?: string;
-  lastReminderSentAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  reviewedAt?: Date
+  reviewedBy?: string
+  reviewedByRole?: string
+  lastReminderSentAt?: Date
+  createdAt: Date
+  updatedAt: Date
 }
 
 const SavedQuoteSchema = new Schema<ISavedQuote>(
@@ -100,8 +105,8 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     status: {
       type: String,
-      enum: ['PENDING_REVIEW', 'APPROVED', 'MODIFIED', 'RETURNED'],
-      default: 'PENDING_REVIEW',
+      enum: ["DRAFT", "PENDING_REVIEW", "APPROVED", "MODIFIED", "RETURNED"],
+      default: "PENDING_REVIEW",
       index: true,
     },
     preparedBy: {
@@ -116,7 +121,7 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     assignedTo: {
       type: String,
-      default: 'Admin',
+      default: "Admin",
       trim: true,
       index: true,
     },
@@ -127,12 +132,12 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     preparerNotes: {
       type: String,
       maxlength: 10000,
-      default: '',
+      default: "",
     },
     reviewerNotes: {
       type: String,
       maxlength: 10000,
-      default: '',
+      default: "",
     },
     reviewChanges: {
       type: [String],
@@ -158,7 +163,7 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     quoteNotes: {
       type: String,
       maxlength: 10000,
-      default: '',
+      default: "",
     },
     surchargeRate: {
       type: Number,
@@ -166,19 +171,19 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     activePromoId: {
       type: String,
-      default: 'none',
+      default: "none",
     },
     customJC: {
       type: Schema.Types.Mixed,
-      default: '',
+      default: "",
     },
     customMisc: {
       type: Schema.Types.Mixed,
-      default: '',
+      default: "",
     },
     customLabour: {
       type: Schema.Types.Mixed,
-      default: '',
+      default: "",
     },
     includeJCInPromo: {
       type: Boolean,
@@ -204,6 +209,30 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       type: Schema.Types.Mixed,
       default: null,
     },
+    attachedWindowQuote: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    supplyJambId: {
+      type: String,
+      default: "none",
+      trim: true,
+    },
+    supplyJambRate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    supplyCasingId: {
+      type: String,
+      default: "none",
+      trim: true,
+    },
+    supplyCasingRate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     wantsUpgrade: {
       type: Boolean,
       default: false,
@@ -222,29 +251,29 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     reviewedBy: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     reviewedByRole: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     odooAssignedTo: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
       index: true,
     },
     odooAssignedToEmail: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     odooStatus: {
       type: String,
-      enum: ['PENDING_ENTRY', 'COMPLETED', ''],
-      default: '',
+      enum: ["PENDING_ENTRY", "COMPLETED", ""],
+      default: "",
       index: true,
     },
     odooCompletedAt: {
@@ -253,12 +282,12 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     odooCompletedBy: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     odooOrderNumber: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     lastReminderSentAt: {
@@ -271,21 +300,41 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
   },
   { timestamps: true, strict: false }
-);
+)
 
 // Compound and search indexes for query optimization
-SavedQuoteSchema.index({ status: 1, assignedTo: 1, createdAt: -1 }, { name: 'reviewer_queue' });
-SavedQuoteSchema.index({ odooAssignedTo: 1, odooStatus: 1, createdAt: -1 }, { name: 'clerk_odoo_queue' });
-SavedQuoteSchema.index({ preparedBy: 1, status: 1, createdAt: -1 }, { name: 'employee_history' });
-SavedQuoteSchema.index({ createdAt: -1 }, { name: 'admin_archive' });
 SavedQuoteSchema.index(
-  { quoteNumber: 'text', customerName: 'text', preparedBy: 'text', odooOrderNumber: 'text' },
-  { name: 'quote_text_search' }
-);
+  { status: 1, assignedTo: 1, createdAt: -1 },
+  { name: "reviewer_queue" }
+)
+SavedQuoteSchema.index(
+  { odooAssignedTo: 1, odooStatus: 1, createdAt: -1 },
+  { name: "clerk_odoo_queue" }
+)
+SavedQuoteSchema.index(
+  { preparedBy: 1, status: 1, createdAt: -1 },
+  { name: "employee_history" }
+)
+SavedQuoteSchema.index({ createdAt: -1 }, { name: "admin_archive" })
+SavedQuoteSchema.index(
+  {
+    quoteNumber: "text",
+    customerName: "text",
+    preparedBy: "text",
+    odooOrderNumber: "text",
+  },
+  { name: "quote_text_search" }
+)
 
-if (mongoose.models.SavedQuote && (!mongoose.models.SavedQuote.schema.path('quoteNumber') || !mongoose.models.SavedQuote.schema.path('odooStatus'))) {
-  delete (mongoose.models as Record<string, unknown>).SavedQuote;
+if (
+  mongoose.models.SavedQuote &&
+  (!mongoose.models.SavedQuote.schema.path("quoteNumber") ||
+    !mongoose.models.SavedQuote.schema.path("odooStatus"))
+) {
+  delete (mongoose.models as Record<string, unknown>).SavedQuote
 }
 
-const SavedQuoteModel: Model<ISavedQuote> = (mongoose.models.SavedQuote as Model<ISavedQuote>) || mongoose.model<ISavedQuote>('SavedQuote', SavedQuoteSchema);
-export default SavedQuoteModel;
+const SavedQuoteModel: Model<ISavedQuote> =
+  (mongoose.models.SavedQuote as Model<ISavedQuote>) ||
+  mongoose.model<ISavedQuote>("SavedQuote", SavedQuoteSchema)
+export default SavedQuoteModel

@@ -1,28 +1,33 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { FileText, Database } from 'lucide-react';
-import type { QuotesSubTabType, QuotesTabProps } from './tab/types';
-import { useQuotesTabState } from '@/hooks/quotes/useQuotesTabState';
-import { QuotesStatsRibbon } from './tab/QuotesStatsRibbon';
-import { QuotesFilterToolbar } from './tab/QuotesFilterToolbar';
-import { QuoteCardItem } from './tab/QuoteCardItem';
-import { QuotesModals } from './tab/QuotesModals';
+import React from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { FileText, Database } from "lucide-react"
+import type { QuotesSubTabType, QuotesTabProps } from "./tab/types"
+import { useQuotesTabState } from "@/hooks/quotes/useQuotesTabState"
+import { QuotesStatsRibbon } from "./tab/QuotesStatsRibbon"
+import { QuotesFilterToolbar } from "./tab/QuotesFilterToolbar"
+import { QuoteCardItem } from "./tab/QuoteCardItem"
+import { QuotesModals } from "./tab/QuotesModals"
 
-export type { QuotesSubTabType, QuotesTabProps };
+export type { QuotesSubTabType, QuotesTabProps }
 
 export default function QuotesTab(props: QuotesTabProps) {
-  const { currentUser, onOpenQuote, initialSubTab, initialPreviewQuoteId, onQuotesCountChange } =
-    props;
+  const {
+    currentUser,
+    onOpenQuote,
+    initialSubTab,
+    initialPreviewQuoteId,
+    onQuotesCountChange,
+  } = props
 
   const state = useQuotesTabState({
     currentUser,
     initialSubTab,
     initialPreviewQuoteId,
     onQuotesCountChange,
-  });
+  })
 
   const {
     isSuperAdmin,
@@ -89,25 +94,25 @@ export default function QuotesTab(props: QuotesTabProps) {
     clerkPendingCount,
     clerkCompletedCount,
     clerkTotalAssignedCount,
-  } = state;
+  } = state
 
   return (
     <div className="space-y-6">
       {/* Title & Stats Ribbon */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+      <div className="flex flex-col justify-between gap-4 pt-1 md:flex-row md:items-center">
         <div>
           <div className="flex items-center gap-2.5">
-            <FileText className="w-7 h-7 text-primary" />
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <FileText className="h-7 w-7 text-primary" />
+            <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
               Quotes &amp; Review Queue
             </h2>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             {canReview
-              ? 'Review submitted quotes, assign Odoo queues, and explore all quote archives.'
+              ? "Review submitted quotes, assign Odoo queues, and explore all quote archives."
               : isClerk
-                ? 'Manage pending Odoo entries, record official Sales Order numbers, and archive assignments.'
-                : 'Track submitted quotes in review, verify completed Odoo entries, and view quote history.'}
+                ? "Manage pending Odoo entries, record official Sales Order numbers, and archive assignments."
+                : "Track submitted quotes in review, verify completed Odoo entries, and view quote history."}
           </p>
         </div>
 
@@ -116,12 +121,12 @@ export default function QuotesTab(props: QuotesTabProps) {
             variant="outline"
             size="sm"
             onClick={() => {
-              fetchStorageStats();
-              setShowFlushModal(true);
+              fetchStorageStats()
+              setShowFlushModal(true)
             }}
-            className="gap-2 border-border/80 bg-card/40 backdrop-blur shadow-sm hover:border-primary/50 text-xs self-start md:self-auto cursor-pointer"
+            className="cursor-pointer gap-2 self-start border-border/80 bg-card/40 text-xs shadow-sm backdrop-blur hover:border-primary/50 md:self-auto"
           >
-            <Database className="w-3.5 h-3.5 text-primary" />
+            <Database className="h-3.5 w-3.5 text-primary" />
             <span>Storage &amp; Auto-Flush</span>
           </Button>
         )}
@@ -169,18 +174,20 @@ export default function QuotesTab(props: QuotesTabProps) {
 
       {/* Quotes List / Grid */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground animate-pulse text-sm">
+        <div className="animate-pulse py-16 text-center text-sm text-muted-foreground">
           Loading quotes...
         </div>
       ) : sortedQuotes.length === 0 ? (
         <Card className="border-dashed bg-card/20">
-          <CardContent className="p-12 text-center text-muted-foreground space-y-3">
-            <FileText className="w-10 h-10 mx-auto text-muted-foreground/60" />
-            <div className="text-base font-semibold text-foreground">No quotes found</div>
-            <p className="text-xs max-w-sm mx-auto">
-              {activeTab === 'review'
-                ? 'There are currently no quotes waiting for review.'
-                : 'No quotes match your current filter or search criteria.'}
+          <CardContent className="space-y-3 p-12 text-center text-muted-foreground">
+            <FileText className="mx-auto h-10 w-10 text-muted-foreground/60" />
+            <div className="text-base font-semibold text-foreground">
+              No quotes found
+            </div>
+            <p className="mx-auto max-w-sm text-xs">
+              {activeTab === "review"
+                ? "There are currently no quotes waiting for review."
+                : "No quotes match your current filter or search criteria."}
             </p>
           </CardContent>
         </Card>
@@ -254,5 +261,5 @@ export default function QuotesTab(props: QuotesTabProps) {
         handleConfirmOdooEntry={handleConfirmOdooEntry}
       />
     </div>
-  );
+  )
 }

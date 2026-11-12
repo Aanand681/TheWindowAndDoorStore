@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { computeCombinedQuoteFinancials } from '../pricing-engine';
+import { describe, it, expect } from "vitest"
+import { computeCombinedQuoteFinancials } from "../pricing-engine"
 
-describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
-  it('should correctly calculate standalone window quote financials with 13% HST', () => {
+describe("Pricing Engine - computeCombinedQuoteFinancials", () => {
+  it("should correctly calculate standalone window quote financials with 13% HST", () => {
     const result = computeCombinedQuoteFinancials({
       quoteResult: {
         base: 100000, // $1,000.00
@@ -15,15 +15,15 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
       effectiveMisc: 5000, // $50.00
       effectiveLabour: 30000, // $300.00
       hstRate: 13,
-    });
+    })
 
-    expect(result.combinedSubtotalCents).toBe(163000);
-    expect(result.combinedTotalCents).toBe(184190);
-    expect(result.subtotalDollars).toBe(1630);
-    expect(result.grandTotalDollars).toBe(1841.9);
-  });
+    expect(result.combinedSubtotalCents).toBe(163000)
+    expect(result.combinedTotalCents).toBe(184190)
+    expect(result.subtotalDollars).toBe(1630)
+    expect(result.grandTotalDollars).toBe(1841.9)
+  })
 
-  it('should correctly add attached door quote and deduct 10% non-storm door discount', () => {
+  it("should correctly add attached door quote and deduct 10% non-storm door discount", () => {
     const result = computeCombinedQuoteFinancials({
       quoteResult: {
         base: 200000, // $2,000.00
@@ -45,7 +45,7 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
       effectiveMisc: 2000, // $20.00
       effectiveLabour: 50000, // $500.00
       hstRate: 13,
-    });
+    })
 
     // Materials:
     // Window: 2,000.00
@@ -55,18 +55,18 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
     // Labour: Window 500.00 + Door 350.00 = 850.00 (85,000 cents)
     // Surcharge: Window 160.00 + Door 96.00 = 256.00 (25,600 cents)
     // Expected Subtotal = 2,000 + 1,230 + 100 + 60 + 850 + 256 = $4,496.00 (449,600 cents)
-    expect(result.combinedSubtotalCents).toBe(449600);
-    expect(result.doorMaterialsCents).toBe(123000);
-    expect(result.combinedMiscCents).toBe(6000);
-    expect(result.combinedLabourCents).toBe(85000);
-    expect(result.combinedSurchargeCents).toBe(25600);
+    expect(result.combinedSubtotalCents).toBe(449600)
+    expect(result.doorMaterialsCents).toBe(123000)
+    expect(result.combinedMiscCents).toBe(6000)
+    expect(result.combinedLabourCents).toBe(85000)
+    expect(result.combinedSurchargeCents).toBe(25600)
 
     // HST @ 13%: 449600 * 0.13 = 58448 cents ($584.48)
-    expect(result.combinedTaxCents).toBe(58448);
-    expect(result.combinedTotalCents).toBe(449600 + 58448);
-  });
+    expect(result.combinedTaxCents).toBe(58448)
+    expect(result.combinedTotalCents).toBe(449600 + 58448)
+  })
 
-  it('should correctly separate pure glass and 8% surcharge for attached sealed unit', () => {
+  it("should correctly separate pure glass and 8% surcharge for attached sealed unit", () => {
     const result = computeCombinedQuoteFinancials({
       quoteResult: {
         base: 100000,
@@ -85,44 +85,43 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
       effectiveMisc: 1000,
       effectiveLabour: 20000,
       hstRate: 13,
-    });
+    })
 
-    expect(result.suGlassCents).toBe(50000);
-    expect(result.suSurchargeCents).toBe(4000);
-    expect(result.suLabourCents).toBe(15000);
-    expect(result.suMiscCents).toBe(2500);
+    expect(result.suGlassCents).toBe(50000)
+    expect(result.suSurchargeCents).toBe(4000)
+    expect(result.suLabourCents).toBe(15000)
+    expect(result.suMiscCents).toBe(2500)
 
     // Subtotal: Window 1,000 + SU Glass 500 + Window Surcharge 80 + SU Surcharge 40 + Labour (200 + 150) + Misc (10 + 25)
     // 1000 + 500 + 80 + 40 + 350 + 35 = $2,005.00 (200,500 cents)
-    expect(result.combinedSubtotalCents).toBe(200500);
-  });
+    expect(result.combinedSubtotalCents).toBe(200500)
+  })
 
-  it('should calculate First Nation Point-of-Sale Exemption (8% HST rate: 5% GST on materials, 13% on labour)', () => {
+  it("should calculate First Nation Point-of-Sale Exemption (8% HST rate: 5% GST on materials, 13% on labour)", () => {
     const result = computeCombinedQuoteFinancials({
       quoteResult: {
         base: 100000, // $1,000.00 materials
-        surcharge: 8000, // $80.00 materials surcharge
+        surcharge: 8000, // $80.00 factory surcharge (handling/service, NOT material)
         promoDiscount: 0,
       },
       effectiveJC: 20000, // $200.00 materials
       effectiveMisc: 0,
       effectiveLabour: 50000, // $500.00 services
       hstRate: 8, // Triggers Point-of-Sale Exemption
-    });
+    })
 
     // Subtotal = 100,000 + 8,000 + 20,000 + 50,000 = 178,000 cents ($1,780.00)
-    expect(result.combinedSubtotalCents).toBe(178000);
+    expect(result.combinedSubtotalCents).toBe(178000)
 
-    // Materials = 100,000 + 8,000 + 20,000 = 128,000 cents
-    // GST on materials (5%) = 128,000 * 0.05 = 6,400 cents ($64.00)
-    // Services = 50,000 cents
-    // HST on services (13%) = 50,000 * 0.13 = 6,500 cents ($65.00)
-    // Total Tax = 6,400 + 6,500 = 12,900 cents ($129.00)
-    expect(result.combinedTaxCents).toBe(12900);
-    expect(result.combinedTotalCents).toBe(178000 + 12900);
-  });
+    // Materials = 100,000 + 20,000 = 120,000 cents (Surcharge is handling/service)
+    // 13% on all subtotal = 178,000 * 0.13 = 23,140 cents
+    // 8% exemption on materials = 120,000 * 0.08 = 9,600 cents
+    // Total Tax = 23,140 - 9,600 = 13,540 cents ($135.40)
+    expect(result.combinedTaxCents).toBe(13540)
+    expect(result.combinedTotalCents).toBe(178000 + 13540)
+  })
 
-  it('should deduplicate setup and travel fees when door quote has explicit unitLabourTotal', () => {
+  it("should deduplicate setup and travel fees when door quote has explicit unitLabourTotal", () => {
     const result = computeCombinedQuoteFinancials({
       quoteResult: { base: 100000, surcharge: 8000, promoDiscount: 0 },
       attachedDoorQuote: {
@@ -142,11 +141,10 @@ describe('Pricing Engine - computeCombinedQuoteFinancials', () => {
       effectiveMisc: 1000,
       effectiveLabour: 20000,
       hstRate: 13,
-    });
+    })
 
     // Door labour should be unitLabourTotal (250) + upchargesTotal (50) = 300 (deduplicating the 200 travel/setup)
-    expect(result.doorLabourCents).toBe(30000);
-    expect(result.combinedLabourCents).toBe(20000 + 30000);
-  });
-});
-
+    expect(result.doorLabourCents).toBe(30000)
+    expect(result.combinedLabourCents).toBe(20000 + 30000)
+  })
+})

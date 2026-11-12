@@ -1,16 +1,16 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { User, Hash, RefreshCw } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React from "react"
+import { User, Hash, RefreshCw } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface SealedUnitsCustomerInfoBarProps {
-  customerName: string;
-  setCustomerName: (val: string) => void;
-  quoteNumber: string;
-  setQuoteNumber: (val: string) => void;
-  onRegenerateQuoteNumber: () => void;
+  customerName: string
+  setCustomerName: (val: string) => void
+  quoteNumber: string
+  setQuoteNumber: (val: string) => void
+  onRegenerateQuoteNumber: () => void
 }
 
 export function SealedUnitsCustomerInfoBar({
@@ -21,12 +21,12 @@ export function SealedUnitsCustomerInfoBar({
   onRegenerateQuoteNumber,
 }: SealedUnitsCustomerInfoBarProps) {
   return (
-    <div className="bg-card/70 border border-border/80 backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 shadow-sm">
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+    <div className="rounded-2xl border border-border/80 bg-card/70 p-3 shadow-sm backdrop-blur-xl sm:p-3.5">
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-12">
         {/* Customer Name */}
-        <div className="sm:col-span-7 space-y-1">
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-primary" />
+        <div className="space-y-1 sm:col-span-7">
+          <Label className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            <User className="h-3.5 w-3.5 text-primary" />
             <span>
               Customer Name <span className="text-destructive">*</span>
             </span>
@@ -35,24 +35,24 @@ export function SealedUnitsCustomerInfoBar({
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name (required)"
-            className="h-9 text-xs sm:text-sm bg-background shadow-xs font-medium"
+            className="h-9 bg-background text-xs font-medium shadow-xs sm:text-sm"
           />
         </div>
 
         {/* 6-Digit Quote Number */}
-        <div className="sm:col-span-5 space-y-1">
+        <div className="space-y-1 sm:col-span-5">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Hash className="w-3.5 h-3.5 text-primary" />
+            <Label className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              <Hash className="h-3.5 w-3.5 text-primary" />
               <span>6-Digit Quote Number</span>
             </Label>
             <button
               type="button"
               onClick={onRegenerateQuoteNumber}
-              className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+              className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-primary hover:underline"
               title="Generate a fresh unique 6-digit quote number"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="h-3 w-3" />
               <span>Regenerate</span>
             </button>
           </div>
@@ -60,16 +60,17 @@ export function SealedUnitsCustomerInfoBar({
             <Input
               suppressHydrationWarning
               value={quoteNumber}
-              onChange={(e) => setQuoteNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="h-9 text-xs sm:text-sm font-mono font-bold bg-background shadow-xs text-foreground tracking-wider pl-8"
+              onChange={(e) =>
+                setQuoteNumber(e.target.value.replace(/\D/g, "").slice(0, 8))
+              }
+              className="h-9 bg-background pl-8 font-mono text-xs font-bold tracking-wider text-foreground shadow-xs sm:text-sm"
             />
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground font-mono font-bold text-xs pointer-events-none">
+            <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 font-mono text-xs font-bold text-muted-foreground">
               #
             </span>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
-

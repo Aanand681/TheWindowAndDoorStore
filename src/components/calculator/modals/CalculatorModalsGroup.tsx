@@ -1,13 +1,13 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { PreviewModalWrapper } from './PreviewModalWrapper';
-import { CalculatorReviewModals } from './CalculatorReviewModals';
-import { CalculatorComparisonModal } from './CalculatorComparisonModal';
-import { CalculatorUtilityModals } from './CalculatorUtilityModals';
-import { CalculatorModalsGroupProps } from './types';
+import React from "react"
+import { PreviewModalWrapper } from "./PreviewModalWrapper"
+import { CalculatorReviewModals } from "./CalculatorReviewModals"
+import { CalculatorComparisonModal } from "./CalculatorComparisonModal"
+import { CalculatorUtilityModals } from "./CalculatorUtilityModals"
+import { CalculatorModalsGroupProps } from "./types"
 
-export type { CalculatorModalsGroupProps };
+export type { CalculatorModalsGroupProps }
 
 export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
   const {
@@ -50,7 +50,7 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
     attachedSealedUnit,
     attachedDoorQuote,
     isSupplyOnly,
-  } = props;
+  } = props
 
   return (
     <>
@@ -76,8 +76,9 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
             ? {
                 name:
                   availablePromos.find(
-                    (p) => p._id === activePromoId || (p as any).id === activePromoId
-                  )?.name || 'Custom Promo',
+                    (p) =>
+                      p._id === activePromoId || (p as any).id === activePromoId
+                  )?.name || "Custom Promo",
                 discount: quoteResult.promoDiscount ?? 0,
               }
             : null
@@ -111,5 +112,5 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
 
       <CalculatorUtilityModals {...props} />
     </>
-  );
+  )
 }

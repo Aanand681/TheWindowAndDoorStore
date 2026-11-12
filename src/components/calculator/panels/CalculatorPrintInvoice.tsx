@@ -1,40 +1,43 @@
-'use client';
+"use client"
 
-import React from 'react';
-import QuoteInvoice, { QuoteTemplateType } from '@/components/quotes/QuoteInvoice';
+import React from "react"
+import QuoteInvoice, {
+  QuoteTemplateType,
+} from "@/components/quotes/QuoteInvoice"
+import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CalculatorPrintInvoiceProps {
-  isPreviewOpen: boolean;
-  customerName: string;
-  quoteNumber: string;
-  windows: any[];
-  taxTotals: any;
-  quoteResult: any;
-  availablePromos: any[];
-  activePromoId: string;
-  wantsUpgrade: boolean;
-  shownUpgrade: number;
-  hstRate: number;
-  total: number;
-  beforeTaxDiscount: number;
-  afterDiscount: number;
-  firstPayment: number;
-  secondPayment: number;
-  includeLabourInPromo: boolean;
-  includeMiscInPromo: boolean;
-  includeJCInPromo: boolean;
-  effectiveJC: number;
-  effectiveMisc: number;
-  effectiveLabour: number;
-  template: QuoteTemplateType;
-  fontSize: number;
-  spacing: number;
-  quoteNotes: string;
-  preparedBy: string;
-  attachedUpgrade: any;
-  attachedSealedUnit: any;
-  attachedDoorQuote: any;
-  isSupplyOnly: boolean;
+  isPreviewOpen: boolean
+  customerName: string
+  quoteNumber: string
+  windows: any[]
+  taxTotals: any
+  quoteResult: any
+  availablePromos: any[]
+  activePromoId: string
+  wantsUpgrade: boolean
+  shownUpgrade: number
+  hstRate: number
+  total: number
+  beforeTaxDiscount: number
+  afterDiscount: number
+  firstPayment: number
+  secondPayment: number
+  includeLabourInPromo: boolean
+  includeMiscInPromo: boolean
+  includeJCInPromo: boolean
+  effectiveJC: number
+  effectiveMisc: number
+  effectiveLabour: number
+  template: QuoteTemplateType
+  fontSize: number
+  spacing: number
+  quoteNotes: string
+  preparedBy: string
+  attachedUpgrade: any
+  attachedSealedUnit: any
+  attachedDoorQuote: any
+  isSupplyOnly: boolean
 }
 
 export function CalculatorPrintInvoice({
@@ -70,7 +73,12 @@ export function CalculatorPrintInvoice({
   attachedDoorQuote,
   isSupplyOnly,
 }: CalculatorPrintInvoiceProps) {
-  if (isPreviewOpen) return null;
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (isPreviewOpen) return null
 
   return (
     <QuoteInvoice
@@ -83,8 +91,10 @@ export function CalculatorPrintInvoice({
         quoteResult && quoteResult.promoDiscount > 0
           ? {
               name:
-                availablePromos.find((p) => p._id === activePromoId || (p as any).id === activePromoId)
-                  ?.name || 'Custom Promo',
+                availablePromos.find(
+                  (p) =>
+                    p._id === activePromoId || (p as any).id === activePromoId
+                )?.name || "Custom Promo",
               discount: quoteResult.promoDiscount,
             }
           : null
@@ -115,7 +125,13 @@ export function CalculatorPrintInvoice({
       attachedSealedUnit={attachedSealedUnit}
       attachedDoorQuote={attachedDoorQuote}
       isSupplyOnly={isSupplyOnly}
+      isDualOption={Boolean(
+        mounted &&
+        isSupplyOnly &&
+        (attachedUpgrade?.title?.toLowerCase().includes("installation") ||
+          attachedUpgrade?.title?.toLowerCase().includes("option") ||
+          readSessionAttachedInstallOption()?.enabled)
+      )}
     />
-  );
+  )
 }
-

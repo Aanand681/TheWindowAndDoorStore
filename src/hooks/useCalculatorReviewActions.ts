@@ -1,58 +1,66 @@
-'use client';
+"use client"
 
-import { QuotesSubTabType } from '@/components/quotes/QuotesTab';
-import { useReviewPermissions } from '@/hooks/calculator/review/useReviewPermissions';
-import { useReviewQuoteLoader } from '@/hooks/calculator/review/useReviewQuoteLoader';
-import { useReviewQuoteSubmissions } from '@/hooks/calculator/review/useReviewQuoteSubmissions';
+import { QuotesSubTabType } from "@/components/quotes/QuotesTab"
+import { useReviewPermissions } from "@/hooks/calculator/review/useReviewPermissions"
+import { useReviewQuoteLoader } from "@/hooks/calculator/review/useReviewQuoteLoader"
+import { useReviewQuoteSubmissions } from "@/hooks/calculator/review/useReviewQuoteSubmissions"
 
 export interface UseCalculatorReviewActionsProps {
-  user: any;
-  quoteNumber: string;
-  setQuoteNumber: (num: string) => void;
-  customerName: string;
-  setCustomerName: (name: string) => void;
-  quoteNotes: string;
-  setQuoteNotes: (notes: string) => void;
-  surchargeRate: number;
-  setSurchargeRate: (rate: number) => void;
-  windows: any[];
-  setWindows: (windows: any[]) => void;
-  taxTotals: any;
-  setTaxTotals: (totals: any) => void;
-  quoteResult: any;
-  activePromoId: string;
-  setActivePromoId: (id: string) => void;
-  setLockedPromoId: (id: string | null) => void;
-  customJC: string;
-  setCustomJC: (val: string) => void;
-  customMisc: string;
-  setCustomMisc: (val: string) => void;
-  customLabour: string;
-  setCustomLabour: (val: string) => void;
-  includeJCInPromo: boolean;
-  setIncludeJCInPromo: (val: boolean) => void;
-  includeMiscInPromo: boolean;
-  setIncludeMiscInPromo: (val: boolean) => void;
-  includeLabourInPromo: boolean;
-  setIncludeLabourInPromo: (val: boolean) => void;
-  total: number;
-  attachedUpgrade?: any;
-  setAttachedUpgrade?: (val: any) => void;
-  attachedDoorQuote?: any;
-  setAttachedDoorQuote?: (val: any) => void;
-  attachedSealedUnit?: any;
-  setAttachedSealedUnit?: (val: any) => void;
-  wantsUpgrade?: boolean;
-  setWantsUpgrade?: (val: boolean) => void;
-  isSupplyOnly?: boolean;
-  setIsSupplyOnly?: (val: boolean) => void;
-  isServiceOnly?: boolean;
-  setIsServiceOnly?: (val: boolean) => void;
-  quotesSubTab?: QuotesSubTabType;
-  setQuotesSubTab: (tab: QuotesSubTabType) => void;
-  setActiveTab: (tab: any) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  resetCalculatorDefaults: () => void;
+  user: any
+  quoteNumber: string
+  setQuoteNumber: (num: string) => void
+  customerName: string
+  setCustomerName: (name: string) => void
+  quoteNotes: string
+  setQuoteNotes: (notes: string) => void
+  surchargeRate: number
+  setSurchargeRate: (rate: number) => void
+  windows: any[]
+  setWindows: (windows: any[]) => void
+  taxTotals: any
+  setTaxTotals: (totals: any) => void
+  quoteResult: any
+  activePromoId: string
+  setActivePromoId: (id: string) => void
+  setLockedPromoId: (id: string | null) => void
+  customJC: string
+  setCustomJC: (val: string) => void
+  customMisc: string
+  setCustomMisc: (val: string) => void
+  customLabour: string
+  setCustomLabour: (val: string) => void
+  includeJCInPromo: boolean
+  setIncludeJCInPromo: (val: boolean) => void
+  includeMiscInPromo: boolean
+  setIncludeMiscInPromo: (val: boolean) => void
+  includeLabourInPromo: boolean
+  setIncludeLabourInPromo: (val: boolean) => void
+  total: number
+  attachedUpgrade?: any
+  setAttachedUpgrade?: (val: any) => void
+  attachedDoorQuote?: any
+  setAttachedDoorQuote?: (val: any) => void
+  attachedSealedUnit?: any
+  setAttachedSealedUnit?: (val: any) => void
+  wantsUpgrade?: boolean
+  setWantsUpgrade?: (val: boolean) => void
+  isSupplyOnly?: boolean
+  setIsSupplyOnly?: (val: boolean) => void
+  isServiceOnly?: boolean
+  setIsServiceOnly?: (val: boolean) => void
+  supplyJambId?: string
+  setSupplyJambId?: (val: string) => void
+  supplyJambRate?: string
+  setSupplyJambRate?: (val: string) => void
+  supplyCasingId?: string
+  setSupplyCasingId?: (val: string) => void
+  supplyCasingRate?: string
+  setSupplyCasingRate?: (val: string) => void
+  quotesSubTab?: QuotesSubTabType
+  setQuotesSubTab: (tab: QuotesSubTabType) => void
+  setActiveTab: (tab: any) => void
+  fileInputRef: React.RefObject<HTMLInputElement | null>
+  resetCalculatorDefaults: () => void
 }
 
 export function useCalculatorReviewActions({
@@ -98,6 +106,14 @@ export function useCalculatorReviewActions({
   setIsSupplyOnly,
   isServiceOnly,
   setIsServiceOnly,
+  supplyJambId,
+  setSupplyJambId,
+  supplyJambRate,
+  setSupplyJambRate,
+  supplyCasingId,
+  setSupplyCasingId,
+  supplyCasingRate,
+  setSupplyCasingRate,
   quotesSubTab,
   setQuotesSubTab,
   setActiveTab,
@@ -105,11 +121,15 @@ export function useCalculatorReviewActions({
   resetCalculatorDefaults,
 }: UseCalculatorReviewActionsProps) {
   // Pre-calculate permissions base
-  const effectivePerms = user?.permissions || user?.departmentPermissions || {};
-  const isSuperAdmin = Boolean(user && user.role === 'SUPERADMIN');
-  const isAdmin = Boolean(user && (user.role === 'ADMIN' || isSuperAdmin));
-  const canReview = Boolean(isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote);
-  const canEditApprovedQuote = Boolean(isAdmin || effectivePerms.canEditApprovedQuote);
+  const effectivePerms = user?.permissions || user?.departmentPermissions || {}
+  const isSuperAdmin = Boolean(user && user.role === "SUPERADMIN")
+  const isAdmin = Boolean(user && (user.role === "ADMIN" || isSuperAdmin))
+  const canReview = Boolean(
+    isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote
+  )
+  const canEditApprovedQuote = Boolean(
+    isAdmin || effectivePerms.canEditApprovedQuote
+  )
 
   // 1. Review Quote Lifecycle & Loader Hook
   const {
@@ -153,15 +173,19 @@ export function useCalculatorReviewActions({
     setWantsUpgrade,
     setIsSupplyOnly,
     setIsServiceOnly,
+    setSupplyJambId,
+    setSupplyJambRate,
+    setSupplyCasingId,
+    setSupplyCasingRate,
     setTaxTotals,
-  });
+  })
 
   // 2. Computed Permissions & Role Checks Hook
   const permissions = useReviewPermissions({
     user,
     reviewQuote,
     isEditMode,
-  });
+  })
 
   // 3. Submissions, Modals & Workflow Hook
   const submissions = useReviewQuoteSubmissions({
@@ -194,9 +218,13 @@ export function useCalculatorReviewActions({
     wantsUpgrade,
     isSupplyOnly,
     isServiceOnly,
+    supplyJambId,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingRate,
     total,
     fileInputRef,
-  });
+  })
 
   return {
     reviewQuoteId,
@@ -261,5 +289,5 @@ export function useCalculatorReviewActions({
     handleExitReviewAndImportPdf: submissions.handleExitReviewAndImportPdf,
     handleResubmitReturnedQuote: submissions.handleResubmitReturnedQuote,
     handleReassignQuote: submissions.handleReassignQuote,
-  };
+  }
 }

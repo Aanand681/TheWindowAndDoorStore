@@ -1,19 +1,21 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { DepartmentType } from './types';
-import { getDeptBadgeClass } from './staff-utils';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { DepartmentType } from "./types"
+import { getDeptBadgeClass } from "./staff-utils"
 
 export interface ExistingDepartmentsListProps {
-  departments: DepartmentType[];
-  isSuperAdmin: boolean;
-  editingDeptId: string | null;
-  setEditingDeptId: (id: string | null) => void;
-  editingDeptPerms: Record<string, boolean>;
-  setEditingDeptPerms: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  savingDept: boolean;
-  handleSaveDeptPermissions: (id: string) => Promise<void>;
+  departments: DepartmentType[]
+  isSuperAdmin: boolean
+  editingDeptId: string | null
+  setEditingDeptId: (id: string | null) => void
+  editingDeptPerms: Record<string, boolean>
+  setEditingDeptPerms: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >
+  savingDept: boolean
+  handleSaveDeptPermissions: (id: string) => Promise<void>
 }
 
 export function ExistingDepartmentsList({
@@ -28,20 +30,22 @@ export function ExistingDepartmentsList({
 }: ExistingDepartmentsListProps) {
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <h4 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
         Existing Departments
       </h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {departments.map((d) => (
           <div
             key={d.code}
-            className="p-3.5 bg-background/60 rounded-xl border border-border/80 space-y-2"
+            className="space-y-2 rounded-xl border border-border/80 bg-background/60 p-3.5"
           >
             <div className="flex items-center justify-between">
-              <span className="font-bold text-sm text-foreground">{d.name}</span>
+              <span className="text-sm font-bold text-foreground">
+                {d.name}
+              </span>
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getDeptBadgeClass(
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getDeptBadgeClass(
                     d.code
                   )}`}
                 >
@@ -51,10 +55,10 @@ export function ExistingDepartmentsList({
                   <button
                     type="button"
                     onClick={() => {
-                      setEditingDeptId(d._id || null);
-                      setEditingDeptPerms({ ...(d.permissions || {}) });
+                      setEditingDeptId(d._id || null)
+                      setEditingDeptPerms({ ...(d.permissions || {}) })
                     }}
-                    className="text-[10px] text-primary hover:underline font-semibold cursor-pointer ml-1"
+                    className="ml-1 cursor-pointer text-[10px] font-semibold text-primary hover:underline"
                   >
                     Edit
                   </button>
@@ -62,16 +66,18 @@ export function ExistingDepartmentsList({
               </div>
             </div>
             {d.description && (
-              <p className="text-xs text-muted-foreground leading-relaxed">{d.description}</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {d.description}
+              </p>
             )}
 
             {editingDeptId === d._id ? (
-              <div className="space-y-2 pt-2 border-t border-border/60">
-                <span className="text-[11px] font-bold text-primary block">
+              <div className="space-y-2 border-t border-border/60 pt-2">
+                <span className="block text-[11px] font-bold text-primary">
                   Assign Permissions:
                 </span>
                 <div className="grid grid-cols-1 gap-1.5 text-[11px]">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canCreateQuote)}
@@ -85,7 +91,7 @@ export function ExistingDepartmentsList({
                     />
                     <span>Can Create &amp; Import Quotes</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canReviewQuote)}
@@ -101,7 +107,7 @@ export function ExistingDepartmentsList({
                       Can Review &amp; Approve Quotes (Like Admin)
                     </span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canEditApprovedQuote)}
@@ -117,7 +123,7 @@ export function ExistingDepartmentsList({
                       Can Modify Approved Quotes (Like Admin)
                     </span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canAccessOdooQueue)}
@@ -131,7 +137,7 @@ export function ExistingDepartmentsList({
                     />
                     <span>Can Access Odoo Queue</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canMarkOdooEntry)}
@@ -145,7 +151,7 @@ export function ExistingDepartmentsList({
                     />
                     <span>Can Mark Orders in Odoo</span>
                   </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5">
                     <input
                       type="checkbox"
                       checked={Boolean(editingDeptPerms.canAccessAdmin)}
@@ -160,7 +166,7 @@ export function ExistingDepartmentsList({
                     <span>Can Access Admin Area</span>
                   </label>
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+                <div className="flex justify-end gap-2 border-t border-border/40 pt-2">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -175,39 +181,39 @@ export function ExistingDepartmentsList({
                     disabled={savingDept || !d._id}
                     onClick={() => d._id && handleSaveDeptPermissions(d._id)}
                   >
-                    {savingDept ? 'Saving...' : 'Save Permissions'}
+                    {savingDept ? "Saving..." : "Save Permissions"}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-wrap gap-1 pt-1">
                 {d.permissions?.canCreateQuote && (
-                  <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[9px]">
                     Create Quotes
                   </span>
                 )}
                 {d.permissions?.canReviewQuote && (
-                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-600">
                     Review &amp; Approve
                   </span>
                 )}
                 {d.permissions?.canEditApprovedQuote && (
-                  <span className="text-[9px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-600">
                     Modify Approved
                   </span>
                 )}
                 {d.permissions?.canAccessOdooQueue && (
-                  <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] text-indigo-600">
                     Odoo Queue
                   </span>
                 )}
                 {d.permissions?.canMarkOdooEntry && (
-                  <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] text-indigo-600">
                     Mark in Odoo
                   </span>
                 )}
                 {d.permissions?.canAccessAdmin && (
-                  <span className="text-[9px] bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] text-purple-600">
                     Admin Access
                   </span>
                 )}
@@ -217,6 +223,5 @@ export function ExistingDepartmentsList({
         ))}
       </div>
     </div>
-  );
+  )
 }
-

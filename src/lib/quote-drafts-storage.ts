@@ -6,4 +6,4 @@
  * Modularized under src/lib/quote-drafts/ for compliance with 300-line limit.
  */
 
-export * from './quote-drafts';
+export * from "./quote-drafts"

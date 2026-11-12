@@ -1,21 +1,21 @@
-'use client';
+"use client"
 
-import { useRef, useEffect } from 'react';
-import { useCalculatorDrafts } from '@/hooks/calculator/useCalculatorDrafts';
-import { useCalculatorAutoSave } from '@/hooks/calculator/useCalculatorAutoSave';
+import { useRef, useEffect } from "react"
+import { useCalculatorDrafts } from "@/hooks/calculator/useCalculatorDrafts"
+import { useCalculatorAutoSave } from "@/hooks/calculator/useCalculatorAutoSave"
 
 export function useCalculatorDraftsSync(p: {
-  initialReviewQuoteId?: string;
-  base: any;
-  windows: any[];
-  setWindows: (w: any[]) => void;
-  pricing: any;
-  supply: any;
+  initialReviewQuoteId?: string
+  base: any
+  windows: any[]
+  setWindows: (w: any[]) => void
+  pricing: any
+  supply: any
 }) {
-  const { initialReviewQuoteId, base, windows, setWindows, pricing, supply } = p;
+  const { initialReviewQuoteId, base, windows, setWindows, pricing, supply } = p
 
-  const clearAutoSaveTimerRef = useRef<() => void>(() => {});
-  const setLastSavedAtRef = useRef<(time: string | null) => void>(() => {});
+  const clearAutoSaveTimerRef = useRef<() => void>(() => {})
+  const setLastSavedAtRef = useRef<(time: string | null) => void>(() => {})
 
   const drafts = useCalculatorDrafts({
     initialReviewQuoteId,
@@ -77,7 +77,7 @@ export function useCalculatorDraftsSync(p: {
     },
     clearAutoSaveTimer: () => clearAutoSaveTimerRef.current(),
     setLastSavedAt: (time) => setLastSavedAtRef.current(time),
-  });
+  })
 
   const autoSave = useCalculatorAutoSave({
     initialReviewQuoteId,
@@ -111,18 +111,17 @@ export function useCalculatorDraftsSync(p: {
     total: pricing.total,
     taxTotals: pricing.taxTotals,
     enabled: drafts.initialLoadDone,
-  });
+  })
 
   useEffect(() => {
-    clearAutoSaveTimerRef.current = autoSave.clearAutoSaveTimer;
-    setLastSavedAtRef.current = autoSave.setLastSavedAt;
-  });
+    clearAutoSaveTimerRef.current = autoSave.clearAutoSaveTimer
+    setLastSavedAtRef.current = autoSave.setLastSavedAt
+  })
 
   return {
     drafts: {
       ...drafts,
       lastSavedAt: autoSave.lastSavedAt,
     },
-  };
+  }
 }
-

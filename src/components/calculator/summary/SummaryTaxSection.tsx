@@ -1,67 +1,107 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { formatMoney } from '@/lib/promo-logic';
+import React from "react"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { formatMoney } from "@/lib/promo-logic"
 
 export interface SummaryTaxSectionProps {
-  hstRate: number;
-  setHstRate: (val: number) => void;
-  taxCents: number;
-  isReadOnly?: boolean;
-  idPrefix?: string;
+  hstRate: number
+  setHstRate: (val: number) => void
+  taxCents: number
+  hstBaseCents?: number
+  materialExemptionCents?: number
+  isReadOnly?: boolean
+  idPrefix?: string
 }
 
 export function SummaryTaxSection({
   hstRate,
   setHstRate,
   taxCents,
+  hstBaseCents,
+  materialExemptionCents,
   isReadOnly = false,
-  idPrefix = 'promo',
+  idPrefix = "promo",
 }: SummaryTaxSectionProps) {
-  const checkboxId = `${idPrefix}HstExemption`;
+  const selectId = `${idPrefix}HstRateSelect`
+
+  const resolvedHstBase =
+    hstBaseCents !== undefined
+      ? hstBaseCents
+      : hstRate === 8
+        ? taxCents + (materialExemptionCents || 0)
+        : taxCents
 
   return (
-    <div className="pt-1 pb-2.5 space-y-1.5 border-b border-border/50">
-      <div className="flex items-center justify-between text-xs sm:text-sm">
-        <span className="text-muted-foreground">
-          {hstRate === 8 ? '5% GST (First Nations Material Exemption)' : '13% HST'}
-        </span>
-        <span className="font-mono font-semibold text-foreground whitespace-nowrap shrink-0">
-          {formatMoney(taxCents)}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between text-xs pt-0.5">
+    <div className="space-y-2 border-b border-border/50 pt-1 pb-2.5">
+      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
         <div className="flex items-center gap-2">
-          <Checkbox
-            id={checkboxId}
-            disabled={isReadOnly}
-            checked={hstRate === 8}
-            onCheckedChange={(c) => setHstRate(c ? 8 : 13)}
-          />
           <Label
-            htmlFor={checkboxId}
-            className="cursor-pointer text-muted-foreground font-normal text-xs"
-            title="Point-of-Sale Exemption: 8% provincial tax exempt on materials; 13% on labour"
+            htmlFor={selectId}
+            className="text-xs font-medium whitespace-nowrap text-muted-foreground"
           >
-            8% First Nations Material Exemption
+            Tax Option:
           </Label>
+          <Select
+            disabled={isReadOnly}
+            value={String(hstRate)}
+            onValueChange={(val) => setHstRate(Number(val))}
+          >
+            <SelectTrigger
+              id={selectId}
+              className="h-7 w-[190px] bg-background/50 text-xs font-medium shadow-none"
+            >
+              <SelectValue>
+                {hstRate === 8
+                  ? "8% Material Exemption"
+                  : hstRate === 0
+                    ? "0% No Tax (Exempt)"
+                    : "13% HST (Standard)"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="13">13% HST (Standard)</SelectItem>
+              <SelectItem value="8">8% Material Exemption</SelectItem>
+              <SelectItem value="0">0% No Tax (Exempt)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <span
-          className={cn(
-            'font-mono text-xs',
-            hstRate === 8
-              ? 'text-emerald-500 font-semibold'
-              : 'text-muted-foreground opacity-40 line-through'
-          )}
-        >
-          {hstRate === 8 ? '-8% PST' : 'Standard'}
-        </span>
-      </div>
-    </div>
-  );
-}
 
+        {hstRate === 13 && (
+          <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+            +{formatMoney(taxCents)}
+          </span>
+        )}
+        {hstRate === 0 && (
+          <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-muted-foreground">
+            $0.00
+          </span>
+        )}
+      </div>
+
+      {hstRate === 8 && (
+        <div className="space-y-1 rounded-md border border-border/50 bg-muted/40 p-2 text-xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>13% HST (on all):</span>
+            <span className="font-mono font-medium text-foreground">
+              +{formatMoney(resolvedHstBase)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between font-medium text-emerald-500">
+            <span>8% Tax Rebate (Material Exemption):</span>
+            <span className="font-mono">
+              -{formatMoney(materialExemptionCents || 0)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,22 +1,24 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { SealedUnitLineItem } from '@/lib/sealed-units-logic';
-import { SealedUnitTotals } from '@/components/sealed-units/invoice/types';
+import { useState } from "react"
+import { toast } from "sonner"
+import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
+import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
 
 interface UseSealedUnitsReviewSubmitProps {
-  user: any;
-  quoteNumber: string;
-  customerName: string;
-  quoteNotes: string;
-  lineItems: SealedUnitLineItem[];
-  isInstallation: boolean;
-  isServiceOnly: boolean;
-  hstRate: number;
-  totals: SealedUnitTotals;
-  assignedReviewer: string;
-  selectedOdooClerk: string;
+  user: any
+  quoteNumber: string
+  customerName: string
+  quoteNotes: string
+  lineItems: SealedUnitLineItem[]
+  isInstallation: boolean
+  isServiceOnly: boolean
+  hstRate: number
+  totals: SealedUnitTotals
+  assignedReviewer: string
+  selectedOdooClerk: string
+  attachedWindowQuote?: any
+  attachedDoorQuote?: any
 }
 
 export function useSealedUnitsReviewSubmit({
@@ -31,46 +33,58 @@ export function useSealedUnitsReviewSubmit({
   totals,
   assignedReviewer,
   selectedOdooClerk,
+  attachedWindowQuote,
+  attachedDoorQuote,
 }: UseSealedUnitsReviewSubmitProps) {
-  const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
-  const [submittingQuote, setSubmittingQuote] = useState<boolean>(false);
-  const [adminSubmitMode, setAdminSubmitMode] = useState<'direct_approve' | 'submit_review'>('direct_approve');
-  const [preparerNotes, setPreparerNotes] = useState<string>('');
+  const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
+  const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
+  const [adminSubmitMode, setAdminSubmitMode] = useState<
+    "direct_approve" | "submit_review"
+  >("direct_approve")
+  const [preparerNotes, setPreparerNotes] = useState<string>("")
 
   const handleSubmitForReview = async () => {
     if (!quoteNumber.trim() || !customerName.trim()) {
-      toast.error('Please enter Customer Name and Quote Number before submitting!');
-      return;
+      toast.error(
+        "Please enter Customer Name and Quote Number before submitting!"
+      )
+      return
     }
-    if (lineItems.length === 0 && !(isServiceOnly && (totals.totalSqft || 0) > 0)) {
-      toast.error('Please add at least one sealed unit or enter service sq ft before submitting!');
-      return;
+    if (
+      lineItems.length === 0 &&
+      !(isServiceOnly && (totals.totalSqft || 0) > 0)
+    ) {
+      toast.error(
+        "Please add at least one sealed unit or enter service sq ft before submitting!"
+      )
+      return
     }
 
     const isDirectApprove = Boolean(
-      (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && adminSubmitMode === 'direct_approve'
-    );
+      (user?.role === "ADMIN" || user?.role === "SUPERADMIN") &&
+      adminSubmitMode === "direct_approve"
+    )
 
     if (isDirectApprove && !selectedOdooClerk) {
-      toast.error('Please select an Odoo clerk to assign this quote to');
-      return;
+      toast.error("Please select an Odoo clerk to assign this quote to")
+      return
     }
     if (!isDirectApprove && !assignedReviewer) {
-      toast.error('Please select a reviewer to submit this quote to');
-      return;
+      toast.error("Please select a reviewer to submit this quote to")
+      return
     }
 
-    setSubmittingQuote(true);
+    setSubmittingQuote(true)
     try {
       const effectiveLineItems =
         lineItems.length > 0
           ? lineItems
           : [
               {
-                id: 'service-unit-1',
-                combinationName: 'On-Site Sealed Unit Glazing Service',
-                paneType: 'dual',
-                treatment: 'annealed',
+                id: "service-unit-1",
+                combinationName: "On-Site Sealed Unit Glazing Service",
+                paneType: "dual",
+                treatment: "annealed",
                 thicknessMm: 0,
                 widthIn: 0,
                 heightIn: 0,
@@ -84,19 +98,21 @@ export function useSealedUnitsReviewSubmit({
                 totalLabour: totals.serviceLabourTotal,
                 totalMisc: totals.miscTotal,
               } as any,
-            ];
+            ]
 
-      const res = await fetch('/api/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quoteNumber,
           customerName,
-          assignedTo: isDirectApprove ? user?.username || '' : assignedReviewer,
+          assignedTo: isDirectApprove ? user?.username || "" : assignedReviewer,
           directApprove: isDirectApprove,
           odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
           preparerNotes,
           quoteNotes,
+          attachedWindowQuote,
+          attachedDoorQuote,
           windows: effectiveLineItems,
           taxTotals: {
             isSupplyOnly: !isInstallation,
@@ -121,25 +137,29 @@ export function useSealedUnitsReviewSubmit({
           },
           quoteSummaryTotal: totals.grandTotal,
         }),
-      });
+      })
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to submit quote');
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to submit quote")
 
       if (isDirectApprove) {
-        toast.success(`Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`);
+        toast.success(
+          `Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
+        )
       } else {
-        toast.success(`Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`);
+        toast.success(
+          `Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`
+        )
       }
-      setShowSubmitModal(false);
-      setPreparerNotes('');
-      window.dispatchEvent(new CustomEvent('quote-count-updated'));
+      setShowSubmitModal(false)
+      setPreparerNotes("")
+      window.dispatchEvent(new CustomEvent("quote-count-updated"))
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit quote');
+      toast.error(err.message || "Failed to submit quote")
     } finally {
-      setSubmittingQuote(false);
+      setSubmittingQuote(false)
     }
-  };
+  }
 
   return {
     showSubmitModal,
@@ -150,6 +170,5 @@ export function useSealedUnitsReviewSubmit({
     preparerNotes,
     setPreparerNotes,
     handleSubmitForReview,
-  };
+  }
 }
-

@@ -1,37 +1,37 @@
-'use client';
+"use client"
 
 export interface WorkflowInvoiceContext {
-  base: any;
-  pricing: any;
-  review: any;
-  windowsContext: any;
-  supply: any;
+  base: any
+  pricing: any
+  review: any
+  windowsContext: any
+  supply: any
   customPricing: {
-    customJC: string;
-    customMisc: string;
-    customLabour: string;
-    includeJCInPromo: boolean;
-    includeMiscInPromo: boolean;
-    includeLabourInPromo: boolean;
-    effectiveJC: number;
-    effectiveMisc: number;
-    effectiveLabour: number;
-    taxJC: number;
-    taxMisc: number;
-    taxLabour: number;
-    beforeTaxDiscount: number;
-    afterDiscount: number;
-    upgrade: any;
-    shownUpgrade: any;
-    total: number;
-    firstPayment: number;
-    secondPayment: number;
-    hstRate: number;
-  };
+    customJC: string
+    customMisc: string
+    customLabour: string
+    includeJCInPromo: boolean
+    includeMiscInPromo: boolean
+    includeLabourInPromo: boolean
+    effectiveJC: number
+    effectiveMisc: number
+    effectiveLabour: number
+    taxJC: number
+    taxMisc: number
+    taxLabour: number
+    beforeTaxDiscount: number
+    afterDiscount: number
+    upgrade: any
+    shownUpgrade: any
+    total: number
+    firstPayment: number
+    secondPayment: number
+    hstRate: number
+  }
 }
 
 export function buildReviewWorkflowProps(ctx: WorkflowInvoiceContext) {
-  const { base, review } = ctx;
+  const { base, review } = ctx
   return {
     reviewQuote: review.reviewQuote,
     activeTab: base.activeTab,
@@ -55,11 +55,11 @@ export function buildReviewWorkflowProps(ctx: WorkflowInvoiceContext) {
     setShowReassignModal: review.setShowReassignModal,
     handleReturnReviewQuote: review.handleReturnReviewQuote,
     handleApproveReviewQuote: review.handleApproveReviewQuote,
-  };
+  }
 }
 
 export function buildPrintInvoiceProps(ctx: WorkflowInvoiceContext) {
-  const { base, pricing, review, windowsContext, supply, customPricing } = ctx;
+  const { base, pricing, review, windowsContext, supply, customPricing } = ctx
   return {
     isPreviewOpen: base.isPreviewOpen,
     customerName: base.customerName,
@@ -87,11 +87,10 @@ export function buildPrintInvoiceProps(ctx: WorkflowInvoiceContext) {
     fontSize: base.quoteFontSize,
     spacing: base.quoteSpacing,
     quoteNotes: base.quoteNotes,
-    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || '',
+    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || "",
     attachedUpgrade: base.attachedUpgrade,
     attachedSealedUnit: base.attachedSealedUnit,
     attachedDoorQuote: base.attachedDoorQuote,
     isSupplyOnly: supply.isSupplyOnly,
-  };
+  }
 }
-

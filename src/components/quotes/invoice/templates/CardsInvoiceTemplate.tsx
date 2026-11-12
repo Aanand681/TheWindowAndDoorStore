@@ -1,23 +1,24 @@
-import React from 'react';
-import { formatMoney } from '@/lib/promo-logic';
-import type { InvoiceCalculationsResult, AttachedUpgradeOption } from '../types';
-import { WindowsScheduleTable } from '../tables/WindowsScheduleTable';
-import { SealedUnitsScheduleTable } from '../tables/SealedUnitsScheduleTable';
-import { DoorsScheduleTable } from '../tables/DoorsScheduleTable';
-import { InvoiceSummaryRows } from '../tables/InvoiceSummaryRows';
-import { InvoiceBreakdownTables } from '../tables/InvoiceBreakdownTables';
+import React from "react"
+import { formatMoney } from "@/lib/promo-logic"
+import type { InvoiceCalculationsResult, AttachedUpgradeOption } from "../types"
+import { WindowsScheduleTable } from "../tables/WindowsScheduleTable"
+import { SealedUnitsScheduleTable } from "../tables/SealedUnitsScheduleTable"
+import { DoorsScheduleTable } from "../tables/DoorsScheduleTable"
+import { InvoiceSummaryRows } from "../tables/InvoiceSummaryRows"
+import { InvoiceBreakdownTables } from "../tables/InvoiceBreakdownTables"
 
 export interface CardsInvoiceTemplateProps {
-  calc: InvoiceCalculationsResult;
-  customerName?: string;
-  quoteNumber?: string;
-  regionName?: string;
-  preparedBy?: string;
-  wantsUpgrade?: boolean;
-  shownUpgrade?: number;
-  attachedUpgrade?: AttachedUpgradeOption | null;
-  quoteNotes?: string;
-  globalUpcharges?: any[];
+  calc: InvoiceCalculationsResult
+  customerName?: string
+  quoteNumber?: string
+  regionName?: string
+  preparedBy?: string
+  wantsUpgrade?: boolean
+  shownUpgrade?: number
+  attachedUpgrade?: AttachedUpgradeOption | null
+  quoteNotes?: string
+  globalUpcharges?: any[]
+  isDualOption?: boolean
 }
 
 export function CardsInvoiceTemplate({
@@ -31,6 +32,7 @@ export function CardsInvoiceTemplate({
   attachedUpgrade,
   quoteNotes,
   globalUpcharges,
+  isDualOption = false,
 }: CardsInvoiceTemplateProps) {
   const {
     titleFs,
@@ -44,23 +46,23 @@ export function CardsInvoiceTemplate({
     finalTotalCents,
     finalFirstPayment,
     finalSecondPayment,
-  } = calc;
+  } = calc
 
   return (
     <>
       {/* Header: Standardized Architectural Header */}
-      <div className="border-t-2 border-b-2 border-[#0f172a] py-2 mb-2.5">
-        <div className="flex justify-between items-baseline">
+      <div className="mb-2.5 border-t-2 border-b-2 border-[#0f172a] py-2">
+        <div className="flex items-baseline justify-between">
           <div>
             <h1
               style={{ fontSize: `${titleFs}px` }}
-              className="font-black tracking-tight text-[#0f172a] m-0 uppercase leading-none"
+              className="m-0 leading-none font-black tracking-tight text-[#0f172a] uppercase"
             >
               The Window &amp; Door Store
             </h1>
             <div
               style={{ fontSize: `${smallFs}px` }}
-              className="text-[#334155] font-bold uppercase tracking-wider mt-0.5 flex items-center gap-2 flex-wrap"
+              className="mt-0.5 flex flex-wrap items-center gap-2 font-bold tracking-wider text-[#334155] uppercase"
             >
               <span>{invoiceSubtitle}</span>
             </div>
@@ -70,11 +72,11 @@ export function CardsInvoiceTemplate({
               style={{ fontSize: `${h2Fs}px` }}
               className="font-mono font-black text-[#0f172a]"
             >
-              {quoteNumber || 'REF-QUOTE'}
+              {quoteNumber || "REF-QUOTE"}
             </div>
             <div
               style={{ fontSize: `${smallFs}px` }}
-              className="text-[#334155] font-semibold"
+              className="font-semibold text-[#334155]"
               suppressHydrationWarning
             >
               {currentDate}
@@ -86,20 +88,22 @@ export function CardsInvoiceTemplate({
         {(customerName || regionName || preparedBy) && (
           <div
             style={{ fontSize: `${bodyFs}px` }}
-            className="mt-1 pt-1 border-t border-[#cbd5e1] flex justify-between items-center text-[#0f172a] flex-wrap gap-2"
+            className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-[#cbd5e1] pt-1 text-[#0f172a]"
           >
             <div className="flex items-center gap-3">
               {customerName && (
                 <div>
-                  <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">
+                  <span className="mr-1 text-[9px] font-bold text-[#334155] uppercase">
                     Client:
                   </span>
-                  <span className="font-black text-[#0f172a]">{customerName}</span>
+                  <span className="font-black text-[#0f172a]">
+                    {customerName}
+                  </span>
                 </div>
               )}
               {regionName && (
                 <div>
-                  <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">
+                  <span className="mr-1 text-[9px] font-bold text-[#334155] uppercase">
                     Region:
                   </span>
                   <span className="font-bold text-[#0f172a]">{regionName}</span>
@@ -108,7 +112,7 @@ export function CardsInvoiceTemplate({
             </div>
             {preparedBy && (
               <div>
-                <span className="text-[#334155] uppercase font-bold text-[9px] mr-1">
+                <span className="mr-1 text-[9px] font-bold text-[#334155] uppercase">
                   Prepared By:
                 </span>
                 <span className="font-bold text-[#0f172a]">{preparedBy}</span>
@@ -121,10 +125,14 @@ export function CardsInvoiceTemplate({
       {/* Product Schedules */}
       <WindowsScheduleTable theme="cards" calc={calc} />
       <SealedUnitsScheduleTable theme="cards" calc={calc} />
-      <DoorsScheduleTable theme="cards" calc={calc} globalUpcharges={globalUpcharges} />
+      <DoorsScheduleTable
+        theme="cards"
+        calc={calc}
+        globalUpcharges={globalUpcharges}
+      />
 
       {/* Two-Column Specification & Accounting Cards */}
-      <div className="grid grid-cols-[1.1fr_1.15fr] gap-4 items-start border-t-2 border-[#0f172a] pt-2">
+      <div className="grid grid-cols-[1.1fr_1.15fr] items-start gap-4 border-t-2 border-[#0f172a] pt-2">
         {/* Left Column: Scope Specifications */}
         <InvoiceBreakdownTables
           calc={calc}
@@ -132,21 +140,25 @@ export function CardsInvoiceTemplate({
           shownUpgrade={shownUpgrade}
           attachedUpgrade={attachedUpgrade}
           quoteNotes={quoteNotes}
+          isDualOption={isDualOption}
         />
 
         {/* Right Column: Financial Summary Card */}
         <div
-          className="border border-[#cbd5e1] rounded bg-white shadow-sm"
+          className="rounded border border-[#cbd5e1] bg-white shadow-sm"
           style={{ padding: `${rowPy * 1.25}px` }}
         >
           <div
             style={{ fontSize: `${h2Fs}px` }}
-            className="font-bold uppercase tracking-wider text-[#0f172a] mb-1 pb-0.5 border-b-2 border-[#0f172a]"
+            className="mb-1 border-b-2 border-[#0f172a] pb-0.5 font-bold tracking-wider text-[#0f172a] uppercase"
           >
             Summary
           </div>
 
-          <table className="w-full border-collapse" style={{ fontSize: `${bodyFs}px` }}>
+          <table
+            className="w-full border-collapse"
+            style={{ fontSize: `${bodyFs}px` }}
+          >
             <tbody>
               <InvoiceSummaryRows
                 calc={calc}
@@ -158,10 +170,13 @@ export function CardsInvoiceTemplate({
 
           {/* Total Banner */}
           <div
-            className="border-2 border-[#0f172a] bg-white text-[#0f172a] rounded-md flex justify-between items-center font-extrabold mt-2"
+            className="mt-2 flex items-center justify-between rounded-md border-2 border-[#0f172a] bg-white font-extrabold text-[#0f172a]"
             style={{ padding: `${rowPy}px` }}
           >
-            <span style={{ fontSize: `${h2Fs}px` }} className="tracking-wide uppercase text-[#0f172a]">
+            <span
+              style={{ fontSize: `${h2Fs}px` }}
+              className="tracking-wide text-[#0f172a] uppercase"
+            >
               Total
             </span>
             <span
@@ -173,31 +188,31 @@ export function CardsInvoiceTemplate({
           </div>
 
           {/* Deposit Terms */}
-          <div className="grid grid-cols-2 gap-2 mt-2 pt-1.5 border-t border-[#cbd5e1]">
-            <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[#cbd5e1] pt-1.5">
+            <div className="rounded-md border border-[#cbd5e1] bg-white p-1.5">
               <div
                 style={{ fontSize: `${microFs}px` }}
-                className="text-[#334155] uppercase tracking-wider font-semibold"
+                className="font-semibold tracking-wider text-[#334155] uppercase"
               >
                 50% Deposit
               </div>
               <div
                 style={{ fontSize: `${bodyFs}px` }}
-                className="font-mono font-bold text-[#0f172a] mt-0.5"
+                className="mt-0.5 font-mono font-bold text-[#0f172a]"
               >
                 {formatMoney(finalFirstPayment)}
               </div>
             </div>
-            <div className="bg-white p-1.5 rounded-md border border-[#cbd5e1]">
+            <div className="rounded-md border border-[#cbd5e1] bg-white p-1.5">
               <div
                 style={{ fontSize: `${microFs}px` }}
-                className="text-[#334155] uppercase tracking-wider font-semibold"
+                className="font-semibold tracking-wider text-[#334155] uppercase"
               >
                 Final 50% Balance
               </div>
               <div
                 style={{ fontSize: `${bodyFs}px` }}
-                className="font-mono font-bold text-[#0f172a] mt-0.5"
+                className="mt-0.5 font-mono font-bold text-[#0f172a]"
               >
                 {formatMoney(finalSecondPayment)}
               </div>
@@ -206,6 +221,5 @@ export function CardsInvoiceTemplate({
         </div>
       </div>
     </>
-  );
+  )
 }
-

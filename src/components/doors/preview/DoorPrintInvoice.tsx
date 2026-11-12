@@ -1,46 +1,48 @@
-'use client';
+"use client"
 
-import React from 'react';
+import React, { useState, useEffect } from "react"
 import {
   DoorLineItem,
   DoorQuoteTotals,
   DoorSelectedUpcharge,
-} from '@/lib/doors/types';
-import { DoorInvoiceHeader } from './DoorInvoiceHeader';
-import { DoorInvoiceItemsTable } from './DoorInvoiceItemsTable';
-import { DoorInvoiceUpchargesTable } from './DoorInvoiceUpchargesTable';
-import { DoorRichNotes } from './DoorRichNotes';
-import { DoorPrintLedger } from './DoorPrintLedger';
+} from "@/lib/doors/types"
+import { DoorInvoiceHeader } from "./DoorInvoiceHeader"
+import { DoorInvoiceItemsTable } from "./DoorInvoiceItemsTable"
+import { DoorInvoiceUpchargesTable } from "./DoorInvoiceUpchargesTable"
+import { DoorRichNotes } from "./DoorRichNotes"
+import { DoorPrintLedger } from "./DoorPrintLedger"
+import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface DoorPrintInvoiceProps {
-  quoteNumber: string;
-  quoteDate: string;
-  customerName: string;
-  preparedBy: string;
-  isInstallation: boolean;
-  totals: DoorQuoteTotals;
-  lineItems: DoorLineItem[];
-  globalUpcharges: DoorSelectedUpcharge[];
-  upgradeItems: DoorLineItem[];
-  quoteNotes: string;
-  isFirstNation: boolean;
-  hasAttachedWindow: boolean;
-  hasAttachedSU: boolean;
-  attachedWindowQuote?: any;
-  winBase: number;
-  winJC: number;
-  winJCDescription: string;
-  suGlass: number;
-  combinedLabour: number;
-  combinedMisc: number;
-  combinedSurcharge: number;
-  winDiscount: number;
-  winPromoName: string;
-  combinedSubtotal: number;
-  combinedTax: number;
-  finalGrandTotal: number;
-  firstPayment: number;
-  secondPayment: number;
+  quoteNumber: string
+  quoteDate: string
+  customerName: string
+  preparedBy: string
+  isInstallation: boolean
+  isDualOption?: boolean
+  totals: DoorQuoteTotals
+  lineItems: DoorLineItem[]
+  globalUpcharges: DoorSelectedUpcharge[]
+  upgradeItems: DoorLineItem[]
+  quoteNotes: string
+  isFirstNation: boolean
+  hasAttachedWindow: boolean
+  hasAttachedSU: boolean
+  attachedWindowQuote?: any
+  winBase: number
+  winJC: number
+  winJCDescription: string
+  suGlass: number
+  combinedLabour: number
+  combinedMisc: number
+  combinedSurcharge: number
+  winDiscount: number
+  winPromoName: string
+  combinedSubtotal: number
+  combinedTax: number
+  finalGrandTotal: number
+  firstPayment: number
+  secondPayment: number
 }
 
 export function DoorPrintInvoice({
@@ -49,6 +51,7 @@ export function DoorPrintInvoice({
   customerName,
   preparedBy,
   isInstallation,
+  isDualOption = false,
   totals,
   lineItems,
   globalUpcharges,
@@ -73,10 +76,20 @@ export function DoorPrintInvoice({
   firstPayment,
   secondPayment,
 }: DoorPrintInvoiceProps) {
+  const [sessionAttachedAmount, setSessionAttachedAmount] = useState<
+    number | null
+  >(null)
+
+  useEffect(() => {
+    const cached = readSessionAttachedInstallOption()
+    if (cached?.amountPreTaxCents && cached.amountPreTaxCents > 0) {
+      setSessionAttachedAmount(cached.amountPreTaxCents / 100)
+    }
+  }, [])
   return (
     <div
       id="printable-invoice"
-      className="w-full max-w-[8.2in] bg-white text-black font-sans p-6 sm:p-8 rounded-lg shadow-2xl border border-slate-300 print:shadow-none print:border-none print:rounded-none print:p-0 print:max-w-none print:w-full print:m-0 print:overflow-visible select-text text-[8.5pt] leading-tight space-y-3"
+      className="w-full max-w-[8.2in] space-y-3 rounded-lg border border-slate-300 bg-white p-6 font-sans text-[8.5pt] leading-tight text-black shadow-2xl select-text sm:p-8 print:m-0 print:w-full print:max-w-none print:overflow-visible print:rounded-none print:border-none print:p-0 print:shadow-none"
     >
       <style
         dangerouslySetInnerHTML={{
@@ -124,7 +137,10 @@ export function DoorPrintInvoice({
         lineItems={lineItems}
       />
 
-      <DoorInvoiceItemsTable lineItems={lineItems} isInstallation={isInstallation} />
+      <DoorInvoiceItemsTable
+        lineItems={lineItems}
+        isInstallation={isInstallation}
+      />
 
       <DoorInvoiceUpchargesTable
         isInstallation={isInstallation}
@@ -136,34 +152,71 @@ export function DoorPrintInvoice({
       <div className="grid grid-cols-12 gap-3 pt-1">
         {/* Left 7 cols: Optional Upgrades list & Warranty Info */}
         <div className="col-span-7 space-y-2">
+          {isDualOption && (
+            <div className="space-y-1.5 rounded border border-slate-300 bg-white p-2.5 text-[8pt] text-slate-800 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <div className="h-3.5 w-3.5 shrink-0 rounded-xs border-2 border-slate-700 bg-white" />
+                <span className="text-[7.5pt] font-bold tracking-wider uppercase">
+                  Option for Installation
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-1">
+                <span className="text-[7.5pt] font-medium text-slate-600">
+                  (
+                  {hasAttachedWindow && hasAttachedSU
+                    ? "Windows / Sealed Units / Doors"
+                    : hasAttachedWindow
+                      ? "Windows / Doors"
+                      : hasAttachedSU
+                        ? "Doors / Sealed Units"
+                        : "Doors"}
+                  ) with Installation add:
+                </span>
+                <span className="font-mono font-bold text-slate-900">
+                  +$
+                  {(sessionAttachedAmount !== null
+                    ? sessionAttachedAmount
+                    : combinedLabour + combinedMisc
+                  ).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
           {upgradeItems.length > 0 ? (
-            <div className="border border-emerald-300 rounded p-2.5 bg-emerald-50/50 text-[7.5pt] space-y-1">
-              <div className="font-bold text-emerald-900 uppercase tracking-wider text-[7pt]">
-                Optional Door Upgrades (For Customer Record):
+            <div className="space-y-1 rounded border border-emerald-300 bg-emerald-50/50 p-2.5 text-[7.5pt]">
+              <div className="text-[7pt] font-bold tracking-wider text-emerald-900 uppercase">
+                option for Door upgrade:
               </div>
               {upgradeItems.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-emerald-800">
+                <div
+                  key={idx}
+                  className="flex justify-between pt-0.5 font-medium text-emerald-900"
+                >
                   <span>
-                    {item.customDescription || item.presetLabel}:{' '}
-                    <strong>{item.upgradeOption?.title}</strong>
+                    {item.upgradeOption?.title ||
+                      item.customDescription ||
+                      item.presetLabel}{" "}
+                    Add
                   </span>
                   <span className="font-mono font-bold">
-                    +${item.upgradeOption?.subtotalDifference.toFixed(2)}/unit
-                    {item.quantity > 1
-                      ? ` (+${((item.upgradeOption?.subtotalDifference || 0) * item.quantity).toFixed(2)} total)`
-                      : ''}
+                    +$
+                    {(
+                      (item.upgradeOption?.subtotalDifference || 0) *
+                      (item.quantity || 1)
+                    ).toFixed(2)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="border border-slate-300 rounded p-2.5 bg-slate-50 text-[7.5pt] space-y-1 text-slate-600">
-              <div className="font-bold text-slate-800 text-[8pt]">
+            <div className="space-y-1 rounded border border-slate-300 bg-slate-50 p-2.5 text-[7.5pt] text-slate-600">
+              <div className="text-[8pt] font-bold text-slate-800">
                 Comprehensive 5-Year Workmanship Warranty
               </div>
               <div>
-                All door systems and installations include our 5-year labour warranty, precision
-                perimeter weather-sealing, and factory manufacturer warranty.
+                All door systems and installations include our 5-year labour
+                warranty, precision perimeter weather-sealing, and factory
+                manufacturer warranty.
               </div>
             </div>
           )}
@@ -199,18 +252,21 @@ export function DoorPrintInvoice({
       </div>
 
       {/* Signature / Approval Footer */}
-      <div className="border-t border-slate-300 pt-3 mt-4 flex justify-between items-end text-[7.5pt] text-slate-500">
+      <div className="mt-4 flex items-end justify-between border-t border-slate-300 pt-3 text-[7.5pt] text-slate-500">
         <div className="space-y-3">
           <div className="w-56 border-b border-slate-400 pb-0.5 text-slate-700">
             Customer Signature
           </div>
           <div className="text-[6.5pt] text-slate-400">
-            Signature indicates acceptance of door specifications, terms, and deposit schedule.
+            Signature indicates acceptance of door specifications, terms, and
+            deposit schedule.
           </div>
         </div>
 
-        <div className="w-36 border-b border-slate-400 pb-0.5 text-right text-slate-700">Date</div>
+        <div className="w-36 border-b border-slate-400 pb-0.5 text-right text-slate-700">
+          Date
+        </div>
       </div>
     </div>
-  );
+  )
 }

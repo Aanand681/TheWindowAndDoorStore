@@ -1,18 +1,25 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface INotification extends Document {
-  recipientUsername: string;
-  senderUsername: string;
-  type: 'QUOTE_APPROVED' | 'QUOTE_MODIFIED' | 'QUOTE_RETURNED' | 'QUOTE_ASSIGNED' | 'QUOTE_SUBMITTED' | 'QUOTE_ODOO_ASSIGNED' | 'ODOO_ENTRY_COMPLETED';
-  title: string;
-  message: string;
-  quoteId: string;
-  quoteNumber: string;
-  customerName: string;
-  reviewChanges?: string[];
-  isRead: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  recipientUsername: string
+  senderUsername: string
+  type:
+    | "QUOTE_APPROVED"
+    | "QUOTE_MODIFIED"
+    | "QUOTE_RETURNED"
+    | "QUOTE_ASSIGNED"
+    | "QUOTE_SUBMITTED"
+    | "QUOTE_ODOO_ASSIGNED"
+    | "ODOO_ENTRY_COMPLETED"
+  title: string
+  message: string
+  quoteId: string
+  quoteNumber: string
+  customerName: string
+  reviewChanges?: string[]
+  isRead: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 const NotificationSchema = new Schema<INotification>(
@@ -25,12 +32,20 @@ const NotificationSchema = new Schema<INotification>(
     },
     senderUsername: {
       type: String,
-      default: 'System',
+      default: "System",
       trim: true,
     },
     type: {
       type: String,
-      enum: ['QUOTE_APPROVED', 'QUOTE_MODIFIED', 'QUOTE_RETURNED', 'QUOTE_ASSIGNED', 'QUOTE_SUBMITTED', 'QUOTE_ODOO_ASSIGNED', 'ODOO_ENTRY_COMPLETED'],
+      enum: [
+        "QUOTE_APPROVED",
+        "QUOTE_MODIFIED",
+        "QUOTE_RETURNED",
+        "QUOTE_ASSIGNED",
+        "QUOTE_SUBMITTED",
+        "QUOTE_ODOO_ASSIGNED",
+        "ODOO_ENTRY_COMPLETED",
+      ],
       required: true,
     },
     title: {
@@ -43,15 +58,15 @@ const NotificationSchema = new Schema<INotification>(
     },
     quoteId: {
       type: String,
-      default: '',
+      default: "",
     },
     quoteNumber: {
       type: String,
-      default: '',
+      default: "",
     },
     customerName: {
       type: String,
-      default: '',
+      default: "",
     },
     reviewChanges: {
       type: [String],
@@ -66,18 +81,22 @@ const NotificationSchema = new Schema<INotification>(
   {
     timestamps: true,
   }
-);
+)
 
 // Compound index for fast notification queue retrieval
-NotificationSchema.index({ recipientUsername: 1, isRead: 1, createdAt: -1 }, { name: 'user_notifications' });
+NotificationSchema.index(
+  { recipientUsername: 1, isRead: 1, createdAt: -1 },
+  { name: "user_notifications" }
+)
 
 // TTL Index: Automatically expire notifications older than 7 days (7 * 24 * 60 * 60 seconds)
-NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 });
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 604800 })
 
-if (process.env.NODE_ENV !== 'production') {
-  delete (mongoose.models as Record<string, unknown>).Notification;
+if (process.env.NODE_ENV !== "production") {
+  delete (mongoose.models as Record<string, unknown>).Notification
 }
 
-const NotificationModel: Model<INotification> = (mongoose.models.Notification as Model<INotification>) || mongoose.model<INotification>('Notification', NotificationSchema);
-export default NotificationModel;
-
+const NotificationModel: Model<INotification> =
+  (mongoose.models.Notification as Model<INotification>) ||
+  mongoose.model<INotification>("Notification", NotificationSchema)
+export default NotificationModel

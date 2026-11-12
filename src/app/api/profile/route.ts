@@ -1,30 +1,35 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
-import Department from '@/models/Department';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { cacheSet } from '@/lib/redis';
-import { handleApiError } from '@/lib/api-error';
-import bcrypt from 'bcryptjs';
+import { NextResponse } from "next/server"
+import dbConnect from "@/lib/mongodb"
+import User from "@/models/User"
+import Department from "@/models/Department"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { cacheSet } from "@/lib/redis"
+import { handleApiError } from "@/lib/api-error"
+import bcrypt from "bcryptjs"
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    await dbConnect();
-    const user = await User.findById(session.user.id, '-password');
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    await dbConnect()
+    const user = await User.findById(session.user.id, "-password")
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-    const userObj: Record<string, unknown> = { ...user.toObject() };
-    let deptPermissions: Record<string, boolean> = {};
+    const userObj: Record<string, unknown> = { ...user.toObject() }
+    let deptPermissions: Record<string, boolean> = {}
     if (user.department) {
-      const dept = await Department.findOne({ code: user.department });
+      const dept = await Department.findOne({ code: user.department })
       if (dept && dept.permissions) {
-        deptPermissions = dept.permissions instanceof Map ? Object.fromEntries(dept.permissions) : dept.permissions;
+        deptPermissions =
+          dept.permissions instanceof Map
+            ? Object.fromEntries(dept.permissions)
+            : dept.permissions
       }
-    } else if (['SUPERADMIN', 'ADMIN'].includes(user.role)) {
+    } else if (["SUPERADMIN", "ADMIN"].includes(user.role)) {
       deptPermissions = {
         canCreateQuote: true,
         canReviewQuote: true,
@@ -32,95 +37,122 @@ export async function GET() {
         canAccessOdooQueue: true,
         canMarkOdooEntry: true,
         canAccessAdmin: true,
-      };
+      }
     }
 
     const customPerms = user.customPermissions
-      ? (user.customPermissions instanceof Map ? Object.fromEntries(user.customPermissions) : user.customPermissions)
-      : {};
+      ? user.customPermissions instanceof Map
+        ? Object.fromEntries(user.customPermissions)
+        : user.customPermissions
+      : {}
 
-    const isSuper = user.role === 'SUPERADMIN';
+    const isSuper = user.role === "SUPERADMIN"
 
-    userObj.departmentPermissions = deptPermissions;
-    userObj.customPermissions = customPerms;
-    userObj.permissions = isSuper ? {
-      canCreateQuote: true,
-      canReviewQuote: true,
-      canEditApprovedQuote: true,
-      canAccessOdooQueue: true,
-      canMarkOdooEntry: true,
-      canAccessAdmin: true,
-    } : {
-      ...deptPermissions,
-      ...customPerms,
-    };
+    userObj.departmentPermissions = deptPermissions
+    userObj.customPermissions = customPerms
+    userObj.permissions = isSuper
+      ? {
+          canCreateQuote: true,
+          canReviewQuote: true,
+          canEditApprovedQuote: true,
+          canAccessOdooQueue: true,
+          canMarkOdooEntry: true,
+          canAccessAdmin: true,
+        }
+      : {
+          ...deptPermissions,
+          ...customPerms,
+        }
 
-    return NextResponse.json(userObj);
+    return NextResponse.json(userObj)
   } catch (error: any) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const body = await request.json();
-    const { username, email, currentPassword, newPassword } = body;
+    const body = await request.json()
+    const { username, email, currentPassword, newPassword } = body
 
-    await dbConnect();
-    const user = await User.findById(session.user.id);
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    await dbConnect()
+    const user = await User.findById(session.user.id)
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
 
     // Handle Password Change
     if (currentPassword && newPassword) {
-      const isValidPassword = user.password ? await bcrypt.compare(currentPassword, user.password) : false;
+      const isValidPassword = user.password
+        ? await bcrypt.compare(currentPassword, user.password)
+        : false
       if (!isValidPassword) {
-        return NextResponse.json({ error: 'Incorrect current password' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Incorrect current password" },
+          { status: 400 }
+        )
       }
-      user.password = await bcrypt.hash(newPassword, 10);
+      user.password = await bcrypt.hash(newPassword, 10)
       // Revoke any other active sessions
-      await cacheSet(`user:revoked:${user._id.toString()}`, Date.now(), 86400).catch(() => {});
+      await cacheSet(
+        `user:revoked:${user._id.toString()}`,
+        Date.now(),
+        86400
+      ).catch(() => {})
     }
 
     // Handle Username / Email Change
     if (username && username !== user.username) {
-      const existingUser = await User.findOne({ username });
-      if (existingUser) return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
-      user.username = username;
+      const existingUser = await User.findOne({ username })
+      if (existingUser)
+        return NextResponse.json(
+          { error: "Username already taken" },
+          { status: 400 }
+        )
+      user.username = username
     }
 
     if (email !== undefined && email !== user.email) {
-      user.email = email || undefined;
+      user.email = email || undefined
     }
 
-    if (body.landingPage && ['calculator', 'quotes', 'admin'].includes(body.landingPage)) {
-      user.landingPage = body.landingPage;
+    if (
+      body.landingPage &&
+      ["calculator", "quotes", "admin"].includes(body.landingPage)
+    ) {
+      user.landingPage = body.landingPage
     }
 
     if (body.muteNotifications !== undefined) {
-      user.muteNotifications = Boolean(body.muteNotifications);
+      user.muteNotifications = Boolean(body.muteNotifications)
     }
 
     if (body.receiveQuoteEmails !== undefined) {
-      user.receiveQuoteEmails = Boolean(body.receiveQuoteEmails);
+      user.receiveQuoteEmails = Boolean(body.receiveQuoteEmails)
     }
 
-    if (body.favoriteTemplate && ['modern', 'executive', 'cards', 'compact', 'breakdown'].includes(body.favoriteTemplate)) {
-      user.favoriteTemplate = body.favoriteTemplate;
+    if (
+      body.favoriteTemplate &&
+      ["modern", "executive", "cards", "compact", "breakdown"].includes(
+        body.favoriteTemplate
+      )
+    ) {
+      user.favoriteTemplate = body.favoriteTemplate
     }
 
-    await user.save();
+    await user.save()
 
-    return NextResponse.json({ 
-      message: 'Profile updated successfully', 
+    return NextResponse.json({
+      message: "Profile updated successfully",
       landingPage: user.landingPage,
       favoriteTemplate: user.favoriteTemplate,
       receiveQuoteEmails: user.receiveQuoteEmails,
       muteNotifications: user.muteNotifications,
-    });
+    })
   } catch (error: any) {
-    return handleApiError(error);
+    return handleApiError(error)
   }
 }

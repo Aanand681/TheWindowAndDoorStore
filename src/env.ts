@@ -1,11 +1,11 @@
-import { z } from 'zod';
+import { z } from "zod"
 
 const envSchema = z.object({
   // Database
-  MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+  MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
 
   // Auth
-  NEXTAUTH_SECRET: z.string().min(1, 'NEXTAUTH_SECRET is required'),
+  NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required"),
   NEXTAUTH_URL: z.string().url().optional(),
   AUTH_TRUST_HOST: z.coerce.boolean().optional(),
 
@@ -35,14 +35,14 @@ const envSchema = z.object({
 
   // App Base URL
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
-});
+})
 
 export const env = envSchema.parse({
   ...process.env,
   NEXT_PUBLIC_APP_URL:
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
-    'http://localhost:3000',
-});
+    "http://localhost:3000",
+})
 
-export type Env = z.infer<typeof envSchema>;
+export type Env = z.infer<typeof envSchema>

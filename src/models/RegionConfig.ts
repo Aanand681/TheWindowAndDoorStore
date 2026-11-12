@@ -1,20 +1,20 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface IRegionConfig extends Document {
-  name: string;
-  officeLat: number;
-  officeLon: number;
-  freeCities: string[];
-  setupFeeOptions: { label: string; value: number }[];
-  labourPerSqft: number;
-  miscPerSqft: number;
-  labourMin: number;
-  miscMin: number;
-  extraLinPerWindow: number;
-  fixedSetupFee: number;
-  baseTravelFee: number;
-  isSupplyOnly?: boolean;
-  polygon: { lat: number, lng: number }[];
+  name: string
+  officeLat: number
+  officeLon: number
+  freeCities: string[]
+  setupFeeOptions: { label: string; value: number }[]
+  labourPerSqft: number
+  miscPerSqft: number
+  labourMin: number
+  miscMin: number
+  extraLinPerWindow: number
+  fixedSetupFee: number
+  baseTravelFee: number
+  isSupplyOnly?: boolean
+  polygon: { lat: number; lng: number }[]
 }
 
 const RegionConfigSchema = new Schema<IRegionConfig>(
@@ -27,7 +27,7 @@ const RegionConfigSchema = new Schema<IRegionConfig>(
       {
         label: { type: String, required: true },
         value: { type: Number, required: true },
-      }
+      },
     ],
     labourPerSqft: { type: Number, default: 19 },
     miscPerSqft: { type: Number, default: 8 },
@@ -40,7 +40,9 @@ const RegionConfigSchema = new Schema<IRegionConfig>(
     polygon: [{ lat: Number, lng: Number }],
   },
   { timestamps: true }
-);
+)
 
-const RegionConfigModel: Model<IRegionConfig> = (mongoose.models.RegionConfig as Model<IRegionConfig>) || mongoose.model<IRegionConfig>('RegionConfig', RegionConfigSchema);
-export default RegionConfigModel;
+const RegionConfigModel: Model<IRegionConfig> =
+  (mongoose.models.RegionConfig as Model<IRegionConfig>) ||
+  mongoose.model<IRegionConfig>("RegionConfig", RegionConfigSchema)
+export default RegionConfigModel

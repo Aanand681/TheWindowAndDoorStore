@@ -1,26 +1,30 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Printer, X, FileText, CheckCircle2, Star } from 'lucide-react';
-import { QuoteTemplateType } from '../QuoteInvoice';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { Printer, X, FileText, CheckCircle2, Star, Scale } from "lucide-react"
+import { QuoteTemplateType } from "../QuoteInvoice"
+import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface QuotePreviewToolbarProps {
-  onPrint: () => void;
-  onClose: () => void;
-  template: QuoteTemplateType;
-  onTemplateChange: (t: QuoteTemplateType) => void;
-  defaultTemplate: QuoteTemplateType | null;
-  handleSetDefaultTemplate: () => void;
-  orientation: 'portrait' | 'landscape';
-  setOrientation: (o: 'portrait' | 'landscape') => void;
-  fontSize: number;
-  onFontSizeChange: (size: number) => void;
-  spacing: number;
-  onSpacingChange: (spacing: number) => void;
-  showNotesEditor: boolean;
-  setShowNotesEditor: React.Dispatch<React.SetStateAction<boolean>>;
-  quoteNotes?: string;
+  onPrint: () => void
+  onClose: () => void
+  template: QuoteTemplateType
+  onTemplateChange: (t: QuoteTemplateType) => void
+  defaultTemplate: QuoteTemplateType | null
+  handleSetDefaultTemplate: () => void
+  orientation: "portrait" | "landscape"
+  setOrientation: (o: "portrait" | "landscape") => void
+  fontSize: number
+  onFontSizeChange: (size: number) => void
+  spacing: number
+  onSpacingChange: (spacing: number) => void
+  showNotesEditor: boolean
+  setShowNotesEditor: React.Dispatch<React.SetStateAction<boolean>>
+  quoteNotes?: string
+  isSupplyOnly?: boolean
+  isDualOption?: boolean
+  setIsDualOption?: (val: boolean) => void
 }
 
 export function QuotePreviewToolbar({
@@ -38,30 +42,44 @@ export function QuotePreviewToolbar({
   onSpacingChange,
   showNotesEditor,
   setShowNotesEditor,
-  quoteNotes = '',
+  quoteNotes = "",
+  isSupplyOnly = false,
+  isDualOption = false,
+  setIsDualOption,
 }: QuotePreviewToolbarProps) {
   return (
     <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2 shadow-sm backdrop-blur print:hidden">
-      <div className="max-w-7xl mx-auto space-y-2">
+      <div className="mx-auto max-w-7xl space-y-2">
         {/* Row 1: Preview Status & Primary Actions (Print / Close) */}
-        <div className="flex items-center justify-between gap-3 pb-1.5 border-b border-border/40">
+        <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-1.5">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="font-bold text-sm tracking-wide text-foreground">Print Preview</span>
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="text-sm font-bold tracking-wide text-foreground">
+                Print Preview
+              </span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-              <CheckCircle2 className="w-3 h-3" />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+              <CheckCircle2 className="h-3 w-3" />
               <span>8½&quot; × 11&quot; Letter Standard</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={onPrint} className="shadow-sm font-semibold cursor-pointer h-8 px-3.5 gap-1.5">
-              <Printer className="w-3.5 h-3.5" /> Print / Export PDF
+            <Button
+              size="sm"
+              onClick={onPrint}
+              className="h-8 cursor-pointer gap-1.5 px-3.5 font-semibold shadow-sm"
+            >
+              <Printer className="h-3.5 w-3.5" /> Print / Export PDF
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full cursor-pointer h-8 w-8">
-              <X className="w-4 h-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 cursor-pointer rounded-full"
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -69,37 +87,37 @@ export function QuotePreviewToolbar({
         {/* Row 2: Document Tools */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
           {/* Left: Template Switcher & Set Default */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex flex-wrap items-center gap-1.5">
             <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
               <button
                 type="button"
-                onClick={() => onTemplateChange('modern')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'modern'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                onClick={() => onTemplateChange("modern")}
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  template === "modern"
+                    ? "bg-background font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Modern Detailed
               </button>
               <button
                 type="button"
-                onClick={() => onTemplateChange('executive')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'executive'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                onClick={() => onTemplateChange("executive")}
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  template === "executive"
+                    ? "bg-background font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Executive Ledger
               </button>
               <button
                 type="button"
-                onClick={() => onTemplateChange('cards')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  template === 'cards'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                onClick={() => onTemplateChange("cards")}
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  template === "cards"
+                    ? "bg-background font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Specification Sheet
@@ -111,39 +129,71 @@ export function QuotePreviewToolbar({
               variant="ghost"
               size="sm"
               onClick={handleSetDefaultTemplate}
-              title={template === defaultTemplate ? 'Current default template' : 'Set this as your default invoice template'}
-              className={`h-7 px-2 text-[11px] gap-1 cursor-pointer transition-all ${
+              title={
                 template === defaultTemplate
-                  ? 'text-amber-500 font-bold bg-amber-500/10 hover:bg-amber-500/20'
-                  : 'text-muted-foreground hover:text-amber-400'
+                  ? "Current default template"
+                  : "Set this as your default invoice template"
+              }
+              className={`h-7 cursor-pointer gap-1 px-2 text-[11px] transition-all ${
+                template === defaultTemplate
+                  ? "bg-amber-500/10 font-bold text-amber-500 hover:bg-amber-500/20"
+                  : "text-muted-foreground hover:text-amber-400"
               }`}
             >
-              <Star className={`w-3.5 h-3.5 ${template === defaultTemplate ? 'fill-amber-400 text-amber-400' : ''}`} />
-              <span>{template === defaultTemplate ? 'Default' : 'Set Default'}</span>
+              <Star
+                className={`h-3.5 w-3.5 ${template === defaultTemplate ? "fill-amber-400 text-amber-400" : ""}`}
+              />
+              <span>
+                {template === defaultTemplate ? "Default" : "Set Default"}
+              </span>
             </Button>
+
+            {isSupplyOnly && setIsDualOption && (
+              <Button
+                type="button"
+                variant={isDualOption ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const next = !isDualOption
+                  setIsDualOption(next)
+                  writeSessionAttachedInstallOption(
+                    next ? { enabled: true, amountPreTaxCents: 0 } : null
+                  )
+                }}
+                title="Attach the Option for Installation card to this supply quote"
+                className="h-7 cursor-pointer gap-1.5 border-primary/30 px-2.5 text-[11px] font-semibold"
+              >
+                <Scale className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  {isDualOption
+                    ? "Installation Option (Attached)"
+                    : "Option for Installation"}
+                </span>
+              </Button>
+            )}
           </div>
 
           {/* Right: Orientation, Font Slider, Spacing Slider, Notes */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
               <button
                 type="button"
-                onClick={() => setOrientation('portrait')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  orientation === 'portrait'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                onClick={() => setOrientation("portrait")}
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  orientation === "portrait"
+                    ? "bg-background font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Portrait
               </button>
               <button
                 type="button"
-                onClick={() => setOrientation('landscape')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                  orientation === 'landscape'
-                    ? 'bg-background text-primary shadow-sm font-semibold'
-                    : 'text-muted-foreground hover:text-foreground'
+                onClick={() => setOrientation("landscape")}
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  orientation === "landscape"
+                    ? "bg-background font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Landscape
@@ -151,8 +201,10 @@ export function QuotePreviewToolbar({
             </div>
 
             {/* Font Size Slider */}
-            <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-lg border border-border">
-              <span className="text-[11px] text-muted-foreground font-medium">Font:</span>
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 py-1">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Font:
+              </span>
               <input
                 type="range"
                 min="9.0"
@@ -160,14 +212,18 @@ export function QuotePreviewToolbar({
                 step="0.5"
                 value={fontSize}
                 onChange={(e) => onFontSizeChange(parseFloat(e.target.value))}
-                className="w-16 accent-primary cursor-pointer h-1.5 bg-muted rounded"
+                className="h-1.5 w-16 cursor-pointer rounded bg-muted accent-primary"
               />
-              <span className="font-mono text-[11px] font-bold w-9 text-right">{fontSize.toFixed(1)}px</span>
+              <span className="w-9 text-right font-mono text-[11px] font-bold">
+                {fontSize.toFixed(1)}px
+              </span>
             </div>
 
             {/* Spacing Slider */}
-            <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-1 rounded-lg border border-border">
-              <span className="text-[11px] text-muted-foreground font-medium">Spacing:</span>
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 py-1">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Spacing:
+              </span>
               <input
                 type="range"
                 min="0.75"
@@ -175,25 +231,30 @@ export function QuotePreviewToolbar({
                 step="0.05"
                 value={spacing}
                 onChange={(e) => onSpacingChange(parseFloat(e.target.value))}
-                className="w-14 accent-primary cursor-pointer h-1.5 bg-muted rounded"
+                className="h-1.5 w-14 cursor-pointer rounded bg-muted accent-primary"
               />
-              <span className="font-mono text-[11px] font-bold w-10 text-right">{spacing.toFixed(2)}x</span>
+              <span className="w-10 text-right font-mono text-[11px] font-bold">
+                {spacing.toFixed(2)}x
+              </span>
             </div>
 
             {/* Notes Editor Toggle */}
             <Button
               type="button"
-              variant={showNotesEditor ? 'default' : 'outline'}
+              variant={showNotesEditor ? "default" : "outline"}
               size="sm"
               onClick={() => setShowNotesEditor((prev) => !prev)}
-              className="h-7 px-2.5 text-xs font-semibold cursor-pointer"
+              className="h-7 cursor-pointer px-2.5 text-xs font-semibold"
             >
-              {showNotesEditor ? 'Hide Notes' : quoteNotes ? 'Edit Notes (Active)' : '+ Add Notes'}
+              {showNotesEditor
+                ? "Hide Notes"
+                : quoteNotes
+                  ? "Edit Notes (Active)"
+                  : "+ Add Notes"}
             </Button>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
-

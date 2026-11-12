@@ -1,14 +1,14 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
 
 interface QuoteDeleteModalProps {
-  quoteToDelete: { id: string; quoteNumber: string } | null;
-  setQuoteToDelete: (val: any) => void;
-  isDeletingQuote: boolean;
-  confirmDeleteQuote: () => void;
+  quoteToDelete: { id: string; quoteNumber: string } | null
+  setQuoteToDelete: (val: any) => void
+  isDeletingQuote: boolean
+  confirmDeleteQuote: () => void
 }
 
 export function QuoteDeleteModal({
@@ -17,26 +17,27 @@ export function QuoteDeleteModal({
   isDeletingQuote,
   confirmDeleteQuote,
 }: QuoteDeleteModalProps) {
-  if (!quoteToDelete) return null;
+  if (!quoteToDelete) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm fade-in">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-2xl">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
-            <Trash2 className="w-5 h-5" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+            <Trash2 className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-foreground">
+            <h3 className="text-lg font-bold text-foreground">
               Delete Quote #{quoteToDelete.quoteNumber}?
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              This action cannot be undone and will permanently remove this quote.
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              This action cannot be undone and will permanently remove this
+              quote.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+        <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
           <Button
             variant="outline"
             size="sm"
@@ -51,13 +52,12 @@ export function QuoteDeleteModal({
             size="sm"
             onClick={confirmDeleteQuote}
             disabled={isDeletingQuote}
-            className="font-bold cursor-pointer"
+            className="cursor-pointer font-bold"
           >
-            {isDeletingQuote ? 'Deleting...' : 'Delete Quote'}
+            {isDeletingQuote ? "Deleting..." : "Delete Quote"}
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
-

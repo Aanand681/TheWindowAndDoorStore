@@ -1,39 +1,39 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from "react"
+import { toast } from "sonner"
 
 export interface UseReviewStatusActionsParams {
-  reviewQuoteId: string | null;
-  reviewQuote: any;
-  isOdooCompleted: boolean;
-  setReviewQuote: (q: any) => void;
-  setOriginalSnapshot: (snapshot: any) => void;
-  setIsEditMode: (val: boolean) => void;
-  handleExitReview: () => void;
-  quoteNumber: string;
-  customerName: string;
-  windows: any[];
-  taxTotals: any;
-  quoteResult: any;
-  quoteNotes: string;
-  surchargeRate: number;
-  activePromoId: string;
-  customJC: string;
-  customMisc: string;
-  customLabour: string;
-  includeJCInPromo: boolean;
-  includeMiscInPromo: boolean;
-  includeLabourInPromo: boolean;
-  attachedUpgrade?: any;
-  attachedDoorQuote?: any;
-  attachedSealedUnit?: any;
-  wantsUpgrade?: boolean;
-  isSupplyOnly?: boolean;
-  isServiceOnly?: boolean;
-  total: number;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  setReviewActionLoading: (loading: boolean) => void;
+  reviewQuoteId: string | null
+  reviewQuote: any
+  isOdooCompleted: boolean
+  setReviewQuote: (q: any) => void
+  setOriginalSnapshot: (snapshot: any) => void
+  setIsEditMode: (val: boolean) => void
+  handleExitReview: () => void
+  quoteNumber: string
+  customerName: string
+  windows: any[]
+  taxTotals: any
+  quoteResult: any
+  quoteNotes: string
+  surchargeRate: number
+  activePromoId: string
+  customJC: string
+  customMisc: string
+  customLabour: string
+  includeJCInPromo: boolean
+  includeMiscInPromo: boolean
+  includeLabourInPromo: boolean
+  attachedUpgrade?: any
+  attachedDoorQuote?: any
+  attachedSealedUnit?: any
+  wantsUpgrade?: boolean
+  isSupplyOnly?: boolean
+  isServiceOnly?: boolean
+  total: number
+  fileInputRef: React.RefObject<HTMLInputElement | null>
+  setReviewActionLoading: (loading: boolean) => void
 }
 
 export function useReviewStatusActions({
@@ -68,26 +68,29 @@ export function useReviewStatusActions({
   fileInputRef,
   setReviewActionLoading,
 }: UseReviewStatusActionsParams) {
-  const [showReassignModal, setShowReassignModal] = useState<boolean>(false);
-  const [reassignTo, setReassignTo] = useState<string>('');
-  const [reassignNotes, setReassignNotes] = useState<string>('');
+  const [showReassignModal, setShowReassignModal] = useState<boolean>(false)
+  const [reassignTo, setReassignTo] = useState<string>("")
+  const [reassignNotes, setReassignNotes] = useState<string>("")
 
-  const [showReturnModal, setShowReturnModal] = useState<boolean>(false);
-  const [returnNotes, setReturnNotes] = useState<string>('');
+  const [showReturnModal, setShowReturnModal] = useState<boolean>(false)
+  const [returnNotes, setReturnNotes] = useState<string>("")
 
-  const [showExitReviewForPdfModal, setShowExitReviewForPdfModal] = useState<boolean>(false);
+  const [showExitReviewForPdfModal, setShowExitReviewForPdfModal] =
+    useState<boolean>(false)
 
   const handleSaveQuotePrices = async () => {
-    if (!reviewQuoteId) return;
+    if (!reviewQuoteId) return
     if (isOdooCompleted) {
-      toast.error('This quote has been entered and confirmed in Odoo. Specifications cannot be modified.');
-      return;
+      toast.error(
+        "This quote has been entered and confirmed in Odoo. Specifications cannot be modified."
+      )
+      return
     }
-    setReviewActionLoading(true);
+    setReviewActionLoading(true)
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName,
           quoteNumber,
@@ -111,83 +114,83 @@ export function useReviewStatusActions({
           isServiceOnly,
           quoteSummaryTotal: total,
         }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save changes');
-      toast.success(`Quote #${quoteNumber} changes saved successfully!`);
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to save changes")
+      toast.success(`Quote #${quoteNumber} changes saved successfully!`)
       if (data.quote) {
-        setReviewQuote(data.quote);
+        setReviewQuote(data.quote)
         if (data.quote.initialSnapshot) {
-          setOriginalSnapshot(data.quote.initialSnapshot);
+          setOriginalSnapshot(data.quote.initialSnapshot)
         }
       }
-      setIsEditMode(false);
+      setIsEditMode(false)
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save price updates');
+      toast.error(err.message || "Failed to save price updates")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   const handleReturnReviewQuote = () => {
-    setReturnNotes('');
-    setShowReturnModal(true);
-  };
+    setReturnNotes("")
+    setShowReturnModal(true)
+  }
 
   const submitReturnReviewQuote = async () => {
-    if (!reviewQuoteId) return;
+    if (!reviewQuoteId) return
     if (!returnNotes.trim()) {
-      toast.error('Please enter revision instructions for the preparer.');
-      return;
+      toast.error("Please enter revision instructions for the preparer.")
+      return
     }
-    setReviewActionLoading(true);
+    setReviewActionLoading(true)
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: 'RETURNED',
+          status: "RETURNED",
           reviewerNotes: returnNotes.trim(),
         }),
-      });
+      })
       if (res.ok) {
-        toast.info(`Quote returned to ${reviewQuote.preparedBy}`);
-        setShowReturnModal(false);
-        handleExitReview();
+        toast.info(`Quote returned to ${reviewQuote.preparedBy}`)
+        setShowReturnModal(false)
+        handleExitReview()
       }
     } catch {
-      toast.error('Failed to return quote');
+      toast.error("Failed to return quote")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   const handlePdfImportClick = () => {
     if (reviewQuote) {
-      setShowExitReviewForPdfModal(true);
-      return;
+      setShowExitReviewForPdfModal(true)
+      return
     }
-    fileInputRef.current?.click();
-  };
+    fileInputRef.current?.click()
+  }
 
   const handleExitReviewAndImportPdf = () => {
-    setShowExitReviewForPdfModal(false);
-    handleExitReview();
+    setShowExitReviewForPdfModal(false)
+    handleExitReview()
     setTimeout(() => {
-      fileInputRef.current?.click();
-    }, 100);
-  };
+      fileInputRef.current?.click()
+    }, 100)
+  }
 
   const handleResubmitReturnedQuote = async () => {
-    if (!reviewQuoteId) return;
-    setReviewActionLoading(true);
+    if (!reviewQuoteId) return
+    setReviewActionLoading(true)
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: 'PENDING_REVIEW',
-          reviewerNotes: '',
+          status: "PENDING_REVIEW",
+          reviewerNotes: "",
           windows,
           taxTotals,
           quoteResult,
@@ -208,36 +211,36 @@ export function useReviewStatusActions({
           isServiceOnly,
           quoteSummaryTotal: total,
         }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to resubmit quote');
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to resubmit quote")
       toast.success(
-        `Quote #${quoteNumber} resubmitted to ${reviewQuote.assignedTo || 'reviewer'} for review!`
-      );
-      handleExitReview();
+        `Quote #${quoteNumber} resubmitted to ${reviewQuote.assignedTo || "reviewer"} for review!`
+      )
+      handleExitReview()
     } catch (err: any) {
-      toast.error(err.message || 'Failed to resubmit quote');
+      toast.error(err.message || "Failed to resubmit quote")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   const handleReassignQuote = async () => {
-    if (!reviewQuoteId || !reassignTo) return;
-    setReviewActionLoading(true);
+    if (!reviewQuoteId || !reassignTo) return
+    setReviewActionLoading(true)
     try {
       const updatedNotes = reassignNotes.trim()
         ? reviewQuote.preparerNotes
           ? `${reviewQuote.preparerNotes} | Forwarded to ${reassignTo}: ${reassignNotes.trim()}`
           : `Forwarded to ${reassignTo}: ${reassignNotes.trim()}`
-        : reviewQuote.preparerNotes;
+        : reviewQuote.preparerNotes
 
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assignedTo: reassignTo,
-          status: 'PENDING_REVIEW',
+          status: "PENDING_REVIEW",
           preparerNotes: updatedNotes,
           windows,
           taxTotals,
@@ -259,18 +262,20 @@ export function useReviewStatusActions({
           isServiceOnly,
           quoteSummaryTotal: total,
         }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to forward quote');
-      toast.success(`Quote #${quoteNumber} forwarded to ${reassignTo} for review!`);
-      setShowReassignModal(false);
-      handleExitReview();
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to forward quote")
+      toast.success(
+        `Quote #${quoteNumber} forwarded to ${reassignTo} for review!`
+      )
+      setShowReassignModal(false)
+      handleExitReview()
     } catch (err: any) {
-      toast.error(err.message || 'Failed to forward quote');
+      toast.error(err.message || "Failed to forward quote")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   return {
     showReassignModal,
@@ -292,6 +297,5 @@ export function useReviewStatusActions({
     handleExitReviewAndImportPdf,
     handleResubmitReturnedQuote,
     handleReassignQuote,
-  };
+  }
 }
-

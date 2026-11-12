@@ -1,9 +1,18 @@
-'use client';
+"use client"
 
-import { CalculatorPropsContext } from './ui-props-builder';
+import { CalculatorPropsContext } from "./ui-props-builder"
 
 export function buildModalProps(ctx: CalculatorPropsContext) {
-  const { base, pricing, windowsContext, supply, comparison, drafts, review, customPricing } = ctx;
+  const {
+    base,
+    pricing,
+    windowsContext,
+    supply,
+    comparison,
+    drafts,
+    review,
+    customPricing,
+  } = ctx
   return {
     isPreviewOpen: base.isPreviewOpen,
     setIsPreviewOpen: base.setIsPreviewOpen,
@@ -16,7 +25,7 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     quoteNotes: base.quoteNotes,
     setQuoteNotes: base.setQuoteNotes,
     isReadOnly: review.isReadOnly,
-    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || '',
+    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || "",
     customerName: base.customerName,
     quoteNumber: base.quoteNumber,
     windows: windowsContext.windows,
@@ -112,6 +121,5 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     showResetModal: base.showResetModal,
     setShowResetModal: base.setShowResetModal,
     handleConfirmReset: drafts.handleConfirmReset,
-  };
+  }
 }
-

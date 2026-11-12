@@ -1,12 +1,12 @@
-import { ComboPricing } from './types';
+import { ComboPricing } from "./types"
 
 // Default Annealed & Tempered combinations from July 14, 2025 Vitro pricing sheets
 export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
   // --- ANNEALED ---
   {
-    id: 'ann_clear',
-    name: 'Clear',
-    treatment: 'annealed',
+    id: "ann_clear",
+    name: "Clear",
+    treatment: "annealed",
     prices: {
       3: { dual: 10.65, triple: 17.27 },
       4: { dual: 12.78, triple: 20.28 },
@@ -15,20 +15,20 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
     },
   },
   {
-    id: 'ann_sungate_1',
-    name: 'Vitro Sungate 400 - 1 Lite (Hardcoat)',
-    treatment: 'annealed',
+    id: "ann_sungate_1",
+    name: "Vitro Sungate 400 - 1 Lite (Hardcoat)",
+    treatment: "annealed",
     prices: {
-      3: { dual: 14.00, triple: 19.70 },
+      3: { dual: 14.0, triple: 19.7 },
       4: { dual: 15.82, triple: 22.69 },
       5: { dual: 16.51, triple: 25.19 },
       6: { dual: 16.95, triple: 26.61 },
     },
   },
   {
-    id: 'ann_sungate_2',
-    name: 'Vitro Sungate 400 - 2 Lites',
-    treatment: 'annealed',
+    id: "ann_sungate_2",
+    name: "Vitro Sungate 400 - 2 Lites",
+    treatment: "annealed",
     prices: {
       3: { dual: null, triple: 22.09 },
       4: { dual: null, triple: 25.63 },
@@ -37,42 +37,42 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
     },
   },
   {
-    id: 'ann_solarban60_1',
-    name: 'Vitro Solarban 60 - 1 Lite (Softcoat)',
-    treatment: 'annealed',
+    id: "ann_solarban60_1",
+    name: "Vitro Solarban 60 - 1 Lite (Softcoat)",
+    treatment: "annealed",
     prices: {
-      3: { dual: 14.00, triple: 20.39 },
-      4: { dual: 16.82, triple: 24.00 },
+      3: { dual: 14.0, triple: 20.39 },
+      4: { dual: 16.82, triple: 24.0 },
       5: { dual: 18.31, triple: 27.44 },
-      6: { dual: 19.21, triple: 28.10 },
+      6: { dual: 19.21, triple: 28.1 },
     },
   },
   {
-    id: 'ann_solarban60_2',
-    name: 'Vitro Solarban 60 - 2 Lites',
-    treatment: 'annealed',
+    id: "ann_solarban60_2",
+    name: "Vitro Solarban 60 - 2 Lites",
+    treatment: "annealed",
     prices: {
       3: { dual: null, triple: 24.22 },
       4: { dual: null, triple: 28.17 },
       5: { dual: null, triple: 31.91 },
-      6: { dual: null, triple: 34.00 },
+      6: { dual: null, triple: 34.0 },
     },
   },
   {
-    id: 'ann_solarban70_1',
-    name: 'Vitro Solarban 70 - 1 Lite (Softcoat)',
-    treatment: 'annealed',
+    id: "ann_solarban70_1",
+    name: "Vitro Solarban 70 - 1 Lite (Softcoat)",
+    treatment: "annealed",
     prices: {
       3: { dual: 16.48, triple: 23.86 },
-      4: { dual: 19.82, triple: 28.10 },
+      4: { dual: 19.82, triple: 28.1 },
       5: { dual: 21.57, triple: 32.11 },
       6: { dual: 22.62, triple: 32.88 },
     },
   },
   {
-    id: 'ann_solarban70_2',
-    name: 'Vitro Solarban 70 - 2 Lites',
-    treatment: 'annealed',
+    id: "ann_solarban70_2",
+    name: "Vitro Solarban 70 - 2 Lites",
+    treatment: "annealed",
     prices: {
       3: { dual: null, triple: 28.17 },
       4: { dual: null, triple: 32.88 },
@@ -83,31 +83,31 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
 
   // --- TEMPERED ---
   {
-    id: 'temp_clear',
-    name: 'Clear (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_clear",
+    name: "Clear (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: 16.31, triple: 24.36 },
       4: { dual: 18.45, triple: 27.37 },
-      5: { dual: 19.80, triple: 29.80 },
-      6: { dual: 20.15, triple: 30.50 },
+      5: { dual: 19.8, triple: 29.8 },
+      6: { dual: 20.15, triple: 30.5 },
     },
   },
   {
-    id: 'temp_sungate_1',
-    name: 'Vitro Sungate 400 - 1 Lite (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_sungate_1",
+    name: "Vitro Sungate 400 - 1 Lite (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: 19.67, triple: 26.79 },
       4: { dual: 21.48, triple: 29.78 },
       5: { dual: 23.12, triple: 34.11 },
-      6: { dual: 23.68, triple: 35.10 },
+      6: { dual: 23.68, triple: 35.1 },
     },
   },
   {
-    id: 'temp_sungate_2',
-    name: 'Vitro Sungate 400 - 2 Lites (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_sungate_2",
+    name: "Vitro Sungate 400 - 2 Lites (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: null, triple: 29.18 },
       4: { dual: null, triple: 32.73 },
@@ -116,9 +116,9 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
     },
   },
   {
-    id: 'temp_solarban60_1',
-    name: 'Vitro Solarban 60 - 1 Lite (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_solarban60_1",
+    name: "Vitro Solarban 60 - 1 Lite (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: 19.67, triple: 27.48 },
       4: { dual: 22.48, triple: 31.09 },
@@ -127,9 +127,9 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
     },
   },
   {
-    id: 'temp_solarban60_2',
-    name: 'Vitro Solarban 60 - 2 Lites (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_solarban60_2",
+    name: "Vitro Solarban 60 - 2 Lites (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: null, triple: 30.64 },
       4: { dual: null, triple: 35.61 },
@@ -138,20 +138,20 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
     },
   },
   {
-    id: 'temp_solarban70_1',
-    name: 'Vitro Solarban 70 - 1 Lite (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_solarban70_1",
+    name: "Vitro Solarban 70 - 1 Lite (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: 22.14, triple: 29.99 },
       4: { dual: null, triple: null },
-      5: { dual: 28.20, triple: 39.41 },
+      5: { dual: 28.2, triple: 39.41 },
       6: { dual: 28.91, triple: 40.37 },
     },
   },
   {
-    id: 'temp_solarban70_2',
-    name: 'Vitro Solarban 70 - 2 Lites (All Tempered)',
-    treatment: 'tempered',
+    id: "temp_solarban70_2",
+    name: "Vitro Solarban 70 - 2 Lites (All Tempered)",
+    treatment: "tempered",
     prices: {
       3: { dual: null, triple: 35.35 },
       4: { dual: null, triple: null },
@@ -159,5 +159,4 @@ export const DEFAULT_SEALED_UNIT_COMBOS: ComboPricing[] = [
       6: { dual: null, triple: 47.71 },
     },
   },
-];
-
+]

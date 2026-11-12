@@ -1,46 +1,46 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { PackageCheck, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { SealedUnitLineItem } from '@/lib/sealed-units-logic';
+import React from "react"
+import { PackageCheck, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 
 export interface SealedUnitLineItemsTableProps {
-  lineItems: SealedUnitLineItem[];
-  isInstallation: boolean;
-  mode?: 'installation' | 'supply_only' | 'service_only';
-  labourRate?: number;
-  miscRate?: number;
-  labourMin?: number;
-  onRemoveItem: (id: string) => void;
-  onResetQuote: () => void;
+  lineItems: SealedUnitLineItem[]
+  isInstallation: boolean
+  mode?: "installation" | "supply_only" | "service_only"
+  labourRate?: number
+  miscRate?: number
+  labourMin?: number
+  onRemoveItem: (id: string) => void
+  onResetQuote: () => void
 }
 
 export function SealedUnitLineItemsTable({
   lineItems,
   isInstallation: _isInstallation,
-  mode = 'installation',
-  labourRate = 14.40,
-  miscRate = 2.40,
+  mode = "installation",
+  labourRate = 14.4,
+  miscRate = 2.4,
   labourMin = 120.0,
   onRemoveItem,
   onResetQuote,
 }: SealedUnitLineItemsTableProps) {
-  const isService = mode === 'service_only';
-  const isInstall = mode === 'installation';
+  const isService = mode === "service_only"
+  const isInstall = mode === "installation"
 
   return (
-    <div className="bg-card/60 border border-border/80 backdrop-blur-xl shadow-xl rounded-2xl overflow-hidden">
-      <div className="border-b border-border/50 py-2.5 px-3.5 bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-xl backdrop-blur-xl">
+      <div className="flex flex-col gap-3 border-b border-border/50 bg-muted/20 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-sm font-bold flex items-center gap-2 text-foreground">
-            <PackageCheck className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <PackageCheck className="h-4 w-4 text-primary" />
             <span>Added Sealed Units ({lineItems.length})</span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+          <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
             {isService
-              ? 'On-site service charges: Labour is calculated on actual square footage (min $120.00/unit).'
-              : 'Review glass specifications, grill layout, manufacturing base price, labour, and misc.'}
+              ? "On-site service charges: Labour is calculated on actual square footage (min $120.00/unit)."
+              : "Review glass specifications, grill layout, manufacturing base price, labour, and misc."}
           </p>
         </div>
         {lineItems.length > 0 && (
@@ -49,7 +49,7 @@ export function SealedUnitLineItemsTable({
             variant="ghost"
             size="sm"
             onClick={onResetQuote}
-            className="text-xs text-destructive hover:bg-destructive/10 self-start sm:self-auto cursor-pointer h-7 px-2.5"
+            className="h-7 cursor-pointer self-start px-2.5 text-xs text-destructive hover:bg-destructive/10 sm:self-auto"
           >
             Clear All Items
           </Button>
@@ -58,121 +58,166 @@ export function SealedUnitLineItemsTable({
 
       <div className="p-0">
         {lineItems.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground space-y-2">
-            <PackageCheck className="w-10 h-10 mx-auto opacity-30 text-muted-foreground" />
+          <div className="space-y-2 py-12 text-center text-muted-foreground">
+            <PackageCheck className="mx-auto h-10 w-10 text-muted-foreground opacity-30" />
             <div className="text-sm font-semibold">
-              {isService ? 'No individual glass units added' : 'No glass units in quote'}
-            </div>
-            <p className="text-xs text-muted-foreground/80 max-w-sm mx-auto">
               {isService
-                ? 'Configure your glass units above to calculate itemized service labour and dimensions.'
+                ? "No individual glass units added"
+                : "No glass units in quote"}
+            </div>
+            <p className="mx-auto max-w-sm text-xs text-muted-foreground/80">
+              {isService
+                ? "Configure your glass units above to calculate itemized service labour and dimensions."
                 : 'Configure your first sealed unit above and click "Add to Quote".'}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-muted/40 text-muted-foreground font-semibold border-b border-border/50 text-[11px] uppercase tracking-wider">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border/50 bg-muted/40 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                 <tr>
-                  <th className="py-2.5 px-2.5 text-center w-8">#</th>
-                  <th className="py-2.5 px-2.5">Glass Specs</th>
-                  <th className="py-2.5 px-2.5">Dimension</th>
-                  <th className="py-2.5 px-2.5">Grills</th>
-                  <th className="py-2.5 px-2 text-center w-12">Qty</th>
-                  <th className="py-2.5 px-2.5 text-right w-24">Base Price</th>
-                  <th className="py-2.5 px-2.5 text-right w-24">Labour</th>
-                  <th className="py-2.5 px-2.5 text-right w-20">Misc</th>
-                  <th className="py-2.5 px-2.5 text-right w-24">Line Total</th>
-                  <th className="py-2.5 px-2.5 text-center w-12">Action</th>
+                  <th className="w-8 px-2.5 py-2.5 text-center">#</th>
+                  <th className="px-2.5 py-2.5">Glass Specs</th>
+                  <th className="px-2.5 py-2.5">Dimension</th>
+                  <th className="px-2.5 py-2.5">Grills</th>
+                  <th className="w-12 px-2 py-2.5 text-center">Qty</th>
+                  <th className="w-24 px-2.5 py-2.5 text-right">Base Price</th>
+                  <th className="w-24 px-2.5 py-2.5 text-right">Labour</th>
+                  <th className="w-20 px-2.5 py-2.5 text-right">Misc</th>
+                  <th className="w-24 px-2.5 py-2.5 text-right">Line Total</th>
+                  <th className="w-12 px-2.5 py-2.5 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {lineItems.map((item, idx) => {
-                  const unitServiceLabour = Math.max(item.actualSqft * labourRate, labourMin);
-                  const totalItemServiceLabour = Math.round(unitServiceLabour * item.quantity * 100) / 100;
-                  const unitServiceMisc = Math.round(item.actualSqft * miscRate * 100) / 100;
-                  const totalItemServiceMisc = Math.round(unitServiceMisc * item.quantity * 100) / 100;
+                  const unitServiceLabour = Math.max(
+                    item.actualSqft * labourRate,
+                    labourMin
+                  )
+                  const totalItemServiceLabour =
+                    Math.round(unitServiceLabour * item.quantity * 100) / 100
+                  const unitServiceMisc =
+                    Math.round(item.actualSqft * miscRate * 100) / 100
+                  const totalItemServiceMisc =
+                    Math.round(unitServiceMisc * item.quantity * 100) / 100
 
                   const lineTotal = isService
-                    ? Math.round((totalItemServiceLabour + totalItemServiceMisc) * 100) / 100
+                    ? Math.round(
+                        (totalItemServiceLabour + totalItemServiceMisc) * 100
+                      ) / 100
                     : isInstall
-                    ? Math.round((item.lineGlassTotal + item.totalLabour + item.totalMisc) * 100) / 100
-                    : item.lineGlassTotal;
+                      ? Math.round(
+                          (item.lineGlassTotal +
+                            item.totalLabour +
+                            item.totalMisc) *
+                            100
+                        ) / 100
+                      : item.lineGlassTotal
 
-                  const hasGrill = item.rawGrillCost > 0 || Boolean(item.grill);
-                  const grillDimText = item.grill?.colsCount && item.grill?.rowsCount
-                    ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
-                    : '';
+                  const hasGrill = item.rawGrillCost > 0 || Boolean(item.grill)
+                  const grillDimText =
+                    item.grill?.colsCount && item.grill?.rowsCount
+                      ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
+                      : ""
 
                   return (
-                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-2.5 px-2.5 text-muted-foreground font-semibold text-center font-mono">
+                    <tr
+                      key={item.id}
+                      className="transition-colors hover:bg-muted/20"
+                    >
+                      <td className="px-2.5 py-2.5 text-center font-mono font-semibold text-muted-foreground">
                         {idx + 1}
                       </td>
 
                       {/* Glass Specs: Empty in Service Only */}
-                      <td className="py-2.5 px-2.5 font-sans">
+                      <td className="px-2.5 py-2.5 font-sans">
                         {!isService ? (
                           <>
-                            <div className="font-bold text-foreground">{item.combinationName}</div>
-                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <span className="capitalize font-semibold">{item.treatment}</span>
+                            <div className="font-bold text-foreground">
+                              {item.combinationName}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <span className="font-semibold capitalize">
+                                {item.treatment}
+                              </span>
                               <span>•</span>
-                              <span className="uppercase font-semibold">{item.paneType}</span>
+                              <span className="font-semibold uppercase">
+                                {item.paneType}
+                              </span>
                               <span>•</span>
-                              <span className="font-mono bg-muted px-1 rounded text-[10px]">
+                              <span className="rounded bg-muted px-1 font-mono text-[10px]">
                                 {item.thicknessMm}mm
                               </span>
                             </div>
                           </>
                         ) : (
-                          <span className="text-muted-foreground font-mono">—</span>
+                          <span className="font-mono text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </td>
 
                       {/* Dimension: e.g. 31" wide × 78" high (16.79 sqft) */}
-                      <td className="py-2.5 px-2.5 font-sans">
-                        <div className="font-bold text-foreground whitespace-nowrap">
+                      <td className="px-2.5 py-2.5 font-sans">
+                        <div className="font-bold whitespace-nowrap text-foreground">
                           {item.widthIn}&quot; wide × {item.heightIn}&quot; high
                         </div>
-                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                        <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                           {item.actualSqft.toFixed(2)} sqft
-                          {!isService && item.billableSqft !== Math.round(item.actualSqft) ? ` (${item.billableSqft} billable)` : ''}
+                          {!isService &&
+                          item.billableSqft !== Math.round(item.actualSqft)
+                            ? ` (${item.billableSqft} billable)`
+                            : ""}
                         </div>
                       </td>
 
                       {/* Grills: e.g. 3 x 5 / Brass Grills */}
-                      <td className="py-2.5 px-2.5 font-sans">
+                      <td className="px-2.5 py-2.5 font-sans">
                         {!isService && hasGrill ? (
                           <div>
                             {grillDimText ? (
-                              <div className="font-bold text-foreground font-mono text-[11px]">
+                              <div className="font-mono text-[11px] font-bold text-foreground">
                                 {grillDimText}
                               </div>
                             ) : null}
-                            <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold truncate">
-                              {item.grill?.color ? `${item.grill.color} Grills` : (item.grillDescription || 'Grills')}
+                            <div className="truncate text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                              {item.grill?.color
+                                ? `${item.grill.color} Grills`
+                                : item.grillDescription || "Grills"}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground font-mono">—</span>
+                          <span className="font-mono text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </td>
 
                       {/* Qty */}
-                      <td className="py-2.5 px-2 text-center font-bold font-mono text-foreground">
+                      <td className="px-2 py-2.5 text-center font-mono font-bold text-foreground">
                         {item.quantity}
                       </td>
 
                       {/* Base Price: Clean base price before 8% surcharge (Empty in Service Only) */}
-                      <td className="py-2.5 px-2.5 text-right font-mono">
+                      <td className="px-2.5 py-2.5 text-right font-mono">
                         {!isService ? (
                           <>
                             <div className="font-bold text-foreground">
-                              ${(item.multipliedTotal ?? (item.multipliedAmount * item.quantity)).toFixed(2)}
+                              $
+                              {(
+                                item.multipliedTotal ??
+                                item.multipliedAmount * item.quantity
+                              ).toFixed(2)}
                             </div>
                             <div className="text-[10px] text-muted-foreground">
-                              ${Number(item.multipliedAmount || (item.multipliedTotal ? item.multipliedTotal / item.quantity : 0)).toFixed(2)}/ea
+                              $
+                              {Number(
+                                item.multipliedAmount ||
+                                  (item.multipliedTotal
+                                    ? item.multipliedTotal / item.quantity
+                                    : 0)
+                              ).toFixed(2)}
+                              /ea
                             </div>
                           </>
                         ) : (
@@ -181,7 +226,7 @@ export function SealedUnitLineItemsTable({
                       </td>
 
                       {/* Labour: Populated in Service Only (min $120) and Installation */}
-                      <td className="py-2.5 px-2.5 text-right font-mono">
+                      <td className="px-2.5 py-2.5 text-right font-mono">
                         {isService ? (
                           <>
                             <div className="font-bold text-foreground">
@@ -206,7 +251,7 @@ export function SealedUnitLineItemsTable({
                       </td>
 
                       {/* Misc */}
-                      <td className="py-2.5 px-2.5 text-right font-mono">
+                      <td className="px-2.5 py-2.5 text-right font-mono">
                         {isService ? (
                           <span className="font-medium text-muted-foreground">
                             ${totalItemServiceMisc.toFixed(2)}
@@ -221,23 +266,23 @@ export function SealedUnitLineItemsTable({
                       </td>
 
                       {/* Line Total */}
-                      <td className="py-2.5 px-2.5 text-right font-mono font-bold text-foreground">
+                      <td className="px-2.5 py-2.5 text-right font-mono font-bold text-foreground">
                         ${lineTotal.toFixed(2)}
                       </td>
 
                       {/* Action */}
-                      <td className="py-2.5 px-2.5 text-center">
+                      <td className="px-2.5 py-2.5 text-center">
                         <button
                           type="button"
                           onClick={() => onRemoveItem(item.id)}
-                          className="p-1 rounded-md text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-destructive/10"
                           title="Remove unit"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </td>
                     </tr>
-                  );
+                  )
                 })}
               </tbody>
             </table>
@@ -245,5 +290,5 @@ export function SealedUnitLineItemsTable({
         )}
       </div>
     </div>
-  );
+  )
 }

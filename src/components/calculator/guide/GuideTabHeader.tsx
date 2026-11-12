@@ -1,6 +1,6 @@
-'use client';
+"use client"
 
-import React from 'react';
+import React from "react"
 import {
   HelpCircle,
   FileCheck2,
@@ -9,14 +9,14 @@ import {
   Layers,
   Bookmark,
   X,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { GuideTabType } from './GuideTabsContent';
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { GuideTabType } from "./GuideTabsContent"
 
 export interface GuideTabHeaderProps {
-  activeTab: GuideTabType;
-  setActiveTab: (t: GuideTabType) => void;
-  onClose: () => void;
+  activeTab: GuideTabType
+  setActiveTab: (t: GuideTabType) => void
+  onClose: () => void
 }
 
 export function GuideTabHeader({
@@ -25,103 +25,103 @@ export function GuideTabHeader({
   onClose,
 }: GuideTabHeaderProps) {
   return (
-    <div className="p-5 sm:p-6 pb-4 border-b border-border/70 bg-muted/20">
+    <div className="border-b border-border/70 bg-muted/20 p-5 pb-4 sm:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary">
-            <HelpCircle className="w-5 h-5" />
+          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <HelpCircle className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+            <h2 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
               Estimator &amp; Quoting Workflow Guide
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Quick instructions for FeneVision PDFs, Window Calculations, Quote Studio &amp; Sealed Units.
+            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+              Quick instructions for FeneVision PDFs, Window Calculations, Quote
+              Studio &amp; Sealed Units.
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          className="cursor-pointer rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <X className="w-5 h-5" />
+          <X className="h-5 w-5" />
         </button>
       </div>
 
       {/* Navigation Pills */}
-      <div className="flex flex-wrap gap-1.5 mt-4 pt-2 border-t border-border/50">
+      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
         <button
           type="button"
-          onClick={() => setActiveTab('fenevision')}
+          onClick={() => setActiveTab("fenevision")}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
-            activeTab === 'fenevision'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            activeTab === "fenevision"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <FileCheck2 className="w-3.5 h-3.5" />
+          <FileCheck2 className="h-3.5 w-3.5" />
           <span>1. FeneVision PDFs</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('calculator')}
+          onClick={() => setActiveTab("calculator")}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
-            activeTab === 'calculator'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            activeTab === "calculator"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Calculator className="w-3.5 h-3.5" />
+          <Calculator className="h-3.5 w-3.5" />
           <span>2. Window Calculator</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('studio')}
+          onClick={() => setActiveTab("studio")}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
-            activeTab === 'studio'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            activeTab === "studio"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <FileText className="w-3.5 h-3.5" />
+          <FileText className="h-3.5 w-3.5" />
           <span>3. Quote PDF Studio</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('sealed_units')}
+          onClick={() => setActiveTab("sealed_units")}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
-            activeTab === 'sealed_units'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            activeTab === "sealed_units"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Layers className="w-3.5 h-3.5" />
+          <Layers className="h-3.5 w-3.5" />
           <span>4. Sealed Units</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('workflow')}
+          onClick={() => setActiveTab("workflow")}
           className={cn(
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5',
-            activeTab === 'workflow'
-              ? 'bg-primary text-primary-foreground shadow-xs'
-              : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+            "flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            activeTab === "workflow"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
-          <Bookmark className="w-3.5 h-3.5" />
+          <Bookmark className="h-3.5 w-3.5" />
           <span>5. Save &amp; Print Policy</span>
         </button>
       </div>
     </div>
-  );
+  )
 }
-

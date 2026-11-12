@@ -1,27 +1,27 @@
-'use client';
+"use client"
 
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import React from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import {
   DoorClosed,
   Settings as SettingsIcon,
   Bookmark,
   FolderOpen,
   Paperclip,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DoorHeaderBarProps {
-  lastSavedAt: string | null;
-  attachedWindowQuote: any;
-  attachedSealedUnit: any;
-  savedDraftsCount: number;
-  isAdmin: boolean;
-  onOpenAttach: () => void;
-  onSaveDraft: () => void;
-  onOpenSavedQuotes: () => void;
-  onOpenReset?: () => void;
+  lastSavedAt: string | null
+  attachedWindowQuote: any
+  attachedSealedUnit: any
+  savedDraftsCount: number
+  isAdmin: boolean
+  onOpenAttach: () => void
+  onSaveDraft: () => void
+  onOpenSavedQuotes: () => void
+  onOpenReset?: () => void
 }
 
 export function DoorHeaderBar({
@@ -35,27 +35,28 @@ export function DoorHeaderBar({
   onOpenSavedQuotes,
   onOpenReset: _onOpenReset,
 }: DoorHeaderBarProps) {
-  const hasAttachment = Boolean(attachedWindowQuote || attachedSealedUnit);
+  const hasAttachment = Boolean(attachedWindowQuote || attachedSealedUnit)
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-2 border-b border-border/50">
+    <div className="flex flex-col justify-between gap-3.5 border-b border-border/50 pb-2 sm:flex-row sm:items-center">
       <div>
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary">
-            <DoorClosed className="w-5 h-5" />
+          <div className="rounded-xl bg-primary/10 p-2 text-primary">
+            <DoorClosed className="h-5 w-5" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
             Door &amp; Installation Calculator
           </h1>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Inkster software pricing, 8% surcharge, 10% door discount (storm exempt), hardware, and site labour.
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Inkster software pricing, 8% surcharge, 10% door discount (storm
+          exempt), hardware, and site labour.
         </p>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         {lastSavedAt && (
-          <span className="text-[11px] text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/50">
+          <span className="rounded-full border border-border/50 bg-muted/60 px-2.5 py-1 text-[11px] text-muted-foreground">
             Draft auto-saved {lastSavedAt}
           </span>
         )}
@@ -67,24 +68,24 @@ export function DoorHeaderBar({
           size="sm"
           onClick={onOpenAttach}
           className={cn(
-            'gap-1.5 text-xs h-8 px-2.5 font-semibold cursor-pointer shadow-xs transition-colors',
+            "h-8 cursor-pointer gap-1.5 px-2.5 text-xs font-semibold shadow-xs transition-colors",
             hasAttachment
-              ? 'border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-              : 'border-border/80 hover:bg-muted text-foreground'
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+              : "border-border/80 text-foreground hover:bg-muted"
           )}
           title="Attach saved Window or Sealed Unit quote to this door quote"
         >
           <Paperclip
             className={cn(
-              'w-3.5 h-3.5',
+              "h-3.5 w-3.5",
               hasAttachment
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-primary'
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-primary"
             )}
           />
-          <span>{hasAttachment ? 'Quote Attached' : 'Attach Quote'}</span>
+          <span>{hasAttachment ? "Quote Attached" : "Attach Quote"}</span>
           {hasAttachment && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
+            <span className="ml-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
           )}
         </Button>
 
@@ -94,10 +95,10 @@ export function DoorHeaderBar({
           variant="outline"
           size="sm"
           onClick={onSaveDraft}
-          className="gap-1.5 text-xs h-8 px-2.5 font-semibold cursor-pointer shadow-xs border-border/80 hover:bg-muted text-foreground"
+          className="h-8 cursor-pointer gap-1.5 border-border/80 px-2.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted"
           title="Explicitly save this door quote to your permanent Saved Quotes library"
         >
-          <Bookmark className="w-3.5 h-3.5 text-primary" />
+          <Bookmark className="h-3.5 w-3.5 text-primary" />
           <span>Save Draft</span>
         </Button>
 
@@ -107,12 +108,12 @@ export function DoorHeaderBar({
           variant="outline"
           size="sm"
           onClick={onOpenSavedQuotes}
-          className="gap-1.5 text-xs h-8 px-2.5 font-semibold cursor-pointer shadow-xs border-border/80 hover:bg-muted text-foreground relative"
+          className="relative h-8 cursor-pointer gap-1.5 border-border/80 px-2.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted"
         >
-          <FolderOpen className="w-3.5 h-3.5 text-primary" />
+          <FolderOpen className="h-3.5 w-3.5 text-primary" />
           <span>Saved Quotes</span>
           {savedDraftsCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+            <span className="py-0.2 ml-1 rounded-full bg-primary/20 px-1.5 text-[10px] font-bold text-primary">
               {savedDraftsCount}
             </span>
           )}
@@ -124,14 +125,14 @@ export function DoorHeaderBar({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs h-8 px-2.5 font-semibold cursor-pointer shadow-xs border-border/80 hover:bg-muted text-foreground"
+              className="h-8 cursor-pointer gap-1.5 border-border/80 px-2.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted"
             >
-              <SettingsIcon className="w-3.5 h-3.5 text-primary" />
+              <SettingsIcon className="h-3.5 w-3.5 text-primary" />
               <span>Door Rates</span>
             </Button>
           </Link>
         )}
       </div>
     </div>
-  );
+  )
 }

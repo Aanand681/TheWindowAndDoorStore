@@ -1,28 +1,28 @@
-'use client';
+"use client"
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { GuideTabType, GuideTabsContent } from './guide/GuideTabsContent';
-import { GuideTabHeader } from './guide/GuideTabHeader';
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { GuideTabType, GuideTabsContent } from "./guide/GuideTabsContent"
+import { GuideTabHeader } from "./guide/GuideTabHeader"
 
 interface EstimatorGuideModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  defaultTab?: GuideTabType;
+  isOpen: boolean
+  onClose: () => void
+  defaultTab?: GuideTabType
 }
 
 export function EstimatorGuideModal({
   isOpen,
   onClose,
-  defaultTab = 'fenevision',
+  defaultTab = "fenevision",
 }: EstimatorGuideModalProps) {
-  const [activeTab, setActiveTab] = useState<GuideTabType>(defaultTab);
+  const [activeTab, setActiveTab] = useState<GuideTabType>(defaultTab)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-card border border-border shadow-2xl rounded-2xl flex flex-col max-h-[88vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-3 backdrop-blur-xs duration-200 fade-in sm:p-4">
+      <div className="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         <GuideTabHeader
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -32,7 +32,7 @@ export function EstimatorGuideModal({
         <GuideTabsContent activeTab={activeTab} />
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-border/70 bg-muted/20 flex justify-between items-center">
+        <div className="flex items-center justify-between border-t border-border/70 bg-muted/20 p-4">
           <span className="text-[11px] text-muted-foreground">
             The Window &amp; Door Store • Estimator Suite
           </span>
@@ -41,14 +41,14 @@ export function EstimatorGuideModal({
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="h-8 text-xs font-semibold cursor-pointer"
+            className="h-8 cursor-pointer text-xs font-semibold"
           >
             Close Guide
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default EstimatorGuideModal;
+export default EstimatorGuideModal

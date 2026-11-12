@@ -1,17 +1,20 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { createPortal } from 'react-dom';
-import { Sparkles, X } from 'lucide-react';
-import { useQuoteComparison } from '@/hooks/calculator/useQuoteComparison';
-import { QuoteComparisonModalProps, AttachedUpgradeOption } from './comparison/types';
-import { ComparisonDeltaHero } from './comparison/ComparisonDeltaHero';
-import { ComparisonOptionACard } from './comparison/ComparisonOptionACard';
-import { ComparisonOptionBCard } from './comparison/ComparisonOptionBCard';
-import { ComparisonDiffTable } from './comparison/ComparisonDiffTable';
-import { ComparisonFooterActions } from './comparison/ComparisonFooterActions';
+import React from "react"
+import { createPortal } from "react-dom"
+import { Sparkles, X } from "lucide-react"
+import { useQuoteComparison } from "@/hooks/calculator/useQuoteComparison"
+import {
+  QuoteComparisonModalProps,
+  AttachedUpgradeOption,
+} from "./comparison/types"
+import { ComparisonDeltaHero } from "./comparison/ComparisonDeltaHero"
+import { ComparisonOptionACard } from "./comparison/ComparisonOptionACard"
+import { ComparisonOptionBCard } from "./comparison/ComparisonOptionBCard"
+import { ComparisonDiffTable } from "./comparison/ComparisonDiffTable"
+import { ComparisonFooterActions } from "./comparison/ComparisonFooterActions"
 
-export type { AttachedUpgradeOption, QuoteComparisonModalProps };
+export type { AttachedUpgradeOption, QuoteComparisonModalProps }
 
 export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
   const {
@@ -36,52 +39,53 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
     onApplyAndCustomize,
     onKeepOptionB,
     attachedUpgrade,
-  } = props;
+  } = props
 
-  const comparison = useQuoteComparison(props);
+  const comparison = useQuoteComparison(props)
 
-  if (!comparison.mounted || !isOpen) return null;
+  if (!comparison.mounted || !isOpen) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 backdrop-blur-md p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
-      <div className="bg-card text-card-foreground border border-border shadow-2xl rounded-2xl w-full max-w-5xl my-auto max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center overflow-y-auto bg-background/85 p-3 backdrop-blur-md duration-200 fade-in sm:p-5">
+      <div className="my-auto flex max-h-[92vh] w-full max-w-5xl animate-in flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl duration-150 zoom-in-95">
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5 bg-muted/30 shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-border/60 bg-muted/30 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs">
-              <Sparkles className="w-5 h-5" />
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-500 shadow-xs">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold tracking-tight">
+                <h2 className="text-base font-bold tracking-tight sm:text-lg">
                   Dual PDF Upgrade &amp; Option Comparison
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider border border-amber-500/30">
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-600 uppercase dark:text-amber-400">
                   Phase 3 Hybrid
                 </span>
                 {isComparisonStaging && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-bold uppercase tracking-wider border border-primary/30">
+                  <span className="rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
                     Live Staging Mode
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Compare base quote with upgraded manufacturer PDF to calculate &Delta; pre-tax upgrade cost.
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Compare base quote with upgraded manufacturer PDF to calculate
+                &Delta; pre-tax upgrade cost.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="cursor-pointer rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Close dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {/* Delta Hero Card */}
           <ComparisonDeltaHero
             delta={comparison.delta}
@@ -94,7 +98,7 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
           />
 
           {/* Side-by-Side Comparison Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
             <ComparisonOptionACard
               currentWindows={currentWindows}
               customerName={customerName}
@@ -134,8 +138,12 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
               dbCasings={comparison.dbCasings}
               resolvedOptionAJambLabel={comparison.resolvedOptionAJambLabel}
               resolvedOptionACasingLabel={comparison.resolvedOptionACasingLabel}
-              selectedOverrideJambDisplay={comparison.selectedOverrideJambDisplay}
-              selectedOverrideCasingDisplay={comparison.selectedOverrideCasingDisplay}
+              selectedOverrideJambDisplay={
+                comparison.selectedOverrideJambDisplay
+              }
+              selectedOverrideCasingDisplay={
+                comparison.selectedOverrideCasingDisplay
+              }
               optionBFinancials={comparison.optionBFinancials}
               surchargeRate={surchargeRate}
               hstRate={hstRate}
@@ -166,5 +174,5 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
       </div>
     </div>,
     document.body
-  );
+  )
 }

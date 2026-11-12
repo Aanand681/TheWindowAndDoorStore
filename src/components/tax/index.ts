@@ -1,2 +1,2 @@
-export { default as TaxCalculatorTab } from './TaxCalculatorTab';
-export * from './TaxCalculatorTab';
+export { default as TaxCalculatorTab } from "./TaxCalculatorTab"
+export * from "./TaxCalculatorTab"

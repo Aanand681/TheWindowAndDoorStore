@@ -1,66 +1,67 @@
-import { toCents } from '@/lib/promo-logic';
+import { toCents } from "@/lib/promo-logic"
 
 export function getWindowBreakdown(
   effectiveWindows: any[],
   winMaterialsCents: number
 ): {
-  windowSummarySentence: string;
-  totalWindowBaseCents: number;
+  windowSummarySentence: string
+  totalWindowBaseCents: number
 } {
-  let dW = 0;
-  let tW = 0;
-  let dP = 0;
-  let tP = 0;
-  let totalBaseCentsCalculated = 0;
+  let dW = 0
+  let tW = 0
+  let dP = 0
+  let tP = 0
+  let totalBaseCentsCalculated = 0
 
   if (Array.isArray(effectiveWindows) && effectiveWindows.length > 0) {
     effectiveWindows.forEach((w) => {
-      const q = Math.max(1, Number(w.qty) || 1);
-      const itemBase = toCents(w.base);
-      const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0;
-      const isPainted = w.color && w.color.toLowerCase() === 'painted';
+      const q = Math.max(1, Number(w.qty) || 1)
+      const itemBase = toCents(w.base)
+      const isTriple = Number(w.triple) > 0 || toCents(w.triple) > 0
+      const isPainted = w.color && w.color.toLowerCase() === "painted"
 
       if (isPainted) {
-        if (isTriple) tP += q;
-        else dP += q;
+        if (isTriple) tP += q
+        else dP += q
       } else {
-        if (isTriple) tW += q;
-        else dW += q;
+        if (isTriple) tW += q
+        else dW += q
       }
-      totalBaseCentsCalculated += itemBase;
-    });
+      totalBaseCentsCalculated += itemBase
+    })
   }
 
-  const totalQty = dW + tW + dP + tP;
-  let paintedPart = '';
+  const totalQty = dW + tW + dP + tP
+  let paintedPart = ""
   if (dP > 0 && tP > 0) {
-    paintedPart = `${dP} dual & ${tP} triple pane painted`;
+    paintedPart = `${dP} dual & ${tP} triple pane painted`
   } else if (dP > 0) {
-    paintedPart = `${dP} dual pane painted`;
+    paintedPart = `${dP} dual pane painted`
   } else if (tP > 0) {
-    paintedPart = `${tP} triple pane painted`;
+    paintedPart = `${tP} triple pane painted`
   }
 
-  let whitePart = '';
+  let whitePart = ""
   if (dW > 0 && tW > 0) {
-    whitePart = `${dW} dual & ${tW} triple pane white`;
+    whitePart = `${dW} dual & ${tW} triple pane white`
   } else if (dW > 0) {
-    whitePart = `${dW} dual pane white`;
+    whitePart = `${dW} dual pane white`
   } else if (tW > 0) {
-    whitePart = `${tW} triple pane white`;
+    whitePart = `${tW} triple pane white`
   }
 
-  const plural = totalQty > 1 ? 'windows' : 'window';
-  let windowSummarySentence = '';
+  const plural = totalQty > 1 ? "windows" : "window"
+  let windowSummarySentence = ""
   if (paintedPart && whitePart) {
-    const separator = paintedPart.includes('&') || whitePart.includes('&') ? ', ' : ' and ';
-    windowSummarySentence = `${paintedPart}${separator}${whitePart} ${plural}`;
+    const separator =
+      paintedPart.includes("&") || whitePart.includes("&") ? ", " : " and "
+    windowSummarySentence = `${paintedPart}${separator}${whitePart} ${plural}`
   } else if (paintedPart) {
-    windowSummarySentence = `${paintedPart} ${plural}`;
+    windowSummarySentence = `${paintedPart} ${plural}`
   } else if (whitePart) {
-    windowSummarySentence = `${whitePart} ${plural}`;
+    windowSummarySentence = `${whitePart} ${plural}`
   } else {
-    windowSummarySentence = 'Base price of windows';
+    windowSummarySentence = "Base price of windows"
   }
 
   const totalWindowBaseCents =
@@ -68,9 +69,9 @@ export function getWindowBreakdown(
       ? totalBaseCentsCalculated
       : winMaterialsCents > 0
         ? winMaterialsCents
-        : 0;
+        : 0
 
-  return { windowSummarySentence, totalWindowBaseCents };
+  return { windowSummarySentence, totalWindowBaseCents }
 }
 
 export function getInvoiceSubtitle({
@@ -80,42 +81,43 @@ export function getInvoiceSubtitle({
   isSupplyOnly,
   isAttachedSUService,
 }: {
-  hasWindows: boolean;
-  hasDoors: boolean;
-  hasSealedUnits: boolean;
-  isSupplyOnly: boolean;
-  isAttachedSUService: boolean;
+  hasWindows: boolean
+  hasDoors: boolean
+  hasSealedUnits: boolean
+  isSupplyOnly: boolean
+  isAttachedSUService: boolean
 }): string {
   if (hasWindows && hasDoors && hasSealedUnits) {
     return isSupplyOnly
-      ? 'Supply Only Windows, Doors & Sealed Units Quotation'
-      : 'Comprehensive Window, Door & Sealed Unit Proposal';
+      ? "Supply Only Windows, Doors & Sealed Units Quotation"
+      : "Comprehensive Window, Door & Sealed Unit Proposal"
   }
   if (hasWindows && hasDoors) {
     return isSupplyOnly
-      ? 'Supply Only Windows & Doors Quotation'
-      : 'Window & Door Architectural Proposal';
+      ? "Supply Only Windows & Doors Quotation"
+      : "Window & Door Architectural Proposal"
   }
   if (hasWindows && hasSealedUnits) {
     return isSupplyOnly
-      ? 'Supply Only Windows & Sealed Units Quotation'
-      : 'Window & Sealed Unit Quotation';
+      ? "Supply Only Windows & Sealed Units Quotation"
+      : "Window & Sealed Unit Quotation"
   }
   if (hasDoors && hasSealedUnits) {
     return isSupplyOnly
-      ? 'Supply Only Doors & Sealed Units Quotation'
-      : 'Door & Sealed Unit Quotation';
+      ? "Supply Only Doors & Sealed Units Quotation"
+      : "Door & Sealed Unit Quotation"
   }
   if (hasDoors) {
-    return isSupplyOnly ? 'Supply Only Door Quotation' : 'Custom Door Systems Proposal';
+    return isSupplyOnly
+      ? "Supply Only Door Quotation"
+      : "Custom Door Systems Proposal"
   }
   if (hasSealedUnits) {
     return isSupplyOnly
-      ? 'Supply Only Sealed Unit Quotation'
+      ? "Supply Only Sealed Unit Quotation"
       : isAttachedSUService
-        ? 'Sealed Unit Service & Glazing Proposal'
-        : 'Sealed Glass Unit Proposal';
+        ? "Sealed Unit Service & Glazing Proposal"
+        : "Sealed Glass Unit Proposal"
   }
-  return isSupplyOnly ? 'Supply Only Window Quotation' : 'Window & Labour Quote';
+  return isSupplyOnly ? "Supply Only Window Quotation" : "Window & Labour Quote"
 }
-

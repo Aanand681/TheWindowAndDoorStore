@@ -1,28 +1,34 @@
-import { getEmailTransporterConfig, createNodemailerTransporter } from './transporter';
+import {
+  getEmailTransporterConfig,
+  createNodemailerTransporter,
+} from "./transporter"
 
 export interface SendOtpResult {
-  success: boolean;
-  simulated?: boolean;
-  error?: string;
+  success: boolean
+  simulated?: boolean
+  error?: string
 }
 
-export async function sendOtpEmail(toEmail: string, otp: string): Promise<SendOtpResult> {
-  const { hasSmtp, from } = getEmailTransporterConfig();
+export async function sendOtpEmail(
+  toEmail: string,
+  otp: string
+): Promise<SendOtpResult> {
+  const { hasSmtp, from } = getEmailTransporterConfig()
 
   if (!hasSmtp) {
-    console.log('\n========================================================');
-    console.log('🔐 [ACCOUNT RECOVERY OTP]');
-    console.log(`📧 Target Email: ${toEmail}`);
-    console.log(`🔑 OTP Code:     ${otp}`);
-    console.log('⏱️  Valid for:    15 minutes');
-    console.log('ℹ️  Note: SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASS)');
-    console.log('   are not configured in .env.local. Simulating email send.');
-    console.log('========================================================\n');
-    return { success: true, simulated: true };
+    console.log("\n========================================================")
+    console.log("🔐 [ACCOUNT RECOVERY OTP]")
+    console.log(`📧 Target Email: ${toEmail}`)
+    console.log(`🔑 OTP Code:     ${otp}`)
+    console.log("⏱️  Valid for:    15 minutes")
+    console.log("ℹ️  Note: SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASS)")
+    console.log("   are not configured in .env.local. Simulating email send.")
+    console.log("========================================================\n")
+    return { success: true, simulated: true }
   }
 
   try {
-    const transporter = createNodemailerTransporter();
+    const transporter = createNodemailerTransporter()
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -67,7 +73,7 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<SendOt
         </div>
       </body>
       </html>
-    `;
+    `
 
     await transporter.sendMail({
       from,
@@ -75,12 +81,11 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<SendOt
       subject: `${otp} is your password reset code - The Window & Door Store`,
       text: `Your password reset code is: ${otp}\nThis code expires in 15 minutes.\nIf you did not request this, please ignore this email.`,
       html: htmlContent,
-    });
+    })
 
-    return { success: true };
+    return { success: true }
   } catch (error: any) {
-    console.error('Failed to send OTP email:', error);
-    return { success: false, error: error.message };
+    console.error("Failed to send OTP email:", error)
+    return { success: false, error: error.message }
   }
 }
-

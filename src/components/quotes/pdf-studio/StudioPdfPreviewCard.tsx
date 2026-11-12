@@ -1,13 +1,13 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Eye, Download, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from "react"
+import { Eye, Download, FileText } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface StudioPdfPreviewCardProps {
-  pdfUrl: string | null;
-  onDownloadPdf: () => void;
+  pdfUrl: string | null
+  onDownloadPdf: () => void
 }
 
 export function StudioPdfPreviewCard({
@@ -15,20 +15,22 @@ export function StudioPdfPreviewCard({
   onDownloadPdf,
 }: StudioPdfPreviewCardProps) {
   return (
-    <Card className="bg-card/70 border-border backdrop-blur-xl shadow-md overflow-hidden">
-      <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
+    <Card className="overflow-hidden border-border bg-card/70 shadow-md backdrop-blur-xl">
+      <CardHeader className="border-b border-border/50 bg-muted/20 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-primary" />
-            <CardTitle className="text-base font-semibold">Live PDF Preview</CardTitle>
+            <Eye className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base font-semibold">
+              Live PDF Preview
+            </CardTitle>
           </div>
           {pdfUrl && (
             <Button
               size="sm"
               onClick={onDownloadPdf}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs gap-1.5 h-8 cursor-pointer shadow-sm"
+              className="h-8 cursor-pointer gap-1.5 bg-emerald-600 text-xs text-white shadow-sm hover:bg-emerald-500"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="h-3.5 w-3.5" />
               <span>Download</span>
             </Button>
           )}
@@ -39,19 +41,21 @@ export function StudioPdfPreviewCard({
           <iframe
             src={pdfUrl}
             title="Clean Customer PDF Preview"
-            className="w-full h-[780px] border-0 bg-zinc-100 dark:bg-zinc-900"
+            className="h-[780px] w-full border-0 bg-zinc-100 dark:bg-zinc-900"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-[520px] text-center p-8 text-muted-foreground">
-            <FileText className="w-16 h-16 text-muted-foreground/30 mb-3" />
-            <p className="font-semibold text-base text-foreground">No PDF Generated Yet</p>
-            <p className="text-xs text-muted-foreground max-w-sm mt-1">
-              Upload your supplier quote-list PDF on the left. The clean customer version will render here
-              in real-time.
+          <div className="flex h-[520px] flex-col items-center justify-center p-8 text-center text-muted-foreground">
+            <FileText className="mb-3 h-16 w-16 text-muted-foreground/30" />
+            <p className="text-base font-semibold text-foreground">
+              No PDF Generated Yet
+            </p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              Upload your supplier quote-list PDF on the left. The clean
+              customer version will render here in real-time.
             </p>
           </div>
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

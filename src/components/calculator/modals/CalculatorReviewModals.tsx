@@ -1,12 +1,12 @@
-'use client';
+"use client"
 
-import React from 'react';
+import React from "react"
 import {
   SubmitReviewModalWrapper,
   WorkflowDialogsWrapper,
   OdooActionModalsWrapper,
-} from './index';
-import { CalculatorReviewModalsProps } from './types';
+} from "./index"
+import { CalculatorReviewModalsProps } from "./types"
 
 export function CalculatorReviewModals({
   showSubmitModal,
@@ -54,6 +54,15 @@ export function CalculatorReviewModals({
   confirmApproveReviewQuote,
   handleCompleteOdooEntry,
 }: CalculatorReviewModalsProps) {
+  const validWindows = windows.filter(
+    (w) => Number(w.base) > 0 || Number(w.qty) > 0
+  )
+  const totalWindowUnits = validWindows.reduce(
+    (sum, w) => sum + Math.max(1, Number(w.qty) || 1),
+    0
+  )
+  const windowLineCount = validWindows.length
+
   return (
     <>
       <SubmitReviewModalWrapper
@@ -64,7 +73,10 @@ export function CalculatorReviewModals({
         setAdminSubmitMode={setAdminSubmitMode}
         quoteNumber={quoteNumber}
         customerName={customerName}
-        windowsCount={windows.filter((w) => Number(w.base) > 0 || Number(w.qty) > 0).length}
+        windowsCount={totalWindowUnits}
+        totalUnits={totalWindowUnits}
+        lineCount={windowLineCount}
+        quoteType="window"
         total={total}
         staffList={staffList}
         clerkList={clerkList}
@@ -117,6 +129,5 @@ export function CalculatorReviewModals({
         handleCompleteOdooEntry={handleCompleteOdooEntry}
       />
     </>
-  );
+  )
 }
-

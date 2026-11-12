@@ -1,33 +1,33 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from "mongoose"
 
-export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'EMPLOYEE';
+export type UserRole = "SUPERADMIN" | "ADMIN" | "EMPLOYEE"
 
 export interface IUserCustomPermissions {
-  canCreateQuote?: boolean;
-  canReviewQuote?: boolean;
-  canEditApprovedQuote?: boolean;
-  canAccessOdooQueue?: boolean;
-  canMarkOdooEntry?: boolean;
-  canAccessAdmin?: boolean;
+  canCreateQuote?: boolean
+  canReviewQuote?: boolean
+  canEditApprovedQuote?: boolean
+  canAccessOdooQueue?: boolean
+  canMarkOdooEntry?: boolean
+  canAccessAdmin?: boolean
 }
 
 export interface IUser extends Document {
-  username?: string;
-  email?: string;
-  password?: string;
-  role: UserRole;
-  isActive: boolean;
-  resetOtp?: string | null;
-  resetOtpExpiry?: Date | null;
-  resetOtpAttempts?: number;
-  landingPage?: 'calculator' | 'quotes' | 'admin';
-  muteNotifications?: boolean;
-  receiveQuoteEmails?: boolean;
-  favoriteTemplate?: 'modern' | 'executive' | 'cards' | 'compact' | 'breakdown';
-  department?: string;
-  customPermissions?: IUserCustomPermissions;
-  createdAt: Date;
-  updatedAt: Date;
+  username?: string
+  email?: string
+  password?: string
+  role: UserRole
+  isActive: boolean
+  resetOtp?: string | null
+  resetOtpExpiry?: Date | null
+  resetOtpAttempts?: number
+  landingPage?: "calculator" | "quotes" | "admin"
+  muteNotifications?: boolean
+  receiveQuoteEmails?: boolean
+  favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
+  department?: string
+  customPermissions?: IUserCustomPermissions
+  createdAt: Date
+  updatedAt: Date
 }
 
 const UserSchema = new Schema<IUser>(
@@ -47,12 +47,12 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [true, "Password is required"],
     },
     role: {
       type: String,
-      enum: ['SUPERADMIN', 'ADMIN', 'EMPLOYEE'],
-      default: 'EMPLOYEE',
+      enum: ["SUPERADMIN", "ADMIN", "EMPLOYEE"],
+      default: "EMPLOYEE",
     },
     isActive: {
       type: Boolean,
@@ -72,8 +72,8 @@ const UserSchema = new Schema<IUser>(
     },
     landingPage: {
       type: String,
-      enum: ['calculator', 'quotes', 'admin'],
-      default: 'calculator',
+      enum: ["calculator", "quotes", "admin"],
+      default: "calculator",
     },
     muteNotifications: {
       type: Boolean,
@@ -85,11 +85,11 @@ const UserSchema = new Schema<IUser>(
     },
     favoriteTemplate: {
       type: String,
-      enum: ['modern', 'executive', 'cards', 'compact', 'breakdown'],
-      default: 'modern',
+      enum: ["modern", "executive", "cards", "compact", "breakdown"],
+      default: "modern",
     },
     department: {
-      default: 'SALES',
+      default: "SALES",
       type: String,
     },
     customPermissions: {
@@ -102,11 +102,21 @@ const UserSchema = new Schema<IUser>(
     },
   },
   { timestamps: true, strict: false }
-);
+)
 
-if (mongoose.models.User && (!mongoose.models.User.schema.path('landingPage') || !mongoose.models.User.schema.path('department') || !mongoose.models.User.schema.path('muteNotifications') || !mongoose.models.User.schema.path('receiveQuoteEmails') || !mongoose.models.User.schema.path('favoriteTemplate') || !mongoose.models.User.schema.path('customPermissions'))) {
-  delete (mongoose.models as Record<string, unknown>).User;
+if (
+  mongoose.models.User &&
+  (!mongoose.models.User.schema.path("landingPage") ||
+    !mongoose.models.User.schema.path("department") ||
+    !mongoose.models.User.schema.path("muteNotifications") ||
+    !mongoose.models.User.schema.path("receiveQuoteEmails") ||
+    !mongoose.models.User.schema.path("favoriteTemplate") ||
+    !mongoose.models.User.schema.path("customPermissions"))
+) {
+  delete (mongoose.models as Record<string, unknown>).User
 }
 
-const UserModel: Model<IUser> = (mongoose.models.User as Model<IUser>) || mongoose.model<IUser>('User', UserSchema);
-export default UserModel;
+const UserModel: Model<IUser> =
+  (mongoose.models.User as Model<IUser>) ||
+  mongoose.model<IUser>("User", UserSchema)
+export default UserModel

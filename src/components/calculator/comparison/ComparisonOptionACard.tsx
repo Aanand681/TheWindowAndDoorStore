@@ -1,22 +1,22 @@
-import React from 'react';
-import { formatMoney } from '@/lib/promo-logic';
-import { UIWindowItem } from '@/hooks/useCalculatorWindows';
-import { getWindowsSummarySentence } from './comparison-helpers';
+import React from "react"
+import { formatMoney } from "@/lib/promo-logic"
+import { UIWindowItem } from "@/hooks/useCalculatorWindows"
+import { getWindowsSummarySentence } from "./comparison-helpers"
 
 interface ComparisonOptionACardProps {
-  currentWindows: UIWindowItem[];
-  customerName: string;
-  quoteNumber: string;
-  surchargeRate: number;
-  effectiveJC: number;
-  effectiveLabour: number;
-  hstRate: number;
-  quoteResultA: any;
-  afterDiscountA: number;
-  totalA: number;
-  firstPaymentA: number;
-  secondPaymentA: number;
-  appliedOption: 'A' | 'B';
+  currentWindows: UIWindowItem[]
+  customerName: string
+  quoteNumber: string
+  surchargeRate: number
+  effectiveJC: number
+  effectiveLabour: number
+  hstRate: number
+  quoteResultA: any
+  afterDiscountA: number
+  totalA: number
+  firstPaymentA: number
+  secondPaymentA: number
+  appliedOption: "A" | "B"
 }
 
 export function ComparisonOptionACard({
@@ -35,35 +35,35 @@ export function ComparisonOptionACard({
   appliedOption,
 }: ComparisonOptionACardProps) {
   return (
-    <div className="bg-muted/20 border border-border/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+    <div className="flex flex-col justify-between space-y-4 rounded-2xl border border-border/80 bg-muted/20 p-4 sm:p-5">
       <div>
-        <div className="flex items-center justify-between pb-3 border-b border-border/60">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+            <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold tracking-wider text-primary uppercase">
               Option A (Base)
             </span>
-            {appliedOption === 'A' && (
+            {appliedOption === "A" && (
               <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                 ✓ Active in Quote
               </span>
             )}
           </div>
           <span className="text-xs font-bold text-foreground">
-            {quoteNumber || 'Base'}
+            {quoteNumber || "Base"}
           </span>
         </div>
 
         <div className="mt-3 space-y-1">
-          <p className="text-sm font-bold text-foreground truncate">
-            {customerName || 'Base Customer Quote'}
+          <p className="truncate text-sm font-bold text-foreground">
+            {customerName || "Base Customer Quote"}
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {getWindowsSummarySentence(currentWindows)}
           </p>
         </div>
 
         {/* Financial breakdown */}
-        <div className="mt-4 pt-4 border-t border-border/60 space-y-2 text-xs">
+        <div className="mt-4 space-y-2 border-t border-border/60 pt-4 text-xs">
           <div className="flex justify-between text-muted-foreground">
             <span>Manufacturer Base:</span>
             <span className="font-semibold text-foreground">
@@ -93,14 +93,16 @@ export function ComparisonOptionACard({
             </div>
           )}
           {(quoteResultA?.promoDiscount || 0) > 0 && (
-            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+            <div className="flex justify-between font-medium text-emerald-600 dark:text-emerald-400">
               <span>Promo Discount:</span>
               <span>-{formatMoney(quoteResultA.promoDiscount)}</span>
             </div>
           )}
-          <div className="flex justify-between pt-2 border-t border-border/50 font-semibold text-foreground">
+          <div className="flex justify-between border-t border-border/50 pt-2 font-semibold text-foreground">
             <span>Pre-Tax Subtotal:</span>
-            <span className="text-primary font-bold">{formatMoney(afterDiscountA)}</span>
+            <span className="font-bold text-primary">
+              {formatMoney(afterDiscountA)}
+            </span>
           </div>
           <div className="flex justify-between text-muted-foreground">
             <span>HST ({hstRate}%):</span>
@@ -112,16 +114,16 @@ export function ComparisonOptionACard({
       </div>
 
       {/* Total Card */}
-      <div className="bg-card border border-border/80 rounded-xl p-3 shadow-xs">
+      <div className="rounded-xl border border-border/80 bg-card p-3 shadow-xs">
         <div className="flex items-baseline justify-between">
-          <span className="text-xs uppercase font-bold text-muted-foreground">
+          <span className="text-xs font-bold text-muted-foreground uppercase">
             Option A Total
           </span>
           <span className="text-lg font-black text-foreground">
             {formatMoney(totalA)}
           </span>
         </div>
-        <div className="flex justify-between text-[11px] text-muted-foreground mt-1 pt-1 border-t border-border/40">
+        <div className="mt-1 flex justify-between border-t border-border/40 pt-1 text-[11px] text-muted-foreground">
           <span>Deposits (50/50):</span>
           <span>
             {formatMoney(firstPaymentA)} / {formatMoney(secondPaymentA)}
@@ -129,6 +131,5 @@ export function ComparisonOptionACard({
         </div>
       </div>
     </div>
-  );
+  )
 }
-

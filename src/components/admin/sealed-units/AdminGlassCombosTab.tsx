@@ -1,21 +1,27 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { ComboPricing } from '@/lib/sealed-units-logic';
+import React from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { ComboPricing } from "@/lib/sealed-units-logic"
 
 interface AdminGlassCombosTabProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  combos: ComboPricing[];
+  title: string
+  description: string
+  icon: React.ReactNode
+  combos: ComboPricing[]
   onPriceChange: (
     comboId: string,
     thickness: number,
-    pane: 'dual' | 'triple',
+    pane: "dual" | "triple",
     value: string
-  ) => void;
+  ) => void
 }
 
 export function AdminGlassCombosTab({
@@ -26,9 +32,9 @@ export function AdminGlassCombosTab({
   onPriceChange,
 }: AdminGlassCombosTabProps) {
   return (
-    <Card className="bg-card/50 border-border backdrop-blur-xl shadow-xl">
+    <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl">
       <CardHeader className="border-b border-border/50 pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           {icon}
           <span>{title}</span>
         </CardTitle>
@@ -36,10 +42,10 @@ export function AdminGlassCombosTab({
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-muted/40 uppercase tracking-wider text-[10px] text-muted-foreground border-b border-border/60">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-border/60 bg-muted/40 text-[10px] tracking-wider text-muted-foreground uppercase">
               <tr>
-                <th className="p-3 w-64">Combination Name</th>
+                <th className="w-64 p-3">Combination Name</th>
                 <th className="p-3 text-center" colSpan={2}>
                   3mm ($)
                 </th>
@@ -67,8 +73,13 @@ export function AdminGlassCombosTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {combos.map((combo) => (
-                <tr key={combo.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="p-3 font-semibold text-foreground">{combo.name}</td>
+                <tr
+                  key={combo.id}
+                  className="transition-colors hover:bg-muted/20"
+                >
+                  <td className="p-3 font-semibold text-foreground">
+                    {combo.name}
+                  </td>
                   {[3, 4, 5, 6].map((th) => (
                     <React.Fragment key={th}>
                       <td className="p-1.5 text-center">
@@ -79,12 +90,12 @@ export function AdminGlassCombosTab({
                           value={
                             combo.prices?.[th]?.dual ??
                             (combo.prices as any)?.[String(th)]?.dual ??
-                            ''
+                            ""
                           }
                           onChange={(e) =>
-                            onPriceChange(combo.id, th, 'dual', e.target.value)
+                            onPriceChange(combo.id, th, "dual", e.target.value)
                           }
-                          className="h-8 w-18 text-xs font-mono text-center mx-auto bg-background"
+                          className="mx-auto h-8 w-18 bg-background text-center font-mono text-xs"
                         />
                       </td>
                       <td className="p-1.5 text-center">
@@ -95,12 +106,17 @@ export function AdminGlassCombosTab({
                           value={
                             combo.prices?.[th]?.triple ??
                             (combo.prices as any)?.[String(th)]?.triple ??
-                            ''
+                            ""
                           }
                           onChange={(e) =>
-                            onPriceChange(combo.id, th, 'triple', e.target.value)
+                            onPriceChange(
+                              combo.id,
+                              th,
+                              "triple",
+                              e.target.value
+                            )
                           }
-                          className="h-8 w-18 text-xs font-mono text-center mx-auto bg-background"
+                          className="mx-auto h-8 w-18 bg-background text-center font-mono text-xs"
                         />
                       </td>
                     </React.Fragment>
@@ -112,6 +128,5 @@ export function AdminGlassCombosTab({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
-

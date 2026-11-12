@@ -1,11 +1,11 @@
-'use client';
+"use client"
 
-import React, { ReactNode, useState } from 'react';
-import { SessionProvider } from 'next-auth/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from './theme-provider';
-import { Toaster } from '@/components/ui/sonner';
-import { SessionTimeoutWatcher } from './SessionTimeoutWatcher';
+import React, { ReactNode, useState } from "react"
+import { SessionProvider } from "next-auth/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { ThemeProvider } from "./theme-provider"
+import { Toaster } from "@/components/ui/sonner"
+import { SessionTimeoutWatcher } from "./SessionTimeoutWatcher"
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -20,7 +20,7 @@ export function Providers({ children }: { children: ReactNode }) {
           },
         },
       })
-  );
+  )
 
   return (
     <SessionProvider>
@@ -32,5 +32,5 @@ export function Providers({ children }: { children: ReactNode }) {
         </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>
-  );
+  )
 }

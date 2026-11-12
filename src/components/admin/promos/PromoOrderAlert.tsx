@@ -1,13 +1,13 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Save, RotateCcw, Check, Loader2 } from 'lucide-react';
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { Save, RotateCcw, Check, Loader2 } from "lucide-react"
 
 interface PromoOrderAlertProps {
-  savingOrder: boolean;
-  onSaveOrder: () => void;
-  onDiscardChanges: () => void;
+  savingOrder: boolean
+  onSaveOrder: () => void
+  onDiscardChanges: () => void
 }
 
 export function PromoOrderAlert({
@@ -16,40 +16,47 @@ export function PromoOrderAlert({
   onDiscardChanges,
 }: PromoOrderAlertProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between p-4 mb-6 rounded-xl bg-amber-500/10 border-2 border-amber-500/40 shadow-md gap-3">
+    <div className="mb-6 flex flex-col items-center justify-between gap-3 rounded-xl border-2 border-amber-500/40 bg-amber-500/10 p-4 shadow-md sm:flex-row">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-amber-500/20 text-amber-500 shrink-0">
-          <Save className="w-5 h-5" />
+        <div className="shrink-0 rounded-lg bg-amber-500/20 p-2 text-amber-500">
+          <Save className="h-5 w-5" />
         </div>
         <div>
-          <div className="font-bold text-sm text-foreground">You have rearranged the promo sequence!</div>
+          <div className="text-sm font-bold text-foreground">
+            You have rearranged the promo sequence!
+          </div>
           <div className="text-xs text-muted-foreground">
-            Click &quot;Save Order&quot; to permanently store this order and update the promo calculator.
+            Click &quot;Save Order&quot; to permanently store this order and
+            update the promo calculator.
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <Button variant="outline" size="sm" onClick={onDiscardChanges} disabled={savingOrder}>
-          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Discard
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDiscardChanges}
+          disabled={savingOrder}
+        >
+          <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Discard
         </Button>
         <Button
           size="sm"
           onClick={onSaveOrder}
           disabled={savingOrder}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md"
+          className="bg-emerald-600 font-bold text-white shadow-md hover:bg-emerald-700"
         >
           {savingOrder ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving...
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving...
             </>
           ) : (
             <>
-              <Check className="w-3.5 h-3.5 mr-1.5" /> Save Order
+              <Check className="mr-1.5 h-3.5 w-3.5" /> Save Order
             </>
           )}
         </Button>
       </div>
     </div>
-  );
+  )
 }
-

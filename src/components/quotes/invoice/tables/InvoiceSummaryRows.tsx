@@ -1,20 +1,20 @@
-import React from 'react';
-import { formatMoney } from '@/lib/promo-logic';
-import type { InvoiceCalculationsResult } from '../types';
-import { DoorSummaryRows } from './DoorSummaryRows';
+import React from "react"
+import { formatMoney } from "@/lib/promo-logic"
+import type { InvoiceCalculationsResult } from "../types"
+import { DoorSummaryRows } from "./DoorSummaryRows"
 
 export interface InvoiceSummaryRowsProps {
-  calc: InvoiceCalculationsResult;
-  textColor?: string;
-  rowPyOverride?: number;
+  calc: InvoiceCalculationsResult
+  textColor?: string
+  rowPyOverride?: number
 }
 
 export function InvoiceSummaryRows({
   calc,
-  textColor = 'text-[#0f172a]',
+  textColor = "text-[#0f172a]",
   rowPyOverride,
 }: InvoiceSummaryRowsProps) {
-  const py = rowPyOverride ?? 1;
+  const py = rowPyOverride ?? 1
   const {
     hasWindows,
     winMaterialsCents,
@@ -45,13 +45,16 @@ export function InvoiceSummaryRows({
     activePromo,
     isWindowHost,
     quoteResult,
-  } = calc;
+    taxTotals,
+  } = calc
 
-  const hasAnyAttached = Boolean(attachedSealedUnit || attachedDoorQuote || attachedWindowQuote);
+  const hasAnyAttached = Boolean(
+    attachedSealedUnit || attachedDoorQuote || attachedWindowQuote
+  )
 
   const doorDiscountCents = hasDoors
     ? Math.round((effectiveDoorTotals?.discountTotal || 0) * 100)
-    : 0;
+    : 0
   const doorMaterialsCents = hasDoors
     ? Math.round(
         ((effectiveDoorTotals?.rawDoorBaseTotal || 0) +
@@ -59,16 +62,17 @@ export function InvoiceSummaryRows({
           (effectiveDoorTotals?.hardwareTotal || 0)) *
           100
       )
-    : 0;
+    : 0
 
-  const winJCCents = jcItems.reduce((acc, curr) => acc + curr.amount, 0);
+  const winJCCents = jcItems.reduce((acc, curr) => acc + curr.amount, 0)
 
   const resolvedPromoName =
     (isWindowHost
       ? activePromo?.name
       : attachedWindowQuote?.promoName ||
         attachedWindowQuote?.quoteResult?.promoName ||
-        activePromo?.name)?.trim() || 'Promotion Discount';
+        activePromo?.name
+    )?.trim() || "Promotion Discount"
 
   return (
     <>
@@ -111,7 +115,7 @@ export function InvoiceSummaryRows({
             </td>
             <td
               style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-              className="text-right font-mono text-[#64748b] text-[10px] font-normal"
+              className="text-right font-mono text-[10px] font-normal text-[#64748b]"
             >
               (Labour below)
             </td>
@@ -147,6 +151,30 @@ export function InvoiceSummaryRows({
         </tr>
       )}
 
+      {/* Additional Materials */}
+      {taxTotals?.customMaterials &&
+        Array.isArray(taxTotals.customMaterials) &&
+        taxTotals.customMaterials.map((mat: any) => {
+          const amt = Number(mat.amount) || 0
+          if (amt <= 0 && !mat.label) return null
+          return (
+            <tr key={mat.id} className="border-b border-[#e2e8f0]">
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className={`${textColor} font-medium`}
+              >
+                {mat.label ? `Material: ${mat.label}` : "Additional Material"}
+              </td>
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className={`text-right font-mono font-bold ${textColor}`}
+              >
+                {formatMoney(Math.round(amt * 100))}
+              </td>
+            </tr>
+          )
+        })}
+
       {/* Line 5: Misc */}
       {effectiveMiscTotalCents > 0 && (
         <tr className="border-b border-[#e2e8f0]">
@@ -172,8 +200,11 @@ export function InvoiceSummaryRows({
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
             className={`${textColor} font-medium`}
           >
-            Labour{' '}
-            <span style={{ fontSize: `${smallFs}px` }} className="text-[#334155]">
+            Labour{" "}
+            <span
+              style={{ fontSize: `${smallFs}px` }}
+              className="text-[#334155]"
+            >
               (incl. installation &amp; travel)
             </span>
           </td>
@@ -206,11 +237,14 @@ export function InvoiceSummaryRows({
 
       {/* Line 8: Discounts */}
       {promoDiscountCents > 0 && (
-        <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
-          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="pl-1">
+        <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
+          <td
+            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+            className="pl-1"
+          >
             <span
               style={{ fontSize: `${microFs}px` }}
-              className="uppercase font-bold tracking-wider text-emerald-700 block"
+              className="block font-bold tracking-wider text-emerald-700 uppercase"
             >
               Promo Applied:
             </span>
@@ -218,7 +252,7 @@ export function InvoiceSummaryRows({
           </td>
           <td
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="text-right font-mono text-emerald-700 font-bold pr-1"
+            className="pr-1 text-right font-mono font-bold text-emerald-700"
           >
             −{formatMoney(promoDiscountCents)}
           </td>
@@ -226,8 +260,10 @@ export function InvoiceSummaryRows({
       )}
 
       {monthlyDiscountCents > 0 && (
-        <tr className="border-b border-[#e2e8f0] text-emerald-800 font-semibold">
-          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}>Monthly Discount</td>
+        <tr className="border-b border-[#e2e8f0] font-semibold text-emerald-800">
+          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}>
+            Monthly Discount
+          </td>
           <td
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
             className="text-right font-mono"
@@ -238,11 +274,14 @@ export function InvoiceSummaryRows({
       )}
 
       {doorDiscountCents > 0 && (
-        <tr className="border-b border-[#cbd5e1] bg-white text-emerald-900 font-semibold">
-          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }} className="pl-1">
+        <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
+          <td
+            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+            className="pl-1"
+          >
             <span
               style={{ fontSize: `${microFs}px` }}
-              className="uppercase font-bold tracking-wider text-emerald-700 block"
+              className="block font-bold tracking-wider text-emerald-700 uppercase"
             >
               Discount Applied:
             </span>
@@ -250,7 +289,7 @@ export function InvoiceSummaryRows({
           </td>
           <td
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="text-right font-mono text-emerald-700 font-bold pr-1"
+            className="pr-1 text-right font-mono font-bold text-emerald-700"
           >
             −{formatMoney(doorDiscountCents)}
           </td>
@@ -258,7 +297,7 @@ export function InvoiceSummaryRows({
       )}
 
       {/* Line 9: Subtotal */}
-      <tr className="border-t-2 border-[#cbd5e1] border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
+      <tr className="border-t-2 border-b border-[#cbd5e1] bg-[#f8fafc]/80 font-bold text-[#0f172a]">
         <td
           style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
           className="text-[#0f172a]"
@@ -273,21 +312,57 @@ export function InvoiceSummaryRows({
         </td>
       </tr>
 
-      {/* Line 10: HST */}
-      <tr className="border-b border-[#cbd5e1] text-[#0f172a]">
-        <td
-          style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-          className="text-[#334155]"
-        >
-          {finalHstLabel}
-        </td>
-        <td
-          style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-          className="text-right font-mono text-[#0f172a]"
-        >
-          {formatMoney(finalHstAmountCents)}
-        </td>
-      </tr>
+      {/* Line 10: Taxes */}
+      {calc.finalMaterialExemptionCents && calc.finalMaterialExemptionCents > 0 ? (
+        <>
+          <tr className="border-b border-[#cbd5e1] text-[#0f172a]">
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="text-[#334155]"
+            >
+              13% HST (on all)
+            </td>
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="text-right font-mono font-medium text-[#0f172a]"
+            >
+              +{formatMoney(
+                calc.finalHstBaseCents ||
+                  Math.round(finalSubtotalCents * 0.13)
+              )}
+            </td>
+          </tr>
+          <tr className="border-b border-[#cbd5e1] font-semibold text-emerald-800">
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="text-emerald-800"
+            >
+              8% Tax Rebate (Material Exemption)
+            </td>
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="text-right font-mono font-bold text-emerald-700"
+            >
+              −{formatMoney(calc.finalMaterialExemptionCents)}
+            </td>
+          </tr>
+        </>
+      ) : (
+        <tr className="border-b border-[#cbd5e1] text-[#0f172a]">
+          <td
+            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+            className="text-[#334155]"
+          >
+            {finalHstLabel}
+          </td>
+          <td
+            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+            className="text-right font-mono text-[#0f172a]"
+          >
+            {formatMoney(finalHstAmountCents)}
+          </td>
+        </tr>
+      )}
     </>
-  );
+  )
 }

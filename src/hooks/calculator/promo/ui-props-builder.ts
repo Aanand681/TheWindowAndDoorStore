@@ -1,26 +1,28 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { toast } from 'sonner';
+import React from "react"
+import { toast } from "sonner"
 
 export interface CalculatorPropsContext {
-  base: any;
-  pricing: any;
-  windowsContext: any;
-  supply: any;
-  comparison: any;
-  drafts: any;
-  review: any;
-  customPricing: any;
+  base: any
+  pricing: any
+  windowsContext: any
+  supply: any
+  comparison: any
+  drafts: any
+  review: any
+  customPricing: any
 }
 
 export function buildHeaderToolbarProps(ctx: CalculatorPropsContext) {
-  const { base, pricing, drafts, comparison } = ctx;
+  const { base, pricing, drafts, comparison } = ctx
   return {
     activeTab: base.activeTab,
     isComparisonStaging: comparison.isComparisonStaging,
     hasCompareOptions: pricing.compareOptions.length > 0,
-    hasAttachedQuotes: Boolean(base.attachedSealedUnit || base.attachedDoorQuote),
+    hasAttachedQuotes: Boolean(
+      base.attachedSealedUnit || base.attachedDoorQuote
+    ),
     lastSavedAt: drafts.lastSavedAt,
     savedDraftsCount: drafts.savedDraftsCount,
     onOpenCompareModal: () => base.setIsCompareModalOpen(true),
@@ -29,11 +31,12 @@ export function buildHeaderToolbarProps(ctx: CalculatorPropsContext) {
     onOpenAttachModal: () => base.setIsAttachModalOpen(true),
     onSaveDraft: drafts.handleSaveDraft,
     onOpenSavedQuotes: () => drafts.setIsSavedQuotesOpen(true),
-  };
+  }
 }
 
 export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
-  const { base, pricing, windowsContext, supply, drafts, comparison, review } = ctx;
+  const { base, pricing, windowsContext, supply, drafts, comparison, review } =
+    ctx
   return {
     windows: windowsContext.windows,
     surchargeRate: base.surchargeRate,
@@ -47,40 +50,44 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
         onSetCustomerName: base.setCustomerName,
         onSetQuoteNumber: base.setQuoteNumber,
         onResetCalculator: () => {
-          pricing.resetPricingOverrides();
-          base.setAttachedSealedUnit(null);
-          base.setAttachedDoorQuote(null);
-          base.setAttachedUpgrade(null);
-          pricing.setWantsUpgrade(false);
-          supply.resetSupplyMode();
-          drafts.resetDraftState();
+          pricing.resetPricingOverrides()
+          base.setAttachedSealedUnit(null)
+          base.setAttachedDoorQuote(null)
+          base.setAttachedUpgrade(null)
+          pricing.setWantsUpgrade(false)
+          supply.resetSupplyMode()
+          drafts.resetDraftState()
         },
       }),
     handlePdfImportClick: review.handlePdfImportClick,
     isReadOnly: review.isReadOnly,
     onResetQuote: () => base.setShowResetModal(true),
     handleWindowChange: windowsContext.handleWindowChange,
-    handleRemoveWindow: (id: string) => windowsContext.handleRemoveWindow(id, () => pricing.setLockedPromoId(null)),
-    handleAddWindow: () => windowsContext.handleAddWindow(() => pricing.setLockedPromoId(null)),
+    handleRemoveWindow: (id: string) =>
+      windowsContext.handleRemoveWindow(id, () =>
+        pricing.setLockedPromoId(null)
+      ),
+    handleAddWindow: () =>
+      windowsContext.handleAddWindow(() => pricing.setLockedPromoId(null)),
     windowEndRef: windowsContext.windowEndRef,
     isSupplyOnly: supply.isSupplyOnly,
     setIsSupplyOnly: supply.handleToggleSupplyOnly,
     onOpenCompareModal: () => base.setIsCompareModalOpen(true),
     attachedUpgrade: base.attachedUpgrade,
     onRemoveAttachedUpgrade: () => {
-      base.setAttachedUpgrade(null);
-      toast.info('Removed optional upgrade offer from quote.');
+      base.setAttachedUpgrade(null)
+      toast.info("Removed optional upgrade offer from quote.")
     },
     attachedSealedUnit: base.attachedSealedUnit,
     attachedDoorQuote: base.attachedDoorQuote,
     onOpenAttachSealedUnitModal: () => base.setIsAttachModalOpen(true),
     onRemoveAttachedSealedUnit: () => {
-      base.setAttachedSealedUnit(null);
-      toast.info('Detached sealed units from quote.');
+      base.setAttachedSealedUnit(null)
+      toast.info("Detached sealed units from quote.")
     },
     onRemoveAttachedDoorQuote: () => {
-      base.setAttachedDoorQuote(null);
-      toast.info('Detached door quote from quote.');
+      base.setAttachedDoorQuote(null)
+      toast.info("Detached door quote from quote.")
     },
     onSaveDraft: drafts.handleSaveDraft,
     onOpenSavedQuotes: () => drafts.setIsSavedQuotesOpen(true),
@@ -102,11 +109,19 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
     activePromoId: pricing.activePromoId,
     setActivePromoId: pricing.setActivePromoId,
     setLockedPromoId: pricing.setLockedPromoId,
-  };
+  }
 }
 
 export function buildSummaryProps(ctx: CalculatorPropsContext) {
-  const { base, pricing, windowsContext, supply, drafts, review, customPricing } = ctx;
+  const {
+    base,
+    pricing,
+    windowsContext,
+    supply,
+    drafts,
+    review,
+    customPricing,
+  } = ctx
   return {
     quoteResult: pricing.quoteResult,
     summaryWindowGroups: windowsContext.summaryWindowGroups,
@@ -135,6 +150,8 @@ export function buildSummaryProps(ctx: CalculatorPropsContext) {
     afterDiscount: customPricing.afterDiscount,
     hstRate: customPricing.hstRate,
     setHstRate: pricing.setHstRate,
+    hstBase: pricing.hstBase,
+    materialExemption: pricing.materialExemption,
     total: customPricing.total,
     firstPayment: customPricing.firstPayment,
     secondPayment: customPricing.secondPayment,
@@ -177,19 +194,18 @@ export function buildSummaryProps(ctx: CalculatorPropsContext) {
     attachedUpgrade: base.attachedUpgrade,
     onOpenAttachSealedUnitModal: () => base.setIsAttachModalOpen(true),
     onRemoveAttachedSealedUnit: () => {
-      base.setAttachedSealedUnit(null);
-      toast.info('Detached sealed units from quote.');
+      base.setAttachedSealedUnit(null)
+      toast.info("Detached sealed units from quote.")
     },
     onRemoveAttachedDoorQuote: () => {
-      base.setAttachedDoorQuote(null);
-      toast.info('Detached door quote from quote.');
+      base.setAttachedDoorQuote(null)
+      toast.info("Detached door quote from quote.")
     },
     onRemoveAttachedUpgrade: () => {
-      base.setAttachedUpgrade(null);
-      toast.info('Detached upgrade option from quote.');
+      base.setAttachedUpgrade(null)
+      toast.info("Detached upgrade option from quote.")
     },
     onSaveDraft: drafts.handleSaveDraft,
     onOpenSavedQuotes: () => drafts.setIsSavedQuotesOpen(true),
-  };
+  }
 }
-

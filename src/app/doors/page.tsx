@@ -1,22 +1,19 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { AppHeader } from '@/components/layout/AppHeader';
+import React from "react"
+import { AppHeader } from "@/components/layout/AppHeader"
 import {
   DoorItemBuilder,
   DoorLineItemsTable,
   DoorLabourTravelCard,
   DoorQuoteSummaryCard,
   DoorOfficePricingCard,
-} from '@/components/doors';
-import QuoteInvoice from '@/components/quotes/QuoteInvoice';
-import { toast } from 'sonner';
+} from "@/components/doors"
+import QuoteInvoice from "@/components/quotes/QuoteInvoice"
+import { toast } from "sonner"
 
-import { useDoorCalculatorPage } from '@/hooks/doors';
-import {
-  DoorHeaderBar,
-  DoorModalsGroup,
-} from '@/components/doors/page';
+import { useDoorCalculatorPage } from "@/hooks/doors"
+import { DoorHeaderBar, DoorModalsGroup } from "@/components/doors/page"
 
 export default function DoorCalculatorPage() {
   const {
@@ -38,6 +35,8 @@ export default function DoorCalculatorPage() {
     setQuoteNotes,
     isFirstNation,
     setIsFirstNation,
+    hstRate,
+    setHstRate,
     customLabour,
     setCustomLabour,
     customMisc,
@@ -98,13 +97,13 @@ export default function DoorCalculatorPage() {
     staffList,
     clerkList,
     handleSubmitQuote,
-  } = useDoorCalculatorPage();
+  } = useDoorCalculatorPage()
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
-      <div className="max-w-[1650px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-16 relative z-10 space-y-5">
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-5 px-4 pt-5 pb-16 sm:px-6 sm:pt-6 lg:px-8">
         <AppHeader currentPath="/doors" />
 
         {/* Page Top Header Bar */}
@@ -119,10 +118,10 @@ export default function DoorCalculatorPage() {
           onOpenSavedQuotes={() => setIsSavedQuotesOpen(true)}
         />
 
-        {/* Main Work Area: 2 Columns (8 cols left for wide single-row builder, 4 cols right for summary) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+        {/* Main Work Area: 2 Columns (8 cols left for builder, 4 cols right for summary) */}
+        <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 lg:grid-cols-12">
           {/* Left Column: Item Builder, Items Table, Labour/Travel (8 cols) */}
-          <div className="lg:col-span-8 space-y-5">
+          <div className="space-y-5 lg:col-span-8">
             <DoorItemBuilder
               customerName={customerName}
               setCustomerName={setCustomerName}
@@ -165,7 +164,7 @@ export default function DoorCalculatorPage() {
           </div>
 
           {/* Right Column: Quote Summary & Office Reference (4 cols) */}
-          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-5">
+          <div className="space-y-5 lg:sticky lg:top-5 lg:col-span-4">
             <DoorQuoteSummaryCard
               customerName={customerName}
               quoteNumber={quoteNumber}
@@ -175,6 +174,8 @@ export default function DoorCalculatorPage() {
               onModeChange={setMode}
               isFirstNation={isFirstNation}
               onToggleFirstNation={setIsFirstNation}
+              hstRate={hstRate}
+              setHstRate={setHstRate}
               customLabour={customLabour}
               setCustomLabour={setCustomLabour}
               customMisc={customMisc}
@@ -186,12 +187,12 @@ export default function DoorCalculatorPage() {
               attachedSealedUnit={attachedSealedUnit}
               onOpenAttachModal={() => setIsAttachModalOpen(true)}
               onRemoveAttachedWindowQuote={() => {
-                setAttachedWindowQuote(null);
-                toast.info('Detached window quote.');
+                setAttachedWindowQuote(null)
+                toast.info("Detached window quote.")
               }}
               onRemoveAttachedSealedUnit={() => {
-                setAttachedSealedUnit(null);
-                toast.info('Detached sealed unit quote.');
+                setAttachedSealedUnit(null)
+                toast.info("Detached sealed unit quote.")
               }}
             />
 
@@ -209,7 +210,7 @@ export default function DoorCalculatorPage() {
         <QuoteInvoice
           customerName={customerName}
           quoteNumber={quoteNumber}
-          preparedBy={user?.name || user?.username || 'The Window & Door Store'}
+          preparedBy={user?.name || user?.username || "The Window & Door Store"}
           primaryQuoteType="door"
           doors={lineItems}
           doorTotals={totals}
@@ -218,8 +219,8 @@ export default function DoorCalculatorPage() {
           fontSize={quoteFontSize}
           spacing={quoteSpacing}
           hstRate={isFirstNation ? 8 : 13}
-          isSupplyOnly={mode === 'supply_only'}
-          regionName={mode === 'supply_only' ? undefined : selectedRegion?.name}
+          isSupplyOnly={mode === "supply_only"}
+          regionName={mode === "supply_only" ? undefined : selectedRegion?.name}
           globalUpcharges={globalUpcharges}
           attachedWindowQuote={attachedWindowQuote}
           attachedSealedUnit={attachedSealedUnit}
@@ -242,7 +243,7 @@ export default function DoorCalculatorPage() {
         quoteNumber={quoteNumber}
         lineItems={lineItems}
         mode={mode}
-        regionName={mode === 'supply_only' ? undefined : selectedRegion?.name}
+        regionName={mode === "supply_only" ? undefined : selectedRegion?.name}
         globalUpcharges={globalUpcharges}
         isFirstNation={isFirstNation}
         quoteNotes={quoteNotes}
@@ -275,5 +276,5 @@ export default function DoorCalculatorPage() {
         onConfirmReset={handleConfirmReset}
       />
     </div>
-  );
+  )
 }

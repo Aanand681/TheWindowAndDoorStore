@@ -1,11 +1,17 @@
 import { Geist_Mono, IBM_Plex_Sans, Merriweather } from "next/font/google"
 
 import "./globals.css"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
-const merriweatherHeading = Merriweather({subsets:['latin'],variable:'--font-heading'});
+const merriweatherHeading = Merriweather({
+  subsets: ["latin"],
+  variable: "--font-heading",
+})
 
-const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'})
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+})
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -23,7 +29,13 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", ibmPlexSans.variable, merriweatherHeading.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        "font-sans",
+        ibmPlexSans.variable,
+        merriweatherHeading.variable
+      )}
     >
       <body>
         <Providers>{children}</Providers>

@@ -1,54 +1,54 @@
-'use client';
+"use client"
 
-import React from 'react';
-import type { QuoteTemplateType } from '@/components/quotes/invoice/types';
+import React from "react"
+import type { QuoteTemplateType } from "@/components/quotes/invoice/types"
 import {
   StorageFlushModal,
   QuickReviewModal,
   QuoteDeleteModal,
   QuotePreviewModalWrapper,
   ConfirmOdooEntryModal,
-} from './modals';
+} from "./modals"
 
 export interface QuotesModalsProps {
-  showFlushModal: boolean;
-  setShowFlushModal: (val: boolean) => void;
-  storageStats: any;
-  flushing: boolean;
-  handleFlushStorage: () => void;
-  selectedQuoteForReview: any;
-  setSelectedQuoteForReview: (val: any) => void;
-  reviewerNotes: string;
-  setReviewerNotes: (val: string) => void;
-  selectedOdooClerk: string;
-  setSelectedOdooClerk: (val: string) => void;
-  reviewingAction: boolean;
-  handleQuickApprove: (quote: any, newStatus: 'APPROVED' | 'RETURNED') => void;
-  staffList: any[];
-  quoteToDelete: { id: string; quoteNumber: string } | null;
-  setQuoteToDelete: (val: any) => void;
-  isDeletingQuote: boolean;
-  confirmDeleteQuote: () => void;
-  previewQuote: any;
-  setPreviewQuote: (val: any) => void;
-  isPreviewOpen: boolean;
-  setIsPreviewOpen: (val: boolean) => void;
-  previewTemplate: QuoteTemplateType;
-  setPreviewTemplate: (val: QuoteTemplateType) => void;
-  previewFontSize: number;
-  setPreviewFontSize: (val: number) => void;
-  previewSpacing: number;
-  setPreviewSpacing: (val: number) => void;
-  previewNotes: string;
-  setPreviewNotes: (val: string) => void;
-  canReview: boolean;
-  currentUser: any;
-  odooModalQuote: any;
-  setOdooModalQuote: (val: any) => void;
-  odooOrderNum: string;
-  setOdooOrderNum: (val: string) => void;
-  markingOdoo: boolean;
-  handleConfirmOdooEntry: () => void;
+  showFlushModal: boolean
+  setShowFlushModal: (val: boolean) => void
+  storageStats: any
+  flushing: boolean
+  handleFlushStorage: () => void
+  selectedQuoteForReview: any
+  setSelectedQuoteForReview: (val: any) => void
+  reviewerNotes: string
+  setReviewerNotes: (val: string) => void
+  selectedOdooClerk: string
+  setSelectedOdooClerk: (val: string) => void
+  reviewingAction: boolean
+  handleQuickApprove: (quote: any, newStatus: "APPROVED" | "RETURNED") => void
+  staffList: any[]
+  quoteToDelete: { id: string; quoteNumber: string } | null
+  setQuoteToDelete: (val: any) => void
+  isDeletingQuote: boolean
+  confirmDeleteQuote: () => void
+  previewQuote: any
+  setPreviewQuote: (val: any) => void
+  isPreviewOpen: boolean
+  setIsPreviewOpen: (val: boolean) => void
+  previewTemplate: QuoteTemplateType
+  setPreviewTemplate: (val: QuoteTemplateType) => void
+  previewFontSize: number
+  setPreviewFontSize: (val: number) => void
+  previewSpacing: number
+  setPreviewSpacing: (val: number) => void
+  previewNotes: string
+  setPreviewNotes: (val: string) => void
+  canReview: boolean
+  currentUser: any
+  odooModalQuote: any
+  setOdooModalQuote: (val: any) => void
+  odooOrderNum: string
+  setOdooOrderNum: (val: string) => void
+  markingOdoo: boolean
+  handleConfirmOdooEntry: () => void
 }
 
 export function QuotesModals({
@@ -146,5 +146,5 @@ export function QuotesModals({
         handleConfirmOdooEntry={handleConfirmOdooEntry}
       />
     </>
-  );
+  )
 }

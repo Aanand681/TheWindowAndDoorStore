@@ -1,21 +1,21 @@
-'use client';
+"use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react"
 import {
   SealedUnitTemplateType,
   SealedUnitPrintInvoiceProps,
-} from './invoice/types';
-import { renderRichNotes } from './invoice/SealedUnitRichNotes';
-import { SealedUnitWindowStyleTemplate } from './invoice/templates/SealedUnitWindowStyleTemplate';
-import { SealedUnitStandardTemplate } from './invoice/templates/SealedUnitStandardTemplate';
-import { SealedUnitProductionTemplate } from './invoice/templates/SealedUnitProductionTemplate';
+} from "./invoice/types"
+import { renderRichNotes } from "./invoice/SealedUnitRichNotes"
+import { SealedUnitWindowStyleTemplate } from "./invoice/templates/SealedUnitWindowStyleTemplate"
+import { SealedUnitStandardTemplate } from "./invoice/templates/SealedUnitStandardTemplate"
+import { SealedUnitProductionTemplate } from "./invoice/templates/SealedUnitProductionTemplate"
 
-export type { SealedUnitTemplateType, SealedUnitPrintInvoiceProps };
-export { renderRichNotes };
+export type { SealedUnitTemplateType, SealedUnitPrintInvoiceProps }
+export { renderRichNotes }
 
 export function SealedUnitPrintInvoice({
   lineItems,
-  mode = 'installation',
+  mode = "installation",
   isInstallation,
   labour,
   totals,
@@ -24,35 +24,36 @@ export function SealedUnitPrintInvoice({
   quoteNumber,
   quoteNotes,
   preparedBy,
-  template = 'window_style',
+  template = "window_style",
   fontSize = 8.5,
   spacing = 1.0,
-  orientation = 'portrait',
+  orientation = "portrait",
   isInteractivePreview = false,
   attachedWindowQuote,
   attachedDoorQuote,
 }: SealedUnitPrintInvoiceProps) {
-  const isService = mode === 'service_only';
-  const [quoteDate, setQuoteDate] = useState<string>('');
+  const isService = mode === "service_only"
+  const [quoteDate, setQuoteDate] = useState<string>("")
 
   useEffect(() => {
     setQuoteDate(
-      new Date().toLocaleDateString('en-CA', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+      new Date().toLocaleDateString("en-CA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       })
-    );
-  }, []);
+    )
+  }, [])
 
-  const firstPayment = Math.floor((totals.grandTotal / 2) * 100) / 100;
-  const secondPayment = Math.round((totals.grandTotal - firstPayment) * 100) / 100;
+  const firstPayment = Math.floor((totals.grandTotal / 2) * 100) / 100
+  const secondPayment =
+    Math.round((totals.grandTotal - firstPayment) * 100) / 100
 
   // Dynamic style scaling
   const scaleStyle: React.CSSProperties = {
     fontSize: `${fontSize}pt`,
     lineHeight: spacing,
-  };
+  }
 
   const sharedProps = {
     lineItems,
@@ -70,15 +71,15 @@ export function SealedUnitPrintInvoice({
     secondPayment,
     attachedWindowQuote,
     attachedDoorQuote,
-  };
+  }
 
   return (
     <div
       id="printable-invoice"
       className={
         isInteractivePreview
-          ? 'bg-white text-black font-sans p-4 sm:p-6 text-[8.5pt] leading-tight select-text w-full print:p-0 print:m-0 print:border-none print:shadow-none'
-          : 'background-quote-invoice su-print-only bg-white text-black font-sans p-4 text-[8.5pt] leading-tight'
+          ? "w-full bg-white p-4 font-sans text-[8.5pt] leading-tight text-black select-text sm:p-6 print:m-0 print:border-none print:p-0 print:shadow-none"
+          : "background-quote-invoice su-print-only bg-white p-4 font-sans text-[8.5pt] leading-tight text-black"
       }
       style={scaleStyle}
     >
@@ -91,7 +92,7 @@ export function SealedUnitPrintInvoice({
             margin: 0.25in;
           }
           html, body {
-            width: ${orientation === 'landscape' ? '11in' : '8.5in'} !important;
+            width: ${orientation === "landscape" ? "11in" : "8.5in"} !important;
             height: auto !important;
             min-height: 100% !important;
             margin: 0 !important;
@@ -121,13 +122,13 @@ export function SealedUnitPrintInvoice({
         }}
       />
 
-      {template === 'window_style' ? (
+      {template === "window_style" ? (
         <SealedUnitWindowStyleTemplate {...sharedProps} />
-      ) : template === 'standard' ? (
+      ) : template === "standard" ? (
         <SealedUnitStandardTemplate {...sharedProps} />
       ) : (
         <SealedUnitProductionTemplate {...sharedProps} />
       )}
     </div>
-  );
+  )
 }

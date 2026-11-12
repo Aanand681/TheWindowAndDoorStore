@@ -1,19 +1,25 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
-import { formatMoney } from '@/lib/promo-logic';
+import React from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Plus, Trash2 } from "lucide-react"
+import { formatMoney } from "@/lib/promo-logic"
 
 interface WindowsSizesLabourCardProps {
-  windows: any[];
-  onWindowsChange: (w: any[]) => void;
-  calculatedTotals: any;
-  isSupplyOnly: boolean;
-  readOnly?: boolean;
+  windows: any[]
+  onWindowsChange: (w: any[]) => void
+  calculatedTotals: any
+  isSupplyOnly: boolean
+  readOnly?: boolean
 }
 
 export function WindowsSizesLabourCard({
@@ -23,91 +29,104 @@ export function WindowsSizesLabourCard({
   isSupplyOnly,
   readOnly = false,
 }: WindowsSizesLabourCardProps) {
-  const lines = calculatedTotals?.lines;
+  const lines = calculatedTotals?.lines
 
   return (
-    <Card className="py-0 gap-0 [--card-spacing:0px] shadow-sm">
-      <CardHeader className="py-3 px-5 sm:px-6 !pb-3 border-b border-border/50">
-        <CardTitle className="text-base sm:text-lg">Windows Sizes &amp; Labour</CardTitle>
+    <Card className="gap-0 py-0 shadow-sm [--card-spacing:0px]">
+      <CardHeader className="border-b border-border/50 px-5 py-3 !pb-3 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">
+          Windows Sizes &amp; Labour
+        </CardTitle>
         <CardDescription className="text-xs">
-          Sizes accepted in inches (e.g. 61 1/4 or 61.25). You can edit width and height here.
+          Sizes accepted in inches (e.g. 61 1/4 or 61.25). You can edit width
+          and height here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-4 sm:p-5 space-y-3">
-        <div className="w-full max-h-[420px] overflow-auto border rounded-xl bg-background/50">
-          <div className="text-[11px] text-muted-foreground/80 md:hidden px-4 py-2 bg-muted/30 border-b border-border/40 font-medium">
+      <CardContent className="space-y-3 p-4 sm:p-5">
+        <div className="max-h-[420px] w-full overflow-auto rounded-xl border bg-background/50">
+          <div className="border-b border-border/40 bg-muted/30 px-4 py-2 text-[11px] font-medium text-muted-foreground/80 md:hidden">
             ← Swipe horizontally to edit sizes &amp; view labour →
           </div>
-          <div className="space-y-2 p-3 min-w-[700px]">
+          <div className="min-w-[700px] space-y-2 p-3">
             {windows.map((w, i) => {
-              const line = lines?.[i];
+              const line = lines?.[i]
               return (
                 <div
                   key={w.id || i}
-                  className="grid grid-cols-12 gap-3 items-center bg-card p-2.5 rounded-xl border border-border/80 shadow-xs"
+                  className="grid grid-cols-12 items-center gap-3 rounded-xl border border-border/80 bg-card p-2.5 shadow-xs"
                 >
                   <div className="col-span-1 text-center font-mono text-xs text-muted-foreground">
                     {i + 1}
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Width&quot;</Label>
+                    <Label className="text-[11px] text-muted-foreground">
+                      Width&quot;
+                    </Label>
                     <Input
                       disabled={readOnly}
-                      className="h-8 text-xs font-mono"
-                      value={w.w || ''}
+                      className="h-8 font-mono text-xs"
+                      value={w.w || ""}
                       onChange={(e) => {
-                        const nw = [...windows];
-                        nw[i].w = e.target.value.replace(/[^0-9\s./-]/g, '');
-                        onWindowsChange(nw);
+                        const nw = [...windows]
+                        nw[i].w = e.target.value.replace(/[^0-9\s./-]/g, "")
+                        onWindowsChange(nw)
                       }}
                     />
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Height&quot;</Label>
+                    <Label className="text-[11px] text-muted-foreground">
+                      Height&quot;
+                    </Label>
                     <Input
                       disabled={readOnly}
-                      className="h-8 text-xs font-mono"
-                      value={w.h || ''}
+                      className="h-8 font-mono text-xs"
+                      value={w.h || ""}
                       onChange={(e) => {
-                        const nw = [...windows];
-                        nw[i].h = e.target.value.replace(/[^0-9\s./-]/g, '');
-                        onWindowsChange(nw);
+                        const nw = [...windows]
+                        nw[i].h = e.target.value.replace(/[^0-9\s./-]/g, "")
+                        onWindowsChange(nw)
                       }}
                     />
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">Qty</Label>
+                    <Label className="text-[11px] text-muted-foreground">
+                      Qty
+                    </Label>
                     <Input
                       disabled={readOnly}
                       type="number"
                       min="1"
-                      className="h-8 text-xs font-mono"
+                      className="h-8 font-mono text-xs"
                       value={w.qty}
                       onChange={(e) => {
-                        const nw = [...windows];
-                        nw[i].qty = e.target.value;
-                        onWindowsChange(nw);
+                        const nw = [...windows]
+                        nw[i].qty = e.target.value
+                        onWindowsChange(nw)
                       }}
                     />
                   </div>
-                  <div className="col-span-4 text-xs space-y-0.5 mt-3">
+                  <div className="col-span-4 mt-3 space-y-0.5 text-xs">
                     {line ? (
                       <>
-                        <div className="text-muted-foreground font-medium text-[11px]">
-                          Sqft: {line.sqft.toFixed(2)} | LinFt: {line.lin.toFixed(2)}
+                        <div className="text-[11px] font-medium text-muted-foreground">
+                          Sqft: {line.sqft.toFixed(2)} | LinFt:{" "}
+                          {line.lin.toFixed(2)}
                         </div>
                         {isSupplyOnly ? (
-                          <div className="font-semibold text-amber-500 text-xs">
+                          <div className="text-xs font-semibold text-amber-500">
                             Supply Only (No Install Labour)
                           </div>
                         ) : (
-                          <div className="font-semibold text-primary text-xs">
-                            Lab: {formatMoney(line.lab * 100)} | Misc: {formatMoney(line.misc * 100)}
+                          <div className="text-xs font-semibold text-primary">
+                            Lab: {formatMoney(line.lab * 100)} | Misc:{" "}
+                            {formatMoney(line.misc * 100)}
                           </div>
                         )}
                       </>
                     ) : (
-                      <div className="text-muted-foreground italic text-xs">Invalid size</div>
+                      <div className="text-xs text-muted-foreground italic">
+                        Invalid size
+                      </div>
                     )}
                   </div>
                   <div className="col-span-1">
@@ -115,32 +134,32 @@ export function WindowsSizesLabourCard({
                       disabled={readOnly}
                       variant="ghost"
                       size="icon"
-                      className="text-destructive mt-3 hover:bg-destructive/10 h-8 w-8"
+                      className="mt-3 h-8 w-8 text-destructive hover:bg-destructive/10"
                       onClick={() => {
-                        const nw = windows.filter((_, idx) => idx !== i);
+                        const nw = windows.filter((_, idx) => idx !== i)
                         onWindowsChange(
                           nw.length
                             ? nw
                             : [
                                 {
                                   id: Math.random().toString(),
-                                  qty: '1',
-                                  base: '',
-                                  argon: '',
-                                  solar: '',
-                                  triple: '',
-                                  w: '',
-                                  h: '',
+                                  qty: "1",
+                                  base: "",
+                                  argon: "",
+                                  solar: "",
+                                  triple: "",
+                                  w: "",
+                                  h: "",
                                 },
                               ]
-                        );
+                        )
                       }}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         </div>
@@ -148,27 +167,26 @@ export function WindowsSizesLabourCard({
           disabled={readOnly}
           variant="secondary"
           size="sm"
-          className="h-8 text-xs font-semibold cursor-pointer"
+          className="h-8 cursor-pointer text-xs font-semibold"
           onClick={() =>
             onWindowsChange([
               ...windows,
               {
                 id: Math.random().toString(),
-                qty: '1',
-                base: '',
-                argon: '',
-                solar: '',
-                triple: '',
-                w: '',
-                h: '',
+                qty: "1",
+                base: "",
+                argon: "",
+                solar: "",
+                triple: "",
+                w: "",
+                h: "",
               },
             ])
           }
         >
-          <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Window Manually
+          <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Window Manually
         </Button>
       </CardContent>
     </Card>
-  );
+  )
 }
-

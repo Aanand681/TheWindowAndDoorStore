@@ -1,35 +1,45 @@
-import { getAppUrl, getEmailTransporterConfig, createNodemailerTransporter } from './transporter';
+import {
+  getAppUrl,
+  getEmailTransporterConfig,
+  createNodemailerTransporter,
+} from "./transporter"
 
 export async function sendQuoteReviewReminderEmail(params: {
-  toEmail: string;
-  reviewerName: string;
+  toEmail: string
+  reviewerName: string
   pendingQuotes: Array<{
-    quoteNumber: string;
-    customerName: string;
-    preparedBy: string;
-    daysPending: number;
-  }>;
-  appUrl?: string;
+    quoteNumber: string
+    customerName: string
+    preparedBy: string
+    daysPending: number
+  }>
+  appUrl?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const { hasSmtp, from } = getEmailTransporterConfig();
-  const appUrl = params.appUrl || getAppUrl();
+  const { hasSmtp, from } = getEmailTransporterConfig()
+  const appUrl = params.appUrl || getAppUrl()
 
   if (!hasSmtp) {
-    console.log(`[Quote Reminder Email Simulated] To: ${params.toEmail}, Quotes: ${params.pendingQuotes.length}`);
-    return { success: true };
+    console.log(
+      `[Quote Reminder Email Simulated] To: ${params.toEmail}, Quotes: ${params.pendingQuotes.length}`
+    )
+    return { success: true }
   }
 
   try {
-    const transporter = createNodemailerTransporter();
+    const transporter = createNodemailerTransporter()
 
-    const quotesRows = params.pendingQuotes.map((q) => `
+    const quotesRows = params.pendingQuotes
+      .map(
+        (q) => `
       <tr style="border-bottom: 1px solid #e2e8f0;">
         <td style="padding: 12px 8px; font-weight: 700; color: #0f172a;">#${q.quoteNumber}</td>
         <td style="padding: 12px 8px; color: #334155;">${q.customerName}</td>
         <td style="padding: 12px 8px; color: #64748b;">${q.preparedBy}</td>
         <td style="padding: 12px 8px; color: #e11d48; font-weight: 600;">${q.daysPending} days ago</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join("")
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -43,7 +53,7 @@ export async function sendQuoteReviewReminderEmail(params: {
           </div>
           <p style="font-size: 15px; color: #1e293b; line-height: 1.5;">Hello <b>${params.reviewerName}</b>,</p>
           <p style="font-size: 14px; color: #475569; line-height: 1.5;">
-            You have <b>${params.pendingQuotes.length}</b> quote${params.pendingQuotes.length > 1 ? 's' : ''} waiting for your review for 3 or more days:
+            You have <b>${params.pendingQuotes.length}</b> quote${params.pendingQuotes.length > 1 ? "s" : ""} waiting for your review for 3 or more days:
           </p>
           <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 20px 0;">
             <thead>
@@ -69,68 +79,78 @@ export async function sendQuoteReviewReminderEmail(params: {
         </div>
       </body>
       </html>
-    `;
+    `
 
     await transporter.sendMail({
       from,
       to: params.toEmail,
-      subject: `Reminder: ${params.pendingQuotes.length} Quote${params.pendingQuotes.length > 1 ? 's' : ''} Pending Review (3+ days) - The Window & Door Store`,
+      subject: `Reminder: ${params.pendingQuotes.length} Quote${params.pendingQuotes.length > 1 ? "s" : ""} Pending Review (3+ days) - The Window & Door Store`,
       html: htmlContent,
-    });
+    })
 
-    return { success: true };
+    return { success: true }
   } catch (error: any) {
-    console.error('Failed to send quote reminder email:', error);
-    return { success: false, error: error.message };
+    console.error("Failed to send quote reminder email:", error)
+    return { success: false, error: error.message }
   }
 }
 
 export async function sendQuoteApprovedEmail(params: {
-  toEmail: string;
-  employeeName: string;
-  reviewerName: string;
-  quoteNumber: string;
-  customerName: string;
-  status: 'APPROVED' | 'MODIFIED' | 'RETURNED';
-  reviewChanges?: string[];
-  reviewerNotes?: string;
-  appUrl?: string;
+  toEmail: string
+  employeeName: string
+  reviewerName: string
+  quoteNumber: string
+  customerName: string
+  status: "APPROVED" | "MODIFIED" | "RETURNED"
+  reviewChanges?: string[]
+  reviewerNotes?: string
+  appUrl?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const { hasSmtp, from } = getEmailTransporterConfig();
-  const appUrl = params.appUrl || getAppUrl();
+  const { hasSmtp, from } = getEmailTransporterConfig()
+  const appUrl = params.appUrl || getAppUrl()
 
   if (!hasSmtp) {
-    console.log(`[Quote Approved Email Simulated] To: ${params.toEmail}, Status: ${params.status}`);
-    return { success: true };
+    console.log(
+      `[Quote Approved Email Simulated] To: ${params.toEmail}, Status: ${params.status}`
+    )
+    return { success: true }
   }
 
   try {
-    const transporter = createNodemailerTransporter();
+    const transporter = createNodemailerTransporter()
 
-    const isModified = params.status === 'MODIFIED';
-    const isReturned = params.status === 'RETURNED';
-    const statusLabel = isReturned ? 'Returned for Revision' : isModified ? 'Approved with Modifications' : 'Approved';
-    const statusColor = isReturned ? '#e11d48' : isModified ? '#d97706' : '#10b981';
+    const isModified = params.status === "MODIFIED"
+    const isReturned = params.status === "RETURNED"
+    const statusLabel = isReturned
+      ? "Returned for Revision"
+      : isModified
+        ? "Approved with Modifications"
+        : "Approved"
+    const statusColor = isReturned
+      ? "#e11d48"
+      : isModified
+        ? "#d97706"
+        : "#10b981"
 
-    let changesHtml = '';
+    let changesHtml = ""
     if (params.reviewChanges && params.reviewChanges.length > 0) {
       changesHtml = `
         <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px; margin: 16px 0;">
           <div style="font-weight: 700; font-size: 13px; color: #b45309; margin-bottom: 6px;">Changes Made by ${params.reviewerName}:</div>
           <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #78350f;">
-            ${params.reviewChanges.map((c) => `<li>${c}</li>`).join('')}
+            ${params.reviewChanges.map((c) => `<li>${c}</li>`).join("")}
           </ul>
         </div>
-      `;
+      `
     }
 
-    let notesHtml = '';
+    let notesHtml = ""
     if (params.reviewerNotes) {
       notesHtml = `
         <div style="background: #f8fafc; border-left: 3px solid #64748b; padding: 10px 14px; margin: 14px 0; font-size: 13px; color: #334155; font-style: italic;">
           "${params.reviewerNotes}"
         </div>
-      `;
+      `
     }
 
     const htmlContent = `
@@ -162,50 +182,52 @@ export async function sendQuoteApprovedEmail(params: {
         </div>
       </body>
       </html>
-    `;
+    `
 
     await transporter.sendMail({
       from,
       to: params.toEmail,
       subject: `Quote #${params.quoteNumber} (${params.customerName}) is ${statusLabel} - The Window & Door Store`,
       html: htmlContent,
-    });
+    })
 
-    return { success: true };
+    return { success: true }
   } catch (error: any) {
-    console.error('Failed to send quote approval email:', error);
-    return { success: false, error: error.message };
+    console.error("Failed to send quote approval email:", error)
+    return { success: false, error: error.message }
   }
 }
 
 export async function sendQuoteReviewRequestedEmail(params: {
-  toEmail: string;
-  reviewerName: string;
-  preparerName: string;
-  quoteNumber: string;
-  customerName: string;
-  preparerNotes?: string;
-  appUrl?: string;
+  toEmail: string
+  reviewerName: string
+  preparerName: string
+  quoteNumber: string
+  customerName: string
+  preparerNotes?: string
+  appUrl?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const { hasSmtp, from } = getEmailTransporterConfig();
-  const appUrl = params.appUrl || getAppUrl();
+  const { hasSmtp, from } = getEmailTransporterConfig()
+  const appUrl = params.appUrl || getAppUrl()
 
   if (!hasSmtp) {
-    console.log(`[Quote Review Request Email Simulated] To: ${params.toEmail}, Quote: #${params.quoteNumber}`);
-    return { success: true };
+    console.log(
+      `[Quote Review Request Email Simulated] To: ${params.toEmail}, Quote: #${params.quoteNumber}`
+    )
+    return { success: true }
   }
 
   try {
-    const transporter = createNodemailerTransporter();
+    const transporter = createNodemailerTransporter()
 
-    let notesHtml = '';
+    let notesHtml = ""
     if (params.preparerNotes) {
       notesHtml = `
         <div style="background: #f8fafc; border-left: 3px solid #2563eb; padding: 10px 14px; margin: 14px 0; font-size: 13px; color: #334155;">
           <div style="font-weight: 600; font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 3px;">Preparer Notes:</div>
           "${params.preparerNotes}"
         </div>
-      `;
+      `
     }
 
     const htmlContent = `
@@ -231,19 +253,18 @@ export async function sendQuoteReviewRequestedEmail(params: {
         </div>
       </body>
       </html>
-    `;
+    `
 
     await transporter.sendMail({
       from,
       to: params.toEmail,
       subject: `New Quote #${params.quoteNumber} (${params.customerName}) Assigned for Review - The Window & Door Store`,
       html: htmlContent,
-    });
+    })
 
-    return { success: true };
+    return { success: true }
   } catch (error: any) {
-    console.error('Failed to send quote review request email:', error);
-    return { success: false, error: error.message };
+    console.error("Failed to send quote review request email:", error)
+    return { success: false, error: error.message }
   }
 }
-

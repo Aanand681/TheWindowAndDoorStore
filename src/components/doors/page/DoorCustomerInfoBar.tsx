@@ -1,16 +1,16 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { User, Hash } from 'lucide-react';
+import React from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { User, Hash } from "lucide-react"
 
 interface DoorCustomerInfoBarProps {
-  customerName: string;
-  setCustomerName: (name: string) => void;
-  quoteNumber: string;
-  setQuoteNumber: (num: string) => void;
+  customerName: string
+  setCustomerName: (name: string) => void
+  quoteNumber: string
+  setQuoteNumber: (num: string) => void
 }
 
 export function DoorCustomerInfoBar({
@@ -20,37 +20,36 @@ export function DoorCustomerInfoBar({
   setQuoteNumber,
 }: DoorCustomerInfoBarProps) {
   return (
-    <Card className="bg-card/50 border-border backdrop-blur-xl shadow-sm">
+    <Card className="border-border bg-card/50 shadow-sm backdrop-blur-xl">
       <CardContent className="p-3.5 sm:p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-center">
-          <div className="sm:col-span-8 space-y-1">
-            <Label className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
-              <User className="w-3.5 h-3.5 text-primary" />
+        <div className="grid grid-cols-1 items-center gap-3.5 sm:grid-cols-12">
+          <div className="space-y-1 sm:col-span-8">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <User className="h-3.5 w-3.5 text-primary" />
               <span>Customer Name *</span>
             </Label>
             <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="e.g. John Doe, Lakeview Builders"
-              className="h-8.5 text-xs bg-background"
+              placeholder="Customer Name"
+              className="h-8.5 bg-background text-xs"
             />
           </div>
 
-          <div className="sm:col-span-4 space-y-1">
-            <Label className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
-              <Hash className="w-3.5 h-3.5 text-primary" />
+          <div className="space-y-1 sm:col-span-4">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <Hash className="h-3.5 w-3.5 text-primary" />
               <span>Quote Number *</span>
             </Label>
             <Input
               value={quoteNumber}
               onChange={(e) => setQuoteNumber(e.target.value)}
-              placeholder="e.g. Q-84920"
-              className="h-8.5 text-xs font-mono bg-background"
+              placeholder="Quote #"
+              className="h-8.5 bg-background font-mono text-xs"
             />
           </div>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
-

@@ -1,34 +1,34 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { detectQuoteChanges } from '@/lib/quote-diff';
+import { useState } from "react"
+import { toast } from "sonner"
+import { detectQuoteChanges } from "@/lib/quote-diff"
 
 export interface UseReviewOdooActionsParams {
-  user: any;
-  reviewQuoteId: string | null;
-  reviewQuote: any;
-  originalSnapshot: any;
-  quoteNumber: string;
-  windows: any[];
-  taxTotals: any;
-  quoteResult: any;
-  quoteNotes: string;
-  surchargeRate: number;
-  activePromoId: string;
-  customJC: string;
-  customMisc: string;
-  customLabour: string;
-  includeJCInPromo: boolean;
-  includeMiscInPromo: boolean;
-  includeLabourInPromo: boolean;
-  total: number;
-  selectedOdooClerk: string;
-  setSelectedOdooClerk: (clerk: string) => void;
-  staffList: any[];
-  clerkList: any[];
-  handleExitReview: () => void;
-  setReviewActionLoading: (loading: boolean) => void;
+  user: any
+  reviewQuoteId: string | null
+  reviewQuote: any
+  originalSnapshot: any
+  quoteNumber: string
+  windows: any[]
+  taxTotals: any
+  quoteResult: any
+  quoteNotes: string
+  surchargeRate: number
+  activePromoId: string
+  customJC: string
+  customMisc: string
+  customLabour: string
+  includeJCInPromo: boolean
+  includeMiscInPromo: boolean
+  includeLabourInPromo: boolean
+  total: number
+  selectedOdooClerk: string
+  setSelectedOdooClerk: (clerk: string) => void
+  staffList: any[]
+  clerkList: any[]
+  handleExitReview: () => void
+  setReviewActionLoading: (loading: boolean) => void
 }
 
 export function useReviewOdooActions({
@@ -57,27 +57,33 @@ export function useReviewOdooActions({
   handleExitReview,
   setReviewActionLoading,
 }: UseReviewOdooActionsParams) {
-  const [showApproveOdooModal, setShowApproveOdooModal] = useState<boolean>(false);
-  const [showCompleteOdooModal, setShowCompleteOdooModal] = useState<boolean>(false);
-  const [odooOrderNumberInput, setOdooOrderNumberInput] = useState<string>('');
+  const [showApproveOdooModal, setShowApproveOdooModal] =
+    useState<boolean>(false)
+  const [showCompleteOdooModal, setShowCompleteOdooModal] =
+    useState<boolean>(false)
+  const [odooOrderNumberInput, setOdooOrderNumberInput] = useState<string>("")
 
   const handleApproveReviewQuote = () => {
-    if (!reviewQuoteId) return;
+    if (!reviewQuoteId) return
     const defaultClerk =
-      (clerkList.length > 0 ? clerkList : staffList).find((c: any) => c.department === 'CLERK') ||
+      (clerkList.length > 0 ? clerkList : staffList).find(
+        (c: any) => c.department === "CLERK"
+      ) ||
       clerkList[0] ||
-      staffList[0];
-    setSelectedOdooClerk(reviewQuote?.odooAssignedTo || defaultClerk?.username || '');
-    setShowApproveOdooModal(true);
-  };
+      staffList[0]
+    setSelectedOdooClerk(
+      reviewQuote?.odooAssignedTo || defaultClerk?.username || ""
+    )
+    setShowApproveOdooModal(true)
+  }
 
   const confirmApproveReviewQuote = async () => {
-    if (!reviewQuoteId) return;
+    if (!reviewQuoteId) return
     if (!selectedOdooClerk) {
-      toast.error('Please select an Odoo clerk before approving the quote.');
-      return;
+      toast.error("Please select an Odoo clerk before approving the quote.")
+      return
     }
-    setReviewActionLoading(true);
+    setReviewActionLoading(true)
 
     const currentQuoteState = {
       windows,
@@ -93,16 +99,19 @@ export function useReviewOdooActions({
       includeMiscInPromo,
       includeLabourInPromo,
       quoteSummaryTotal: total,
-    };
+    }
 
-    const reviewChanges = detectQuoteChanges(originalSnapshot, currentQuoteState);
-    const finalStatus = reviewChanges.length > 0 ? 'MODIFIED' : 'APPROVED';
+    const reviewChanges = detectQuoteChanges(
+      originalSnapshot,
+      currentQuoteState
+    )
+    const finalStatus = reviewChanges.length > 0 ? "MODIFIED" : "APPROVED"
 
     try {
       const payload: any = {
         status: finalStatus,
         reviewChanges,
-        reviewerNotes: `Reviewed and approved by ${user?.username || 'Admin'}`,
+        reviewerNotes: `Reviewed and approved by ${user?.username || "Admin"}`,
         windows,
         taxTotals,
         quoteResult,
@@ -117,59 +126,61 @@ export function useReviewOdooActions({
         includeLabourInPromo,
         quoteSummaryTotal: total,
         odooAssignedTo: selectedOdooClerk,
-      };
+      }
 
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to approve');
-      toast.success(`Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`);
-      setShowApproveOdooModal(false);
-      handleExitReview();
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to approve")
+      toast.success(
+        `Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
+      )
+      setShowApproveOdooModal(false)
+      handleExitReview()
     } catch (err: any) {
-      toast.error(err.message || 'Failed to approve quote');
+      toast.error(err.message || "Failed to approve quote")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   const handleCompleteOdooEntry = async () => {
-    if (!reviewQuoteId) return;
-    const orderNumber = odooOrderNumberInput.trim();
+    if (!reviewQuoteId) return
+    const orderNumber = odooOrderNumberInput.trim()
     if (!orderNumber) {
-      toast.error('Please enter the Odoo Sales Order # before confirming.');
-      return;
+      toast.error("Please enter the Odoo Sales Order # before confirming.")
+      return
     }
-    setReviewActionLoading(true);
+    setReviewActionLoading(true)
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          odooStatus: 'COMPLETED',
+          odooStatus: "COMPLETED",
           odooOrderNumber: orderNumber,
         }),
-      });
-      const data = await res.json();
+      })
+      const data = await res.json()
       if (res.ok) {
         toast.success(
           `Quote #${reviewQuote.quoteNumber} marked as entered in Odoo with Order #${orderNumber}!`
-        );
-        setShowCompleteOdooModal(false);
-        setOdooOrderNumberInput('');
-        handleExitReview();
+        )
+        setShowCompleteOdooModal(false)
+        setOdooOrderNumberInput("")
+        handleExitReview()
       } else {
-        toast.error(data.error || 'Failed to update Odoo status');
+        toast.error(data.error || "Failed to update Odoo status")
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update Odoo status');
+      toast.error(err.message || "Failed to update Odoo status")
     } finally {
-      setReviewActionLoading(false);
+      setReviewActionLoading(false)
     }
-  };
+  }
 
   return {
     showApproveOdooModal,
@@ -181,6 +192,5 @@ export function useReviewOdooActions({
     handleApproveReviewQuote,
     confirmApproveReviewQuote,
     handleCompleteOdooEntry,
-  };
+  }
 }
-

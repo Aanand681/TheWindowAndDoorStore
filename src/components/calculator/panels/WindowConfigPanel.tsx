@@ -1,61 +1,65 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { WindowConfigurationsCard } from '@/components/calculator/WindowConfigurationsCard';
-import { SupplyJambCasingCard } from '@/components/calculator/SupplyJambCasingCard';
-import { PromoComparisonGrid } from '@/components/calculator/PromoComparisonGrid';
-import { UIWindowItem } from '@/hooks/useCalculatorWindows';
+import React from "react"
+import { WindowConfigurationsCard } from "@/components/calculator/WindowConfigurationsCard"
+import { SupplyJambCasingCard } from "@/components/calculator/SupplyJambCasingCard"
+import { PromoComparisonGrid } from "@/components/calculator/PromoComparisonGrid"
+import { UIWindowItem } from "@/hooks/useCalculatorWindows"
 
 export interface WindowConfigPanelProps {
-  windows: UIWindowItem[];
-  surchargeRate: number;
-  quoteNumber: string;
-  setQuoteNumber: (num: string) => void;
-  customerName: string;
-  setCustomerName: (name: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handlePdfUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handlePdfImportClick: () => void;
-  isReadOnly: boolean;
-  onResetQuote: () => void;
-  handleWindowChange: (id: string, field: keyof UIWindowItem, value: string) => void;
-  handleRemoveWindow: (id: string) => void;
-  handleAddWindow: () => void;
-  windowEndRef: React.RefObject<HTMLDivElement | null>;
-  isSupplyOnly: boolean;
-  setIsSupplyOnly: (val: boolean) => void;
-  onOpenCompareModal: () => void;
-  attachedUpgrade: any;
-  onRemoveAttachedUpgrade: () => void;
-  attachedSealedUnit: any;
-  attachedDoorQuote: any;
-  onOpenAttachSealedUnitModal: () => void;
-  onRemoveAttachedSealedUnit: () => void;
-  onRemoveAttachedDoorQuote: () => void;
-  onSaveDraft: () => void;
-  onOpenSavedQuotes: () => void;
-  savedDraftsCount?: number;
+  windows: UIWindowItem[]
+  surchargeRate: number
+  quoteNumber: string
+  setQuoteNumber: (num: string) => void
+  customerName: string
+  setCustomerName: (name: string) => void
+  fileInputRef: React.RefObject<HTMLInputElement | null>
+  handlePdfUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
+  handlePdfImportClick: () => void
+  isReadOnly: boolean
+  onResetQuote: () => void
+  handleWindowChange: (
+    id: string,
+    field: keyof UIWindowItem,
+    value: string
+  ) => void
+  handleRemoveWindow: (id: string) => void
+  handleAddWindow: () => void
+  windowEndRef: React.RefObject<HTMLDivElement | null>
+  isSupplyOnly: boolean
+  setIsSupplyOnly: (val: boolean) => void
+  onOpenCompareModal: () => void
+  attachedUpgrade: any
+  onRemoveAttachedUpgrade: () => void
+  attachedSealedUnit: any
+  attachedDoorQuote: any
+  onOpenAttachSealedUnitModal: () => void
+  onRemoveAttachedSealedUnit: () => void
+  onRemoveAttachedDoorQuote: () => void
+  onSaveDraft: () => void
+  onOpenSavedQuotes: () => void
+  savedDraftsCount?: number
 
   // Supply only options
-  supplyJambId: string;
-  setSupplyJambId: (id: string) => void;
-  supplyJambName: string;
-  setSupplyJambName: (name: string) => void;
-  supplyJambRate: string;
-  setSupplyJambRate: (rate: string) => void;
-  supplyCasingId: string;
-  setSupplyCasingId: (id: string) => void;
-  supplyCasingName: string;
-  setSupplyCasingName: (name: string) => void;
-  supplyCasingRate: string;
-  setSupplyCasingRate: (rate: string) => void;
-  onSupplyJCCalculated: (data: any) => void;
+  supplyJambId: string
+  setSupplyJambId: (id: string) => void
+  supplyJambName: string
+  setSupplyJambName: (name: string) => void
+  supplyJambRate: string
+  setSupplyJambRate: (rate: string) => void
+  supplyCasingId: string
+  setSupplyCasingId: (id: string) => void
+  supplyCasingName: string
+  setSupplyCasingName: (name: string) => void
+  supplyCasingRate: string
+  setSupplyCasingRate: (rate: string) => void
+  onSupplyJCCalculated: (data: any) => void
 
   // Promo Grid
-  compareOptions: any[];
-  activePromoId: string;
-  setActivePromoId: (id: string) => void;
-  setLockedPromoId: (id: string | null) => void;
+  compareOptions: any[]
+  activePromoId: string
+  setActivePromoId: (id: string) => void
+  setLockedPromoId: (id: string | null) => void
 }
 
 export function WindowConfigPanel({
@@ -165,5 +169,5 @@ export function WindowConfigPanel({
         setLockedPromoId={setLockedPromoId}
       />
     </div>
-  );
+  )
 }
