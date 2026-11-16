@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 const MapComponent = dynamic(() => import("@/components/admin/MapComponent"), {
   ssr: false,
@@ -168,9 +169,14 @@ export function TravelSetupCard({
                   disabled={readOnly}
                   className="h-9 font-mono text-xs"
                   type="number"
+                  min="0"
+                  step="any"
                   value={manualKm === "0" ? "" : manualKm}
+                  onKeyDown={blockNegativeKey}
                   onChange={(e) =>
-                    setManualKm(e.target.value.replace(/^0+(?=\d)/, ""))
+                    setManualKm(
+                      sanitizeNonNegativeNumber(e.target.value).replace(/^0+(?=\d)/, "")
+                    )
                   }
                 />
               </div>
@@ -204,9 +210,14 @@ export function TravelSetupCard({
                   disabled={readOnly || crew === "none"}
                   className="h-9 font-mono text-xs"
                   type="number"
+                  min="0"
+                  step="any"
                   value={manualHours === "0" ? "" : manualHours}
+                  onKeyDown={blockNegativeKey}
                   onChange={(e) =>
-                    setManualHours(e.target.value.replace(/^0+(?=\d)/, ""))
+                    setManualHours(
+                      sanitizeNonNegativeNumber(e.target.value).replace(/^0+(?=\d)/, "")
+                    )
                   }
                 />
               </div>

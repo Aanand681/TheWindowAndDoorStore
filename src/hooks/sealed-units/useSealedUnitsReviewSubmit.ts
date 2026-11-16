@@ -4,6 +4,10 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseSealedUnitsReviewSubmitProps {
   user: any
@@ -19,6 +23,13 @@ interface UseSealedUnitsReviewSubmitProps {
   selectedOdooClerk: string
   attachedWindowQuote?: any
   attachedDoorQuote?: any
+  selectedRegionId?: string
+  travelFeeType?: string
+  customTravelFee?: string
+  showOutTownTravel?: boolean
+  travelKm?: string
+  crewHours?: string
+  crewSize?: string
 }
 
 export function useSealedUnitsReviewSubmit({
@@ -35,6 +46,13 @@ export function useSealedUnitsReviewSubmit({
   selectedOdooClerk,
   attachedWindowQuote,
   attachedDoorQuote,
+  selectedRegionId,
+  travelFeeType,
+  customTravelFee,
+  showOutTownTravel,
+  travelKm,
+  crewHours,
+  crewSize,
 }: UseSealedUnitsReviewSubmitProps) {
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
   const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
@@ -65,13 +83,29 @@ export function useSealedUnitsReviewSubmit({
       adminSubmitMode === "direct_approve"
     )
 
+    const effectiveReviewer =
+      assignedReviewer &&
+      assignedReviewer.toLowerCase() !== user?.username?.toLowerCase()
+        ? assignedReviewer
+        : ""
+
     if (isDirectApprove && !selectedOdooClerk) {
       toast.error("Please select an Odoo clerk to assign this quote to")
       return
     }
-    if (!isDirectApprove && !assignedReviewer) {
-      toast.error("Please select a reviewer to submit this quote to")
-      return
+    if (!isDirectApprove) {
+      if (!effectiveReviewer) {
+        toast.error(
+          "Please select another reviewer. You cannot submit a quote to yourself."
+        )
+        return
+      }
+      if (effectiveReviewer.toLowerCase() === user?.username?.toLowerCase()) {
+        toast.error(
+          "You cannot submit a quote for review to yourself. Please select another team member."
+        )
+        return
+      }
     }
 
     setSubmittingQuote(true)
@@ -106,13 +140,23 @@ export function useSealedUnitsReviewSubmit({
         body: JSON.stringify({
           quoteNumber,
           customerName,
-          assignedTo: isDirectApprove ? user?.username || "" : assignedReviewer,
+          assignedTo: isDirectApprove ? user?.username || "" : effectiveReviewer,
           directApprove: isDirectApprove,
           odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
           preparerNotes,
           quoteNotes,
           attachedWindowQuote,
           attachedDoorQuote,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
+          selectedRegionId,
+          travelFeeType,
+          customTravelFee,
+          showOutTownTravel,
+          travelKm,
+          crewHours,
+          crewSize,
+          hstRate,
           windows: effectiveLineItems,
           taxTotals: {
             isSupplyOnly: !isInstallation,
@@ -148,7 +192,7 @@ export function useSealedUnitsReviewSubmit({
         )
       } else {
         toast.success(
-          `Quote #${quoteNumber} submitted to ${assignedReviewer} for review!`
+          `Quote #${quoteNumber} submitted to ${effectiveReviewer} for review!`
         )
       }
       setShowSubmitModal(false)

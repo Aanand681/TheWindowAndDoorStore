@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { AppHeader } from "@/components/layout/AppHeader"
 import { useAdminStaff } from "@/hooks/admin/useAdminStaff"
 import { useAdminDepartments } from "@/hooks/admin/useAdminDepartments"
 import {
@@ -19,9 +20,9 @@ export default function StaffDirectory() {
   })
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
       {/* Background radial gradient accent */}
-      <div className="pointer-events-none absolute top-0 left-1/2 h-[400px] w-[1000px] -translate-x-1/2 rounded-full bg-primary/5 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
       {/* Staff Delete Confirmation Modal */}
       <StaffDeleteModal
@@ -66,7 +67,8 @@ export default function StaffDirectory() {
         handleCreateDepartment={depts.handleCreateDepartment}
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
+        <AppHeader currentPath="/admin/staff" />
         <AdminStaffHeader
           onOpenDeptModal={() => depts.setShowDeptModal(true)}
         />

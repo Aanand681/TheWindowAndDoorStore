@@ -121,5 +121,6 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     showResetModal: base.showResetModal,
     setShowResetModal: base.setShowResetModal,
     handleConfirmReset: drafts.handleConfirmReset,
+    handleSaveDraft: drafts.handleSaveDraft,
   }
 }

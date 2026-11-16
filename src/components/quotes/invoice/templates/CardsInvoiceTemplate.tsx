@@ -19,6 +19,8 @@ export interface CardsInvoiceTemplateProps {
   quoteNotes?: string
   globalUpcharges?: any[]
   isDualOption?: boolean
+  attachedInstallOption?: any | null
+  customOptions?: any[] | null
 }
 
 export function CardsInvoiceTemplate({
@@ -33,6 +35,8 @@ export function CardsInvoiceTemplate({
   quoteNotes,
   globalUpcharges,
   isDualOption = false,
+  attachedInstallOption = null,
+  customOptions = null,
 }: CardsInvoiceTemplateProps) {
   const {
     titleFs,
@@ -141,6 +145,8 @@ export function CardsInvoiceTemplate({
           attachedUpgrade={attachedUpgrade}
           quoteNotes={quoteNotes}
           isDualOption={isDualOption}
+          attachedInstallOption={attachedInstallOption}
+          customOptions={customOptions}
         />
 
         {/* Right Column: Financial Summary Card */}

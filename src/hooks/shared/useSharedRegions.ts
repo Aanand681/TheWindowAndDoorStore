@@ -32,7 +32,7 @@ export function useSharedRegions(defaultRegionName = "Fort Frances") {
               valid.find((r: any) =>
                 r.name.toLowerCase().includes(defaultRegionName.toLowerCase())
               ) || valid[0]
-            setSelectedRegionId(defaultReg._id)
+            setSelectedRegionId((prev) => (prev ? prev : defaultReg._id))
           }
         }
       })

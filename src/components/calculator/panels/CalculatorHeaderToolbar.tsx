@@ -135,7 +135,7 @@ export function CalculatorHeaderToolbar({
                 title="Compare Promo Option A vs Option B"
               >
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span>Compare PDF</span>
+                <span>Compare Opt</span>
               </Button>
             )}
 

@@ -19,6 +19,8 @@ export interface ModernInvoiceTemplateProps {
   quoteNotes?: string
   globalUpcharges?: any[]
   isDualOption?: boolean
+  attachedInstallOption?: any | null
+  customOptions?: any[] | null
 }
 
 export function ModernInvoiceTemplate({
@@ -33,6 +35,8 @@ export function ModernInvoiceTemplate({
   quoteNotes,
   globalUpcharges,
   isDualOption = false,
+  attachedInstallOption = null,
+  customOptions = null,
 }: ModernInvoiceTemplateProps) {
   const {
     titleFs,
@@ -145,6 +149,8 @@ export function ModernInvoiceTemplate({
           attachedUpgrade={attachedUpgrade}
           quoteNotes={quoteNotes}
           isDualOption={isDualOption}
+          attachedInstallOption={attachedInstallOption}
+          customOptions={customOptions}
         />
 
         {/* Right Column: Financial Summary */}

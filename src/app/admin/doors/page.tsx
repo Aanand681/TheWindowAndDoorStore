@@ -1,9 +1,10 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { DoorClosed, Wrench, Percent, Truck } from "lucide-react"
 import { AppHeader } from "@/components/layout/AppHeader"
+import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
 import { useAdminDoors } from "@/hooks/admin/useAdminDoors"
 import {
   AdminDoorsHeader,
@@ -14,6 +15,7 @@ import {
 } from "@/components/admin/doors"
 
 export default function AdminDoorsPage() {
+  const [showHistory, setShowHistory] = useState(false)
   const {
     presets,
     upcharges,
@@ -26,7 +28,8 @@ export default function AdminDoorsPage() {
     activeTab,
     setActiveTab,
     handleSave,
-    handleResetDefaults,
+    handleDiscardChanges,
+    handleRestoreVersion,
     handleUpdatePreset,
     handleAddPreset,
     handleDeletePreset,
@@ -43,10 +46,20 @@ export default function AdminDoorsPage() {
         <AppHeader currentPath="/admin/doors" />
 
         <AdminDoorsHeader
-          onResetDefaults={handleResetDefaults}
+          onDiscardChanges={handleDiscardChanges}
+          onOpenHistory={() => setShowHistory(true)}
           onSave={handleSave}
           saving={saving}
           loading={loading}
+        />
+
+        {/* Pricing History Version Modal */}
+        <PricingHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          category="DOORS"
+          title="Door Labour & Pricing"
+          onRestoreVersion={handleRestoreVersion}
         />
 
         {/* Tabs Container */}

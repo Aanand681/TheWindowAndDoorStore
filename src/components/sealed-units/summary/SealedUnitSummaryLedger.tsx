@@ -116,7 +116,7 @@ export function SealedUnitSummaryLedger({
           <>
             {lineItemsCount > 0 && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                <span className="truncate font-medium text-muted-foreground capitalize">
+                <span className="truncate font-medium text-foreground capitalize">
                   {formatSealedUnitSummarySentence(lineItems)}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -127,7 +127,7 @@ export function SealedUnitSummaryLedger({
 
             {hasAttachedWindow && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                <span className="truncate font-medium text-muted-foreground">
+                <span className="truncate font-medium text-foreground">
                   {attachedWinSentence}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -138,7 +138,7 @@ export function SealedUnitSummaryLedger({
 
             {hasAttachedWindow && winJC > 0 && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                <span className="truncate font-medium text-muted-foreground">
+                <span className="truncate font-medium text-foreground">
                   {winJCDescription}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -155,7 +155,7 @@ export function SealedUnitSummaryLedger({
                     key={dItem.id || dIdx}
                     className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
                   >
-                    <span className="truncate font-medium text-muted-foreground">
+                    <span className="truncate font-medium text-foreground">
                       {formatDoorItemHeading(dItem)}
                     </span>
                     <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -168,7 +168,7 @@ export function SealedUnitSummaryLedger({
                 ))
               ) : (
                 <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                  <span className="truncate font-medium text-muted-foreground">
+                  <span className="truncate font-medium text-foreground">
                     {attachedDoorSentence}
                   </span>
                   <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -180,7 +180,7 @@ export function SealedUnitSummaryLedger({
             {hasAttachedDoor &&
               Boolean(attachedDoorQuote?.totals?.hardwareTotal > 0) && (
                 <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                  <span className="truncate font-medium text-muted-foreground">
+                  <span className="truncate font-medium text-foreground">
                     Door Lockset &amp; Hardware
                   </span>
                   <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -192,7 +192,18 @@ export function SealedUnitSummaryLedger({
 
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-                <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  Misc {hasAnyAttached ? "(all quotes combined)" : ""}
+                </span>
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                  +${combinedMisc.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {(isInstallation || hasAnyAttached) && (
+              <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+                <span className="font-medium text-foreground">
                   Labour{" "}
                   {hasAnyAttached
                     ? "(all quotes combined)"
@@ -204,23 +215,12 @@ export function SealedUnitSummaryLedger({
               </div>
             )}
 
-            {(isInstallation || hasAnyAttached) && (
-              <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-                <span className="text-muted-foreground">
-                  Misc {hasAnyAttached ? "(all quotes combined)" : ""}
-                </span>
-                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                  +${combinedMisc.toFixed(2)}
-                </span>
-              </div>
-            )}
-
             <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-              <span className="text-muted-foreground">
+              <span className="font-medium text-foreground">
                 Surcharge{" "}
                 {hasAnyAttached ? "(8% on materials)" : "(8% Glass Surcharge)"}
               </span>
-              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-muted-foreground">
+              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 +${combinedSurcharge.toFixed(2)}
               </span>
             </div>

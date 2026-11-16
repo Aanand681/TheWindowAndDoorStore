@@ -11,11 +11,16 @@ import {
 
 export interface UseReviewQuoteSubmissionsParams
   extends
-    UseQuoteReviewSubmissionStateParams,
+    Omit<
+      UseQuoteReviewSubmissionStateParams,
+      "setReviewQuote" | "setOriginalSnapshot" | "setIsEditMode"
+    >,
     Omit<
       UseReviewWorkflowActionsParams,
       "selectedOdooClerk" | "setSelectedOdooClerk" | "staffList" | "clerkList"
-    > {}
+    > {
+  setReviewQuoteId?: (id: string | null) => void
+}
 
 export function useReviewQuoteSubmissions(
   params: UseReviewQuoteSubmissionsParams

@@ -86,6 +86,20 @@ export async function buildQuoteUpdatePayload(p: {
     }
   }
 
+  if (body.assignedTo !== undefined) {
+    if (
+      body.assignedTo &&
+      reviewerUsername &&
+      body.assignedTo.trim().toLowerCase() ===
+        reviewerUsername.trim().toLowerCase()
+    ) {
+      return {
+        error: "You cannot assign or forward a quote for review to yourself.",
+        statusCode: 400,
+      }
+    }
+  }
+
   const updateData: any = {}
 
   const scalarFields = [
@@ -111,6 +125,18 @@ export async function buildQuoteUpdatePayload(p: {
     "attachedSealedUnit",
     "attachedDoorQuote",
     "attachedWindowQuote",
+    "attachedInstallOption",
+    "customOptions",
+    "selectedRegionId",
+    "regionName",
+    "travelFeeType",
+    "customTravelFee",
+    "showOutTownTravel",
+    "travelKm",
+    "crewHours",
+    "crewSize",
+    "hstRate",
+    "isFirstNation",
     "supplyJambId",
     "supplyJambRate",
     "supplyCasingId",
@@ -203,6 +229,18 @@ export async function buildQuoteUpdatePayload(p: {
     attachedSealedUnit: existingQuote.attachedSealedUnit,
     attachedDoorQuote: existingQuote.attachedDoorQuote,
     attachedWindowQuote: existingQuote.attachedWindowQuote,
+    attachedInstallOption: existingQuote.attachedInstallOption,
+    customOptions: existingQuote.customOptions,
+    selectedRegionId: existingQuote.selectedRegionId,
+    regionName: existingQuote.regionName,
+    travelFeeType: existingQuote.travelFeeType,
+    customTravelFee: existingQuote.customTravelFee,
+    showOutTownTravel: existingQuote.showOutTownTravel,
+    travelKm: existingQuote.travelKm,
+    crewHours: existingQuote.crewHours,
+    crewSize: existingQuote.crewSize,
+    hstRate: existingQuote.hstRate,
+    isFirstNation: existingQuote.isFirstNation,
     supplyJambId: existingQuote.supplyJambId,
     supplyJambRate: existingQuote.supplyJambRate,
     supplyCasingId: existingQuote.supplyCasingId,

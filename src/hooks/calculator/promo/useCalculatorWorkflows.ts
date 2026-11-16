@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { generateId } from "@/hooks/useCalculatorWindows"
 import { useCalculatorComparison } from "@/hooks/calculator/useCalculatorComparison"
 import { useCalculatorReviewActions } from "@/hooks/useCalculatorReviewActions"
+import { clearAllQuoteSessionState } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export function useCalculatorWorkflows(p: {
   base: any
@@ -85,7 +86,8 @@ export function useCalculatorWorkflows(p: {
     comparison.setIsComparisonStaging(false)
     comparison.setBaseSnapshotA(null)
     pricing.resetPricingOverrides()
-    drafts.resetDraftState()
+    drafts?.resetDraftState?.()
+    clearAllQuoteSessionState()
   }
 
   const handleConfirmReset = () => {

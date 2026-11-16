@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
+import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
 import {
   DEFAULT_SEALED_UNIT_COMBOS,
   DEFAULT_FORMULA_CONSTANTS,
@@ -104,6 +105,27 @@ export async function PUT(request: Request) {
 
     // Invalidate Redis cache
     cacheDel("sealed_units:settings").catch(() => {})
+
+    // Record pricing history snapshot
+    const savedBy =
+      (session.user as any)?.name ||
+      (session.user as any)?.email ||
+      (session.user as any)?.username ||
+      "Admin"
+
+    recordPricingSnapshot(
+      "SEALED_UNITS",
+      {
+        combos: plain.combos,
+        formula: plain.formula,
+        labour: plain.labour,
+        thicknessBreaks: plain.thicknessBreaks,
+        grills: plain.grills,
+      },
+      savedBy
+    ).catch((err) =>
+      console.error("Error saving Sealed Unit settings snapshot:", err)
+    )
 
     return NextResponse.json({
       message: "Sealed Unit settings updated successfully",

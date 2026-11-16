@@ -84,7 +84,7 @@ export function DoorQuoteSummaryCard({
 
   useEffect(() => {
     setAttachedInstallOption(readSessionAttachedInstallOption())
-  }, [])
+  }, [mode, quoteNumber])
   const isInstallation = mode === "installation"
   const upgradeItems = lineItems.filter((i) => i.upgradeOption?.enabled)
 
@@ -202,12 +202,16 @@ export function DoorQuoteSummaryCard({
             attachedWindowQuote={attachedWindowQuote}
             attachedSealedUnit={attachedSealedUnit}
             attachedInstallOption={attachedInstallOption}
+            mode={mode}
             onRemoveAttachedWindowQuote={onRemoveAttachedWindowQuote}
             onRemoveAttachedSealedUnit={onRemoveAttachedSealedUnit}
             onRemoveAttachedInstallOption={() => {
               setAttachedInstallOption(null)
               writeSessionAttachedInstallOption(null)
             }}
+            dynamicInstallDeltaDollars={
+              isInstallation ? combinedLabour + combinedMisc : undefined
+            }
           />
 
           <DoorSummaryLedger
@@ -255,8 +259,6 @@ export function DoorQuoteSummaryCard({
 
           <DoorSummaryUpgrades
             upgradeItems={upgradeItems}
-            hasAttachedWindow={hasAttachedWindow}
-            attachedWindowQuote={attachedWindowQuote}
           />
 
           <DoorSummaryActions
@@ -305,9 +307,6 @@ export function DoorQuoteSummaryCard({
         onToggleAttachOption={(att, c) => {
           const opt = att ? { enabled: true, amountPreTaxCents: c } : null
           setAttachedInstallOption(opt)
-          if (att && mode !== "supply_only") {
-            onModeChange("supply_only")
-          }
         }}
       />
     </>

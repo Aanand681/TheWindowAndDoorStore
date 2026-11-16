@@ -1,15 +1,24 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import {
   saveActiveAutoSave,
   clearActiveAutoSave,
+  flushAutoSaveDraftToServer,
 } from "@/lib/quote-drafts-storage"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+  CUSTOM_OPTIONS_CHANGE_EVENT,
+  ATTACHED_INSTALL_CHANGE_EVENT,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface UseCalculatorAutoSaveParams {
   initialReviewQuoteId?: string | null
+  reviewQuoteId?: string | null
+  isReviewMode?: boolean
   windows: any[]
   customerName: string
   quoteNumber: string
@@ -45,6 +54,8 @@ export interface UseCalculatorAutoSaveParams {
 export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
   const {
     initialReviewQuoteId,
+    reviewQuoteId,
+    isReviewMode,
     windows,
     customerName,
     quoteNumber,
@@ -77,9 +88,41 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     enabled = true,
   } = params
 
+  const inReview = Boolean(
+    isReviewMode || reviewQuoteId || initialReviewQuoteId
+  )
+
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [optionsHash, setOptionsHash] = useState(() =>
+    JSON.stringify({
+      c: readSessionCustomOptions(),
+      a: readSessionAttachedInstallOption(),
+    })
+  )
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const serverSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedFingerprintRef = useRef<string | null>(null)
+  const lastServerSyncFingerprintRef = useRef<string | null>(null)
+  const currentPayloadRef = useRef<any>(null)
+
+  useEffect(() => {
+    const updateHash = () => {
+      setOptionsHash(
+        JSON.stringify({
+          c: readSessionCustomOptions(),
+          a: readSessionAttachedInstallOption(),
+        })
+      )
+    }
+    window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+    window.addEventListener("storage", updateHash)
+    return () => {
+      window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+      window.removeEventListener("storage", updateHash)
+    }
+  }, [])
 
   // Compute a deterministic fingerprint of user inputs to avoid re-arming auto-save
   // on ephemeral re-renders or internal calculation reference updates
@@ -121,6 +164,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       dr: attachedDoorQuote
         ? `${attachedDoorQuote.quoteNumber || ""}-${attachedDoorQuote.totals?.grandTotal || ""}`
         : null,
+      opts: optionsHash,
     })
   }, [
     windows,
@@ -145,10 +189,153 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     wantsUpgrade,
     attachedSealedUnit,
     attachedDoorQuote,
+    optionsHash,
+  ])
+
+  const buildPayload = useCallback(() => {
+    const validWindows = windows.filter(
+      (w) =>
+        (w.base && parseFloat(w.base) > 0) ||
+        (w.w && w.w.trim() !== "") ||
+        (w.h && w.h.trim() !== "")
+    )
+    const financials = computeCombinedQuoteFinancials({
+      quoteResult,
+      afterDiscount,
+      total,
+      attachedSealedUnit,
+      attachedDoorQuote,
+      effectiveJC,
+      effectiveMisc,
+      effectiveLabour,
+      hstRate,
+    })
+
+    return {
+      type: "window" as const,
+      quoteNumber: quoteNumber || "Draft",
+      customerName: customerName || "",
+      itemCount: validWindows.length,
+      grandTotal: financials.grandTotalDollars,
+      summaryLabel: formatWindowSummarySentence(validWindows),
+      data: {
+        quoteNumber,
+        customerName,
+        quoteNotes,
+        surchargeRate,
+        windows,
+        activePromoId,
+        isSupplyOnly,
+        supplyJambId,
+        supplyJambRate,
+        supplyCasingId,
+        supplyCasingRate,
+        customJC: customJC !== "" ? parseFloat(customJC) : undefined,
+        customMisc: customMisc !== "" ? parseFloat(customMisc) : undefined,
+        customLabour:
+          customLabour !== "" ? parseFloat(customLabour) : undefined,
+        includeJCInPromo,
+        includeMiscInPromo,
+        includeLabourInPromo,
+        hstRate,
+        attachedUpgrade,
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        selectedRegionId: taxTotals?.selectedRegionId,
+        regionName: taxTotals?.regionName,
+        attachedSealedUnit,
+        attachedDoorQuote,
+        wantsUpgrade,
+        effectiveBase: (quoteResult?.base || 0) / 100,
+        effectiveSurcharge: (quoteResult?.surcharge || 0) / 100,
+        effectiveLabour: effectiveLabour / 100,
+        effectiveMisc: effectiveMisc / 100,
+        effectiveJC: effectiveJC / 100,
+        taxTotals,
+        quoteResult,
+        subtotal: financials.subtotalDollars,
+        grandTotal: financials.grandTotalDollars,
+        itemCount: windows.length,
+      },
+    }
+  }, [
+    windows,
+    quoteResult,
+    afterDiscount,
+    total,
+    attachedSealedUnit,
+    attachedDoorQuote,
+    effectiveJC,
+    effectiveMisc,
+    effectiveLabour,
+    hstRate,
+    quoteNumber,
+    customerName,
+    quoteNotes,
+    surchargeRate,
+    activePromoId,
+    isSupplyOnly,
+    supplyJambId,
+    supplyJambRate,
+    supplyCasingId,
+    supplyCasingRate,
+    customJC,
+    customMisc,
+    customLabour,
+    includeJCInPromo,
+    includeMiscInPromo,
+    includeLabourInPromo,
+    attachedUpgrade,
+    wantsUpgrade,
+    taxTotals,
+    optionsHash,
   ])
 
   useEffect(() => {
-    if (!enabled || initialReviewQuoteId) return
+    currentPayloadRef.current = buildPayload()
+  }, [buildPayload])
+
+  const flushToServer = useCallback(() => {
+    if (!enabled || inReview) return
+    if (!currentPayloadRef.current) return
+    const payload = currentPayloadRef.current
+    if (!payload.quoteNumber?.trim() && !payload.customerName?.trim()) return
+    if (payload.itemCount === 0 && !payload.customerName?.trim()) return
+
+    flushAutoSaveDraftToServer(payload)
+    lastServerSyncFingerprintRef.current = inputFingerprint
+  }, [enabled, inReview, inputFingerprint])
+
+  // Boundary Event Flush: Flush draft to DB on tab switch (visibilitychange) and window close (pagehide)
+  useEffect(() => {
+    if (!enabled || inReview) return
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "hidden" &&
+        lastServerSyncFingerprintRef.current !== inputFingerprint
+      ) {
+        flushToServer()
+      }
+    }
+
+    const handlePageHide = () => {
+      if (lastServerSyncFingerprintRef.current !== inputFingerprint) {
+        flushToServer()
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("pagehide", handlePageHide)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("pagehide", handlePageHide)
+    }
+  }, [enabled, inReview, inputFingerprint, flushToServer])
+
+  useEffect(() => {
+    if (!enabled || inReview) return
 
     const validWindows = windows.filter(
       (w) =>
@@ -172,6 +359,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     if (!hasContent) {
       clearActiveAutoSave("window")
       lastSavedFingerprintRef.current = null
+      lastServerSyncFingerprintRef.current = null
       return
     }
 
@@ -184,62 +372,10 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       clearTimeout(autoSaveTimerRef.current)
     }
 
+    // Local Storage debounced at 800ms for instant crash recovery
     autoSaveTimerRef.current = setTimeout(() => {
-      const financials = computeCombinedQuoteFinancials({
-        quoteResult,
-        afterDiscount,
-        total,
-        attachedSealedUnit,
-        attachedDoorQuote,
-        effectiveJC,
-        effectiveMisc,
-        effectiveLabour,
-        hstRate,
-      })
-
-      saveActiveAutoSave("window", {
-        quoteNumber: quoteNumber || "Draft",
-        customerName: customerName || "",
-        itemCount: validWindows.length,
-        grandTotal: financials.grandTotalDollars,
-        summaryLabel: formatWindowSummarySentence(validWindows),
-        data: {
-          quoteNumber,
-          customerName,
-          quoteNotes,
-          surchargeRate,
-          windows,
-          activePromoId,
-          isSupplyOnly,
-          supplyJambId,
-          supplyJambRate,
-          supplyCasingId,
-          supplyCasingRate,
-          customJC: customJC !== "" ? parseFloat(customJC) : undefined,
-          customMisc: customMisc !== "" ? parseFloat(customMisc) : undefined,
-          customLabour:
-            customLabour !== "" ? parseFloat(customLabour) : undefined,
-          includeJCInPromo,
-          includeMiscInPromo,
-          includeLabourInPromo,
-          hstRate,
-          attachedUpgrade,
-          attachedSealedUnit,
-          attachedDoorQuote,
-          wantsUpgrade,
-          effectiveBase: (quoteResult?.base || 0) / 100,
-          effectiveSurcharge: (quoteResult?.surcharge || 0) / 100,
-          effectiveLabour: effectiveLabour / 100,
-          effectiveMisc: effectiveMisc / 100,
-          effectiveJC: effectiveJC / 100,
-          taxTotals,
-          quoteResult,
-          subtotal: financials.subtotalDollars,
-          grandTotal: financials.grandTotalDollars,
-          itemCount: windows.length,
-        },
-      })
-
+      const payload = buildPayload()
+      saveActiveAutoSave("window", payload)
       lastSavedFingerprintRef.current = inputFingerprint
       setLastSavedAt(
         new Date().toLocaleTimeString([], {
@@ -249,49 +385,40 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       )
     }, 800)
 
+    // Smart Idle timer at 6000ms: syncs to MongoDB once user stops typing
+    if (serverSyncTimerRef.current) {
+      clearTimeout(serverSyncTimerRef.current)
+    }
+    serverSyncTimerRef.current = setTimeout(() => {
+      if (lastServerSyncFingerprintRef.current !== inputFingerprint) {
+        flushToServer()
+      }
+    }, 6000)
+
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)
       }
+      if (serverSyncTimerRef.current) {
+        clearTimeout(serverSyncTimerRef.current)
+      }
     }
   }, [
     enabled,
-    initialReviewQuoteId,
+    inReview,
     inputFingerprint,
     windows,
     customerName,
-    quoteNumber,
-    quoteNotes,
-    surchargeRate,
-    activePromoId,
-    isSupplyOnly,
-    supplyJambId,
-    supplyJambRate,
-    supplyCasingId,
-    supplyCasingRate,
-    customJC,
-    customMisc,
-    customLabour,
-    includeJCInPromo,
-    includeMiscInPromo,
-    includeLabourInPromo,
-    hstRate,
-    attachedUpgrade,
     attachedSealedUnit,
     attachedDoorQuote,
-    wantsUpgrade,
-    quoteResult,
-    effectiveMisc,
-    effectiveLabour,
-    effectiveJC,
-    afterDiscount,
-    total,
-    taxTotals,
+    buildPayload,
+    flushToServer,
   ])
 
   return {
     lastSavedAt,
     setLastSavedAt,
+    flushToServer,
     clearAutoSaveTimer: () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)

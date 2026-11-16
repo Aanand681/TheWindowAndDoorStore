@@ -6,6 +6,10 @@ import { CalculatorReviewModals } from "./CalculatorReviewModals"
 import { CalculatorComparisonModal } from "./CalculatorComparisonModal"
 import { CalculatorUtilityModals } from "./CalculatorUtilityModals"
 import { CalculatorModalsGroupProps } from "./types"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export type { CalculatorModalsGroupProps }
 
@@ -104,6 +108,9 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
         attachedSealedUnit={attachedSealedUnit}
         attachedDoorQuote={attachedDoorQuote}
         isSupplyOnly={isSupplyOnly}
+        isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
+        attachedInstallOption={readSessionAttachedInstallOption()}
+        customOptions={readSessionCustomOptions()}
       />
 
       <CalculatorReviewModals {...props} />

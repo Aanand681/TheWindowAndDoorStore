@@ -89,8 +89,8 @@ export function ComparisonDeltaHero({
           </div>
         </div>
 
-        {/* Attach to Quote PDF Action & Editable Upgrade Description */}
-        {delta.preTax > 0 && (
+        {/* Attach to Quote PDF Action & Editable Upgrade/Deduct Description */}
+        {delta.preTax !== 0 && (
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
             <div className="flex w-full flex-col gap-1 sm:w-80">
               <div className="flex items-center justify-between">
@@ -98,7 +98,9 @@ export function ComparisonDeltaHero({
                   htmlFor="upgradeTitleInput"
                   className="text-[11px] font-semibold text-muted-foreground"
                 >
-                  Upgrade Description on Quote PDF
+                  {delta.preTax < 0
+                    ? "Option / Economy Description on Quote PDF"
+                    : "Upgrade Description on Quote PDF"}
                 </Label>
                 <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
                   Editable
@@ -108,7 +110,11 @@ export function ComparisonDeltaHero({
                 id="upgradeTitleInput"
                 value={customUpgradeTitle || detectedUpgradeTitle}
                 onChange={(e) => onUpgradeTitleChange(e.target.value)}
-                placeholder="e.g. Triple Pane (Solar Shield), Brick Mould..."
+                placeholder={
+                  delta.preTax < 0
+                    ? "e.g. Dual Pane Option, Vinyl Casing..."
+                    : "e.g. Triple Pane (Solar Shield), Brick Mould..."
+                }
                 className="h-8 bg-background text-xs font-medium"
               />
               {/* Quick Presets */}
@@ -134,7 +140,9 @@ export function ComparisonDeltaHero({
                 "h-8 shrink-0 cursor-pointer gap-1.5 text-xs font-bold shadow-xs",
                 attachedUpgrade
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "border-amber-500/40 text-amber-600 hover:border-amber-500 hover:bg-amber-500/10 dark:text-amber-400"
+                  : delta.preTax < 0
+                    ? "border-sky-500/40 text-sky-600 hover:border-sky-500 hover:bg-sky-500/10 dark:text-sky-400"
+                    : "border-amber-500/40 text-amber-600 hover:border-amber-500 hover:bg-amber-500/10 dark:text-amber-400"
               )}
             >
               {attachedUpgrade ? (
@@ -145,7 +153,11 @@ export function ComparisonDeltaHero({
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 text-amber-500" />
-                  <span>Attach Upgrade to Quote PDF</span>
+                  <span>
+                    {delta.preTax < 0
+                      ? "Attach Deduct Option to Quote PDF"
+                      : "Attach Upgrade to Quote PDF"}
+                  </span>
                 </>
               )}
             </Button>

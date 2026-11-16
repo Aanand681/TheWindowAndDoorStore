@@ -72,6 +72,45 @@ export function SubmitReviewModal({
     (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
   )
 
+  // 1. Auto-sync assignedReviewer to the first eligible reviewer if empty, self, or not in list
+  React.useEffect(() => {
+    if (!isOpen) return
+    if (eligibleReviewers.length === 0) {
+      if (assignedReviewer) setAssignedReviewer("")
+      return
+    }
+    const isMatch = eligibleReviewers.some(
+      (s) => s.username?.toLowerCase() === assignedReviewer?.toLowerCase()
+    )
+    if (!isMatch) {
+      setAssignedReviewer(eligibleReviewers[0].username)
+    }
+  }, [isOpen, eligibleReviewers, assignedReviewer, setAssignedReviewer])
+
+  // 2. Auto-sync selectedOdooClerk to default clerk if empty or not in list
+  React.useEffect(() => {
+    if (!isOpen || !isAdmin || adminSubmitMode !== "direct_approve") return
+    if (clerkList.length === 0) {
+      if (selectedOdooClerk) setSelectedOdooClerk("")
+      return
+    }
+    const isMatch = clerkList.some(
+      (c) => c.username?.toLowerCase() === selectedOdooClerk?.toLowerCase()
+    )
+    if (!isMatch) {
+      const defaultClerk =
+        clerkList.find((c) => c.department === "CLERK") || clerkList[0]
+      if (defaultClerk) setSelectedOdooClerk(defaultClerk.username)
+    }
+  }, [
+    isOpen,
+    isAdmin,
+    adminSubmitMode,
+    clerkList,
+    selectedOdooClerk,
+    setSelectedOdooClerk,
+  ])
+
   const units = totalUnits ?? windowsCount ?? 0
   let defaultPlural = "windows"
   let defaultSingular = "window"
@@ -257,7 +296,7 @@ export function SubmitReviewModal({
               </select>
             ) : (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
-                No other reviewers available in the system.
+                No other reviewers available in the system. Quotes must be submitted to another team member for review.
               </div>
             )}
           </div>

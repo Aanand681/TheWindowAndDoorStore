@@ -51,18 +51,21 @@ export function useTaxInitialData({
               r.name.toLowerCase().includes("fort frances")
             )
             const initial = ff || installRegions[0]
-            setSelectedRegionId(initial._id)
-            if (
-              initial.name.toLowerCase().includes("dryden") ||
-              initial.name.toLowerCase().includes("sioux")
-            ) {
-              const std = initial.setupFeeOptions?.find(
-                (o: any) => Math.abs(o.value - 727.5) < 0.01
-              )
-              if (onSetupFeeDefault) {
-                onSetupFeeDefault(std ? String(std.value) : "727.5")
+            setSelectedRegionId((prev) => {
+              if (prev) return prev
+              if (
+                initial.name.toLowerCase().includes("dryden") ||
+                initial.name.toLowerCase().includes("sioux")
+              ) {
+                const std = initial.setupFeeOptions?.find(
+                  (o: any) => Math.abs(o.value - 727.5) < 0.01
+                )
+                if (onSetupFeeDefault) {
+                  onSetupFeeDefault(std ? String(std.value) : "727.5")
+                }
               }
-            }
+              return initial._id
+            })
           }
         }
       })

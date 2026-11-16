@@ -138,4 +138,84 @@ describe("calculateTaxTotals - Jamb and Casing Calculations", () => {
     expect(res?.finalJC).toBe(0)
     expect(res?.selectedJamb).toBeNull()
   })
+
+  it("returns standard fixedSetupFee for installation regions and includes in extras", () => {
+    const installRegion = {
+      ...dummyRegion,
+      name: "Fort Frances",
+      fixedSetupFee: 140,
+    }
+    const res = calculateTaxTotals({
+      windows: dummyWindows,
+      region: installRegion,
+      effectiveIsSupplyOnly: false,
+      dbAddons: [],
+      addons: {},
+      manualKm: "0",
+      manualHours: "0",
+      crew: "none",
+      dbCrewRates: [],
+      dbVehicleRate: 0.98,
+      setupFee: "0",
+      jambId: "none",
+      jambName: "",
+      jambRate: "",
+      dbJambs: [],
+      casingId: "none",
+      casingName: "",
+      casingRate: "",
+      dbCasings: [],
+      includeLabour: true,
+      includeMisc: true,
+      includeJC: true,
+      discount: "0",
+      hstOn: true,
+      selectedRegionId: "r1",
+      coords: "",
+    })
+
+    expect(res?.fixedSetupFee).toBe(140)
+    expect(res?.setup).toBe(0)
+    expect(res?.extras).toBe(140)
+  })
+
+  it("handles remote Dryden / Sioux Lookout setup fee together with fixedSetupFee", () => {
+    const remoteRegion = {
+      ...dummyRegion,
+      name: "Dryden",
+      fixedSetupFee: 140,
+    }
+    const res = calculateTaxTotals({
+      windows: dummyWindows,
+      region: remoteRegion,
+      effectiveIsSupplyOnly: false,
+      dbAddons: [],
+      addons: {},
+      manualKm: "0",
+      manualHours: "0",
+      crew: "none",
+      dbCrewRates: [],
+      dbVehicleRate: 0.98,
+      setupFee: "727.5",
+      jambId: "none",
+      jambName: "",
+      jambRate: "",
+      dbJambs: [],
+      casingId: "none",
+      casingName: "",
+      casingRate: "",
+      dbCasings: [],
+      includeLabour: true,
+      includeMisc: true,
+      includeJC: true,
+      discount: "0",
+      hstOn: true,
+      selectedRegionId: "r1",
+      coords: "",
+    })
+
+    expect(res?.fixedSetupFee).toBe(140)
+    expect(res?.setup).toBe(727.5)
+    expect(res?.extras).toBe(140 + 727.5)
+  })
 })

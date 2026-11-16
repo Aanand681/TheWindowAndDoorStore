@@ -151,6 +151,7 @@ export interface SealedUnitLineItem {
 export interface CalculateSealedUnitTotalsParams {
   lineItems: SealedUnitLineItem[]
   isInstallation?: boolean
+  isServiceOnly?: boolean
   travelFeeType?: "none" | "local_std" | "far_std" | "far_small" | "custom"
   customTravelFee?: string | number
   showOutTownTravel?: boolean

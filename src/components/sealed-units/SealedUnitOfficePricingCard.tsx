@@ -7,7 +7,6 @@ import {
   ChevronUp,
   Layers,
   Wrench,
-  TrendingUp,
   ShieldAlert,
   Info,
 } from "lucide-react"
@@ -79,6 +78,14 @@ export function SealedUnitOfficePricingCard({
   )
   const rawCombinedTotal = rawGlassTotal + rawGrillTotal + rawShapeTotal
 
+  // Distinct glass thicknesses used
+  const distinctThicknesses = Array.from(
+    new Set(lineItems.map((i) => i.thicknessMm).filter(Boolean))
+  )
+    .sort((a, b) => Number(a) - Number(b))
+    .map((t) => `${t}mm`)
+    .join(", ")
+
   // Formula constants
   const surchargeRate = formula?.surchargeRate ?? 0.27
   const stepMultiplier = formula?.stepMultiplier ?? 2.5
@@ -89,20 +96,6 @@ export function SealedUnitOfficePricingCard({
   const subtotalWith27 =
     Math.round((rawCombinedTotal + vitroSurchargeAmount) * 100) / 100
   const multipliedPre8 = Math.round(subtotalWith27 * stepMultiplier * 100) / 100
-
-  // Estimated gross margin
-  const totalRawDirectCost =
-    rawCombinedTotal +
-    totals.vehicleTravelFee +
-    (isInstallation ? totals.baseSetupFee * 0.5 : 0)
-  const grossProfitDollar = Math.max(
-    0,
-    totals.subtotalPreTax - totalRawDirectCost
-  )
-  const grossMarginPercent =
-    totals.subtotalPreTax > 0
-      ? (grossProfitDollar / totals.subtotalPreTax) * 100
-      : 0
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-xl backdrop-blur-xl">
@@ -137,7 +130,7 @@ export function SealedUnitOfficePricingCard({
 
       {isExpanded && (
         <div className="animate-in space-y-4 p-3.5 duration-150 fade-in sm:p-4">
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* Card 1: Vitro Manufacturing Breakdown */}
             <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3 text-xs">
               <div className="flex items-center gap-1.5 border-b border-border/40 pb-1.5 font-bold text-foreground">
@@ -159,6 +152,35 @@ export function SealedUnitOfficePricingCard({
               ) : (
                 <div className="space-y-1.5 font-mono text-[11px]">
                   <div className="flex justify-between py-0.5 text-muted-foreground">
+                    <span className="font-sans">Actual Glazed Area:</span>
+                    <span className="font-semibold text-foreground">
+                      {(totals.totalSqft || 0).toFixed(2)} sq ft
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-0.5 text-muted-foreground">
+                    <span className="font-sans">Vitro Billed Sq Ft:</span>
+                    <span className="font-semibold text-foreground">
+                      {totals.totalBillableSqft} sq ft{" "}
+                      <span className="font-sans text-[10px] text-muted-foreground">
+                        (min. 4.0/unit)
+                      </span>
+                    </span>
+                  </div>
+                  {distinctThicknesses && (
+                    <div className="flex justify-between py-0.5 text-muted-foreground">
+                      <span className="font-sans">Glass Thickness:</span>
+                      <span className="font-semibold text-foreground">
+                        {distinctThicknesses}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-0.5 text-muted-foreground">
+                    <span className="font-sans">Argon Gas Base:</span>
+                    <span className="font-semibold text-foreground">
+                      ${(formula?.argonPerSqft ?? 0.6).toFixed(2)}/sqft (incl.)
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/30 pt-1 py-0.5 text-muted-foreground">
                     <span className="font-sans">Raw Vitro Glass:</span>
                     <span className="font-semibold text-foreground">
                       ${rawGlassTotal.toFixed(2)}
@@ -207,7 +229,7 @@ export function SealedUnitOfficePricingCard({
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-border/50 py-1 text-xs font-bold text-foreground">
-                    <span className="font-sans">Sealed Unit Total:</span>
+                    <span className="font-sans">Sealed Unit Glass Total:</span>
                     <span className="text-primary">
                       ${totals.glassBefore8PercentTotal.toFixed(2)}
                     </span>
@@ -304,53 +326,6 @@ export function SealedUnitOfficePricingCard({
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Card 3: Economic Profit & Margin Analysis */}
-            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3 text-xs">
-              <div className="flex items-center gap-1.5 border-b border-border/40 pb-1.5 font-bold text-foreground">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                <span>Job Margin &amp; Profit Summary</span>
-              </div>
-
-              <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between py-0.5 text-muted-foreground">
-                  <span className="font-sans">
-                    Total Billed Subtotal (Pre-tax):
-                  </span>
-                  <span className="font-bold text-foreground">
-                    ${totals.subtotalPreTax.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between py-0.5 text-muted-foreground">
-                  <span className="font-sans">
-                    Est. Direct Material/Vehicle Costs:
-                  </span>
-                  <span className="font-semibold text-muted-foreground">
-                    ${totalRawDirectCost.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-border/40 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  <span className="font-sans">Est. Gross Margin ($):</span>
-                  <span>+${grossProfitDollar.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-0.5 font-sans text-muted-foreground">
-                  <span>Gross Margin (%):</span>
-                  <span className="font-mono font-bold text-foreground">
-                    {grossMarginPercent.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between py-0.5 font-sans text-muted-foreground">
-                  <span>Manufacturing Multiplier:</span>
-                  <span className="font-mono font-bold text-foreground">
-                    {stepMultiplier}× Vitro Base
-                  </span>
-                </div>
-                <div className="pt-2 font-sans text-[10px] leading-tight text-muted-foreground/80">
-                  Formulas reflect the official Vitro price sheet and company
-                  glazing rate schedule.
-                </div>
-              </div>
             </div>
           </div>
         </div>

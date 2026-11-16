@@ -1,6 +1,10 @@
 "use client"
 
 import { UseCalculatorDraftsWorkspace } from "./types"
+import {
+  writeSessionAttachedInstallOption,
+  writeSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export function applyDraftDataToWorkspace(
   workspace: UseCalculatorDraftsWorkspace,
@@ -56,10 +60,19 @@ export function applyDraftDataToWorkspace(
   else workspace.setAttachedDoorQuote(null)
   if (d.wantsUpgrade !== undefined)
     workspace.setWantsUpgrade(Boolean(d.wantsUpgrade))
-  if (d.taxTotals) {
-    workspace.setTaxTotals(d.taxTotals)
+  writeSessionAttachedInstallOption(d.attachedInstallOption ?? null)
+  writeSessionCustomOptions(
+    Array.isArray(d.customOptions) ? d.customOptions : []
+  )
+  if (d.taxTotals || d.selectedRegionId) {
+    const effectiveTaxTotals = {
+      ...(d.taxTotals || {}),
+      selectedRegionId: d.selectedRegionId || d.taxTotals?.selectedRegionId,
+      regionName: d.regionName || d.taxTotals?.regionName,
+    }
+    workspace.setTaxTotals(effectiveTaxTotals)
     if (setLoadedDraftTaxTotals) {
-      setLoadedDraftTaxTotals(d.taxTotals)
+      setLoadedDraftTaxTotals(effectiveTaxTotals)
     }
   }
 }

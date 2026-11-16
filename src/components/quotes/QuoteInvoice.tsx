@@ -36,6 +36,8 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
     basePrice = 0,
     quoteResult,
     isDualOption = false,
+    attachedInstallOption = null,
+    customOptions = null,
   } = props
 
   // 1. Perform consolidated invoice calculations (must be called unconditionally)
@@ -92,6 +94,8 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
     quoteNotes,
     globalUpcharges,
     isDualOption,
+    attachedInstallOption,
+    customOptions,
   }
 
   return (

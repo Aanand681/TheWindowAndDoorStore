@@ -274,7 +274,7 @@ export function useQuoteComparison(props: QuoteComparisonModalProps) {
 
   const handleUpgradeTitleChange = (newTitle: string) => {
     setCustomUpgradeTitle(newTitle)
-    if (attachedUpgrade && delta && delta.preTax > 0) {
+    if (attachedUpgrade && delta && delta.preTax !== 0) {
       onAttachUpgrade({
         title: newTitle.trim() || detectedUpgradeTitle,
         amountPreTaxCents: delta.preTax,
@@ -283,23 +283,24 @@ export function useQuoteComparison(props: QuoteComparisonModalProps) {
   }
 
   const handleToggleAttachUpgrade = () => {
-    if (!delta || delta.preTax <= 0) {
+    if (!delta || delta.preTax === 0) {
       toast.error(
-        "Optional upgrade can only be attached when there is an upgrade price difference."
+        "Option can only be attached when there is a price difference."
       )
       return
     }
 
     if (attachedUpgrade) {
       onAttachUpgrade(null)
-      toast.info("Removed optional upgrade offer from quote PDF.")
+      toast.info("Removed optional specification offer from quote PDF.")
     } else {
       onAttachUpgrade({
         title: effectiveUpgradeTitle,
         amountPreTaxCents: delta.preTax,
       })
+      const isLess = delta.preTax < 0
       toast.success(
-        `Attached "${effectiveUpgradeTitle} adds ${formatMoney(delta.preTax)}" to quote PDF!`
+        `Attached "${effectiveUpgradeTitle} ${isLess ? "less" : "adds"} ${formatMoney(Math.abs(delta.preTax))}" to quote PDF!`
       )
     }
   }

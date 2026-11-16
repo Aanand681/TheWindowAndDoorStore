@@ -30,16 +30,34 @@ export function getInvoiceTravelItems({
         amount: (taxTotals.crewTravel || 0) * 100,
       })
     }
-    if (taxTotals.setup > 0) {
+    const effectiveFixedSetup =
+      taxTotals.fixedSetupFee !== undefined
+        ? Number(taxTotals.fixedSetupFee)
+        : !taxTotals.isSupplyOnly
+          ? 140
+          : 0
+
+    if (effectiveFixedSetup > 0) {
       travelItems.push({
-        label: "Per-job set-up fee",
-        amount: (taxTotals.setup || 0) * 100,
+        label: "Job set-up fee( standard)",
+        amount: Math.round(effectiveFixedSetup * 100),
       })
     }
-    if (taxTotals.fixedSetupFee > 0) {
+
+    if (taxTotals.setup > 0) {
+      const regLower = regionName ? regionName.toLowerCase() : ""
+      const remoteLabel =
+        regLower.includes("dryden")
+          ? "Setup charges for (dryden)"
+          : regLower.includes("sioux")
+            ? "Setup charges for (sioux lookout)"
+            : regLower
+              ? `Setup charges for (${regLower})`
+              : "Setup charges for (dryden/ sioux lookout)"
+
       travelItems.push({
-        label: `Job Set Up Fee (${regionName || "Standard"})`,
-        amount: (taxTotals.fixedSetupFee || 0) * 100,
+        label: remoteLabel,
+        amount: Math.round((taxTotals.setup || 0) * 100),
       })
     }
     if (taxTotals.baseTravelFee > 0) {
@@ -51,13 +69,23 @@ export function getInvoiceTravelItems({
   } else if (isDoorHost && effectiveDoorTotals) {
     if ((effectiveDoorTotals.baseSetupFee || 0) > 0) {
       travelItems.push({
-        label: "Per-job set-up fee",
+        label: "Job set-up fee( standard)",
         amount: Math.round((effectiveDoorTotals.baseSetupFee || 0) * 100),
       })
     }
     if ((effectiveDoorTotals.additionalFarFee || 0) > 0) {
+      const regLower = regionName ? regionName.toLowerCase() : ""
+      const remoteLabel =
+        regLower.includes("dryden")
+          ? "Setup charges for (dryden)"
+          : regLower.includes("sioux")
+            ? "Setup charges for (sioux lookout)"
+            : regLower
+              ? `Setup charges for (${regLower})`
+              : "Setup charges for (dryden/ sioux lookout)"
+
       travelItems.push({
-        label: "Remote Area Travel / Setup Surcharge",
+        label: remoteLabel,
         amount: Math.round((effectiveDoorTotals.additionalFarFee || 0) * 100),
       })
     }
@@ -76,13 +104,23 @@ export function getInvoiceTravelItems({
   } else if (isSUHost && effectiveSUTotals) {
     if ((effectiveSUTotals.baseSetupFee || 0) > 0) {
       travelItems.push({
-        label: "Per-job set-up fee",
+        label: "Job set-up fee( standard)",
         amount: Math.round((effectiveSUTotals.baseSetupFee || 0) * 100),
       })
     }
     if ((effectiveSUTotals.additionalFarFee || 0) > 0) {
+      const regLower = regionName ? regionName.toLowerCase() : ""
+      const remoteLabel =
+        regLower.includes("dryden")
+          ? "Setup charges for (dryden)"
+          : regLower.includes("sioux")
+            ? "Setup charges for (sioux lookout)"
+            : regLower
+              ? `Setup charges for (${regLower})`
+              : "Setup charges for (dryden/ sioux lookout)"
+
       travelItems.push({
-        label: "Remote Area Travel / Setup Surcharge",
+        label: remoteLabel,
         amount: Math.round((effectiveSUTotals.additionalFarFee || 0) * 100),
       })
     }

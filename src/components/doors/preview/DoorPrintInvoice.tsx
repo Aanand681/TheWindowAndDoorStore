@@ -152,63 +152,72 @@ export function DoorPrintInvoice({
       <div className="grid grid-cols-12 gap-3 pt-1">
         {/* Left 7 cols: Optional Upgrades list & Warranty Info */}
         <div className="col-span-7 space-y-2">
-          {isDualOption && (
-            <div className="space-y-1.5 rounded border border-slate-300 bg-white p-2.5 text-[8pt] text-slate-800 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <div className="h-3.5 w-3.5 shrink-0 rounded-xs border-2 border-slate-700 bg-white" />
-                <span className="text-[7.5pt] font-bold tracking-wider uppercase">
-                  Option for Installation
-                </span>
+          {/* Unified Options Section */}
+          {(isDualOption || upgradeItems.length > 0) && (
+            <div className="space-y-1 rounded border border-slate-300 bg-white p-2.5 text-[8pt] text-slate-800 shadow-2xs">
+              <div className="border-b border-slate-200 pb-1 text-[7.5pt] font-bold tracking-wider text-slate-900 uppercase">
+                Options
               </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-1">
-                <span className="text-[7.5pt] font-medium text-slate-600">
-                  (
-                  {hasAttachedWindow && hasAttachedSU
-                    ? "Windows / Sealed Units / Doors"
-                    : hasAttachedWindow
-                      ? "Windows / Doors"
-                      : hasAttachedSU
-                        ? "Doors / Sealed Units"
-                        : "Doors"}
-                  ) with Installation add:
-                </span>
-                <span className="font-mono font-bold text-slate-900">
-                  +$
-                  {(sessionAttachedAmount !== null
-                    ? sessionAttachedAmount
-                    : combinedLabour + combinedMisc
-                  ).toFixed(2)}
-                </span>
+              <div className="space-y-1 pt-0.5">
+                {isDualOption && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-3 w-3 shrink-0 rounded-xs border border-slate-600 bg-white" />
+                      <span className="text-[7.5pt] font-medium text-slate-700">
+                        {hasAttachedWindow && hasAttachedSU
+                          ? "Windows / Sealed Units / Doors"
+                          : hasAttachedWindow
+                            ? "Windows / Doors"
+                            : hasAttachedSU
+                              ? "Doors / Sealed Units"
+                              : "Doors"}{" "}
+                        {isInstallation
+                          ? "for Supply Only deduct:"
+                          : "with Installation add:"}
+                      </span>
+                    </div>
+                    <span
+                      className={`font-mono font-bold ${
+                        isInstallation ? "text-sky-700" : "text-slate-900"
+                      }`}
+                    >
+                      {isInstallation ? "-$" : "+$"}
+                      {(sessionAttachedAmount !== null
+                        ? sessionAttachedAmount
+                        : combinedLabour + combinedMisc
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {upgradeItems.map((item, idx) => {
+                  const diff =
+                    (item.upgradeOption?.subtotalDifference || 0) *
+                    (item.quantity || 1)
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between text-slate-900"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-3 w-3 shrink-0 rounded-xs border border-slate-600 bg-white" />
+                        <span className="text-[7.5pt] font-medium text-slate-700">
+                          {item.upgradeOption?.title ||
+                            item.customDescription ||
+                            item.presetLabel}{" "}
+                          {diff < 0 ? "deduct:" : "add:"}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold">
+                        {diff < 0 ? "-$" : "+$"}
+                        {Math.abs(diff).toFixed(2)}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
-          {upgradeItems.length > 0 ? (
-            <div className="space-y-1 rounded border border-emerald-300 bg-emerald-50/50 p-2.5 text-[7.5pt]">
-              <div className="text-[7pt] font-bold tracking-wider text-emerald-900 uppercase">
-                option for Door upgrade:
-              </div>
-              {upgradeItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between pt-0.5 font-medium text-emerald-900"
-                >
-                  <span>
-                    {item.upgradeOption?.title ||
-                      item.customDescription ||
-                      item.presetLabel}{" "}
-                    Add
-                  </span>
-                  <span className="font-mono font-bold">
-                    +$
-                    {(
-                      (item.upgradeOption?.subtotalDifference || 0) *
-                      (item.quantity || 1)
-                    ).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
+          {!isDualOption && upgradeItems.length === 0 && (
             <div className="space-y-1 rounded border border-slate-300 bg-slate-50 p-2.5 text-[7.5pt] text-slate-600">
               <div className="text-[8pt] font-bold text-slate-800">
                 Comprehensive 5-Year Workmanship Warranty

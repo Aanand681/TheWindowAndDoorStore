@@ -2,14 +2,17 @@
 
 import React from "react"
 import { Paperclip, CheckCircle2 } from "lucide-react"
+import { CachedAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface DoorSummaryAttachedBadgesProps {
   attachedWindowQuote?: any | null
   attachedSealedUnit?: any | null
-  attachedInstallOption?: { enabled: boolean; amountPreTaxCents: number } | null
+  attachedInstallOption?: CachedAttachedInstallOption | null
   onRemoveAttachedWindowQuote?: () => void
   onRemoveAttachedSealedUnit?: () => void
   onRemoveAttachedInstallOption?: () => void
+  dynamicInstallDeltaDollars?: number
+  mode?: string
 }
 
 export function DoorSummaryAttachedBadges({
@@ -19,11 +22,26 @@ export function DoorSummaryAttachedBadges({
   onRemoveAttachedWindowQuote,
   onRemoveAttachedSealedUnit,
   onRemoveAttachedInstallOption,
+  dynamicInstallDeltaDollars,
+  mode,
 }: DoorSummaryAttachedBadgesProps) {
   const hasAnyAttached = Boolean(
     attachedWindowQuote || attachedSealedUnit || attachedInstallOption?.enabled
   )
   if (!hasAnyAttached) return null
+
+  const isCurrentlySupply =
+    mode !== undefined
+      ? mode === "supply_only"
+      : attachedInstallOption?.mode !== "install"
+
+  const displayDollars =
+    attachedInstallOption?.amountPreTaxCents &&
+    attachedInstallOption.amountPreTaxCents > 0
+      ? attachedInstallOption.amountPreTaxCents / 100
+      : dynamicInstallDeltaDollars && dynamicInstallDeltaDollars > 0
+        ? dynamicInstallDeltaDollars
+        : 0
 
   return (
     <div className="space-y-1.5 pb-1">
@@ -32,8 +50,12 @@ export function DoorSummaryAttachedBadges({
           <span className="flex items-center gap-1.5 font-semibold">
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
             <span>
-              Option for Installation Attached (+$
-              {(attachedInstallOption.amountPreTaxCents / 100).toFixed(2)})
+              {isCurrentlySupply
+                ? "Option for Installation Attached (+$"
+                : attachedInstallOption?.hasSupplyJC
+                  ? "Option with J&C for Supply Only Attached (-$"
+                  : "Option for Supply Only Attached (-$"}
+              {displayDollars.toFixed(2)})
             </span>
           </span>
           {onRemoveAttachedInstallOption && (

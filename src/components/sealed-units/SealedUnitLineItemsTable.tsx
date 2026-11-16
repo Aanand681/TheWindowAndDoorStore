@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { PackageCheck, Trash2 } from "lucide-react"
+import { PackageCheck, Trash2, Pencil, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 
@@ -12,6 +12,9 @@ export interface SealedUnitLineItemsTableProps {
   labourRate?: number
   miscRate?: number
   labourMin?: number
+  editingItemId?: string
+  onEditItem?: (item: SealedUnitLineItem) => void
+  onDuplicateItem?: (id: string) => void
   onRemoveItem: (id: string) => void
   onResetQuote: () => void
 }
@@ -23,6 +26,9 @@ export function SealedUnitLineItemsTable({
   labourRate = 14.4,
   miscRate = 2.4,
   labourMin = 120.0,
+  editingItemId,
+  onEditItem,
+  onDuplicateItem,
   onRemoveItem,
   onResetQuote,
 }: SealedUnitLineItemsTableProps) {
@@ -85,7 +91,7 @@ export function SealedUnitLineItemsTable({
                   <th className="w-24 px-2.5 py-2.5 text-right">Labour</th>
                   <th className="w-20 px-2.5 py-2.5 text-right">Misc</th>
                   <th className="w-24 px-2.5 py-2.5 text-right">Line Total</th>
-                  <th className="w-12 px-2.5 py-2.5 text-center">Action</th>
+                  <th className="w-24 px-2.5 py-2.5 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -120,10 +126,16 @@ export function SealedUnitLineItemsTable({
                       ? `${item.grill.colsCount} × ${item.grill.rowsCount}`
                       : ""
 
+                  const isItemEditing = editingItemId === item.id
+
                   return (
                     <tr
                       key={item.id}
-                      className="transition-colors hover:bg-muted/20"
+                      className={`transition-colors ${
+                        isItemEditing
+                          ? "bg-primary/10 ring-1 ring-inset ring-primary/40"
+                          : "hover:bg-muted/20"
+                      }`}
                     >
                       <td className="px-2.5 py-2.5 text-center font-mono font-semibold text-muted-foreground">
                         {idx + 1}
@@ -270,16 +282,42 @@ export function SealedUnitLineItemsTable({
                         ${lineTotal.toFixed(2)}
                       </td>
 
-                      {/* Action */}
+                      {/* Actions */}
                       <td className="px-2.5 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => onRemoveItem(item.id)}
-                          className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-destructive/10"
-                          title="Remove unit"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          {onEditItem && (
+                            <button
+                              type="button"
+                              onClick={() => onEditItem(item)}
+                              className={`cursor-pointer rounded-md p-1 transition-colors ${
+                                isItemEditing
+                                  ? "bg-primary text-primary-foreground shadow-xs"
+                                  : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                              }`}
+                              title="Edit sealed unit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDuplicateItem && (
+                            <button
+                              type="button"
+                              onClick={() => onDuplicateItem(item.id)}
+                              className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              title="Duplicate sealed unit"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => onRemoveItem(item.id)}
+                            className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-destructive/10"
+                            title="Remove sealed unit"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

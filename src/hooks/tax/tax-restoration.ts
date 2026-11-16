@@ -95,13 +95,43 @@ export function restoreSavedTaxState(
   }
 
   // Restore region
-  if (savedTaxTotals.selectedRegionId) {
-    setters.setSelectedRegionId(savedTaxTotals.selectedRegionId)
-  } else if (savedTaxTotals.regionName && regions.length > 0) {
-    const match = regions.find(
-      (r) => r.name.toLowerCase() === savedTaxTotals.regionName.toLowerCase()
-    )
-    if (match) setters.setSelectedRegionId(match._id)
+  const targetId = savedTaxTotals.selectedRegionId
+    ? String(savedTaxTotals.selectedRegionId)
+    : ""
+  const targetName = (savedTaxTotals.regionName || "").toLowerCase().trim()
+
+  const matchedRegion = regions.find(
+    (r) =>
+      (targetId && String(r._id) === targetId) ||
+      (targetName && r.name.toLowerCase().trim() === targetName) ||
+      (targetName &&
+        targetName.includes("sioux") &&
+        r.name.toLowerCase().includes("sioux")) ||
+      (targetName &&
+        targetName.includes("dryden") &&
+        r.name.toLowerCase().includes("dryden")) ||
+      (targetName &&
+        targetName.includes("fort frances") &&
+        r.name.toLowerCase().includes("fort frances"))
+  )
+
+  if (matchedRegion) {
+    setters.setSelectedRegionId(matchedRegion._id)
+    if (
+      matchedRegion.name.toLowerCase().includes("dryden") ||
+      matchedRegion.name.toLowerCase().includes("sioux")
+    ) {
+      const explicitSetup = parseFloat(
+        savedTaxTotals.setup ?? savedTaxTotals.setupFee
+      )
+      if (isNaN(explicitSetup) || explicitSetup === 0) {
+        setters.setSetupFee("727.5")
+      } else {
+        setters.setSetupFee(String(explicitSetup))
+      }
+    }
+  } else if (targetId) {
+    setters.setSelectedRegionId(targetId)
   }
 
   // Restore jambs

@@ -1,10 +1,10 @@
 "use client"
 
-import React from "react"
-import { Button } from "@/components/ui/button"
+import React, { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Layers, Wrench, Save, Sliders, Sparkles, Grid } from "lucide-react"
+import { Layers, Wrench, Sliders, Sparkles, Grid } from "lucide-react"
 import { AppHeader } from "@/components/layout/AppHeader"
+import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
 import { useAdminSealedUnits } from "@/hooks/admin/useAdminSealedUnits"
 import {
   AdminSealedUnitsHeader,
@@ -15,6 +15,7 @@ import {
 } from "@/components/admin/sealed-units"
 
 export default function AdminSealedUnitsPage() {
+  const [showHistory, setShowHistory] = useState(false)
   const {
     formula,
     setFormula,
@@ -31,7 +32,8 @@ export default function AdminSealedUnitsPage() {
     handleBurst3Change,
     handleBurst5Change,
     handleGrillExtraChange,
-    handleResetDefaults,
+    handleDiscardChanges,
+    handleRestoreVersion,
     handleSave,
     annealedCombos,
     temperedCombos,
@@ -41,14 +43,24 @@ export default function AdminSealedUnitsPage() {
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
-      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-10 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
         <AppHeader currentPath="/admin/sealed-units" />
 
         <AdminSealedUnitsHeader
           loading={loading}
           saving={saving}
-          onResetDefaults={handleResetDefaults}
+          onDiscardChanges={handleDiscardChanges}
+          onOpenHistory={() => setShowHistory(true)}
           onSave={() => handleSave()}
+        />
+
+        {/* Pricing History Version Modal */}
+        <PricingHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          category="SEALED_UNITS"
+          title="Sealed Unit Labour & Pricing"
+          onRestoreVersion={handleRestoreVersion}
         />
 
         {loading ? (
@@ -140,27 +152,6 @@ export default function AdminSealedUnitsPage() {
                 />
               </TabsContent>
             </Tabs>
-
-            {/* Bottom Save Bar */}
-            <div className="flex items-center justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleResetDefaults}
-                className="cursor-pointer"
-              >
-                Reset to Defaults
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleSave()}
-                disabled={saving || loading}
-                className="cursor-pointer gap-2 bg-primary px-8 font-semibold text-primary-foreground shadow-lg hover:bg-primary/90"
-              >
-                <Save className="h-4 w-4" />
-                <span>{saving ? "Saving..." : "Save All Settings"}</span>
-              </Button>
-            </div>
           </div>
         )}
       </div>

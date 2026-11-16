@@ -89,6 +89,23 @@ export function useTaxCalculator({
     regionStateRef.current.setupFeeSetter = travel.setSetupFee
   }, [travel.setSetupFee])
 
+  // Reactive auto-sync: Ensure Dryden / Sioux Lookout remote fee is enforced immediately on mount/load
+  useEffect(() => {
+    if (effectiveIsSupplyOnly || !region) return
+    const isDrydenOrRemote =
+      region.name?.toLowerCase().includes("dryden") ||
+      region.name?.toLowerCase().includes("sioux")
+    if (isDrydenOrRemote) {
+      const currentFeeNum = parseFloat(travel.setupFee) || 0
+      if (currentFeeNum === 0) {
+        const std = region.setupFeeOptions?.find(
+          (o: any) => Math.abs(o.value - 727.5) < 0.01
+        )
+        travel.setSetupFee(std ? String(std.value) : "727.5")
+      }
+    }
+  }, [region, effectiveIsSupplyOnly, travel.setupFee, travel.setSetupFee])
+
   const handleRegionSelect = (regId: string, currentRegions = regions) => {
     setSelectedRegionId(regId)
     const reg = currentRegions.find((r) => r._id === regId)
@@ -104,10 +121,6 @@ export function useTaxCalculator({
       travel.setManualHours("0")
       travel.setTravelInfo(null)
       setCrew("none")
-      setJambId("none")
-      setCasingId("none")
-      setJambRate("0")
-      setCasingRate("0")
       return
     }
     if (

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Save, Loader2 } from "lucide-react"
+import { AppHeader } from "@/components/layout/AppHeader"
 import { useAdminPromos } from "@/hooks/admin/useAdminPromos"
 import {
   AdminPromosHeader,
@@ -53,8 +54,15 @@ export default function PromosDashboard() {
         />
       )}
 
-      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-8 px-4 py-10 sm:px-6 lg:px-8">
-        <AdminPromosHeader />
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
+        <AppHeader currentPath="/admin/promos" />
+        <AdminPromosHeader
+          onOpenCreate={() => setShowCreateModal(true)}
+          isSuperAdmin={isSuperAdmin}
+          hasOrderChanges={hasOrderChanges}
+          savingOrder={savingOrder}
+          onSaveOrder={handleSaveOrder}
+        />
 
         <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl">
           <CardHeader className="flex flex-col items-start justify-between gap-4 border-b border-border/50 pb-6 sm:flex-row sm:items-center">

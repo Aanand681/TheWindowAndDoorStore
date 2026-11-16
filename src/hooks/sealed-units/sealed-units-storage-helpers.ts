@@ -1,5 +1,9 @@
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface SealedUnitSnapshotParams {
   quoteNumber: string
@@ -18,6 +22,7 @@ export interface SealedUnitSnapshotParams {
   crewSize: "2" | "3"
   hstRate: number
   selectedRegionId?: string
+  regionName?: string
   attachedWindowQuote?: any | null
   attachedDoorQuote?: any | null
 }
@@ -41,6 +46,8 @@ export function serializeSealedUnitSnapshot(
     crewHours: params.crewHours,
     crewSize: params.crewSize,
     hstRate: params.hstRate,
+    selectedRegionId: params.selectedRegionId || "",
+    regionName: params.regionName || "",
     attachedWindowQuote: params.attachedWindowQuote || null,
     attachedDoorQuote: params.attachedDoorQuote || null,
   })
@@ -68,6 +75,7 @@ export interface WorkspaceSetters {
   setCrewSize: (val: "2" | "3") => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
+  regions?: any[]
   setAttachedWindowQuote: (val: any) => void
   setAttachedDoorQuote: (val: any) => void
 }
@@ -98,8 +106,16 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
   if (d.crewHours !== undefined) setters.setCrewHours(d.crewHours)
   if (d.crewSize !== undefined) setters.setCrewSize(d.crewSize)
   if (d.hstRate !== undefined) setters.setHstRate(d.hstRate)
-  if (d.selectedRegionId && setters.setSelectedRegionId)
-    setters.setSelectedRegionId(d.selectedRegionId)
+  if (setters.setSelectedRegionId) {
+    if (d.selectedRegionId) {
+      setters.setSelectedRegionId(d.selectedRegionId)
+    } else if (d.regionName && Array.isArray(setters.regions)) {
+      const match = setters.regions.find((r: any) =>
+        r.name?.toLowerCase().includes(d.regionName.toLowerCase())
+      )
+      if (match) setters.setSelectedRegionId(match._id)
+    }
+  }
   if (d.attachedWindowQuote !== undefined)
     setters.setAttachedWindowQuote(d.attachedWindowQuote)
   if (d.attachedDoorQuote !== undefined)
@@ -129,8 +145,12 @@ export function createDraftSavePayload(
     crewHours: params.crewHours,
     crewSize: params.crewSize,
     hstRate: params.hstRate,
+    selectedRegionId: params.selectedRegionId || "",
+    regionName: params.regionName || "",
     attachedWindowQuote: params.attachedWindowQuote || null,
     attachedDoorQuote: params.attachedDoorQuote || null,
+    attachedInstallOption: readSessionAttachedInstallOption(),
+    customOptions: readSessionCustomOptions(),
     subtotal: params.totals.subtotalPreTax || 0,
     grandTotal: params.totals.grandTotal || 0,
     itemCount: params.lineItems.length,

@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth"
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
 import { DEFAULT_DOOR_SETTINGS_DATA } from "@/lib/doors/constants"
+import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
 
 export const revalidate = 60
 
@@ -85,6 +86,25 @@ export async function PUT(request: Request) {
     const plain = settings.toObject
       ? settings.toObject({ flattenMaps: true })
       : settings
+
+    // Record pricing history snapshot
+    const savedBy =
+      (session.user as any)?.name ||
+      (session.user as any)?.email ||
+      (session.user as any)?.username ||
+      "Admin"
+
+    recordPricingSnapshot(
+      "DOORS",
+      {
+        presets: plain.presets,
+        upcharges: plain.upcharges,
+        formula: plain.formula,
+        logistics: plain.logistics,
+      },
+      savedBy
+    ).catch((err) => console.error("Error saving Door settings snapshot:", err))
+
     return NextResponse.json({
       success: true,
       settings: plain,

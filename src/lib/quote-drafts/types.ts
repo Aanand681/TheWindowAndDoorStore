@@ -5,6 +5,10 @@ import type {
   AttachedUpgradeOption,
   QuoteResult,
 } from "@/types/calculator"
+import type {
+  CachedAttachedInstallOption,
+  CustomQuoteOption,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export type QuoteType = "window" | "sealed_unit" | "door"
 
@@ -28,6 +32,8 @@ export interface WindowQuoteDraftPayload {
   includeLabourInPromo?: boolean
   hstRate?: number
   attachedUpgrade?: AttachedUpgradeOption | null
+  attachedInstallOption?: CachedAttachedInstallOption | null
+  customOptions?: CustomQuoteOption[] | null
   attachedSealedUnit?: AttachedQuoteData | null
   attachedDoorQuote?: AttachedQuoteData | null
   wantsUpgrade?: boolean
@@ -39,6 +45,8 @@ export interface WindowQuoteDraftPayload {
   effectiveLabour?: number
   effectiveMisc?: number
   effectiveJC?: number
+  selectedRegionId?: string
+  regionName?: string
   taxTotals?: TaxCalculatedTotals
   quoteResult?: QuoteResult | null
 }

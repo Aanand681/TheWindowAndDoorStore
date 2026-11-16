@@ -24,22 +24,20 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
     deptDoc?.permissions?.canReviewQuote === true
   const isSuperAdmin = userRole === "SUPERADMIN"
 
-  // Pending reviews specifically assigned to this user (SuperAdmin sees all)
-  const pendingReviewCount = isSuperAdmin
-    ? await SavedQuote.countDocuments({ status: "PENDING_REVIEW" })
-    : await SavedQuote.countDocuments({
-        status: "PENDING_REVIEW",
-        $or: [
-          { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
-          ...(currentUser?.toLowerCase() === "admin"
-            ? [
-                { assignedTo: "Admin" },
-                { assignedTo: { $exists: false } },
-                { assignedTo: "" },
-              ]
-            : []),
-        ],
-      })
+  // Pending reviews specifically assigned to this user (visible to assigned admin only)
+  const pendingReviewCount = await SavedQuote.countDocuments({
+    status: "PENDING_REVIEW",
+    $or: [
+      { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+      ...(currentUser?.toLowerCase() === "admin"
+        ? [
+            { assignedTo: "Admin" },
+            { assignedTo: { $exists: false } },
+            { assignedTo: "" },
+          ]
+        : []),
+    ],
+  })
 
   // Pending Odoo entries assigned to this user (or all pending if SuperAdmin)
   const pendingOdooCount = isSuperAdmin

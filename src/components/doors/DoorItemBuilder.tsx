@@ -101,11 +101,11 @@ export function DoorItemBuilder({
               variant="outline"
               size="sm"
               onClick={form.handleResetClick}
-              className="h-7 cursor-pointer gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-              title="Reset quote & start fresh"
+              className="h-7 cursor-pointer gap-1 px-2 text-xs text-foreground hover:bg-muted"
+              title="Start a new quote"
             >
-              <RotateCcw className="h-3 w-3" />
-              <span>Reset</span>
+              <Plus className="h-3 w-3 text-primary" />
+              <span>New</span>
             </Button>
           </div>
         </div>

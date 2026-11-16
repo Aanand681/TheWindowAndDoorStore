@@ -195,6 +195,7 @@ export function useCalculatorReviewActions({
     originalSnapshot,
     isOdooCompleted: permissions.isOdooCompleted,
     setReviewQuote,
+    setReviewQuoteId,
     setOriginalSnapshot,
     setIsEditMode,
     handleExitReview,

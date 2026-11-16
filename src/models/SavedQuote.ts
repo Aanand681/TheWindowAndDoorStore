@@ -32,6 +32,7 @@ export interface IAttachedUpgrade {
 export interface ISavedQuote extends Document {
   quoteNumber: string
   customerName: string
+  quoteType?: "window" | "door" | "sealed_unit"
   status: "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "MODIFIED" | "RETURNED"
   preparedBy: string
   preparedByEmail?: string
@@ -60,6 +61,8 @@ export interface ISavedQuote extends Document {
   attachedSealedUnit?: Record<string, unknown> | null
   attachedDoorQuote?: Record<string, unknown> | null
   attachedWindowQuote?: Record<string, unknown> | null
+  attachedInstallOption?: Record<string, unknown> | null
+  customOptions?: Array<Record<string, unknown>> | null
   supplyJambId?: string
   supplyJambRate?: string
   supplyCasingId?: string
@@ -67,6 +70,24 @@ export interface ISavedQuote extends Document {
   wantsUpgrade?: boolean
   isSupplyOnly?: boolean
   isServiceOnly?: boolean
+  isInstallation?: boolean
+  selectedRegionId?: string
+  regionName?: string
+  travelFeeType?: string
+  customTravelFee?: string
+  showOutTownTravel?: boolean
+  travelKm?: string
+  crewHours?: string
+  crewSize?: string
+  hstRate?: number
+  sealedUnitMode?: string
+  mode?: string
+  serviceSqftInput?: string
+  serviceLabourRateInput?: string
+  serviceMiscRateInput?: string
+  globalUpcharges?: any[]
+  isFirstNation?: boolean
+  summaryLabel?: string
   quoteSummaryTotal?: number
   approvedBy?: string
   approvedAt?: Date
@@ -101,6 +122,12 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       required: true,
       trim: true,
       maxlength: 200,
+      index: true,
+    },
+    quoteType: {
+      type: String,
+      enum: ["window", "door", "sealed_unit"],
+      default: "window",
       index: true,
     },
     status: {
@@ -213,6 +240,14 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       type: Schema.Types.Mixed,
       default: null,
     },
+    attachedInstallOption: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    customOptions: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
     supplyJambId: {
       type: String,
       default: "none",
@@ -244,6 +279,11 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     isServiceOnly: {
       type: Boolean,
       default: false,
+    },
+    summaryLabel: {
+      type: String,
+      default: "",
+      maxlength: 500,
     },
     reviewedAt: {
       type: Date,
@@ -314,6 +354,10 @@ SavedQuoteSchema.index(
 SavedQuoteSchema.index(
   { preparedBy: 1, status: 1, createdAt: -1 },
   { name: "employee_history" }
+)
+SavedQuoteSchema.index(
+  { preparedBy: 1, status: 1, quoteType: 1 },
+  { name: "employee_drafts_by_type" }
 )
 SavedQuoteSchema.index({ createdAt: -1 }, { name: "admin_archive" })
 SavedQuoteSchema.index(

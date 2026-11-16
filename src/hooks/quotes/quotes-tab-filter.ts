@@ -18,27 +18,35 @@ export function filterAndSortQuotes({
   statusFilter,
   search,
   canReview,
-  isSuperAdmin,
+  isSuperAdmin: _isSuperAdmin,
   isClerk,
   hasOdooAccess,
   myUsername,
 }: QuotesFilterParams): any[] {
   const displayedQuotes = quotes.filter((quote) => {
+    // 1. Exclude drafts from general quotes view (managed via Drafts modal/api)
+    if (quote.status === "DRAFT") return false
+
     const prep = quote.preparedBy?.toLowerCase()
     const clerk = quote.odooAssignedTo?.toLowerCase()
     const completedBy = quote.odooCompletedBy?.toLowerCase()
 
+    // 2. Strict Reviewer Isolation:
+    // If a quote is PENDING_REVIEW, it must ONLY be visible to the assigned reviewer or the preparer
+    if (quote.status === "PENDING_REVIEW") {
+      const assigned = quote.assignedTo?.toLowerCase()?.trim()
+      const isAssigned = assigned
+        ? assigned === myUsername
+        : myUsername === "admin"
+      const isPreparer = prep === myUsername
+      if (!isAssigned && !isPreparer) {
+        return false
+      }
+    }
+
     if (canReview) {
       if (activeTab === "review") {
         if (quote.status !== "PENDING_REVIEW") return false
-        const assigned = quote.assignedTo?.toLowerCase()?.trim()
-        if (!isSuperAdmin) {
-          if (assigned) {
-            if (assigned !== myUsername) return false
-          } else {
-            if (myUsername !== "admin") return false
-          }
-        }
       } else if (activeTab === "odoo") {
         if (
           !Boolean(
@@ -140,7 +148,7 @@ export function filterAndSortQuotes({
 
 export function computeQuotesTabCounts({
   quotes,
-  isSuperAdmin,
+  isSuperAdmin: _isSuperAdmin,
   hasOdooAccess,
   myUsername,
 }: {
@@ -151,7 +159,6 @@ export function computeQuotesTabCounts({
 }) {
   const adminPendingCount = quotes.filter((q) => {
     if (q.status !== "PENDING_REVIEW") return false
-    if (isSuperAdmin) return true
     const assigned = q.assignedTo?.toLowerCase()?.trim()
     if (assigned) return assigned === myUsername
     return myUsername === "admin"
@@ -162,7 +169,20 @@ export function computeQuotesTabCounts({
       q.odooStatus === "PENDING_ENTRY" ||
       (!q.odooStatus && Boolean(q.odooAssignedTo))
   ).length
-  const adminArchiveCount = quotes.length
+
+  const adminArchiveCount = quotes.filter((q) => {
+    if (q.status === "DRAFT") return false
+    if (q.status === "PENDING_REVIEW") {
+      const assigned = q.assignedTo?.toLowerCase()?.trim()
+      const prep = q.preparedBy?.toLowerCase()?.trim()
+      const isAssigned = assigned
+        ? assigned === myUsername
+        : myUsername === "admin"
+      const isPreparer = prep === myUsername
+      return isAssigned || isPreparer
+    }
+    return true
+  }).length
 
   const employeeInReviewCount = quotes.filter(
     (q) =>

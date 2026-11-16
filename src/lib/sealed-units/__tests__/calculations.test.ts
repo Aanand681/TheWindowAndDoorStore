@@ -5,6 +5,7 @@ import {
 } from "../calculations"
 import {
   calculateSealedUnitItem,
+  formatSealedUnitSummarySentence,
   DEFAULT_FORMULA_CONSTANTS,
   DEFAULT_LABOUR_SETTINGS,
   DEFAULT_THICKNESS_BREAKS,
@@ -24,6 +25,17 @@ const mockCombo: ComboPricing = {
 }
 
 describe("Sealed Units Calculation Engine", () => {
+  const sampleLineItem = calculateSealedUnitItem({
+    combo: mockCombo,
+    paneType: "dual",
+    widthIn: 36,
+    heightIn: 48, // 12 sqft
+    quantity: 1,
+    formula: DEFAULT_FORMULA_CONSTANTS,
+    thicknessBreaks: DEFAULT_THICKNESS_BREAKS,
+    labourSettings: DEFAULT_LABOUR_SETTINGS,
+  })
+
   describe("calculateSealedUnitItem", () => {
     it("should enforce minimum 4.0 billable sqft for small glass units", () => {
       // 12" x 12" = 144 sq in = 1.0 sqft actual
@@ -104,17 +116,6 @@ describe("Sealed Units Calculation Engine", () => {
   })
 
   describe("calculateSealedUnitTotals", () => {
-    const sampleLineItem = calculateSealedUnitItem({
-      combo: mockCombo,
-      paneType: "dual",
-      widthIn: 36,
-      heightIn: 48, // 12 sqft
-      quantity: 1,
-      formula: DEFAULT_FORMULA_CONSTANTS,
-      thicknessBreaks: DEFAULT_THICKNESS_BREAKS,
-      labourSettings: DEFAULT_LABOUR_SETTINGS,
-    })
-
     it("should zero out labour and misc in supply_only mode", () => {
       const params: SealedUnitCalculationParams = {
         lineItems: [sampleLineItem],
@@ -234,6 +235,120 @@ describe("Sealed Units Calculation Engine", () => {
 
       expect(totals.hstAmount).toBe(expectedTotalTax)
       expect(totals.grandTotal).toBe(totals.subtotalPreTax + expectedTotalTax)
+    })
+
+    it("should calculate and include out-of-town vehicle mileage and transit hours in combinedLabourTotal and grandTotal", () => {
+      const paramsWithoutTravel: SealedUnitCalculationParams = {
+        lineItems: [sampleLineItem],
+        sealedUnitMode: "installation",
+        serviceSqftInput: "",
+        serviceLabourRateInput: "",
+        serviceMiscRateInput: "",
+        travelFeeType: "none",
+        customTravelFee: "0",
+        showOutTownTravel: false,
+        travelKm: "",
+        crewHours: "",
+        crewSize: "3",
+        hstRate: 13,
+        labour: DEFAULT_LABOUR_SETTINGS,
+      }
+      const baseTotals = calculateSealedUnitTotals(paramsWithoutTravel)
+
+      const paramsWithTravel: SealedUnitCalculationParams = {
+        ...paramsWithoutTravel,
+        travelKm: "100", // 100 km @ $0.98/km = $98.00
+        crewHours: "2", // 2 hrs @ $200/hr (3-man) = $400.00
+        crewSize: "3",
+      }
+      const travelTotals = calculateSealedUnitTotals(paramsWithTravel)
+
+      expect(travelTotals.vehicleTravelFee).toBe(98.0)
+      expect(travelTotals.crewTravelFee).toBe(400.0)
+      expect(travelTotals.totalAdditionalTravel).toBe(498.0)
+      expect(travelTotals.combinedLabourTotal).toBe(
+        baseTotals.combinedLabourTotal + 498.0
+      )
+      expect(travelTotals.subtotalPreTax).toBe(
+        baseTotals.subtotalPreTax + 498.0
+      )
+      expect(travelTotals.grandTotal).toBeGreaterThan(baseTotals.grandTotal)
+    })
+
+    it("should accurately reflect isInstallation flag in returned totals", () => {
+      const installTotals = calculateSealedUnitTotals({
+        lineItems: [sampleLineItem],
+        sealedUnitMode: "installation",
+        serviceSqftInput: "",
+        serviceLabourRateInput: "",
+        serviceMiscRateInput: "",
+        travelFeeType: "none",
+        customTravelFee: "0",
+        showOutTownTravel: false,
+        travelKm: "",
+        crewHours: "",
+        crewSize: "3",
+        hstRate: 13,
+        labour: DEFAULT_LABOUR_SETTINGS,
+      })
+      expect(installTotals.isInstallation).toBe(true)
+      expect(installTotals.isServiceOnly).toBe(false)
+      expect(installTotals.unitLabourSum).toBeGreaterThan(0)
+      expect(installTotals.miscTotal).toBeGreaterThan(0)
+
+      const supplyTotals = calculateSealedUnitTotals({
+        lineItems: [sampleLineItem],
+        sealedUnitMode: "supply_only",
+        serviceSqftInput: "",
+        serviceLabourRateInput: "",
+        serviceMiscRateInput: "",
+        travelFeeType: "none",
+        customTravelFee: "0",
+        showOutTownTravel: false,
+        travelKm: "",
+        crewHours: "",
+        crewSize: "3",
+        hstRate: 13,
+        labour: DEFAULT_LABOUR_SETTINGS,
+      })
+      expect(supplyTotals.isInstallation).toBe(false)
+      expect(supplyTotals.isServiceOnly).toBe(false)
+      expect(supplyTotals.unitLabourSum).toBe(0)
+      expect(supplyTotals.miscTotal).toBe(0)
+    })
+  })
+
+  describe("formatSealedUnitSummarySentence", () => {
+    it("should format clean summary without 'without grills' suffix", () => {
+      const dualItem = {
+        ...sampleLineItem,
+        paneType: "dual" as const,
+        quantity: 2,
+        rawGrillCost: 0,
+      }
+      expect(formatSealedUnitSummarySentence([dualItem])).toBe("2 dual pane SU")
+
+      const tripleItem = {
+        ...sampleLineItem,
+        paneType: "triple" as const,
+        quantity: 1,
+        rawGrillCost: 0,
+      }
+      expect(formatSealedUnitSummarySentence([tripleItem])).toBe("1 triple pane SU")
+
+      const grillItem = {
+        ...sampleLineItem,
+        paneType: "dual" as const,
+        quantity: 3,
+        rawGrillCost: 25.0,
+      }
+      expect(formatSealedUnitSummarySentence([grillItem])).toBe(
+        "3 dual pane SU with grills"
+      )
+
+      expect(
+        formatSealedUnitSummarySentence([dualItem, grillItem])
+      ).toBe("3 dual pane SU with grills and 2 dual pane SU")
     })
   })
 })

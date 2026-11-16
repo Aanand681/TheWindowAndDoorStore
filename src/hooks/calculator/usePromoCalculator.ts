@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback, useMemo } from "react"
+import { useEffect, useCallback, useMemo, useRef } from "react"
 import { toCents } from "@/lib/promo-logic"
 import { QuotesSubTabType } from "@/components/quotes/QuotesTab"
 import { useCalculatorWindows } from "@/hooks/useCalculatorWindows"
@@ -53,8 +53,21 @@ export function usePromoCalculator({
     setAttachedUpgrade: base.setAttachedUpgrade,
   })
 
+  const draftsRef = useRef<any>(null)
+
+  const { comparison, review, handleConfirmReset } = useCalculatorWorkflows({
+    base,
+    windowsContext,
+    pricing,
+    supply,
+    drafts: {
+      resetDraftState: () => draftsRef.current?.resetDraftState?.(),
+    },
+  })
+
   const { drafts } = useCalculatorDraftsSync({
     initialReviewQuoteId,
+    reviewQuoteId: review.reviewQuoteId,
     base,
     windows,
     setWindows,
@@ -62,13 +75,9 @@ export function usePromoCalculator({
     supply,
   })
 
-  const { comparison, review, handleConfirmReset } = useCalculatorWorkflows({
-    base,
-    windowsContext,
-    pricing,
-    supply,
-    drafts,
-  })
+  useEffect(() => {
+    draftsRef.current = drafts
+  }, [drafts])
 
   useEffect(() => {
     pricing.setTaxTotals((prev: any) => {
@@ -98,6 +107,12 @@ export function usePromoCalculator({
   const switchTab = (tab: string, sub?: QuotesSubTabType) => {
     const validTab =
       tab === "promo" || tab === "tax" || tab === "quotes" ? tab : "promo"
+    if (
+      validTab !== "promo" &&
+      (draftsRef.current as any)?.flushDraftToServer
+    ) {
+      ;(draftsRef.current as any).flushDraftToServer()
+    }
     base.setActiveTab(validTab)
     if (sub) base.setQuotesSubTab(sub)
     if (typeof window !== "undefined") {

@@ -7,6 +7,7 @@ import { RotateCcw, Pencil, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/promo-logic"
 import { toast } from "sonner"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 export interface EditableLedgerRowProps {
   field: "jc" | "labour" | "misc"
@@ -57,8 +58,9 @@ export function EditableLedgerRow({
             step="0.01"
             min="0"
             value={tempEditVal}
-            onChange={(e) => setTempEditVal(e.target.value)}
+            onChange={(e) => setTempEditVal(sanitizeNonNegativeNumber(e.target.value))}
             onKeyDown={(e) => {
+              blockNegativeKey(e)
               if (e.key === "Enter") {
                 setter(tempEditVal)
                 setEditingField(null)
@@ -123,10 +125,10 @@ export function EditableLedgerRow({
       className="group flex items-center justify-between py-0.5 text-xs sm:text-sm"
     >
       <div className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate text-muted-foreground">
+        <span className="truncate font-medium text-foreground">
           {label}{" "}
           {suffix && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="text-[10px] text-muted-foreground/80">
               {suffix}
             </span>
           )}

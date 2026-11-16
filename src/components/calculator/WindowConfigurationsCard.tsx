@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Component, FileUp, Plus, Trash2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { UIWindowItem } from "@/hooks/useCalculatorWindows"
+import { blockNegativeKey } from "@/lib/input-sanitizers"
 
 export interface WindowConfigurationsCardProps {
   windows: UIWindowItem[]
@@ -102,11 +103,11 @@ export function WindowConfigurationsCard({
               size="sm"
               onClick={onResetQuote}
               disabled={isReadOnly}
-              className="h-8 cursor-pointer gap-1 border-border/70 px-2.5 text-xs font-semibold text-destructive shadow-xs hover:bg-destructive/10"
-              title="Reset quote & start fresh"
+              className="h-8 cursor-pointer gap-1 border-border/70 bg-card px-2.5 text-xs font-semibold text-foreground shadow-xs hover:bg-muted"
+              title="Start a new quote"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span>Reset</span>
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              <span>New</span>
             </Button>
           )}
 
@@ -193,6 +194,7 @@ export function WindowConfigurationsCard({
                         min="1"
                         disabled={isReadOnly}
                         value={w.qty}
+                        onKeyDown={blockNegativeKey}
                         onChange={(e) =>
                           handleWindowChange(w.id, "qty", e.target.value)
                         }
@@ -205,9 +207,12 @@ export function WindowConfigurationsCard({
                       </span>
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         disabled={isReadOnly}
                         value={w.base}
+                        onKeyDown={blockNegativeKey}
                         onChange={(e) =>
                           handleWindowChange(w.id, "base", e.target.value)
                         }
@@ -220,9 +225,12 @@ export function WindowConfigurationsCard({
                       </span>
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         disabled={isReadOnly}
                         value={w.argon}
+                        onKeyDown={blockNegativeKey}
                         onChange={(e) =>
                           handleWindowChange(w.id, "argon", e.target.value)
                         }
@@ -235,9 +243,12 @@ export function WindowConfigurationsCard({
                       </span>
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         disabled={isReadOnly}
                         value={w.solar}
+                        onKeyDown={blockNegativeKey}
                         onChange={(e) =>
                           handleWindowChange(w.id, "solar", e.target.value)
                         }
@@ -250,9 +261,12 @@ export function WindowConfigurationsCard({
                       </span>
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
                         placeholder="0.00"
                         disabled={isReadOnly}
                         value={w.triple}
+                        onKeyDown={blockNegativeKey}
                         onChange={(e) =>
                           handleWindowChange(w.id, "triple", e.target.value)
                         }

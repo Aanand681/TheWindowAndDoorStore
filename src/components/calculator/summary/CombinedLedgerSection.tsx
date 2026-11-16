@@ -66,7 +66,7 @@ export function CombinedLedgerSection({
                 key={g.key}
                 className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
               >
-                <span className="truncate font-medium text-muted-foreground capitalize">
+                <span className="truncate font-medium text-foreground capitalize">
                   {g.label}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -76,10 +76,10 @@ export function CombinedLedgerSection({
             ))
           : combinedData.windowBaseCents > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-                <span className="font-medium text-muted-foreground">
+                <span className="font-medium text-foreground">
                   Window base price
                 </span>
-                <span className="shrink-0 font-mono font-semibold whitespace-nowrap">
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   {formatMoney(combinedData.windowBaseCents)}
                 </span>
               </div>
@@ -93,7 +93,7 @@ export function CombinedLedgerSection({
                 "truncate font-medium",
                 combinedData.isAttachedSUService
                   ? "text-blue-700 dark:text-blue-400"
-                  : "text-emerald-700 dark:text-emerald-400"
+                  : "text-foreground"
               )}
             >
               {combinedData.suSummarySentence}
@@ -122,7 +122,7 @@ export function CombinedLedgerSection({
                   key={dItem.id || dIdx}
                   className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
                 >
-                  <span className="truncate font-medium text-amber-700 dark:text-amber-400">
+                  <span className="truncate font-medium text-foreground">
                     {heading}
                   </span>
                   <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -133,7 +133,7 @@ export function CombinedLedgerSection({
             })
           ) : (
             <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-              <span className="truncate font-medium text-amber-700 dark:text-amber-400">
+              <span className="truncate font-medium text-foreground">
                 {combinedData.doorSummarySentence}
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -146,7 +146,7 @@ export function CombinedLedgerSection({
         {combinedData.hasDoor &&
           Boolean((attachedDoorQuote?.totals?.hardwareTotal || 0) > 0) && (
             <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-              <span className="truncate font-medium text-muted-foreground">
+              <span className="truncate font-medium text-foreground">
                 Door Lockset &amp; Hardware
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -201,7 +201,7 @@ export function CombinedLedgerSection({
             )
           })()}
 
-        {/* Labour (Window + Attached) - Hidden on Supply Only */}
+        {/* Labour (Window + Attached) - Hidden on Supply Only (placed after Misc) */}
         {!isSupplyOnly &&
           (() => {
             const attachedLabourCents =
@@ -230,15 +230,15 @@ export function CombinedLedgerSection({
             )
           })()}
 
-        {/* Surcharge (Window + Attached 8%) */}
+        {/* Surcharge (Window + Attached 8% - placed below Labour and above Discounts) */}
         <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-          <span className="text-muted-foreground">
+          <span className="font-medium text-foreground">
             Surcharge{" "}
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="text-[10px] text-muted-foreground/80">
               (8% on materials)
             </span>
           </span>
-          <span className="shrink-0 font-mono whitespace-nowrap text-muted-foreground">
+          <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
             +{formatMoney(combinedData.combinedSurchargeCents)}
           </span>
         </div>

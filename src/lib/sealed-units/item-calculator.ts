@@ -272,7 +272,7 @@ export function formatSealedUnitSummarySentence(
   }
   if (dNoGrills > 0) {
     groups.push({
-      text: `${dNoGrills} dual pane SU without grills`,
+      text: `${dNoGrills} dual pane SU`,
       count: dNoGrills,
       hasGrills: false,
     })
@@ -286,7 +286,7 @@ export function formatSealedUnitSummarySentence(
   }
   if (tNoGrills > 0) {
     groups.push({
-      text: `${tNoGrills} triple pane SU without grills`,
+      text: `${tNoGrills} triple pane SU`,
       count: tNoGrills,
       hasGrills: false,
     })

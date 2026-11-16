@@ -3,6 +3,11 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { QuotesSubTabType } from "@/components/quotes/QuotesTab"
+import {
+  clearAllQuoteSessionState,
+  writeSessionAttachedInstallOption,
+  writeSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface UseReviewQuoteLoaderParams {
   user: any
@@ -85,6 +90,7 @@ export function useReviewQuoteLoader({
     isEdit?: boolean,
     originSubTab?: QuotesSubTabType
   ) => {
+    clearAllQuoteSessionState()
     if (originSubTab) {
       setQuotesSubTab(originSubTab)
     }
@@ -160,6 +166,10 @@ export function useReviewQuoteLoader({
             setSupplyCasingId(q.supplyCasingId)
           if (setSupplyCasingRate && q.supplyCasingRate !== undefined)
             setSupplyCasingRate(q.supplyCasingRate)
+          writeSessionAttachedInstallOption(q.attachedInstallOption ?? null)
+          writeSessionCustomOptions(
+            Array.isArray(q.customOptions) ? q.customOptions : []
+          )
           if (q.taxTotals) {
             setTaxTotals({
               ...q.taxTotals,
@@ -220,6 +230,14 @@ export function useReviewQuoteLoader({
       setSupplyCasingId(reviewQuote.supplyCasingId)
     if (setSupplyCasingRate && reviewQuote.supplyCasingRate !== undefined)
       setSupplyCasingRate(reviewQuote.supplyCasingRate)
+    writeSessionAttachedInstallOption(
+      reviewQuote.attachedInstallOption ?? null
+    )
+    writeSessionCustomOptions(
+      Array.isArray(reviewQuote.customOptions)
+        ? reviewQuote.customOptions
+        : []
+    )
     if (reviewQuote.taxTotals) {
       setTaxTotals({
         ...reviewQuote.taxTotals,
@@ -232,6 +250,7 @@ export function useReviewQuoteLoader({
   }
 
   const handleExitReview = () => {
+    clearAllQuoteSessionState()
     setIsEditMode(false)
     setReviewQuote(null)
     setReviewQuoteId(null)

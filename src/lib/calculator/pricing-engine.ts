@@ -136,12 +136,14 @@ export function computeCombinedQuoteFinancials(
     doorMiscCents = Math.round((doorTotals.miscTotal || 0) * 100)
   }
 
-  const windowBaseCents = quoteResult?.base || 0
-  const windowSurchargeCents = quoteResult?.surcharge || 0
-  const windowDiscountCents = quoteResult?.promoDiscount || 0
+  const windowBaseCents = Math.max(0, quoteResult?.base || 0)
+  const windowSurchargeCents = Math.max(0, quoteResult?.surcharge || 0)
+  const windowDiscountCents = Math.max(0, quoteResult?.promoDiscount || 0)
 
-  const combinedMiscCents = effectiveMisc + suMiscCents + doorMiscCents
-  const combinedLabourCents = effectiveLabour + suLabourCents + doorLabourCents
+  const combinedMiscCents =
+    Math.max(0, effectiveMisc) + suMiscCents + doorMiscCents
+  const combinedLabourCents =
+    Math.max(0, effectiveLabour) + suLabourCents + doorLabourCents
   const combinedSurchargeCents =
     windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 

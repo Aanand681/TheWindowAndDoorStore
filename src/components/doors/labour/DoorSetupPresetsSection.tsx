@@ -45,6 +45,16 @@ export function DoorSetupPresetsSection({
     selectedRegion?.name.toLowerCase().includes("sioux")
   )
 
+  // Reactive auto-sync: Automatically enforce remote standard setup fee ($727.50) on initial render/quote load
+  React.useEffect(() => {
+    if (
+      isDrydenOrRemote &&
+      (!travelFeeType || travelFeeType === "none" || (travelFeeType as string) === "local_std")
+    ) {
+      onUpdateParams({ travelFeeType: "far_std" })
+    }
+  }, [isDrydenOrRemote, travelFeeType, onUpdateParams])
+
   let remoteExtra = 0
   if (isDrydenOrRemote) {
     if (travelFeeType === "far_std") {

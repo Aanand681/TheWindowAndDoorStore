@@ -49,6 +49,9 @@ export interface PreviewModalWrapperProps {
   attachedSealedUnit: any
   attachedDoorQuote: any
   isSupplyOnly: boolean
+  isDualOption?: boolean
+  attachedInstallOption?: any
+  customOptions?: any[]
 }
 
 export function PreviewModalWrapper(props: PreviewModalWrapperProps) {

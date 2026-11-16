@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import {
   saveQuoteDraft,
   getSavedDrafts,
+  clearActiveAutoSave,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
 } from "@/lib/quote-drafts-storage"
@@ -37,6 +38,7 @@ export interface SealedUnitFormInputs {
   crewSize: "2" | "3"
   hstRate: number
   selectedRegionId?: string
+  regionName?: string
 }
 
 export interface SealedUnitFormSetters {
@@ -65,10 +67,12 @@ interface UseSealedUnitsDraftsProps {
   formInputs: SealedUnitFormInputs
   formSetters: SealedUnitFormSetters
   totals: SealedUnitTotals
+  regions?: any[]
 }
 
 export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
-  const { lineItems, setLineItems, formInputs, formSetters, totals } = props
+  const { lineItems, setLineItems, formInputs, formSetters, totals, regions } =
+    props
   const {
     sealedUnitMode,
     isInstallation,
@@ -83,6 +87,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     crewHours,
     crewSize,
     hstRate,
+    selectedRegionId,
+    regionName,
   } = formInputs
 
   const router = useRouter()
@@ -110,9 +116,10 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       setLineItems,
       setAttachedWindowQuote,
       setAttachedDoorQuote,
+      regions,
       ...formSetters,
     }),
-    [setLineItems, formSetters]
+    [setLineItems, formSetters, regions]
   )
 
   const currentSnapshotParams = useMemo(
@@ -132,6 +139,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       crewHours,
       crewSize,
       hstRate,
+      selectedRegionId: selectedRegionId || "",
+      regionName: regionName || "",
       attachedWindowQuote,
       attachedDoorQuote,
     }),
@@ -151,6 +160,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       crewHours,
       crewSize,
       hstRate,
+      selectedRegionId,
+      regionName,
       attachedWindowQuote,
       attachedDoorQuote,
     ]
@@ -279,6 +290,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     setQuoteNumber(generateQuoteNumber())
     setQuoteNotes("")
     setShowResetModal(false)
+    clearActiveAutoSave("sealed_unit")
     autoSave.clearTimerAndSaveSnapshot("")
     autoSave.setLastSavedAt(null)
     toast.success("Sealed Unit quote reset. Workspace is fresh and ready.")

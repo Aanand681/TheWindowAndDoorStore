@@ -27,6 +27,8 @@ export interface SealedUnitTotals {
   grandTotal: number
   effectiveLabourRate?: number
   effectiveMiscRate?: number
+  isInstallation?: boolean
+  isServiceOnly?: boolean
 }
 
 export interface SealedUnitPrintInvoiceProps {

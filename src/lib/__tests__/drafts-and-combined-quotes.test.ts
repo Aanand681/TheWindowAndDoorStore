@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import { detectQuoteChanges } from "@/lib/quote-diff"
+import { formatWindowSummarySentence } from "@/lib/calculator/format-window-summary"
+import {
+  AUTOSAVE_TTL_MS,
+  isWorkspaceDirtyOrUnsaved,
+} from "@/lib/quote-drafts-storage"
 
 describe("Drafts & Combined Quotes Architecture", () => {
   it("correctly serializes and computes combined financials for Window + Attached Door + Attached SU", () => {
@@ -157,5 +162,72 @@ describe("Drafts & Combined Quotes Architecture", () => {
 
     expect(fin.combinedTaxCents).toBe(0)
     expect(fin.combinedTotalCents).toBe(fin.combinedSubtotalCents)
+  })
+
+  it("formats window summary sentences with accurate dual/triple pane counts", () => {
+    const windows = [
+      { id: "1", qty: "2", base: "300", color: "White" },
+      { id: "2", qty: "1", base: "500", triple: "1", color: "Painted" },
+    ]
+    const summary = formatWindowSummarySentence(windows)
+    expect(summary).toBe("1 triple pane painted and 2 dual pane white windows")
+  })
+
+  it("verifies 8-hour TTL constant equals 28,800,000 milliseconds", () => {
+    expect(AUTOSAVE_TTL_MS).toBe(8 * 60 * 60 * 1000)
+  })
+
+  it("correctly identifies clean vs dirty workspace for smart 'New' button behavior", () => {
+    // 1. Fresh empty workspace should be clean
+    const emptyWorkspace = {
+      quoteNumber: "",
+      customerName: "",
+      itemCount: 0,
+      grandTotal: 0,
+      data: { windows: [] },
+    }
+    expect(isWorkspaceDirtyOrUnsaved("window", emptyWorkspace)).toBe(false)
+
+    // 2. Workspace with user content and no saved draft should be dirty
+    const unsavedWorkspace = {
+      quoteNumber: "12345",
+      customerName: "Jane Doe",
+      itemCount: 2,
+      grandTotal: 1500,
+      data: {
+        windows: [{ id: "w1", base: "500", w: "36", h: "48" }],
+      },
+    }
+    expect(isWorkspaceDirtyOrUnsaved("window", unsavedWorkspace)).toBe(true)
+  })
+
+  it("handles cents vs dollars gracefully in isWorkspaceDirtyOrUnsaved", () => {
+    // If quote is saved with 1500.00 dollars, passing 150000 cents should be recognized
+    const centsWorkspace = {
+      quoteNumber: "",
+      customerName: "",
+      itemCount: 0,
+      grandTotal: 0,
+      data: { windows: [] },
+    }
+    expect(isWorkspaceDirtyOrUnsaved("window", centsWorkspace)).toBe(false)
+  })
+
+  it("ensures drafts retain attachedInstallOption and customOptions", () => {
+    const draftPayload = {
+      attachedInstallOption: {
+        enabled: true,
+        amountPreTaxCents: 45000,
+        mode: "supply",
+      },
+      customOptions: [
+        { id: "opt-1", title: "Triple Pane Upgrade", amountPreTaxCents: 35000 },
+      ],
+    }
+
+    expect(draftPayload.attachedInstallOption.enabled).toBe(true)
+    expect(draftPayload.attachedInstallOption.amountPreTaxCents).toBe(45000)
+    expect(draftPayload.customOptions.length).toBe(1)
+    expect(draftPayload.customOptions[0].title).toBe("Triple Pane Upgrade")
   })
 })

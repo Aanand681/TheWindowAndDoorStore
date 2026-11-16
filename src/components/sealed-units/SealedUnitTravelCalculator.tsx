@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select"
 import { SealedUnitLabourSettings } from "@/lib/sealed-units-logic"
 import { SharedRegionOption } from "@/hooks/shared/useSharedRegions"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 export interface SealedUnitTravelCalculatorProps {
   labour: SealedUnitLabourSettings
@@ -47,6 +48,8 @@ export function SealedUnitTravelCalculator({
   setTravelFeeType,
   customTravelFee,
   setCustomTravelFee,
+  showOutTownTravel = false,
+  setShowOutTownTravel,
   travelKm,
   setTravelKm,
   crewHours,
@@ -63,8 +66,34 @@ export function SealedUnitTravelCalculator({
 
   const isDrydenOrRemote = Boolean(
     selectedRegion?.name.toLowerCase().includes("dryden") ||
-    selectedRegion?.name.toLowerCase().includes("sioux")
+      selectedRegion?.name.toLowerCase().includes("sioux")
   )
+
+  // Reactive auto-sync: Automatically enforce remote standard setup fee ($727.50) on initial render/quote load
+  React.useEffect(() => {
+    if (
+      isDrydenOrRemote &&
+      (!travelFeeType || travelFeeType === "none" || (travelFeeType as string) === "local_std")
+    ) {
+      setTravelFeeType("far_std")
+    }
+  }, [isDrydenOrRemote, travelFeeType, setTravelFeeType])
+
+  const handleKmChange = (val: string) => {
+    const cleaned = sanitizeNonNegativeNumber(val)
+    setTravelKm(cleaned)
+    const kmNum = parseFloat(cleaned) || 0
+    const hrsNum = parseFloat(crewHours) || 0
+    setShowOutTownTravel?.(kmNum > 0 || hrsNum > 0)
+  }
+
+  const handleHoursChange = (val: string) => {
+    const cleaned = sanitizeNonNegativeNumber(val)
+    setCrewHours(cleaned)
+    const hrsNum = parseFloat(cleaned) || 0
+    const kmNum = parseFloat(travelKm) || 0
+    setShowOutTownTravel?.(hrsNum > 0 || kmNum > 0)
+  }
 
   let remoteExtra = 0
   if (isDrydenOrRemote) {
@@ -197,10 +226,12 @@ export function SealedUnitTravelCalculator({
             <Input
               type="number"
               step="any"
+              min="0"
               className="h-8.5 bg-background font-mono text-xs"
               placeholder="0.00"
               value={customTravelFee}
-              onChange={(e) => setCustomTravelFee(e.target.value)}
+              onKeyDown={blockNegativeKey}
+              onChange={(e) => setCustomTravelFee(sanitizeNonNegativeNumber(e.target.value))}
             />
           </div>
         )}
@@ -230,11 +261,18 @@ export function SealedUnitTravelCalculator({
 
       {/* 2. Out-of-Town Mileage & Crew Transit Hours */}
       <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 p-3.5">
-        <div className="flex items-center gap-2 border-b border-border/50 pb-2">
-          <Fuel className="h-4 w-4 text-primary" />
-          <Label className="text-xs font-bold text-foreground">
-            Out-of-Town Mileage &amp; Transit Hours
-          </Label>
+        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+          <div className="flex items-center gap-2">
+            <Fuel className="h-4 w-4 text-primary" />
+            <Label className="text-xs font-bold text-foreground">
+              Out-of-Town Mileage &amp; Transit Hours
+            </Label>
+          </div>
+          {(showOutTownTravel || kmVal > 0 || hrsVal > 0) && (
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              Active
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -247,7 +285,8 @@ export function SealedUnitTravelCalculator({
               step="any"
               min="0"
               value={travelKm}
-              onChange={(e) => setTravelKm(e.target.value)}
+              onKeyDown={blockNegativeKey}
+              onChange={(e) => handleKmChange(e.target.value)}
               placeholder="0"
               className="h-9 bg-background font-mono text-xs"
             />
@@ -266,7 +305,8 @@ export function SealedUnitTravelCalculator({
               step="0.5"
               min="0"
               value={crewHours}
-              onChange={(e) => setCrewHours(e.target.value)}
+              onKeyDown={blockNegativeKey}
+              onChange={(e) => handleHoursChange(e.target.value)}
               placeholder="0.0"
               className="h-9 bg-background font-mono text-xs"
             />

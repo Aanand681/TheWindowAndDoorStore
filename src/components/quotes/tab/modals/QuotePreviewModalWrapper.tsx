@@ -43,6 +43,26 @@ export function QuotePreviewModalWrapper({
   const financials = computeQuotePricing(previewQuote)
   if (!financials) return null
 
+  const isDoor =
+    previewQuote.quoteType === "door" ||
+    (Array.isArray(previewQuote.windows) &&
+      previewQuote.windows.some((w: any) => Boolean(w.doorPresetId)))
+
+  const isSU =
+    previewQuote.quoteType === "sealed_unit" ||
+    Boolean(previewQuote.taxTotals?.isSealedUnitQuote)
+
+  const isSupplyOnly = Boolean(
+    previewQuote.isSupplyOnly ||
+    previewQuote.taxTotals?.isSupplyOnly ||
+    previewQuote.mode === "supply_only" ||
+    previewQuote.sealedUnitMode === "supply_only"
+  )
+
+  const hasAttachedInstallOption = Boolean(
+    previewQuote.attachedInstallOption?.enabled
+  )
+
   return (
     <QuotePreviewModal
       isOpen={isPreviewOpen}
@@ -53,7 +73,11 @@ export function QuotePreviewModalWrapper({
       customerName={previewQuote.customerName}
       quoteNumber={previewQuote.quoteNumber}
       windows={previewQuote.windows || []}
+      doors={isDoor ? previewQuote.windows || [] : undefined}
+      sealedUnits={isSU ? previewQuote.windows || [] : undefined}
       taxTotals={previewQuote.taxTotals}
+      doorTotals={isDoor ? previewQuote.taxTotals : undefined}
+      sealedUnitTotals={isSU ? previewQuote.taxTotals : undefined}
       quoteResult={previewQuote.quoteResult}
       activePromo={
         financials.promoDiscount > 0
@@ -65,7 +89,7 @@ export function QuotePreviewModalWrapper({
       }
       basePrice={financials.basePrice}
       surcharge={financials.surcharge}
-      wantsUpgrade={false}
+      wantsUpgrade={Boolean(previewQuote.wantsUpgrade)}
       shownUpgrade={0}
       hstRate={financials.hstRate}
       total={financials.total}
@@ -82,6 +106,14 @@ export function QuotePreviewModalWrapper({
       effectiveJC={financials.effectiveJC}
       effectiveMisc={financials.effectiveMisc}
       effectiveLabour={financials.effectiveLabour}
+      isSupplyOnly={isSupplyOnly}
+      isDualOption={hasAttachedInstallOption}
+      attachedInstallOption={previewQuote.attachedInstallOption || null}
+      customOptions={previewQuote.customOptions || []}
+      attachedUpgrade={previewQuote.attachedUpgrade || null}
+      attachedDoorQuote={previewQuote.attachedDoorQuote || null}
+      attachedSealedUnit={previewQuote.attachedSealedUnit || null}
+      attachedWindowQuote={previewQuote.attachedWindowQuote || null}
       template={previewTemplate}
       fontSize={previewFontSize}
       spacing={previewSpacing}

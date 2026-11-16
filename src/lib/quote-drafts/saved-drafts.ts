@@ -237,12 +237,14 @@ export async function syncRemoteDrafts(): Promise<QuoteDraftItem[]> {
     for (const ld of localDrafts) {
       const key = `${ld.type}:${(ld.quoteNumber || "").trim().toLowerCase()}`
       if (!mergedMap.has(key)) {
+        // Keep offline drafts locally without flooding the server with POST requests
         mergedMap.set(key, ld)
-        fetch("/api/drafts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(ld),
-        }).catch(() => {})
+      } else {
+        // If server had empty summaryLabel but local had one, retain local summaryLabel
+        const existing = mergedMap.get(key)
+        if (existing && !existing.summaryLabel && ld.summaryLabel) {
+          existing.summaryLabel = ld.summaryLabel
+        }
       }
     }
 

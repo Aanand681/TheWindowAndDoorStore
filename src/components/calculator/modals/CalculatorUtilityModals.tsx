@@ -21,7 +21,15 @@ export function CalculatorUtilityModals({
   showResetModal,
   setShowResetModal,
   handleConfirmReset,
+  handleSaveDraft,
 }: CalculatorUtilityModalsProps) {
+  const handleSaveDraftAndReset = () => {
+    if (handleSaveDraft) {
+      handleSaveDraft()
+    }
+    handleConfirmReset()
+  }
+
   return (
     <>
       <SavedQuotesModalWrapper
@@ -47,6 +55,7 @@ export function CalculatorUtilityModals({
         isOpen={showResetModal}
         onClose={() => setShowResetModal(false)}
         onConfirm={handleConfirmReset}
+        onSaveDraftAndReset={handleSaveDraftAndReset}
       />
     </>
   )

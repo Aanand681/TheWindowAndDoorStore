@@ -31,9 +31,13 @@ export function SealedUnitsScheduleTable({
     attachedSealedUnit?.data?.sealedUnitMode ||
     (isService
       ? "service_only"
-      : attachedSealedUnit?.isInstallation || effectiveSUTotals.isInstallation
-        ? "installation"
-        : "supply_only")
+      : isSUHost
+        ? (effectiveSUTotals.isInstallation ?? !calc.isSupplyOnly)
+          ? "installation"
+          : "supply_only"
+        : attachedSealedUnit?.isInstallation || effectiveSUTotals.isInstallation
+          ? "installation"
+          : "supply_only")
   const isInstallation = !isService && suMode === "installation"
 
   const effectiveSULineItems =

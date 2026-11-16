@@ -4,6 +4,7 @@ import { DEFAULT_LABOUR_SETTINGS } from "./grill-data"
 export function calculateSealedUnitTotals({
   lineItems,
   isInstallation = false,
+  isServiceOnly = false,
   travelFeeType = "none",
   customTravelFee = 0,
   showOutTownTravel = false,
@@ -65,12 +66,17 @@ export function calculateSealedUnitTotals({
 
   let vehicleTravelFee = 0
   let crewTravelFee = 0
-  if (isInstallation && showOutTownTravel) {
-    const km = Number(travelKm) || 0
+  const isOutTownActive = Boolean(
+    showOutTownTravel ||
+      (Number(travelKm) > 0) ||
+      (Number(crewHours) > 0)
+  )
+  if (isInstallation && isOutTownActive) {
+    const km = Math.max(0, Number(travelKm) || 0)
     vehicleTravelFee =
       Math.round(km * (labour.vehicleRatePerKm || 0.98) * 100) / 100
 
-    const hrs = Number(crewHours) || 0
+    const hrs = Math.max(0, Number(crewHours) || 0)
     const hourlyRate =
       crewSize === "2"
         ? labour.crewHourly2Men || 150
@@ -136,5 +142,7 @@ export function calculateSealedUnitTotals({
     hstBase,
     materialExemption,
     grandTotal,
+    isInstallation: Boolean(isInstallation),
+    isServiceOnly: Boolean(isServiceOnly),
   }
 }

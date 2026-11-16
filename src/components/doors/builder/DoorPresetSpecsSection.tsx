@@ -4,6 +4,11 @@ import React from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DoorPreset, DoorCategory, DoorHardwareType } from "@/lib/doors/types"
+import {
+  blockNegativeKey,
+  sanitizeNonNegativeNumber,
+  sanitizePositiveInteger,
+} from "@/lib/input-sanitizers"
 
 interface DoorPresetSpecsSectionProps {
   doorType: DoorCategory
@@ -95,7 +100,8 @@ export function DoorPresetSpecsSection({
             min="1"
             step="1"
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onKeyDown={blockNegativeKey}
+            onChange={(e) => setQuantity(sanitizePositiveInteger(e.target.value, "1"))}
             onBlur={() => {
               const val = parseInt(quantity, 10)
               if (isNaN(val) || val < 1) setQuantity("1")
@@ -115,10 +121,12 @@ export function DoorPresetSpecsSection({
             </span>
             <Input
               type="number"
+              min="0"
               step="0.01"
               required
               value={inksterBasePrice}
-              onChange={(e) => setInksterBasePrice(e.target.value)}
+              onKeyDown={blockNegativeKey}
+              onChange={(e) => setInksterBasePrice(sanitizeNonNegativeNumber(e.target.value))}
               placeholder="0.00"
               className="h-8.5 [appearance:textfield] border-primary/40 bg-primary/5 pl-5 text-right font-mono text-xs font-bold focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
@@ -132,9 +140,11 @@ export function DoorPresetSpecsSection({
           </Label>
           <Input
             type="number"
+            min="0"
             step="any"
             value={labourInput}
-            onChange={(e) => setLabourInput(e.target.value)}
+            onKeyDown={blockNegativeKey}
+            onChange={(e) => setLabourInput(sanitizeNonNegativeNumber(e.target.value))}
             placeholder="0.00"
             className="h-8.5 [appearance:textfield] text-right font-mono text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
@@ -147,9 +157,11 @@ export function DoorPresetSpecsSection({
           </Label>
           <Input
             type="number"
+            min="0"
             step="any"
             value={miscInput}
-            onChange={(e) => setMiscInput(e.target.value)}
+            onKeyDown={blockNegativeKey}
+            onChange={(e) => setMiscInput(sanitizeNonNegativeNumber(e.target.value))}
             placeholder="0.00"
             className="h-8.5 [appearance:textfield] text-right font-mono text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />

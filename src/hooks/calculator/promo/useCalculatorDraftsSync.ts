@@ -6,13 +6,22 @@ import { useCalculatorAutoSave } from "@/hooks/calculator/useCalculatorAutoSave"
 
 export function useCalculatorDraftsSync(p: {
   initialReviewQuoteId?: string
+  reviewQuoteId?: string | null
   base: any
   windows: any[]
   setWindows: (w: any[]) => void
   pricing: any
   supply: any
 }) {
-  const { initialReviewQuoteId, base, windows, setWindows, pricing, supply } = p
+  const {
+    initialReviewQuoteId,
+    reviewQuoteId,
+    base,
+    windows,
+    setWindows,
+    pricing,
+    supply,
+  } = p
 
   const clearAutoSaveTimerRef = useRef<() => void>(() => {})
   const setLastSavedAtRef = useRef<(time: string | null) => void>(() => {})
@@ -81,6 +90,7 @@ export function useCalculatorDraftsSync(p: {
 
   const autoSave = useCalculatorAutoSave({
     initialReviewQuoteId,
+    reviewQuoteId,
     windows,
     customerName: base.customerName,
     quoteNumber: base.quoteNumber,
@@ -122,6 +132,7 @@ export function useCalculatorDraftsSync(p: {
     drafts: {
       ...drafts,
       lastSavedAt: autoSave.lastSavedAt,
+      flushDraftToServer: autoSave.flushToServer,
     },
   }
 }

@@ -143,48 +143,40 @@ export function DoorSummaryLedger({
         </div>
       )}
 
+      {totals.hardwareTotal > 0 && (
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="font-medium text-foreground">Lockset &amp; Hardware</span>
+          <span className="font-mono font-semibold text-foreground">
+            +${totals.hardwareTotal.toFixed(2)}
+          </span>
+        </div>
+      )}
+
       {hasAttachedWindow && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="truncate text-muted-foreground">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="truncate font-medium text-foreground">
             {attachedWinSentence}
           </span>
-          <span className="font-mono font-medium">+${winBase.toFixed(2)}</span>
+          <span className="font-mono font-semibold text-foreground">+${winBase.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedWindow && winJC > 0 && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="truncate text-muted-foreground">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="truncate font-medium text-foreground">
             {winJCDescription}
           </span>
-          <span className="font-mono font-medium">+${winJC.toFixed(2)}</span>
+          <span className="font-mono font-semibold text-foreground">+${winJC.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedSU && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="truncate text-muted-foreground">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <span className="truncate font-medium text-foreground">
             {attachedSUSentence}
           </span>
-          <span className="font-mono font-medium">+${suGlass.toFixed(2)}</span>
+          <span className="font-mono font-semibold text-foreground">+${suGlass.toFixed(2)}</span>
         </div>
-      )}
-
-      {isInstallation && (
-        <DoorSummaryEditableRow
-          field="labour"
-          label="Labour"
-          amount={combinedLabour}
-          customVal={customLabour}
-          defaultAmount={defaultDoorLabour + winLabour + suLabour}
-          isInstallation={isInstallation}
-          editingField={editingField}
-          setEditingField={setEditingField}
-          tempEditVal={tempEditVal}
-          setTempEditVal={setTempEditVal}
-          setter={setCustomLabour}
-          suffix={hasAnyAttached ? "(all quotes)" : undefined}
-        />
       )}
 
       {isInstallation && (
@@ -204,17 +196,34 @@ export function DoorSummaryLedger({
         />
       )}
 
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
+      {isInstallation && (
+        <DoorSummaryEditableRow
+          field="labour"
+          label="Labour"
+          amount={combinedLabour}
+          customVal={customLabour}
+          defaultAmount={defaultDoorLabour + winLabour + suLabour}
+          isInstallation={isInstallation}
+          editingField={editingField}
+          setEditingField={setEditingField}
+          tempEditVal={tempEditVal}
+          setTempEditVal={setTempEditVal}
+          setter={setCustomLabour}
+          suffix={hasAnyAttached ? "(all quotes)" : undefined}
+        />
+      )}
+
+      <div className="flex items-center justify-between text-xs sm:text-sm">
+        <span className="font-medium text-foreground">
           Surcharge (8% on materials)
         </span>
-        <span className="font-mono font-medium">
-          ${combinedSurcharge.toFixed(2)}
+        <span className="font-mono font-semibold text-foreground">
+          +${combinedSurcharge.toFixed(2)}
         </span>
       </div>
 
       {totals.discountTotal > 0 && (
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
             10% Discount
           </span>
@@ -225,7 +234,7 @@ export function DoorSummaryLedger({
       )}
 
       {winDiscount > 0 && (
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
             Promo Discount (
             {attachedWindowQuote?.promoName ||
@@ -235,15 +244,6 @@ export function DoorSummaryLedger({
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
             -${winDiscount.toFixed(2)}
-          </span>
-        </div>
-      )}
-
-      {totals.hardwareTotal > 0 && (
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Lockset &amp; Hardware</span>
-          <span className="font-mono font-medium">
-            ${totals.hardwareTotal.toFixed(2)}
           </span>
         </div>
       )}

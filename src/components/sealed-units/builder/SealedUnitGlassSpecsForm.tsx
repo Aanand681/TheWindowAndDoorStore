@@ -11,6 +11,7 @@ import {
   PaneType,
   GlassShape,
 } from "@/lib/sealed-units-logic"
+import { blockNegativeKey, sanitizePositiveInteger } from "@/lib/input-sanitizers"
 
 export interface SealedUnitGlassSpecsFormProps {
   treatment: GlassTreatment
@@ -251,7 +252,8 @@ export function SealedUnitGlassSpecsForm({
             type="number"
             min="1"
             value={qtyInput}
-            onChange={(e) => setQtyInput(e.target.value)}
+            onKeyDown={blockNegativeKey}
+            onChange={(e) => setQtyInput(sanitizePositiveInteger(e.target.value, "1"))}
             className="h-8 font-mono text-xs font-bold"
             required
           />

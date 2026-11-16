@@ -11,6 +11,7 @@ export interface CachedSupplyState {
   casingName: string
   casingRate: string
   customJC: string
+  supplyJCAmount?: number
 }
 
 export interface CachedInstallState {
@@ -64,6 +65,9 @@ export const SESSION_ATTACHED_INSTALL_OPTION_KEY =
 export interface CachedAttachedInstallOption {
   enabled: boolean
   amountPreTaxCents: number
+  mode?: "supply" | "install"
+  title?: string
+  hasSupplyJC?: boolean
 }
 
 export function readSessionAttachedInstallOption(): CachedAttachedInstallOption | null {
@@ -76,6 +80,8 @@ export function readSessionAttachedInstallOption(): CachedAttachedInstallOption 
   }
 }
 
+export const ATTACHED_INSTALL_CHANGE_EVENT = "vwd_attached_install_changed"
+
 export function writeSessionAttachedInstallOption(
   option: CachedAttachedInstallOption | null
 ) {
@@ -87,5 +93,56 @@ export function writeSessionAttachedInstallOption(
         SESSION_ATTACHED_INSTALL_OPTION_KEY,
         JSON.stringify(option)
       )
+    window.dispatchEvent(new CustomEvent(ATTACHED_INSTALL_CHANGE_EVENT))
   } catch {}
 }
+
+export const SESSION_CUSTOM_OPTIONS_KEY = "vwd_quote_custom_options"
+
+export interface CustomQuoteOption {
+  id: string
+  title: string
+  amountPreTaxCents: number
+}
+
+export function readSessionCustomOptions(): CustomQuoteOption[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = sessionStorage.getItem(SESSION_CUSTOM_OPTIONS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export const CUSTOM_OPTIONS_CHANGE_EVENT = "vwd_custom_options_changed"
+
+export function writeSessionCustomOptions(options: CustomQuoteOption[]) {
+  if (typeof window === "undefined") return
+  try {
+    if (!options || options.length === 0)
+      sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
+    else
+      sessionStorage.setItem(
+        SESSION_CUSTOM_OPTIONS_KEY,
+        JSON.stringify(options)
+      )
+    window.dispatchEvent(new CustomEvent(CUSTOM_OPTIONS_CHANGE_EVENT))
+  } catch {}
+}
+
+/**
+ * Completely purges all quote-related session storage.
+ * Call when importing a new PDF, resetting a quote, or switching to an independent workspace.
+ */
+export function clearAllQuoteSessionState() {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.removeItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
+    sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
+    sessionStorage.removeItem(SESSION_SUPPLY_KEY)
+    sessionStorage.removeItem(SESSION_INSTALL_KEY)
+  } catch {}
+}
+
+

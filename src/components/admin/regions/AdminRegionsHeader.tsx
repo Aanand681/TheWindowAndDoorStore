@@ -1,12 +1,8 @@
 "use client"
 
 import React from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Map, Plus, Component } from "lucide-react"
-import { ThemeToggle } from "@/components/layout/theme-toggle"
-import NotificationBell from "@/components/shared/NotificationBell"
-import QuotesBinPill from "@/components/quotes/QuotesBinPill"
+import { Map, Plus } from "lucide-react"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 
 interface AdminRegionsHeaderProps {
@@ -15,40 +11,34 @@ interface AdminRegionsHeaderProps {
 
 export function AdminRegionsHeader({ onOpenCreate }: AdminRegionsHeaderProps) {
   return (
-    <header className="mb-8 flex flex-col items-center justify-between gap-4 md:flex-row">
+    <div className="flex flex-col justify-between gap-4 border-b border-border/50 pb-2 sm:flex-row sm:items-center">
       <div className="flex flex-wrap items-center gap-3">
-        <SmartBackButton fallbackUrl="/admin" label="Back to Admin" />
-        <Link
-          href="/"
-          className="group inline-flex cursor-pointer items-center gap-2 text-primary transition-opacity hover:opacity-80"
-          title="Window & Door Store - Home / Calculator"
-        >
-          <Component className="h-6 w-6 transition-transform group-hover:scale-105" />
-          <span className="text-xl font-semibold tracking-wider uppercase">
-            Window &amp; Door Store
+        <SmartBackButton fallbackUrl="/admin" title="Back to Admin" />
+        <div className="inline-flex items-center gap-2">
+          <span className="rounded-lg bg-primary/10 p-1.5 text-primary">
+            <Map className="h-5 w-5" />
           </span>
-        </Link>
-        <span className="hidden text-muted-foreground/40 sm:inline">/</span>
-        <div className="inline-flex items-center gap-1.5 text-muted-foreground">
-          <Map className="h-5 w-5 text-primary" />
-          <span className="text-base font-semibold tracking-wider uppercase">
-            Region Pricing &amp; Defaults
-          </span>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              Manage Region Charges
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Update region-specific per-sqft rates, fixed setup fees, and map coordinates.
+            </p>
+          </div>
         </div>
       </div>
+
       <div className="flex items-center gap-3">
-        <QuotesBinPill />
         <Button
           onClick={onOpenCreate}
           size="sm"
-          className="flex cursor-pointer items-center gap-1.5 bg-primary font-semibold text-primary-foreground shadow-md"
+          className="flex cursor-pointer items-center gap-1.5 bg-primary font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           <span>Add New Region</span>
         </Button>
-        <NotificationBell />
-        <ThemeToggle />
       </div>
-    </header>
+    </div>
   )
 }

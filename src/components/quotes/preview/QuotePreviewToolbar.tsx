@@ -148,7 +148,7 @@ export function QuotePreviewToolbar({
               </span>
             </Button>
 
-            {isSupplyOnly && setIsDualOption && (
+            {setIsDualOption && (
               <Button
                 type="button"
                 variant={isDualOption ? "secondary" : "outline"}
@@ -157,17 +157,31 @@ export function QuotePreviewToolbar({
                   const next = !isDualOption
                   setIsDualOption(next)
                   writeSessionAttachedInstallOption(
-                    next ? { enabled: true, amountPreTaxCents: 0 } : null
+                    next
+                      ? {
+                          enabled: true,
+                          amountPreTaxCents: 0,
+                          mode: isSupplyOnly ? "supply" : "install",
+                        }
+                      : null
                   )
                 }}
-                title="Attach the Option for Installation card to this supply quote"
+                title={
+                  isSupplyOnly
+                    ? "Attach the Option for Installation card to this supply quote"
+                    : "Attach the Option for Supply Only card to this installation quote"
+                }
                 className="h-7 cursor-pointer gap-1.5 border-primary/30 px-2.5 text-[11px] font-semibold"
               >
                 <Scale className="h-3.5 w-3.5 text-primary" />
                 <span>
                   {isDualOption
-                    ? "Installation Option (Attached)"
-                    : "Option for Installation"}
+                    ? isSupplyOnly
+                      ? "Installation Option (Attached)"
+                      : "Supply Option (Attached)"
+                    : isSupplyOnly
+                      ? "Option for Installation"
+                      : "Option for Supply Only"}
                 </span>
               </Button>
             )}

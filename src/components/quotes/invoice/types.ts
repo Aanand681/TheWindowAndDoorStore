@@ -53,6 +53,8 @@ export interface QuoteInvoiceProps {
   globalUpcharges?: any[]
   isSupplyOnly?: boolean
   isDualOption?: boolean
+  attachedInstallOption?: any | null
+  customOptions?: any[] | null
 }
 
 export interface InvoiceCalculationsResult {

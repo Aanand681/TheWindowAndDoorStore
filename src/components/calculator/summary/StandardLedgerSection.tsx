@@ -85,7 +85,7 @@ export function StandardLedgerSection({
               key={g.key}
               className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
             >
-              <span className="truncate font-medium text-muted-foreground capitalize">
+              <span className="truncate font-medium text-foreground capitalize">
                 {g.label}
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
@@ -95,10 +95,10 @@ export function StandardLedgerSection({
           ))
         ) : (
           <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-            <span className="font-medium text-muted-foreground">
+            <span className="font-medium text-foreground">
               Base window price
             </span>
-            <span className="shrink-0 font-mono font-semibold whitespace-nowrap">
+            <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
               {formatMoney(quoteResult?.base || 0)}
             </span>
           </div>
@@ -126,26 +126,15 @@ export function StandardLedgerSection({
                 key={mat.id}
                 className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
               >
-                <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">
                   {mat.label ? `Material: ${mat.label}` : "Additional Material"}
                 </span>
-                <span className="shrink-0 font-mono whitespace-nowrap text-foreground">
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +{formatMoney(Math.round(amt * 100))}
                 </span>
               </div>
             )
           })}
-
-        {/* Labour - Completely hidden on Supply Only */}
-        {!isSupplyOnly &&
-          renderEditableRow(
-            "labour",
-            "Labour",
-            effectiveLabourCents,
-            customLabour,
-            taxLabour,
-            (val) => setCustomLabour(val)
-          )}
 
         {/* Miscellaneous - Completely hidden on Supply Only */}
         {!isSupplyOnly &&
@@ -158,12 +147,23 @@ export function StandardLedgerSection({
             (val) => setCustomMisc(val)
           )}
 
-        {/* Surcharge */}
+        {/* Labour - Completely hidden on Supply Only (placed after Misc) */}
+        {!isSupplyOnly &&
+          renderEditableRow(
+            "labour",
+            "Labour",
+            effectiveLabourCents,
+            customLabour,
+            taxLabour,
+            (val) => setCustomLabour(val)
+          )}
+
+        {/* Surcharge (placed below Labour and above Discounts) */}
         <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-          <span className="text-muted-foreground">
+          <span className="font-medium text-foreground">
             Surcharge ({surchargeRate}%)
           </span>
-          <span className="shrink-0 font-mono whitespace-nowrap text-muted-foreground">
+          <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
             +{formatMoney(quoteResult?.surcharge || 0)}
           </span>
         </div>
@@ -171,9 +171,9 @@ export function StandardLedgerSection({
         {/* Promo discount */}
         {(quoteResult?.promoDiscount || 0) > 0 && (
           <>
-            <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-500 sm:text-sm">
+            <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
               <span>Promo discount</span>
-              <span className="shrink-0 font-mono whitespace-nowrap">
+              <span className="shrink-0 font-mono font-bold whitespace-nowrap">
                 -{formatMoney(quoteResult?.promoDiscount || 0)}
               </span>
             </div>

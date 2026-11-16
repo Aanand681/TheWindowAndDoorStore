@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth"
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
 import { DEFAULT_LABOUR_UPGRADE_TIERS } from "@/lib/promo-logic"
 import { handleApiError } from "@/lib/api-error"
+import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
 
 export const revalidate = 60
 
@@ -181,6 +182,53 @@ export async function PUT(request: Request) {
 
     // Invalidate settings cache
     cacheDel("settings:global").catch(() => {})
+
+    // Record pricing history snapshot
+    const savedBy =
+      (session.user as any)?.name ||
+      (session.user as any)?.email ||
+      (session.user as any)?.username ||
+      "Admin"
+
+    if (
+      body.windowLabourPerSqft !== undefined ||
+      body.addons !== undefined ||
+      body.jambs !== undefined ||
+      body.casings !== undefined ||
+      body.vehicleRate !== undefined ||
+      body.crewRates !== undefined
+    ) {
+      recordPricingSnapshot(
+        "WINDOW_LABOUR",
+        {
+          windowLabourPerSqft: updatedSettings.windowLabourPerSqft,
+          windowMiscPerSqft: updatedSettings.windowMiscPerSqft,
+          windowLabourMin: updatedSettings.windowLabourMin,
+          windowMiscMin: updatedSettings.windowMiscMin,
+          extraLinPerWindow: updatedSettings.extraLinPerWindow,
+          addons: updatedSettings.addons,
+          jambs: updatedSettings.jambs,
+          casings: updatedSettings.casings,
+          vehicleRate: updatedSettings.vehicleRate,
+          crewRates: updatedSettings.crewRates,
+        },
+        savedBy
+      ).catch((err) => console.error("Error saving Window Labour snapshot:", err))
+    }
+
+    if (
+      body.surchargeRate !== undefined ||
+      body.labourUpgradeTiers !== undefined
+    ) {
+      recordPricingSnapshot(
+        "GLOBAL_SETTINGS",
+        {
+          surchargeRate: updatedSettings.surchargeRate,
+          labourUpgradeTiers: updatedSettings.labourUpgradeTiers,
+        },
+        savedBy
+      ).catch((err) => console.error("Error saving Global Settings snapshot:", err))
+    }
 
     return NextResponse.json({
       message: "Settings updated successfully",

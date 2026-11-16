@@ -49,6 +49,35 @@ export async function GET(
       )
     }
 
+    // Strict Reviewer Isolation on single quote lookup:
+    // If a quote is PENDING_REVIEW and assigned to a specific admin/reviewer,
+    // only that assigned reviewer or the preparer can view or edit it.
+    const currentUser = (
+      session?.user?.username ||
+      session?.user?.name ||
+      ""
+    ).toLowerCase()
+    if (quote.status === "PENDING_REVIEW") {
+      const assigned = quote.assignedTo?.toLowerCase()?.trim()
+      const preparer = quote.preparedBy?.toLowerCase()?.trim()
+
+      if (assigned && currentUser) {
+        const isAssigned =
+          assigned === currentUser ||
+          (currentUser === "admin" && assigned === "admin")
+        const isPreparer = preparer ? preparer === currentUser : false
+
+        if (!isAssigned && !isPreparer) {
+          return NextResponse.json(
+            {
+              error: `Quote #${quote.quoteNumber} is currently assigned to @${quote.assignedTo} for review.`,
+            },
+            { status: 403, headers: NO_CACHE_HEADERS }
+          )
+        }
+      }
+    }
+
     return NextResponse.json(quote, { headers: NO_CACHE_HEADERS })
   } catch (error: any) {
     return handleApiError(error, NO_CACHE_HEADERS)

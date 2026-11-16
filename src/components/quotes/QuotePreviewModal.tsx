@@ -53,18 +53,12 @@ export default function QuotePreviewModal({
     if (isOpen) {
       if (invoiceProps.isDualOption !== undefined) {
         setIsDualOption(Boolean(invoiceProps.isDualOption))
-      } else if (isSupplyOnly) {
-        const hasAttachedInstall = Boolean(
-          invoiceProps.attachedUpgrade?.title
-            ?.toLowerCase()
-            .includes("installation") ||
-          invoiceProps.attachedUpgrade?.title?.toLowerCase().includes("option")
-        )
+      } else {
         const cached = readSessionAttachedInstallOption()
-        setIsDualOption(Boolean(hasAttachedInstall || cached?.enabled))
+        setIsDualOption(Boolean(cached?.enabled))
       }
     }
-  }, [isOpen, invoiceProps.isDualOption, isSupplyOnly])
+  }, [isOpen, invoiceProps.isDualOption])
 
   useEffect(() => {
     setMounted(true)
@@ -195,13 +189,13 @@ export default function QuotePreviewModal({
           }`}
         >
           <QuoteInvoice
+            {...invoiceProps}
             isInteractivePreview={true}
             template={template}
             fontSize={fontSize}
             spacing={spacing}
             quoteNotes={quoteNotes}
             isDualOption={isDualOption}
-            {...invoiceProps}
           />
         </div>
       </div>

@@ -10,10 +10,12 @@ import {
   DoorOfficePricingCard,
 } from "@/components/doors"
 import QuoteInvoice from "@/components/quotes/QuoteInvoice"
+import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { toast } from "sonner"
 
 import { useDoorCalculatorPage } from "@/hooks/doors"
 import { DoorHeaderBar, DoorModalsGroup } from "@/components/doors/page"
+import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
 
 export default function DoorCalculatorPage() {
   const {
@@ -99,6 +101,25 @@ export default function DoorCalculatorPage() {
     handleSubmitQuote,
   } = useDoorCalculatorPage()
 
+  const handleStartNewQuote = () => {
+    const isDirty = isWorkspaceDirtyOrUnsaved("door", {
+      quoteNumber,
+      customerName,
+      itemCount: lineItems.length,
+      grandTotal: totals.grandTotal,
+      data: {
+        lineItems,
+        attachedWindowQuote,
+        attachedSealedUnit,
+      },
+    })
+    if (isDirty) {
+      setShowResetModal(true)
+    } else {
+      handleConfirmReset()
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
@@ -133,7 +154,7 @@ export default function DoorCalculatorPage() {
               editingItem={editingItem}
               onSaveItem={handleSaveItem}
               onCancelEdit={() => setEditingItem(null)}
-              onResetQuote={() => setShowResetModal(true)}
+              onResetQuote={handleStartNewQuote}
             />
 
             <DoorLineItemsTable
@@ -224,6 +245,7 @@ export default function DoorCalculatorPage() {
           globalUpcharges={globalUpcharges}
           attachedWindowQuote={attachedWindowQuote}
           attachedSealedUnit={attachedSealedUnit}
+          isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
         />
       )}
 
@@ -274,6 +296,7 @@ export default function DoorCalculatorPage() {
         onSubmitQuote={handleSubmitQuote}
         onLoadQuoteFromDrafts={handleLoadQuoteFromDrafts}
         onConfirmReset={handleConfirmReset}
+        onSaveDraft={handleExplicitSaveDraft}
       />
     </div>
   )

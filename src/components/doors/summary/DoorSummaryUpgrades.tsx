@@ -6,20 +6,12 @@ import { DoorLineItem } from "@/lib/doors/types"
 
 export interface DoorSummaryUpgradesProps {
   upgradeItems: DoorLineItem[]
-  hasAttachedWindow: boolean
-  attachedWindowQuote?: any
 }
 
 export function DoorSummaryUpgrades({
   upgradeItems,
-  hasAttachedWindow,
-  attachedWindowQuote,
 }: DoorSummaryUpgradesProps) {
-  const hasWindowUpgrade =
-    hasAttachedWindow &&
-    attachedWindowQuote?.attachedUpgrade?.amountPreTaxCents > 0
-
-  if (upgradeItems.length === 0 && !hasWindowUpgrade) return null
+  if (upgradeItems.length === 0) return null
 
   return (
     <>
@@ -54,28 +46,6 @@ export function DoorSummaryUpgrades({
               )
             })}
           </div>
-        </div>
-      )}
-
-      {/* Attached Window Upgrade Callout */}
-      {hasWindowUpgrade && (
-        <div className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs">
-          <div className="flex items-center justify-between font-bold text-amber-800 dark:text-amber-300">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-              Optional Window Upgrade:
-            </span>
-            <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
-              +$
-              {(
-                attachedWindowQuote.attachedUpgrade.amountPreTaxCents / 100
-              ).toFixed(2)}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {attachedWindowQuote.attachedUpgrade.title} (Optional upgrade, not
-            included in total)
-          </p>
         </div>
       )}
     </>

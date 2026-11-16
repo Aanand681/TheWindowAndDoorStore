@@ -19,6 +19,8 @@ export interface ExecutiveInvoiceTemplateProps {
   quoteNotes?: string
   globalUpcharges?: any[]
   isDualOption?: boolean
+  attachedInstallOption?: any | null
+  customOptions?: any[] | null
 }
 
 export function ExecutiveInvoiceTemplate({
@@ -33,6 +35,8 @@ export function ExecutiveInvoiceTemplate({
   quoteNotes,
   globalUpcharges,
   isDualOption = false,
+  attachedInstallOption = null,
+  customOptions = null,
 }: ExecutiveInvoiceTemplateProps) {
   const {
     titleFs,
@@ -145,6 +149,8 @@ export function ExecutiveInvoiceTemplate({
           attachedUpgrade={attachedUpgrade}
           quoteNotes={quoteNotes}
           isDualOption={isDualOption}
+          attachedInstallOption={attachedInstallOption}
+          customOptions={customOptions}
         />
 
         {/* Right: Exact Financial Summary */}

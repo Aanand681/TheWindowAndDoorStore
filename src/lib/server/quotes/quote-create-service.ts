@@ -34,6 +34,18 @@ export async function createQuoteService(
     attachedSealedUnit,
     attachedDoorQuote,
     attachedWindowQuote,
+    attachedInstallOption,
+    customOptions,
+    selectedRegionId,
+    regionName,
+    travelFeeType,
+    customTravelFee,
+    showOutTownTravel,
+    travelKm,
+    crewHours,
+    crewSize,
+    hstRate,
+    isFirstNation,
     supplyJambId,
     supplyJambRate,
     supplyCasingId,
@@ -110,27 +122,74 @@ export async function createQuoteService(
   const cleanQuoteNumber = quoteNumber.trim()
   const cleanCustomerName = customerName.trim()
 
+  const safeRegex = (str: string) =>
+    new RegExp(`^${str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+
   // Look up emails for preparer, assigned reviewer, and odoo clerk
   const [preparerUser, reviewerUser, clerkUser] = await Promise.all([
-    User.findOne({ username: currentUsername }),
+    currentUsername ? User.findOne({ username: safeRegex(currentUsername) }) : null,
     assignedTo
       ? User.findOne({
-          username: { $regex: new RegExp(`^${assignedTo}$`, "i") },
+          username: safeRegex(assignedTo),
         })
       : null,
     odooAssignedTo
       ? User.findOne({
-          username: { $regex: new RegExp(`^${odooAssignedTo}$`, "i") },
+          username: safeRegex(odooAssignedTo),
         })
       : null,
   ])
 
   const isDirectApprove = Boolean(directApprove)
+  const isUserAdmin =
+    session.user.role === "ADMIN" ||
+    session.user.role === "SUPERADMIN" ||
+    preparerUser?.role === "ADMIN" ||
+    preparerUser?.role === "SUPERADMIN"
 
-  const newQuote = await SavedQuote.create({
+  if (isDirectApprove && !isUserAdmin) {
+    return NextResponse.json(
+      { error: "Only administrators can directly approve quotes." },
+      { status: 403, headers }
+    )
+  }
+
+  if (!isDirectApprove) {
+    const targetReviewer = reviewerUser?.username || assignedTo || ""
+    if (
+      !targetReviewer.trim() ||
+      targetReviewer.toLowerCase() === currentUsername.toLowerCase()
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You cannot submit a quote for review to yourself. Please select another team member.",
+        },
+        { status: 400, headers }
+      )
+    }
+  }
+
+  const determinedQuoteType =
+    body.quoteType ||
+    (windows && Array.isArray(windows) && windows.some((w: any) => w.doorPresetId)
+      ? "door"
+      : taxTotals?.isSealedUnitQuote
+        ? "sealed_unit"
+        : "window")
+
+  // Check if an existing DRAFT exists for this user and quoteNumber to transition in-place
+  const existingDraft = await SavedQuote.findOne({
+    preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+    quoteNumber: cleanQuoteNumber,
+    status: "DRAFT",
+  })
+
+  const quotePayload = {
     quoteNumber: cleanQuoteNumber,
     customerName: cleanCustomerName,
-    status: isDirectApprove ? "APPROVED" : "PENDING_REVIEW",
+    quoteType: determinedQuoteType,
+    status: isDirectApprove ? ("APPROVED" as const) : ("PENDING_REVIEW" as const),
     approvedBy: isDirectApprove ? currentUsername : undefined,
     approvedAt: isDirectApprove ? new Date() : undefined,
     preparedBy: currentUsername,
@@ -144,7 +203,7 @@ export async function createQuoteService(
     odooAssignedTo: isDirectApprove
       ? clerkUser?.username || odooAssignedTo || ""
       : undefined,
-    odooStatus: isDirectApprove && odooAssignedTo ? "PENDING_ENTRY" : undefined,
+    odooStatus: isDirectApprove && odooAssignedTo ? ("PENDING_ENTRY" as const) : undefined,
     preparerNotes,
     windows,
     taxTotals,
@@ -162,6 +221,18 @@ export async function createQuoteService(
     attachedSealedUnit,
     attachedDoorQuote,
     attachedWindowQuote,
+    attachedInstallOption,
+    customOptions,
+    selectedRegionId,
+    regionName,
+    travelFeeType,
+    customTravelFee,
+    showOutTownTravel,
+    travelKm,
+    crewHours,
+    crewSize,
+    hstRate,
+    isFirstNation,
     supplyJambId,
     supplyJambRate,
     supplyCasingId,
@@ -188,6 +259,18 @@ export async function createQuoteService(
       attachedSealedUnit,
       attachedDoorQuote,
       attachedWindowQuote,
+      attachedInstallOption,
+      customOptions,
+      selectedRegionId,
+      regionName,
+      travelFeeType,
+      customTravelFee,
+      showOutTownTravel,
+      travelKm,
+      crewHours,
+      crewSize,
+      hstRate,
+      isFirstNation,
       supplyJambId,
       supplyJambRate,
       supplyCasingId,
@@ -197,7 +280,15 @@ export async function createQuoteService(
       isServiceOnly,
       quoteSummaryTotal,
     },
-  })
+  }
+
+  let newQuote: any
+  if (existingDraft) {
+    Object.assign(existingDraft, quotePayload)
+    newQuote = await existingDraft.save()
+  } else {
+    newQuote = await SavedQuote.create(quotePayload)
+  }
 
   if (isDirectApprove && odooAssignedTo) {
     const clerkUsername = clerkUser?.username || odooAssignedTo

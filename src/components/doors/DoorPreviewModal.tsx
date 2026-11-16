@@ -34,7 +34,7 @@ export function DoorPreviewModal({
   const hasAttachedWindow = Boolean(attachedWindowQuote)
   const hasAttachedSU = Boolean(attachedSealedUnit)
   const hasAnyAttached = hasAttachedWindow || hasAttachedSU
-  const isInstallation = mode === "installation" && !isDualOption
+  const isInstallation = mode === "installation"
 
   const winBase = hasAttachedWindow
     ? attachedWindowQuote.totals?.base ||

@@ -212,6 +212,13 @@ export function useDoorCalculatorPage() {
     totals,
     attachedWindowQuote,
     attachedSealedUnit,
+    selectedRegionId,
+    travelFeeType,
+    customTravelFee,
+    showOutTownTravel,
+    travelKm,
+    crewHours,
+    crewSize,
   })
 
   return {

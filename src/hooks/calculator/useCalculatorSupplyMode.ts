@@ -63,6 +63,7 @@ export function useCalculatorSupplyMode({
     lastSupplyCasingIdRef,
     lastSupplySnapshotRef,
     lastSupplyCustomJCRef,
+    setSupplyJCAmount,
     resetAllSupplyRefs,
   } = refs
 
@@ -145,7 +146,12 @@ export function useCalculatorSupplyMode({
 
         setTaxTotals((prev: any) => {
           const current = prev || {}
-          if (current.isSupplyOnly) lastSupplySnapshotRef.current = current
+          if (current.isSupplyOnly) {
+            lastSupplySnapshotRef.current = current
+            if (current.jcLabourCents !== undefined) {
+              setSupplyJCAmount(current.jcLabourCents / 100)
+            }
+          }
           return buildInstallTaxState(
             current,
             lastInstallSnapshotRef.current,
@@ -175,6 +181,7 @@ export function useCalculatorSupplyMode({
       setSupplyJambIdState,
       setSupplyJambNameState,
       setSupplyJambRateState,
+      setSupplyJCAmount,
       setTaxTotals,
       isSupplyOnly,
     ]
@@ -218,6 +225,7 @@ export function useCalculatorSupplyMode({
       customMaterialsTotalCents?: number
     }) => {
       if (!isSupplyOnly) return
+      setSupplyJCAmount(data.jcTotalCents / 100)
       setTaxTotals((prev: any) => {
         const matCents = data.customMaterialsTotalCents || 0
         if (
@@ -253,7 +261,7 @@ export function useCalculatorSupplyMode({
         return updated
       })
     },
-    [isSupplyOnly, lastSupplySnapshotRef, setTaxTotals]
+    [isSupplyOnly, lastSupplySnapshotRef, setSupplyJCAmount, setTaxTotals]
   )
 
   useEffect(() => {

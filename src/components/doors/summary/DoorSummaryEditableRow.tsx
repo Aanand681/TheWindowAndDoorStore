@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 export interface DoorSummaryEditableRowProps {
   field: "labour" | "misc"
@@ -55,8 +56,9 @@ export function DoorSummaryEditableRow({
             step="0.01"
             min="0"
             value={tempEditVal}
-            onChange={(e) => setTempEditVal(e.target.value)}
+            onChange={(e) => setTempEditVal(sanitizeNonNegativeNumber(e.target.value))}
             onKeyDown={(e) => {
+              blockNegativeKey(e)
               if (e.key === "Enter") {
                 setter(tempEditVal)
                 setEditingField(null)
@@ -120,13 +122,13 @@ export function DoorSummaryEditableRow({
   return (
     <div
       key={field}
-      className="group flex items-center justify-between py-0.5 text-xs"
+      className="group flex items-center justify-between py-0.5 text-xs sm:text-sm"
     >
       <div className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate text-muted-foreground">
+        <span className="truncate font-medium text-foreground">
           {label}{" "}
           {suffix && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="text-[10px] text-muted-foreground/80">
               {suffix}
             </span>
           )}

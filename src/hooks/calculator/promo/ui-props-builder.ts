@@ -2,6 +2,8 @@
 
 import React from "react"
 import { toast } from "sonner"
+import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
+import { clearAllQuoteSessionState } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CalculatorPropsContext {
   base: any
@@ -57,11 +59,31 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
           pricing.setWantsUpgrade(false)
           supply.resetSupplyMode()
           drafts.resetDraftState()
+          clearAllQuoteSessionState()
         },
       }),
     handlePdfImportClick: review.handlePdfImportClick,
     isReadOnly: review.isReadOnly,
-    onResetQuote: () => base.setShowResetModal(true),
+    onResetQuote: () => {
+      const isDirty = isWorkspaceDirtyOrUnsaved("window", {
+        id: drafts.loadedDraftId || undefined,
+        quoteNumber: base.quoteNumber,
+        customerName: base.customerName,
+        itemCount: windowsContext.windows?.length || 0,
+        grandTotal: (pricing.total || 0) / 100,
+        data: {
+          windows: windowsContext.windows,
+          attachedSealedUnit: base.attachedSealedUnit,
+          attachedDoorQuote: base.attachedDoorQuote,
+          attachedUpgrade: base.attachedUpgrade,
+        },
+      })
+      if (isDirty) {
+        base.setShowResetModal(true)
+      } else {
+        drafts.handleConfirmReset()
+      }
+    },
     handleWindowChange: windowsContext.handleWindowChange,
     handleRemoveWindow: (id: string) =>
       windowsContext.handleRemoveWindow(id, () =>

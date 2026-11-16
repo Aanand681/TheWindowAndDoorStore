@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseDoorReviewSubmitProps {
   user: any
@@ -15,6 +19,13 @@ interface UseDoorReviewSubmitProps {
   totals: any
   attachedWindowQuote?: any
   attachedSealedUnit?: any
+  selectedRegionId?: string
+  travelFeeType?: string
+  customTravelFee?: string
+  showOutTownTravel?: boolean
+  travelKm?: string
+  crewHours?: string
+  crewSize?: string
 }
 
 export function useDoorReviewSubmit({
@@ -29,6 +40,13 @@ export function useDoorReviewSubmit({
   totals,
   attachedWindowQuote,
   attachedSealedUnit,
+  selectedRegionId,
+  travelFeeType,
+  customTravelFee,
+  showOutTownTravel,
+  travelKm,
+  crewHours,
+  crewSize,
 }: UseDoorReviewSubmitProps) {
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
   const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
@@ -58,8 +76,11 @@ export function useDoorReviewSubmit({
             !d.username?.toLowerCase().includes("superadmin")
         )
         setStaffList(eligible)
-        if (eligible.length > 0) {
-          setAssignedReviewer(eligible[0].username)
+        const otherStaff = eligible.filter(
+          (s: any) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
+        )
+        if (otherStaff.length > 0) {
+          setAssignedReviewer(otherStaff[0].username)
         }
       }
       if (Array.isArray(assignees)) {
@@ -70,12 +91,14 @@ export function useDoorReviewSubmit({
             !d.username?.toLowerCase().includes("superadmin")
         )
         setClerkList(eligible)
-        if (eligible.length > 0) {
-          setSelectedOdooClerk(eligible[0].username)
+        const defaultClerk =
+          eligible.find((c: any) => c.department === "CLERK") || eligible[0]
+        if (defaultClerk) {
+          setSelectedOdooClerk(defaultClerk.username)
         }
       }
     })
-  }, [])
+  }, [user?.username])
 
   const handleSubmitQuote = async () => {
     if (!customerName.trim()) {
@@ -98,11 +121,40 @@ export function useDoorReviewSubmit({
     const isDirectApprove = Boolean(
       isAdmin && adminSubmitMode === "direct_approve"
     )
-    if (isDirectApprove && !selectedOdooClerk && clerkList.length > 0) {
-      setSelectedOdooClerk(clerkList[0].username)
+
+    const otherReviewers = staffList.filter(
+      (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
+    )
+    const effectiveReviewer =
+      assignedReviewer &&
+      assignedReviewer.toLowerCase() !== user?.username?.toLowerCase()
+        ? assignedReviewer
+        : otherReviewers[0]?.username || ""
+
+    const effectiveClerk =
+      selectedOdooClerk ||
+      clerkList.find((c) => c.department === "CLERK")?.username ||
+      clerkList[0]?.username ||
+      ""
+
+    if (isDirectApprove && !effectiveClerk) {
+      toast.error("Please select an Odoo clerk to assign this quote to")
+      return
     }
-    if (!isDirectApprove && !assignedReviewer && staffList.length > 0) {
-      setAssignedReviewer(staffList[0].username)
+
+    if (!isDirectApprove) {
+      if (!effectiveReviewer) {
+        toast.error(
+          "No other reviewers available in the system. You cannot submit a quote to yourself."
+        )
+        return
+      }
+      if (effectiveReviewer.toLowerCase() === user?.username?.toLowerCase()) {
+        toast.error(
+          "You cannot submit a quote for review to yourself. Please select another team member."
+        )
+        return
+      }
     }
 
     setSubmittingQuote(true)
@@ -113,13 +165,23 @@ export function useDoorReviewSubmit({
         body: JSON.stringify({
           quoteNumber,
           customerName,
-          assignedTo: isDirectApprove ? user?.username || "" : assignedReviewer,
+          assignedTo: isDirectApprove ? user?.username || "" : effectiveReviewer,
           directApprove: isDirectApprove,
-          odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
+          odooAssignedTo: isDirectApprove ? effectiveClerk : undefined,
           preparerNotes,
           quoteNotes,
           attachedWindowQuote,
           attachedSealedUnit,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
+          selectedRegionId,
+          travelFeeType,
+          customTravelFee,
+          showOutTownTravel,
+          travelKm,
+          crewHours,
+          crewSize,
+          quoteSummaryTotal: totals.grandTotal,
           windows: lineItems.map((item) => ({
             id: item.id,
             combinationName: item.customDescription || item.presetLabel,
@@ -166,6 +228,8 @@ export function useDoorReviewSubmit({
           : "Door quote submitted for review!"
       )
       setShowSubmitModal(false)
+      setPreparerNotes("")
+      window.dispatchEvent(new CustomEvent("quote-count-updated"))
     } catch (err: any) {
       toast.error(err.message || "Error submitting quote")
     } finally {

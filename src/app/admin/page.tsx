@@ -36,7 +36,7 @@ export default async function AdminDashboard() {
         <AppHeader currentPath="/admin" />
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Global Settings - Available to both SUPERADMIN and ADMIN */}
+          {/* 1. Global Settings */}
           <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
@@ -45,7 +45,7 @@ export default async function AdminDashboard() {
               </CardTitle>
               <CardDescription>
                 Update base pricing constants like the global surcharge
-                percentage.
+                percentage and labour upgrade tiers.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -55,44 +55,7 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Tax & Labour Settings */}
-          <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <DollarSign className="h-5 w-5 text-primary" />
-                Tax & Labour Pricing
-              </CardTitle>
-              <CardDescription>
-                Update rates for jambs, casings, and extra labour addons.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/admin/tax-settings" className="block w-full">
-                <Button className="w-full">Edit Pricing</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Region Settings */}
-          <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Map className="h-5 w-5 text-primary" />
-                Region Pricing & Defaults
-              </CardTitle>
-              <CardDescription>
-                Update region-specific per-sqft rates, fixed setup fees, and map
-                coordinates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/admin/regions" className="block w-full">
-                <Button className="w-full">Edit Regions</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Employees - Available to both SUPERADMIN and ADMIN */}
+          {/* 2. Manage Staff */}
           <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-xl">
@@ -100,7 +63,7 @@ export default async function AdminDashboard() {
                 Manage Staff
               </CardTitle>
               <CardDescription>
-                Add new employees, manage passwords, and view staff activity.
+                Add new employees, manage roles, departments, passwords, and permissions.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -110,34 +73,49 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Promos & Formulas */}
+          {/* 3. Manage Region Charges */}
           <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
             <CardHeader>
-              <div className="mb-1 flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Tag className="h-5 w-5 text-primary" />
-                  Promos & Sales
-                </CardTitle>
-              </div>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Map className="h-5 w-5 text-primary" />
+                Manage Region Charges
+              </CardTitle>
               <CardDescription>
-                Toggle which promos are currently live. Contact developer to
-                create new promo.
+                Update region-specific per-sqft rates, fixed setup fees, and map coordinates.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/admin/promos" className="block w-full">
-                <Button className="w-full">Manage Promos</Button>
+              <Link href="/admin/regions" className="block w-full">
+                <Button className="w-full">Edit Regions</Button>
               </Link>
             </CardContent>
           </Card>
 
-          {/* Sealed Unit Pricing - Available to both SUPERADMIN and ADMIN */}
+          {/* 4. Window Labour & Pricing */}
+          <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Window Labour &amp; Pricing
+              </CardTitle>
+              <CardDescription>
+                Update rates for window labour formulas, jambs, casings, and extra labour addons.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/tax-settings" className="block w-full">
+                <Button className="w-full">Edit Window Pricing</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* 5. Sealed Unit Labour & Pricing */}
           <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
             <CardHeader>
               <div className="mb-1 flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Layers className="h-5 w-5 text-primary" />
-                  Sealed Unit Pricing
+                  Sealed Unit Labour &amp; Pricing
                 </CardTitle>
               </div>
               <CardDescription>
@@ -152,13 +130,13 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Door Pricing & Labour - Available to both SUPERADMIN and ADMIN */}
+          {/* 6. Door Labour & Pricing */}
           <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
             <CardHeader>
               <div className="mb-1 flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <DoorClosed className="h-5 w-5 text-primary" />
-                  Door Pricing &amp; Labour
+                  Door Labour &amp; Pricing
                 </CardTitle>
               </div>
               <CardDescription>
@@ -169,6 +147,26 @@ export default async function AdminDashboard() {
             <CardContent>
               <Link href="/admin/doors" className="block w-full">
                 <Button className="w-full">Edit Door Pricing</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* 7. Promos and Sales */}
+          <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
+            <CardHeader>
+              <div className="mb-1 flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Tag className="h-5 w-5 text-primary" />
+                  Promos &amp; Sales
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Toggle which promos are currently live and configure promotional pricing discounts.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/promos" className="block w-full">
+                <Button className="w-full">Manage Promos</Button>
               </Link>
             </CardContent>
           </Card>

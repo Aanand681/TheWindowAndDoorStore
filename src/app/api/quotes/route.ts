@@ -40,8 +40,11 @@ export async function GET(request: Request) {
 
     const filter: any = {}
 
+    // 1. Enforce strict draft isolation: drafts belong exclusively in /api/drafts
     if (status && status !== "all") {
       filter.status = status
+    } else {
+      filter.status = { $ne: "DRAFT" }
     }
 
     if (assignedTo) {
@@ -52,13 +55,54 @@ export async function GET(request: Request) {
       filter.preparedBy = { $regex: new RegExp(`^${preparedBy}$`, "i") }
     }
 
+    // 2. Strict Reviewer Isolation:
+    // If a quote is PENDING_REVIEW and assigned to a specific admin,
+    // it must ONLY be visible to that assigned reviewer or the preparer who submitted it.
+    const reviewerPrivacyFilter = {
+      $or: [
+        { status: { $ne: "PENDING_REVIEW" } },
+        { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        { preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        ...(currentUser?.toLowerCase() === "admin"
+          ? [
+              { assignedTo: "Admin" },
+              { assignedTo: { $exists: false } },
+              { assignedTo: "" },
+            ]
+          : []),
+      ],
+    }
+
+    if (filter.status === "PENDING_REVIEW") {
+      filter.$or = [
+        { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        { preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        ...(currentUser?.toLowerCase() === "admin"
+          ? [
+              { assignedTo: "Admin" },
+              { assignedTo: { $exists: false } },
+              { assignedTo: "" },
+            ]
+          : []),
+      ]
+    } else {
+      filter.$and = filter.$and
+        ? [...filter.$and, reviewerPrivacyFilter]
+        : [reviewerPrivacyFilter]
+    }
+
     if (search) {
       const sRegex = new RegExp(search.trim(), "i")
-      filter.$or = [
-        { customerName: sRegex },
-        { quoteNumber: sRegex },
-        { preparedBy: sRegex },
-      ]
+      const searchFilter = {
+        $or: [
+          { customerName: sRegex },
+          { quoteNumber: sRegex },
+          { preparedBy: sRegex },
+        ],
+      }
+      filter.$and = filter.$and
+        ? [...filter.$and, searchFilter]
+        : [searchFilter]
     }
 
     const quotes = await SavedQuote.find(filter)

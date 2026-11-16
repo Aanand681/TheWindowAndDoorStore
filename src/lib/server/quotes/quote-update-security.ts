@@ -27,6 +27,34 @@ export async function checkQuoteUpdateSecurity(p: {
     userRole === "ADMIN" ||
     deptPerms.canEditApprovedQuote === true
 
+  // Strict Reviewer Isolation on updates:
+  // If a quote in PENDING_REVIEW is assigned to a specific admin/reviewer,
+  // only that assigned reviewer or the preparer who created it can update or approve it.
+  if (existingQuote.status === "PENDING_REVIEW") {
+    const currentUser = (
+      session?.user?.username ||
+      session?.user?.name ||
+      ""
+    ).toLowerCase()
+    const assigned = existingQuote.assignedTo?.toLowerCase()?.trim()
+    const preparer = existingQuote.preparedBy?.toLowerCase()?.trim()
+
+    if (assigned && currentUser) {
+      const isAssigned =
+        assigned === currentUser ||
+        (currentUser === "admin" && assigned === "admin")
+      const isPreparer = preparer ? preparer === currentUser : false
+
+      if (!isAssigned && !isPreparer) {
+        return {
+          allowed: false,
+          error: `Quote #${existingQuote.quoteNumber || ""} is assigned to @${existingQuote.assignedTo} and can only be reviewed or modified by them.`,
+          statusCode: 403,
+        }
+      }
+    }
+  }
+
   // Once a quote is confirmed in Odoo, it is permanently locked for EVERYONE (including admin)
   const isAlreadyOdooCompleted =
     existingQuote.odooStatus === "COMPLETED" ||

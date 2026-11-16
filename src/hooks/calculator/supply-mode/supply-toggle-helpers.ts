@@ -54,13 +54,24 @@ export function buildInstallTaxState(
   defaultJamb: string,
   defaultCasing: string
 ) {
+  const safeDefaultJamb =
+    defaultJamb && defaultJamb !== "none" ? defaultJamb : "j3"
+  const safeDefaultCasing =
+    defaultCasing && defaultCasing !== "none" ? defaultCasing : "vinyl"
+
   if (snapshot) {
     return {
       ...snapshot,
       isSupplyOnly: false,
       isServiceOnly: false,
-      jambId: snapshot.jambId || defaultJamb,
-      casingId: snapshot.casingId || defaultCasing,
+      jambId:
+        snapshot.jambId && snapshot.jambId !== "none"
+          ? snapshot.jambId
+          : safeDefaultJamb,
+      casingId:
+        snapshot.casingId && snapshot.casingId !== "none"
+          ? snapshot.casingId
+          : safeDefaultCasing,
     }
   }
 
@@ -68,8 +79,8 @@ export function buildInstallTaxState(
     ...current,
     isSupplyOnly: false,
     isServiceOnly: false,
-    jambId: defaultJamb,
-    casingId: defaultCasing,
+    jambId: safeDefaultJamb,
+    casingId: safeDefaultCasing,
     standardLabourCents: current.standardLabourCents ?? 0,
     miscLabourCents: current.miscLabourCents ?? 0,
     finalLabour: current.finalLabour ?? 0,

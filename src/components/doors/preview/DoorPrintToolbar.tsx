@@ -49,7 +49,7 @@ export function DoorPrintToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {(mode === "supply_only" || isDualOption) && setIsDualOption && (
+          {setIsDualOption && (
             <Button
               type="button"
               variant={isDualOption ? "secondary" : "outline"}
@@ -58,17 +58,31 @@ export function DoorPrintToolbar({
                 const next = !isDualOption
                 setIsDualOption(next)
                 writeSessionAttachedInstallOption(
-                  next ? { enabled: true, amountPreTaxCents: 0 } : null
+                  next
+                    ? {
+                        enabled: true,
+                        amountPreTaxCents: 0,
+                        mode: mode === "supply_only" ? "supply" : "install",
+                      }
+                    : null
                 )
               }}
               className="h-8 cursor-pointer gap-1.5 border-primary/30 text-xs"
-              title="Attach the Option for Installation card to this supply quote"
+              title={
+                mode === "supply_only"
+                  ? "Attach the Option for Installation card to this supply quote"
+                  : "Attach the Option for Supply Only card to this installation quote"
+              }
             >
               <Scale className="h-3.5 w-3.5 text-primary" />
               <span>
                 {isDualOption
-                  ? "Installation Option (Attached)"
-                  : "Option for Installation"}
+                  ? mode === "supply_only"
+                    ? "Installation Option (Attached)"
+                    : "Supply Option (Attached)"
+                  : mode === "supply_only"
+                    ? "Option for Installation"
+                    : "Option for Supply Only"}
               </span>
             </Button>
           )}

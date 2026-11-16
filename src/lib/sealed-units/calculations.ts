@@ -43,6 +43,8 @@ export interface SealedUnitTotalsResult {
   subtotalPreTax: number
   hstAmount: number
   grandTotal: number
+  isInstallation: boolean
+  isServiceOnly: boolean
 }
 
 /**
@@ -184,7 +186,12 @@ export function calculateSealedUnitTotals(
   // Out-of-town vehicle & crew travel (manual km & crew hours)
   let vehicleTravelFee = 0
   let crewTravelFee = 0
-  if (appliesTravelAndSetup && showOutTownTravel) {
+  const isOutTownActive = Boolean(
+    showOutTownTravel ||
+      (Number(travelKm) > 0) ||
+      (Number(crewHours) > 0)
+  )
+  if (appliesTravelAndSetup && isOutTownActive) {
     const km = Number(travelKm) || 0
     vehicleTravelFee =
       Math.round(km * (labour.vehicleRatePerKm || 0.98) * 100) / 100
@@ -260,5 +267,7 @@ export function calculateSealedUnitTotals(
     subtotalPreTax,
     hstAmount,
     grandTotal,
+    isInstallation: Boolean(isInstallation),
+    isServiceOnly: Boolean(isServiceOnly),
   }
 }

@@ -24,6 +24,7 @@ export interface SupplyVsInstallCompareProps {
   quoteNumber?: string
   customerName?: string
   currentMode: "supply" | "install"
+  currentSubtotal?: number
   baseLabel?: string
   baseAmount: number
   jcLabel?: string
@@ -43,7 +44,12 @@ export interface SupplyVsInstallCompareProps {
   hstRate: number
   onApplyMode: (mode: "supply" | "install") => void
   onPrintDualOption?: () => void
-  onToggleAttachOption?: (attached: boolean, extraCents: number) => void
+  onToggleAttachOption?: (
+    attached: boolean,
+    extraCents: number,
+    title?: string,
+    hasSupplyJC?: boolean
+  ) => void
 }
 
 export function SupplyVsInstallCompareModal(
@@ -56,6 +62,7 @@ export function SupplyVsInstallCompareModal(
     quoteNumber = "",
     customerName = "",
     currentMode,
+    currentSubtotal,
     baseLabel = "Base Units",
     baseAmount,
     jcLabel,
@@ -112,34 +119,57 @@ export function SupplyVsInstallCompareModal(
   const opt2JCAmount =
     installJCAmount !== undefined ? installJCAmount : jcAmount || 0
 
-  const supplySubtotal =
-    Math.round(
-      (baseAmount +
-        opt1JCAmount +
-        attachedAmount +
-        surchargeAmount +
-        hardwareAmount -
-        discountAmount) *
-        100
-    ) / 100
+  const hasSupplyJC = opt1JCAmount > 0
+
+  // 1. Calculate Subtotals: Check current subtotal when provided for exact ledger alignment
+  const jcDiff = Math.max(0, opt2JCAmount - opt1JCAmount)
+  const totalInstallAdd = labourAmount + miscAmount + jcDiff
+
+  let supplySubtotal = 0
+  let installSubtotal = 0
+
+  if (currentSubtotal !== undefined && currentSubtotal > 0) {
+    if (currentMode === "install") {
+      installSubtotal = Math.round(currentSubtotal * 100) / 100
+      supplySubtotal =
+        Math.max(0, Math.round((installSubtotal - totalInstallAdd) * 100)) / 100
+    } else {
+      supplySubtotal = Math.round(currentSubtotal * 100) / 100
+      installSubtotal =
+        Math.round((supplySubtotal + totalInstallAdd) * 100) / 100
+    }
+  } else {
+    supplySubtotal =
+      Math.round(
+        (baseAmount +
+          opt1JCAmount +
+          attachedAmount +
+          surchargeAmount +
+          hardwareAmount -
+          discountAmount) *
+          100
+      ) / 100
+
+    installSubtotal =
+      Math.round(
+        (baseAmount +
+          opt2JCAmount +
+          attachedAmount +
+          surchargeAmount +
+          hardwareAmount -
+          discountAmount +
+          labourAmount +
+          miscAmount) *
+          100
+      ) / 100
+  }
+
   const supplyHst = Math.round(supplySubtotal * (hstRate / 100) * 100) / 100
   const supplyTotal = Math.round((supplySubtotal + supplyHst) * 100) / 100
   const supplyFirstPayment = Math.floor((supplyTotal / 2) * 100) / 100
   const supplySecondPayment =
     Math.round((supplyTotal - supplyFirstPayment) * 100) / 100
 
-  const installSubtotal =
-    Math.round(
-      (baseAmount +
-        opt2JCAmount +
-        attachedAmount +
-        surchargeAmount +
-        hardwareAmount -
-        discountAmount +
-        labourAmount +
-        miscAmount) *
-        100
-    ) / 100
   const installHst = Math.round(installSubtotal * (hstRate / 100) * 100) / 100
   const installTotal = Math.round((installSubtotal + installHst) * 100) / 100
   const installFirstPayment = Math.floor((installTotal / 2) * 100) / 100
@@ -156,14 +186,30 @@ export function SupplyVsInstallCompareModal(
     Math.round((installTotal - supplyTotal) * 100) / 100
   )
 
+  const attachTitle =
+    currentMode === "install"
+      ? hasSupplyJC
+        ? "Option with J&C for Supply Only"
+        : "Option for Supply Only"
+      : "Option for Installation"
+
   const handleToggleAttach = () => {
     const next = !isOptionAttached
     setIsOptionAttached(next)
     const extraCents = Math.round(extraPriceSubtotal * 100)
     writeSessionAttachedInstallOption(
-      next ? { enabled: true, amountPreTaxCents: extraCents } : null
+      next
+        ? {
+            enabled: true,
+            amountPreTaxCents: extraCents,
+            mode: currentMode,
+            title: attachTitle,
+            hasSupplyJC,
+          }
+        : null
     )
-    if (onToggleAttachOption) onToggleAttachOption(next, extraCents)
+    if (onToggleAttachOption)
+      onToggleAttachOption(next, extraCents, attachTitle, hasSupplyJC)
   }
 
   const modalContent = (
@@ -278,13 +324,31 @@ export function SupplyVsInstallCompareModal(
           <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs sm:flex-row">
             <div className="space-y-0.5 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center gap-2 text-sm font-bold text-emerald-600 sm:justify-start dark:text-emerald-400">
-                <span>Extra Price for Installation:</span>
-                <span className="font-mono text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                  +${extraPriceSubtotal.toFixed(2)}
-                </span>
-                <span className="text-xs font-normal text-muted-foreground">
-                  (+${extraPriceTotalWithTax.toFixed(2)} incl. HST)
-                </span>
+                {currentMode === "install" ? (
+                  <>
+                    <span>
+                      {hasSupplyJC
+                        ? "Savings with J&C for Supply Only:"
+                        : "Savings for Supply Only (Self-Installation):"}
+                    </span>
+                    <span className="font-mono text-base font-extrabold text-sky-600 dark:text-sky-400">
+                      -${extraPriceSubtotal.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (-${extraPriceTotalWithTax.toFixed(2)} incl. HST)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>Extra Price for Installation:</span>
+                    <span className="font-mono text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                      +${extraPriceSubtotal.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (+${extraPriceTotalWithTax.toFixed(2)} incl. HST)
+                    </span>
+                  </>
+                )}
               </div>
               <div className="text-[11px] text-muted-foreground">
                 Install Subtotal (${installSubtotal.toFixed(2)}) − Supply
@@ -302,12 +366,24 @@ export function SupplyVsInstallCompareModal(
               {isOptionAttached ? (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Attached to Supply PDF</span>
+                  <span>
+                    {currentMode === "install"
+                      ? hasSupplyJC
+                        ? "Supply with J&C Option Attached"
+                        : "Supply Option Attached to PDF"
+                      : "Install Option Attached to PDF"}
+                  </span>
                 </>
               ) : (
                 <>
                   <Plus className="h-3.5 w-3.5" />
-                  <span>Attach Option to Supply PDF</span>
+                  <span>
+                    {currentMode === "install"
+                      ? hasSupplyJC
+                        ? "Attach Supply with J&C Option (Less)"
+                        : "Attach Supply Option to PDF (Less)"
+                      : "Attach Install Option to PDF (Add)"}
+                  </span>
                 </>
               )}
             </Button>

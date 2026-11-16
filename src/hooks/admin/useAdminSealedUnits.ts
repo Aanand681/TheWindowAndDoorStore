@@ -39,24 +39,28 @@ export function useAdminSealedUnits() {
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<AdminSealedUnitsTab>("annealed")
 
+  const fetchSealedUnitSettings = async () => {
+    try {
+      const res = await fetch("/api/sealed-units/settings")
+      const data = await res.json()
+      if (Array.isArray(data.combos) && data.combos.length > 0) {
+        setCombos(data.combos)
+      }
+      if (data.formula) setFormula(data.formula)
+      if (data.labour) setLabour(data.labour)
+      if (Array.isArray(data.thicknessBreaks))
+        setThicknessBreaks(data.thicknessBreaks)
+      if (data.grills) setGrills(data.grills)
+    } catch (err) {
+      console.error("Failed to load sealed unit settings:", err)
+      toast.error("Failed to load sealed unit settings from database")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    fetch("/api/sealed-units/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.combos) && data.combos.length > 0) {
-          setCombos(data.combos)
-        }
-        if (data.formula) setFormula(data.formula)
-        if (data.labour) setLabour(data.labour)
-        if (Array.isArray(data.thicknessBreaks))
-          setThicknessBreaks(data.thicknessBreaks)
-        if (data.grills) setGrills(data.grills)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Failed to load sealed unit settings:", err)
-        setLoading(false)
-      })
+    fetchSealedUnitSettings()
   }, [])
 
   const handlePriceChange = (
@@ -139,20 +143,30 @@ export function useAdminSealedUnits() {
     }))
   }
 
-  const handleResetDefaults = () => {
+  const handleDiscardChanges = () => {
     if (
-      !confirm(
-        "Are you sure you want to reset all sealed unit prices and labour rules to defaults?"
+      confirm(
+        "Discard all unsaved edits and reload active sealed unit settings from the database?"
       )
     ) {
-      return
+      fetchSealedUnitSettings()
+      toast.info("Unsaved edits discarded. Active sealed unit rates reloaded.")
     }
-    setCombos(DEFAULT_SEALED_UNIT_COMBOS)
-    setFormula(DEFAULT_FORMULA_CONSTANTS)
-    setLabour(DEFAULT_LABOUR_SETTINGS)
-    setThicknessBreaks(DEFAULT_THICKNESS_BREAKS)
-    setGrills(DEFAULT_GRILL_SETTINGS)
-    toast.info("Settings reset to default source sheet rates.")
+  }
+
+  const handleRestoreVersion = (
+    snapshot: Record<string, any>,
+    version: number
+  ) => {
+    if (Array.isArray(snapshot.combos)) setCombos(snapshot.combos)
+    if (snapshot.formula) setFormula(snapshot.formula)
+    if (snapshot.labour) setLabour(snapshot.labour)
+    if (Array.isArray(snapshot.thicknessBreaks))
+      setThicknessBreaks(snapshot.thicknessBreaks)
+    if (snapshot.grills) setGrills(snapshot.grills)
+    toast.success(
+      `Loaded rates from Version ${version} snapshot. Click "Save All Changes" to persist.`
+    )
   }
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -207,7 +221,8 @@ export function useAdminSealedUnits() {
     handleBurst3Change,
     handleBurst5Change,
     handleGrillExtraChange,
-    handleResetDefaults,
+    handleDiscardChanges,
+    handleRestoreVersion,
     handleSave,
     annealedCombos,
     temperedCombos,

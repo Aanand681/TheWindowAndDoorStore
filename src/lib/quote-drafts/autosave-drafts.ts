@@ -10,6 +10,7 @@ import { getSavedDrafts } from "./saved-drafts"
 export const AUTOSAVE_WINDOW_KEY = "vwd_autosave_window_v1"
 export const AUTOSAVE_SEALED_UNIT_KEY = "vwd_autosave_sealed_unit_v1"
 export const AUTOSAVE_DOOR_KEY = "vwd_autosave_door_v1"
+export const AUTOSAVE_TTL_MS = 8 * 60 * 60 * 1000 // 8 hours in milliseconds
 
 /**
  * Save active live workspace draft for crash recovery / lunch break recovery.
@@ -117,6 +118,16 @@ export function getActiveAutoSave(type: QuoteType): ActiveAutoSaveDraft | null {
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (!parsed || !parsed.data) return null
+
+    // 8-hour TTL expiration check: purge stale drafts from browser memory
+    if (parsed.timestamp) {
+      const ageMs = Date.now() - new Date(parsed.timestamp).getTime()
+      if (isNaN(ageMs) || ageMs > AUTOSAVE_TTL_MS) {
+        localStorage.removeItem(key)
+        return null
+      }
+    }
+
     if (!isDraftMeaningful(type, parsed)) {
       localStorage.removeItem(key)
       return null
@@ -180,4 +191,111 @@ export function isAutoSaveAlreadySaved(
     }
     return false
   })
+}
+
+/**
+ * Checks if the current workspace has meaningful unsaved changes compared to the persisted database/local drafts.
+ * If the workspace is empty or already matches a saved quote, returns false (clean).
+ * If there are unsaved edits, returns true (dirty).
+ */
+export function isWorkspaceDirtyOrUnsaved(
+  type: QuoteType,
+  current: {
+    id?: string
+    quoteNumber?: string
+    customerName?: string
+    itemCount: number
+    grandTotal: number
+    data?: any
+  }
+): boolean {
+  if (!current) return false
+
+  const cust = (current.customerName || "").trim().toLowerCase()
+  const qNum = (current.quoteNumber || "").trim().toLowerCase()
+
+  // 1. If customerName and items are completely empty, workspace is fresh/clean
+  if (type === "window") {
+    const windows = (current.data?.windows || []) as any[]
+    const hasMeaningfulWindows = windows.some(
+      (w) =>
+        (w.base && parseFloat(String(w.base)) > 0) ||
+        (w.w && String(w.w).trim() !== "") ||
+        (w.h && String(w.h).trim() !== "")
+    )
+    const hasAttached = Boolean(
+      current.data?.attachedSealedUnit ||
+        current.data?.attachedDoorQuote ||
+        current.data?.attachedUpgrade
+    )
+    if (!cust && !hasMeaningfulWindows && !hasAttached) {
+      return false
+    }
+  } else if (type === "door") {
+    const lineItems = (current.data?.lineItems || []) as any[]
+    const hasAttached = Boolean(
+      current.data?.attachedWindowQuote ||
+        current.data?.attachedSealedUnit
+    )
+    if (!cust && lineItems.length === 0 && !hasAttached) {
+      return false
+    }
+  } else if (type === "sealed_unit") {
+    const lineItems = (current.data?.lineItems || []) as any[]
+    const hasAttached = Boolean(
+      current.data?.attachedWindowQuote ||
+        current.data?.attachedDoorQuote
+    )
+    if (!cust && lineItems.length === 0 && !hasAttached) {
+      return false
+    }
+  }
+
+  // 2. Look for matching saved draft (prefer explicit loadedDraftId if present)
+  const savedDrafts = getSavedDrafts()
+  let match = current.id ? savedDrafts.find((d) => d.id === current.id) : undefined
+  if (!match) {
+    match = savedDrafts.find((d) => {
+      if (d.type !== type) return false
+      if (
+        qNum &&
+        qNum !== "draft" &&
+        qNum !== "untitled" &&
+        (d.quoteNumber || "").trim().toLowerCase() === qNum
+      ) {
+        return true
+      }
+      if (cust && (d.customerName || "").trim().toLowerCase() === cust) {
+        return true
+      }
+      return false
+    })
+  }
+
+  if (!match) {
+    // Meaningful content entered, but not saved -> DIRTY
+    return true
+  }
+
+  // 3. Verify if content was modified since it was saved
+  const itemsChanged = (match.itemCount ?? 0) !== current.itemCount
+
+  // Normalize cents vs dollars (e.g. if current grandTotal is passed in cents)
+  const currentTotal =
+    current.grandTotal > 500 &&
+    match.grandTotal > 0 &&
+    Math.abs(current.grandTotal / 100 - match.grandTotal) < 0.05
+      ? current.grandTotal / 100
+      : current.grandTotal
+
+  const totalChanged =
+    Math.abs((match.grandTotal ?? 0) - currentTotal) > 0.05
+  const nameChanged = (match.customerName || "").trim().toLowerCase() !== cust
+
+  if (itemsChanged || totalChanged || nameChanged) {
+    return true
+  }
+
+  // Matches saved quote exactly -> CLEAN
+  return false
 }

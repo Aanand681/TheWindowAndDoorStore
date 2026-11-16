@@ -83,6 +83,7 @@ export interface CalculatorUtilityModalsProps {
   showResetModal: boolean
   setShowResetModal: (show: boolean) => void
   handleConfirmReset: () => void
+  handleSaveDraft?: () => void
 }
 
 export interface CalculatorComparisonModalProps {

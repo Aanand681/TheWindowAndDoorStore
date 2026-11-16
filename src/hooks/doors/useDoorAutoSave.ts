@@ -1,15 +1,20 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   saveActiveAutoSave,
   getActiveAutoSave,
   clearActiveAutoSave,
+  flushAutoSaveDraftToServer,
 } from "@/lib/quote-drafts-storage"
 import {
   formatDoorSummarySentence,
   computeEffectiveDoorGrandTotal,
 } from "@/lib/doors/calculations"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseDoorAutoSaveProps {
   customerName: string
@@ -92,6 +97,9 @@ export function useDoorAutoSave({
 }: UseDoorAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const initialLoadDone = useRef(false)
+  const serverSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const lastServerSyncFingerprintRef = useRef<string | null>(null)
+  const currentPayloadRef = useRef<any>(null)
 
   // Load Active Auto-save Draft on Mount
   useEffect(() => {
@@ -133,88 +141,180 @@ export function useDoorAutoSave({
     initialLoadDone.current = true
   }, [])
 
-  // Debounced Auto-Save
-  useEffect(() => {
-    if (!initialLoadDone.current) return
-    const timer = setTimeout(() => {
-      if (
-        lineItems.length === 0 &&
-        !attachedWindowQuote &&
-        !attachedSealedUnit &&
-        (!customerName || customerName === "Valued Customer")
-      ) {
-        clearActiveAutoSave("door")
-        return
-      }
+  const doorFingerprint = JSON.stringify({
+    qn: quoteNumber,
+    cn: customerName,
+    m: mode,
+    li: lineItems,
+    up: globalUpcharges,
+    r: selectedRegionId,
+    tf: travelFeeType,
+    ctf: customTravelFee,
+    out: showOutTownTravel,
+    km: travelKm,
+    h: crewHours,
+    s: crewSize,
+    fn: isFirstNation,
+    l: customLabour,
+    misc: customMisc,
+    qnNotes: quoteNotes,
+  })
 
-      const nowStr = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      const effectiveTotals = computeEffectiveDoorGrandTotal({
-        totals,
-        mode,
-        customLabour,
-        customMisc,
-        isFirstNation,
-        attachedWindowQuote,
-        attachedSealedUnit,
-      })
+  const buildDoorPayload = useCallback(() => {
+    const effectiveTotals = computeEffectiveDoorGrandTotal({
+      totals,
+      mode,
+      customLabour,
+      customMisc,
+      isFirstNation,
+      attachedWindowQuote,
+      attachedSealedUnit,
+    })
 
-      saveActiveAutoSave("door", {
+    return {
+      type: "door" as const,
+      quoteNumber,
+      customerName,
+      itemCount: lineItems.length,
+      grandTotal: effectiveTotals.grandTotal,
+      summaryLabel: formatDoorSummarySentence(lineItems),
+      data: {
         quoteNumber,
         customerName,
-        itemCount: lineItems.length,
+        quoteNotes,
+        mode,
+        lineItems,
+        globalUpcharges,
+        selectedRegionId: selectedRegionId || "",
+        travelFeeType,
+        customTravelFee,
+        showOutTownTravel,
+        travelKm,
+        crewHours,
+        crewSize,
+        isFirstNation,
+        customLabour,
+        customMisc,
+        attachedWindowQuote,
+        attachedSealedUnit,
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        subtotal: effectiveTotals.combinedSubtotal,
         grandTotal: effectiveTotals.grandTotal,
-        summaryLabel: formatDoorSummarySentence(lineItems),
-        data: {
-          quoteNumber,
-          customerName,
-          quoteNotes,
-          mode,
-          lineItems,
-          globalUpcharges,
-          selectedRegionId: selectedRegionId || "",
-          travelFeeType,
-          customTravelFee,
-          showOutTownTravel,
-          travelKm,
-          crewHours,
-          crewSize,
-          isFirstNation,
-          customLabour,
-          customMisc,
-          attachedWindowQuote,
-          attachedSealedUnit,
-          subtotal: effectiveTotals.combinedSubtotal,
-          grandTotal: effectiveTotals.grandTotal,
-          itemCount: lineItems.length,
-          totals,
-        },
-      })
-      setLastSavedAt(nowStr)
-    }, 700)
-
-    return () => clearTimeout(timer)
+        itemCount: lineItems.length,
+        totals,
+      },
+    }
   }, [
-    customerName,
-    quoteNumber,
+    totals,
     mode,
+    customLabour,
+    customMisc,
+    isFirstNation,
+    attachedWindowQuote,
+    attachedSealedUnit,
+    quoteNumber,
+    customerName,
     lineItems,
+    quoteNotes,
     globalUpcharges,
+    selectedRegionId,
     travelFeeType,
     customTravelFee,
     showOutTownTravel,
     travelKm,
     crewHours,
     crewSize,
-    quoteNotes,
-    isFirstNation,
-    customLabour,
-    customMisc,
+  ])
+
+  useEffect(() => {
+    currentPayloadRef.current = buildDoorPayload()
+  }, [buildDoorPayload])
+
+  const flushDoorToServer = useCallback(() => {
+    if (!currentPayloadRef.current) return
+    const payload = currentPayloadRef.current
+    if (payload.itemCount === 0 && (!payload.customerName || payload.customerName === "Valued Customer")) return
+
+    flushAutoSaveDraftToServer(payload)
+    lastServerSyncFingerprintRef.current = doorFingerprint
+  }, [doorFingerprint])
+
+  // Boundary Flush on tab switch and window close
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "hidden" &&
+        lastServerSyncFingerprintRef.current !== doorFingerprint
+      ) {
+        flushDoorToServer()
+      }
+    }
+
+    const handlePageHide = () => {
+      if (lastServerSyncFingerprintRef.current !== doorFingerprint) {
+        flushDoorToServer()
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("pagehide", handlePageHide)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("pagehide", handlePageHide)
+    }
+  }, [doorFingerprint, flushDoorToServer])
+
+  useEffect(() => {
+    if (!initialLoadDone.current) {
+      return
+    }
+
+    if (
+      lineItems.length === 0 &&
+      !attachedWindowQuote &&
+      !attachedSealedUnit &&
+      (!customerName || customerName === "Valued Customer")
+    ) {
+      clearActiveAutoSave("door")
+      lastServerSyncFingerprintRef.current = null
+      return
+    }
+
+    const timer = setTimeout(() => {
+      const nowStr = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      const payload = buildDoorPayload()
+      saveActiveAutoSave("door", payload)
+      setLastSavedAt(nowStr)
+    }, 700)
+
+    if (serverSyncTimerRef.current) {
+      clearTimeout(serverSyncTimerRef.current)
+    }
+    serverSyncTimerRef.current = setTimeout(() => {
+      if (lastServerSyncFingerprintRef.current !== doorFingerprint) {
+        flushDoorToServer()
+      }
+    }, 6000)
+
+    return () => {
+      clearTimeout(timer)
+      if (serverSyncTimerRef.current) {
+        clearTimeout(serverSyncTimerRef.current)
+      }
+    }
+  }, [
+    doorFingerprint,
+    lineItems.length,
     attachedWindowQuote,
     attachedSealedUnit,
-    totals,
+    customerName,
+    buildDoorPayload,
+    flushDoorToServer,
   ])
 
   return {

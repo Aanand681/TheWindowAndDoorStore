@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useRef, useMemo, useEffect } from "react"
-import { Layers, Plus, RotateCcw, RefreshCw } from "lucide-react"
+import { Layers, Plus, RotateCcw, RefreshCw, CheckCircle2, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,7 @@ import {
   GrillItemConfig,
   SealedUnitGrillSettings,
   GlassShape,
+  SealedUnitLineItem,
   getAvailableGrillColors,
 } from "@/lib/sealed-units-logic"
 import { SealedUnitGlassSpecsForm } from "./builder/SealedUnitGlassSpecsForm"
@@ -65,6 +66,9 @@ export interface SealedUnitItemBuilderProps {
   computedGrillConfig: GrillItemConfig
   activeGrillPreview: { rawCost: number; description: string }
   grills: SealedUnitGrillSettings
+  // Editing
+  editingItem?: SealedUnitLineItem | null
+  onCancelEdit?: () => void
   // Submit
   onAddItem: (e: React.FormEvent) => void
   // Draft Actions
@@ -96,6 +100,8 @@ export function SealedUnitItemBuilder({
   qtyInput,
   setQtyInput,
   onResetQuote,
+  editingItem,
+  onCancelEdit,
   grillType,
   setGrillType,
   grillProfile,
@@ -143,28 +149,53 @@ export function SealedUnitItemBuilder({
       {/* Header */}
       <div className="flex items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-3.5 py-2.5">
         <div>
-          <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-            <Layers className="h-4 w-4 text-primary" />
-            <span>Unit Specifications &amp; Glass Config</span>
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+              <Layers className="h-4 w-4" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">
+                {editingItem ? "Edit Sealed Unit" : "Configure Sealed Unit"}
+              </span>
+              {editingItem && (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-[10px] font-bold text-primary">
+                  Editing Item
+                </span>
+              )}
+            </div>
           </div>
           <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
-            Select treatment, combo, shape, and dimensions with live fraction
-            parsing.
+            {editingItem
+              ? "Modify specifications, dimensions, or grills and click Update below."
+              : "Select treatment, combo, shape, and dimensions with live fraction parsing."}
           </p>
         </div>
-        {onResetQuote && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onResetQuote}
-            className="h-7 shrink-0 cursor-pointer gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
-            title="Reset quote & start fresh"
-          >
-            <RotateCcw className="h-3 w-3" />
-            <span>Reset</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {editingItem && onCancelEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancelEdit}
+              className="h-7 cursor-pointer px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancel Edit
+            </Button>
+          )}
+          {onResetQuote && !editingItem && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onResetQuote}
+              className="h-7 shrink-0 cursor-pointer gap-1 px-2 text-xs text-foreground hover:bg-muted"
+              title="Start a new quote"
+            >
+              <Plus className="h-3 w-3 text-primary" />
+              <span>New</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Customer Name & Quote Number Header Section */}
@@ -255,23 +286,45 @@ export function SealedUnitItemBuilder({
             grills={grills}
           />
 
-          {/* Action Buttons: Add Item & Clear */}
+          {/* Action Buttons: Add / Update Item & Clear / Cancel */}
           <div className="flex gap-2 pt-0.5">
-            <Button
-              type="submit"
-              className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add to Quote</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResetInputs}
-              className="h-9 cursor-pointer px-3 text-xs"
-            >
-              Clear
-            </Button>
+            {editingItem ? (
+              <>
+                <Button
+                  type="submit"
+                  className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Update Sealed Unit</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancelEdit}
+                  className="h-9 cursor-pointer px-3 text-xs"
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="submit"
+                  className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add to Quote</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleResetInputs}
+                  className="h-9 cursor-pointer px-3 text-xs"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
           </div>
         </form>
       </div>

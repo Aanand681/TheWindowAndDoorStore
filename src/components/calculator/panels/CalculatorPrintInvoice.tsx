@@ -127,10 +127,7 @@ export function CalculatorPrintInvoice({
       isSupplyOnly={isSupplyOnly}
       isDualOption={Boolean(
         mounted &&
-        isSupplyOnly &&
-        (attachedUpgrade?.title?.toLowerCase().includes("installation") ||
-          attachedUpgrade?.title?.toLowerCase().includes("option") ||
-          readSessionAttachedInstallOption()?.enabled)
+        readSessionAttachedInstallOption()?.enabled
       )}
     />
   )

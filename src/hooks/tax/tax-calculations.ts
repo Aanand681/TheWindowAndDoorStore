@@ -128,12 +128,17 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
   const vehicle = isSupply ? 0 : km * dbVehicleRate
   const crewTravel = isSupply ? 0 : hrs * crewRate
   const setup = isSupply ? 0 : Number(setupFee) || 0
+  const fixedSetupFee = isSupply
+    ? 0
+    : region.fixedSetupFee !== undefined
+      ? Number(region.fixedSetupFee)
+      : 140
   const extras = isSupply
     ? 0
     : vehicle +
       crewTravel +
       setup +
-      (region.fixedSetupFee || 0) +
+      fixedSetupFee +
       (region.baseTravelFee || 0)
 
   const foundJamb = dbJambs.find((j) => j.id === jambId)
@@ -247,6 +252,7 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
     vehicleRate: dbVehicleRate,
     setup,
     setupFee,
+    fixedSetupFee,
     isSupplyOnly: isSupply,
     isServiceOnly: false,
     selectedAddons: selectedAddonsList,
@@ -275,6 +281,9 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
     jcLabourCents: Math.round((finalJC || 0) * 100),
     miscLabourCents: Math.round((finalMisc || 0) * 100),
     standardLabourCents: Math.round((finalLabour || 0) * 100),
+    fullInstallLabourCents: Math.round((labourWindows + extras) * 100),
+    fullInstallMiscCents: Math.round(miscTotal * 100),
+    fullInstallJCCents: Math.round(jc * 100),
     jcTotal: finalJC,
   }
 }

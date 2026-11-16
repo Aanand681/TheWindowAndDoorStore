@@ -32,6 +32,53 @@ describe("Quote Lifecycle & Security Gate Tests", () => {
       expect(res.allowed).toBe(true)
     })
 
+    it("blocks an admin from modifying a pending review quote assigned to a different admin", async () => {
+      const res = await checkQuoteUpdateSecurity({
+        session: { user: { role: "ADMIN", username: "admin_b" } },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "admin_a",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { customerName: "Unauthorized Change" },
+      })
+
+      expect(res.allowed).toBe(false)
+      expect(res.statusCode).toBe(403)
+      expect(res.error).toContain("assigned to @admin_a")
+    })
+
+    it("allows the assigned admin to review and modify the pending quote", async () => {
+      const res = await checkQuoteUpdateSecurity({
+        session: { user: { role: "ADMIN", username: "admin_a" } },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "admin_a",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { customerName: "Approved Change" },
+      })
+
+      expect(res.allowed).toBe(true)
+    })
+
+    it("allows the preparer to modify their pending review quote", async () => {
+      const res = await checkQuoteUpdateSecurity({
+        session: { user: { role: "EMPLOYEE", username: "sales_rep" } },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "admin_a",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { quoteNotes: "Preparer updated notes" },
+      })
+
+      expect(res.allowed).toBe(true)
+    })
+
     it("blocks an employee without edit permission from modifying an APPROVED quote", async () => {
       vi.mocked(Department.findOne).mockResolvedValueOnce({
         permissions: { canEditApprovedQuote: false },
@@ -232,6 +279,21 @@ describe("Quote Lifecycle & Security Gate Tests", () => {
 
       expect(res.statusCode).toBe(400)
       expect(res.error).toContain("already assigned to Quote #Q-100")
+    })
+
+    it("rejects an attempt to reassign or forward a quote to oneself", async () => {
+      const res = await buildQuoteUpdatePayload({
+        id: "64b1f28b7e21123456789abc",
+        body: { assignedTo: "admin_a" },
+        existingQuote: { assignedTo: "admin_b" },
+        reviewerUsername: "admin_a",
+        userRole: "ADMIN",
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.error).toContain(
+        "You cannot assign or forward a quote for review to yourself"
+      )
     })
   })
 })

@@ -2,7 +2,7 @@ import React from "react"
 import { formatMoney } from "@/lib/promo-logic"
 import type { InvoiceCalculationsResult, AttachedUpgradeOption } from "../types"
 import { QuoteInvoiceNotes } from "../QuoteInvoiceNotes"
-import { InstallationOptionCard } from "./InstallationOptionCard"
+import { QuoteUnifiedOptionsSection } from "./QuoteUnifiedOptionsSection"
 
 export interface InvoiceBreakdownTablesProps {
   calc: InvoiceCalculationsResult
@@ -11,6 +11,8 @@ export interface InvoiceBreakdownTablesProps {
   attachedUpgrade?: AttachedUpgradeOption | null
   quoteNotes?: string
   isDualOption?: boolean
+  attachedInstallOption?: any | null
+  customOptions?: any[] | null
 }
 
 export function InvoiceBreakdownTables({
@@ -20,6 +22,8 @@ export function InvoiceBreakdownTables({
   attachedUpgrade,
   quoteNotes,
   isDualOption = false,
+  attachedInstallOption = null,
+  customOptions = null,
 }: InvoiceBreakdownTablesProps) {
   const {
     travelItems,
@@ -120,93 +124,17 @@ export function InvoiceBreakdownTables({
         </div>
       )}
 
-      {/* Optional 5-Year Labour Upgrade Callout */}
-      {wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly && (
-        <div className="rounded border border-emerald-600 bg-white p-2 text-[#0f172a]">
-          <div
-            style={{ fontSize: `${smallFs}px` }}
-            className="flex items-center justify-between font-bold tracking-wider text-[#0f172a] uppercase"
-          >
-            <span>Optional 5-Year Labour Upgrade</span>
-            <span className="font-mono font-bold text-emerald-700">
-              +{formatMoney(shownUpgrade)}
-            </span>
-          </div>
-          <div
-            style={{ fontSize: `${microFs}px` }}
-            className="mt-0.5 text-[#334155]"
-          >
-            Optional extended labour warranty coverage. Not included in quote
-            total.
-          </div>
-        </div>
-      )}
-
-      {/* Optional Window Upgrade Offer */}
-      {attachedUpgrade && attachedUpgrade.amountPreTaxCents > 0 && (
-        <div className="rounded border border-[#d97706] bg-white p-2 text-[#0f172a]">
-          <div
-            style={{ fontSize: `${smallFs}px` }}
-            className="flex items-center justify-between font-bold tracking-wider text-[#0f172a] uppercase"
-          >
-            <span>Optional Upgrade Offer</span>
-            <span className="font-mono font-bold text-[#b45309]">
-              +{formatMoney(attachedUpgrade.amountPreTaxCents)}
-            </span>
-          </div>
-          <div
-            style={{ fontSize: `${microFs}px` }}
-            className="mt-0.5 text-[#334155]"
-          >
-            {attachedUpgrade.title} adds{" "}
-            {formatMoney(attachedUpgrade.amountPreTaxCents)}
-          </div>
-        </div>
-      )}
-
-      {/* Option for Door Upgrade */}
-      {doorUpgradeItems.map((dItem: any, dIdx: number) => (
-        <div
-          key={dIdx}
-          className="rounded border border-[#cbd5e1] bg-white p-2 text-[#0f172a] shadow-2xs"
-        >
-          <div
-            style={{ fontSize: `${microFs}px` }}
-            className="mb-1 font-bold tracking-wider text-[#64748b] uppercase"
-          >
-            option for Door upgrade:
-          </div>
-          <div
-            style={{ fontSize: `${smallFs}px` }}
-            className="flex items-center justify-between font-semibold text-[#0f172a]"
-          >
-            <span>
-              {dItem.upgradeOption?.title ||
-                dItem.customDescription ||
-                "Door Upgrade"}{" "}
-              Add
-            </span>
-            <span className="font-mono font-bold text-[#0f172a]">
-              +
-              {formatMoney(
-                Math.round(
-                  (dItem.upgradeOption?.subtotalDifference || 0) *
-                    100 *
-                    (dItem.quantity || 1)
-                )
-              )}
-            </span>
-          </div>
-        </div>
-      ))}
-
-      {/* Optional Installation Option (Supply Quotes Only) */}
-      {isSupplyOnly && isDualOption && (
-        <InstallationOptionCard
-          calc={calc}
-          amountPreTaxCents={attachedUpgrade?.amountPreTaxCents}
-        />
-      )}
+      {/* Unified Options Section */}
+      <QuoteUnifiedOptionsSection
+        calc={calc}
+        isDualOption={isDualOption}
+        attachedInstallOption={attachedInstallOption}
+        customOptions={customOptions || undefined}
+        wantsUpgrade={wantsUpgrade}
+        shownUpgrade={shownUpgrade}
+        attachedUpgrade={attachedUpgrade}
+        doorUpgradeItems={doorUpgradeItems}
+      />
 
       {/* Special Instructions & Notes */}
       {quoteNotes && quoteNotes.trim() && (

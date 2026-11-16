@@ -1,9 +1,17 @@
 "use client"
 
 import { toast } from "sonner"
-import { saveQuoteDraft, QuoteDraftItem } from "@/lib/quote-drafts-storage"
+import {
+  saveQuoteDraft,
+  saveActiveAutoSave,
+  QuoteDraftItem,
+} from "@/lib/quote-drafts-storage"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 import {
   UseCalculatorDraftsWorkspace,
   UseCalculatorDraftsFinancials,
@@ -90,14 +98,19 @@ export function executeSaveDraft(p: {
       includeLabourInPromo: workspace.includeLabourInPromo,
       hstRate: workspace.hstRate,
       attachedUpgrade: workspace.attachedUpgrade,
+      attachedInstallOption: readSessionAttachedInstallOption(),
+      customOptions: readSessionCustomOptions(),
       attachedSealedUnit: workspace.attachedSealedUnit,
       attachedDoorQuote: workspace.attachedDoorQuote,
       wantsUpgrade: workspace.wantsUpgrade,
+      selectedRegionId: workspace.taxTotals?.selectedRegionId || undefined,
+      regionName: workspace.taxTotals?.regionName || undefined,
       taxTotals: workspace.taxTotals || undefined,
     },
   })
 
   setLoadedDraftId(savedDraft.id)
+  saveActiveAutoSave("window", savedDraft)
   toast.success(`Window Quote #${effectiveQuoteNumber} saved!`)
   return savedDraft
 }

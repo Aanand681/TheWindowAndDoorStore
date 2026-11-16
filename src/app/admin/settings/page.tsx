@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings2, Save } from "lucide-react"
+import { Settings2, Save, AlertCircle, RotateCcw, History } from "lucide-react"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 import { AppHeader } from "@/components/layout/AppHeader"
+import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
 import { ILabourUpgradeTier } from "@/lib/promo-logic"
 import { DEFAULT_TIERS } from "@/components/admin/settings/default-tiers"
 import { SurchargeSettingsCard } from "@/components/admin/settings/SurchargeSettingsCard"
@@ -16,24 +17,60 @@ export default function SettingsDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ text: "", type: "" })
+  const [showHistory, setShowHistory] = useState(false)
+
+  const loadSettings = async () => {
+    try {
+      const res = await fetch("/api/settings")
+      const data = await res.json()
+      if (data.surchargeRate !== undefined) {
+        setSurcharge(data.surchargeRate.toString())
+      }
+      if (
+        Array.isArray(data.labourUpgradeTiers) &&
+        data.labourUpgradeTiers.length > 0
+      ) {
+        setTiers(data.labourUpgradeTiers)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.surchargeRate !== undefined) {
-          setSurcharge(data.surchargeRate.toString())
-        }
-        if (
-          Array.isArray(data.labourUpgradeTiers) &&
-          data.labourUpgradeTiers.length > 0
-        ) {
-          setTiers(data.labourUpgradeTiers)
-        }
-        setLoading(false)
-      })
-      .catch(console.error)
+    loadSettings()
   }, [])
+
+  const handleDiscardChanges = () => {
+    if (
+      confirm(
+        "Discard all unsaved edits and reload current settings from the database?"
+      )
+    ) {
+      loadSettings()
+      setMessage({
+        text: "Unsaved changes discarded. Reloaded active settings from database.",
+        type: "success",
+      })
+    }
+  }
+
+  const handleRestoreVersion = (
+    snapshot: Record<string, any>,
+    version: number
+  ) => {
+    if (snapshot.surchargeRate !== undefined)
+      setSurcharge(snapshot.surchargeRate.toString())
+    if (Array.isArray(snapshot.labourUpgradeTiers))
+      setTiers(snapshot.labourUpgradeTiers)
+
+    setMessage({
+      text: `Loaded rates from Version ${version} snapshot. Click "Save Settings" to persist.`,
+      type: "success",
+    })
+  }
 
   const handleTierChange = (
     index: number,
@@ -103,38 +140,84 @@ export default function SettingsDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
-      <AppHeader currentPath="/admin/settings" />
-      <main className="mx-auto w-full max-w-5xl flex-1 animate-in space-y-8 p-4 duration-300 fade-in sm:p-6 lg:p-8">
-        <div>
-          <SmartBackButton
-            fallbackUrl="/admin"
-            label="Back to Administration"
-            className="mb-4"
-          />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="flex items-center gap-3 text-3xl font-extrabold tracking-tight">
-                <Settings2 className="h-8 w-8 text-primary" />
-                Calculator &amp; Business Settings
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Configure global surcharge rates, pricing overrides, and labour
-                upgrade bracket tiers.
-              </p>
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:space-y-8 sm:px-6 sm:pt-6 lg:px-8">
+        <AppHeader currentPath="/admin/settings" />
+
+        <div className="flex flex-col justify-between gap-4 border-b border-border/50 pb-2 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-3">
+            <SmartBackButton fallbackUrl="/admin" title="Back to Admin" />
+            <div className="inline-flex items-center gap-2">
+              <span className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                <Settings2 className="h-5 w-5" />
+              </span>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+                  Global Settings
+                </h1>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Configure global surcharge rates, pricing overrides, and labour
+                  upgrade bracket tiers.
+                </p>
+              </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscardChanges}
+              className="cursor-pointer gap-1.5 text-xs"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Discard Changes</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(true)}
+              className="cursor-pointer gap-1.5 text-xs"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span>Version History</span>
+            </Button>
+            <Button
+              type="button"
+              onClick={(e) => handleSave(e as any)}
+              disabled={saving || loading}
+              size="sm"
+              className="cursor-pointer gap-1.5 shadow-md"
+            >
+              <Save className="h-4 w-4" />
+              <span>{saving ? "Saving..." : "Save Settings"}</span>
+            </Button>
           </div>
         </div>
 
+        {/* Pricing History Version Modal */}
+        <PricingHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          category="GLOBAL_SETTINGS"
+          title="Global Settings"
+          onRestoreVersion={handleRestoreVersion}
+        />
+
         {message.text && (
           <div
-            className={`animate-in rounded-xl border p-4 text-sm font-semibold shadow-sm fade-in ${
+            className={`flex items-center gap-2 rounded-xl border p-4 text-sm font-medium shadow-sm transition-all ${
               message.type === "error"
                 ? "border-destructive/20 bg-destructive/10 text-destructive"
                 : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             }`}
           >
-            {message.text}
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <p>{message.text}</p>
           </div>
         )}
 
@@ -165,7 +248,7 @@ export default function SettingsDashboard() {
             </Button>
           </div>
         </form>
-      </main>
+      </div>
     </div>
   )
 }

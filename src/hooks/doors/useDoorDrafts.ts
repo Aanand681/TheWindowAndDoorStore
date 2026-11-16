@@ -13,6 +13,10 @@ import {
   computeEffectiveDoorGrandTotal,
 } from "@/lib/doors/calculations"
 import { toast } from "sonner"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseDoorDraftsProps {
   customerName: string
@@ -174,6 +178,8 @@ export function useDoorDrafts({
           customMisc,
           attachedWindowQuote,
           attachedSealedUnit,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
           subtotal: effectiveTotals.combinedSubtotal,
           grandTotal: effectiveTotals.grandTotal,
           itemCount: lineItems.length,

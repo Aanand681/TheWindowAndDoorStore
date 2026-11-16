@@ -3,12 +3,16 @@
 import React from "react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
-import { RotateCcw } from "lucide-react"
+import { Plus, Trash2, Save, X } from "lucide-react"
 import { SubmitReviewModal } from "@/components/calculator/SubmitReviewModal"
 import { SavedQuotesModal } from "@/components/calculator/SavedQuotesModal"
 import { AttachQuoteModal } from "@/components/calculator/AttachQuoteModal"
 import { QuoteDraftItem } from "@/lib/quote-drafts-storage"
 import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 const QuotePreviewModal = dynamic(
   () => import("@/components/quotes/QuotePreviewModal"),
@@ -61,6 +65,7 @@ interface DoorModalsGroupProps {
   onSubmitQuote: () => Promise<void>
   onLoadQuoteFromDrafts: (draft: QuoteDraftItem) => void
   onConfirmReset: () => void
+  onSaveDraft?: () => void
 }
 
 export function DoorModalsGroup({
@@ -109,6 +114,7 @@ export function DoorModalsGroup({
   onSubmitQuote,
   onLoadQuoteFromDrafts,
   onConfirmReset,
+  onSaveDraft,
 }: DoorModalsGroupProps) {
   const totalDoorUnits =
     totals.totalUnits ||
@@ -141,6 +147,9 @@ export function DoorModalsGroup({
           globalUpcharges={globalUpcharges}
           attachedWindowQuote={attachedWindowQuote}
           attachedSealedUnit={attachedSealedUnit}
+          isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
+          attachedInstallOption={readSessionAttachedInstallOption()}
+          customOptions={readSessionCustomOptions()}
         />
       )}
 
@@ -200,40 +209,64 @@ export function DoorModalsGroup({
       {/* 5. In-App Reset Confirmation Dialog */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-background/80 p-4 backdrop-blur-md duration-200 fade-in">
-          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="shrink-0 rounded-xl bg-destructive/15 p-2.5 text-destructive">
-                <RotateCcw className="h-5 w-5" />
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">
+                <Plus className="h-5 w-5" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-base font-bold text-foreground">
-                  Reset Door Quote?
+                  Start New Door Quote?
                 </h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Are you sure you want to clear this workspace and all{" "}
-                  {lineItems.length} configured door items?
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  You have active work in progress. Would you like to save this quote as a draft before starting a clean workspace?
                 </p>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowResetModal(false)}
+                className="h-7 w-7 rounded-full text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-2">
+            <div className="flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-end">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowResetModal(false)}
-                className="h-8 cursor-pointer text-xs"
+                className="h-9 cursor-pointer text-xs"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
+                variant="outline"
                 size="sm"
                 onClick={onConfirmReset}
-                className="text-destructive-foreground h-8 cursor-pointer bg-destructive text-xs font-bold hover:bg-destructive/90"
+                className="h-9 cursor-pointer gap-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10"
               >
-                Reset Quote
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Discard &amp; Start New</span>
               </Button>
+              {onSaveDraft && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    onSaveDraft()
+                    onConfirmReset()
+                  }}
+                  className="h-9 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-md hover:bg-primary/90"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  <span>Save Draft &amp; Start New</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

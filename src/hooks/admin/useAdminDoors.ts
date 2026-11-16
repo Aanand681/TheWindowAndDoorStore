@@ -32,23 +32,26 @@ export function useAdminDoors() {
     "presets" | "upcharges" | "formula" | "logistics"
   >("presets")
 
+  const fetchDoorSettings = async () => {
+    try {
+      const res = await fetch("/api/doors/settings")
+      const data = await res.json()
+      if (Array.isArray(data.presets) && data.presets.length > 0)
+        setPresets(data.presets)
+      if (Array.isArray(data.upcharges) && data.upcharges.length > 0)
+        setUpcharges(data.upcharges)
+      if (data.formula) setFormula(data.formula)
+      if (data.logistics) setLogistics(data.logistics)
+    } catch (err) {
+      console.error("Failed to load door settings:", err)
+      toast.error("Failed to load door settings from database")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    fetch("/api/doors/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.presets) && data.presets.length > 0)
-          setPresets(data.presets)
-        if (Array.isArray(data.upcharges) && data.upcharges.length > 0)
-          setUpcharges(data.upcharges)
-        if (data.formula) setFormula(data.formula)
-        if (data.logistics) setLogistics(data.logistics)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Failed to load door settings:", err)
-        toast.error("Failed to load door settings from database")
-        setLoading(false)
-      })
+    fetchDoorSettings()
   }, [])
 
   const handleSave = async () => {
@@ -69,20 +72,28 @@ export function useAdminDoors() {
     }
   }
 
-  const handleResetDefaults = () => {
+  const handleDiscardChanges = () => {
     if (
       confirm(
-        "Are you sure you want to reset all door rates, presets, and logistics to system defaults? Any unsaved edits will be lost."
+        "Discard all unsaved edits and reload active door settings from the database?"
       )
     ) {
-      setPresets(DEFAULT_DOOR_PRESETS)
-      setUpcharges(DEFAULT_DOOR_UPCHARGES)
-      setFormula(DEFAULT_DOOR_FORMULA)
-      setLogistics(DEFAULT_DOOR_LOGISTICS)
-      toast.info(
-        'Settings reset to system defaults. Click "Save Changes" to persist to database.'
-      )
+      fetchDoorSettings()
+      toast.info("Unsaved edits discarded. Active door settings reloaded.")
     }
+  }
+
+  const handleRestoreVersion = (
+    snapshot: Record<string, any>,
+    version: number
+  ) => {
+    if (Array.isArray(snapshot.presets)) setPresets(snapshot.presets)
+    if (Array.isArray(snapshot.upcharges)) setUpcharges(snapshot.upcharges)
+    if (snapshot.formula) setFormula(snapshot.formula)
+    if (snapshot.logistics) setLogistics(snapshot.logistics)
+    toast.success(
+      `Loaded rates from Version ${version} snapshot. Click "Save Changes" to persist.`
+    )
   }
 
   const handleUpdatePreset = (
@@ -157,7 +168,8 @@ export function useAdminDoors() {
     activeTab,
     setActiveTab,
     handleSave,
-    handleResetDefaults,
+    handleDiscardChanges,
+    handleRestoreVersion,
     handleUpdatePreset,
     handleAddPreset,
     handleDeletePreset,

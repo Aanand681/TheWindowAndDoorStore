@@ -31,6 +31,7 @@ export function useSupplyStateRefs() {
   const lastSupplyCasingRateRef = useRef<string>("")
   const lastSupplySnapshotRef = useRef<any>(null)
   const lastSupplyCustomJCRef = useRef<string>("")
+  const lastSupplyJCAmountRef = useRef<number>(0)
 
   const syncSupplyToSession = useCallback(() => {
     writeSessionSupplyState({
@@ -41,6 +42,7 @@ export function useSupplyStateRefs() {
       casingName: lastSupplyCasingNameRef.current,
       casingRate: lastSupplyCasingRateRef.current,
       customJC: lastSupplyCustomJCRef.current,
+      supplyJCAmount: lastSupplyJCAmountRef.current,
     })
   }, [])
 
@@ -76,6 +78,7 @@ export function useSupplyStateRefs() {
     lastSupplyCasingRateRef.current = ""
     lastSupplySnapshotRef.current = null
     lastSupplyCustomJCRef.current = ""
+    lastSupplyJCAmountRef.current = 0
     writeSessionSupplyState(null)
     writeSessionInstallState(null)
   }, [])
@@ -134,6 +137,14 @@ export function useSupplyStateRefs() {
     [syncSupplyToSession]
   )
 
+  const setSupplyJCAmount = useCallback(
+    (amount: number) => {
+      lastSupplyJCAmountRef.current = amount
+      syncSupplyToSession()
+    },
+    [syncSupplyToSession]
+  )
+
   return useMemo(
     () => ({
       supplyJambId,
@@ -171,6 +182,8 @@ export function useSupplyStateRefs() {
       lastSupplyCasingRateRef,
       lastSupplySnapshotRef,
       lastSupplyCustomJCRef,
+      lastSupplyJCAmountRef,
+      setSupplyJCAmount,
       syncSupplyToSession,
       syncInstallToSession,
       resetAllSupplyRefs,
@@ -188,6 +201,7 @@ export function useSupplyStateRefs() {
       setSupplyCasingName,
       supplyCasingRate,
       setSupplyCasingRate,
+      setSupplyJCAmount,
       syncSupplyToSession,
       syncInstallToSession,
       resetAllSupplyRefs,

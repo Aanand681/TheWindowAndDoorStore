@@ -20,6 +20,7 @@ import { useSealedUnitsDrafts } from "@/hooks/sealed-units/useSealedUnitsDrafts"
 import { useSealedUnitsReviewSubmit } from "@/hooks/sealed-units/useSealedUnitsReviewSubmit"
 import { SealedUnitsHeaderBar } from "@/components/sealed-units/page/SealedUnitsHeaderBar"
 import { SealedUnitsModalsGroup } from "@/components/sealed-units/page/SealedUnitsModalsGroup"
+import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
 
 export default function SealedUnitsCalculatorPage() {
   const { data: session } = useSession()
@@ -46,8 +47,18 @@ export default function SealedUnitsCalculatorPage() {
       ...travel.formInputs,
       labour: settings.labour,
     })
-    return { ...calc, isServiceOnly: travel.isServiceOnly }
-  }, [lineItems, travel.formInputs, travel.isServiceOnly, settings.labour])
+    return {
+      ...calc,
+      isInstallation: travel.isInstallation,
+      isServiceOnly: travel.isServiceOnly,
+    }
+  }, [
+    lineItems,
+    travel.formInputs,
+    travel.isInstallation,
+    travel.isServiceOnly,
+    settings.labour,
+  ])
 
   // 5. Item Builder Hook
   const builder = useSealedUnitsItemBuilder({
@@ -63,9 +74,13 @@ export default function SealedUnitsCalculatorPage() {
   const drafts = useSealedUnitsDrafts({
     lineItems,
     setLineItems,
-    formInputs: travel.formInputs,
+    formInputs: {
+      ...travel.formInputs,
+      regionName: travel.selectedRegion?.name,
+    },
     formSetters: travel.formSetters,
     totals,
+    regions: travel.regions,
   })
 
   // 7. Review & Submit Hook
@@ -83,6 +98,13 @@ export default function SealedUnitsCalculatorPage() {
     selectedOdooClerk: settings.selectedOdooClerk,
     attachedWindowQuote: drafts.attachedWindowQuote,
     attachedDoorQuote: drafts.attachedDoorQuote,
+    selectedRegionId: travel.selectedRegionId,
+    travelFeeType: travel.travelFeeType,
+    customTravelFee: travel.customTravelFee,
+    showOutTownTravel: travel.showOutTownTravel,
+    travelKm: travel.travelKm,
+    crewHours: travel.crewHours,
+    crewSize: travel.crewSize,
   })
 
   const handlePrint = () => {
@@ -137,6 +159,26 @@ export default function SealedUnitsCalculatorPage() {
     review.setShowSubmitModal(true)
   }
 
+  const handleStartNewQuote = () => {
+    builder.handleCancelEdit()
+    const isDirty = isWorkspaceDirtyOrUnsaved("sealed_unit", {
+      quoteNumber: drafts.quoteNumber,
+      customerName: drafts.customerName,
+      itemCount: lineItems.length,
+      grandTotal: totals.grandTotal,
+      data: {
+        lineItems,
+        attachedWindowQuote: drafts.attachedWindowQuote,
+        attachedDoorQuote: drafts.attachedDoorQuote,
+      },
+    })
+    if (isDirty) {
+      drafts.setShowResetModal(true)
+    } else {
+      drafts.handleResetWorkspace()
+    }
+  }
+
   return (
     <>
       <div className="su-no-print min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
@@ -168,7 +210,7 @@ export default function SealedUnitsCalculatorPage() {
                 }
                 {...builder}
                 grills={settings.grills}
-                onResetQuote={() => drafts.setShowResetModal(true)}
+                onResetQuote={handleStartNewQuote}
                 onSaveDraft={drafts.handleSaveDraft}
                 onOpenSavedQuotes={() => drafts.setIsSavedQuotesOpen(true)}
                 savedDraftsCount={drafts.savedDraftsCount}
@@ -181,8 +223,11 @@ export default function SealedUnitsCalculatorPage() {
                 labourRate={totals.effectiveLabourRate}
                 miscRate={totals.effectiveMiscRate}
                 labourMin={settings.labour.labourMinPerUnit ?? 120.0}
+                editingItemId={builder.editingItem?.id}
+                onEditItem={builder.handleEditItem}
+                onDuplicateItem={builder.handleDuplicateItem}
                 onRemoveItem={builder.handleRemoveItem}
-                onResetQuote={() => drafts.setShowResetModal(true)}
+                onResetQuote={handleStartNewQuote}
               />
 
               <SealedUnitLabourTravelCard
@@ -236,7 +281,7 @@ export default function SealedUnitsCalculatorPage() {
                 user={user}
                 onOpenSubmitModal={handleOpenSubmitModal}
                 onPrint={handlePrint}
-                onResetQuote={() => drafts.setShowResetModal(true)}
+                onResetQuote={handleStartNewQuote}
                 onSaveDraft={drafts.handleSaveDraft}
                 onOpenSavedQuotes={() => drafts.setIsSavedQuotesOpen(true)}
                 attachedWindowQuote={drafts.attachedWindowQuote}

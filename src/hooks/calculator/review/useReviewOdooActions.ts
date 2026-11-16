@@ -3,6 +3,10 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { detectQuoteChanges } from "@/lib/quote-diff"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface UseReviewOdooActionsParams {
   user: any
@@ -10,6 +14,7 @@ export interface UseReviewOdooActionsParams {
   reviewQuote: any
   originalSnapshot: any
   quoteNumber: string
+  customerName: string
   windows: any[]
   taxTotals: any
   quoteResult: any
@@ -22,6 +27,16 @@ export interface UseReviewOdooActionsParams {
   includeJCInPromo: boolean
   includeMiscInPromo: boolean
   includeLabourInPromo: boolean
+  attachedUpgrade?: any
+  attachedDoorQuote?: any
+  attachedSealedUnit?: any
+  wantsUpgrade?: boolean
+  isSupplyOnly?: boolean
+  isServiceOnly?: boolean
+  supplyJambId?: string
+  supplyJambRate?: string
+  supplyCasingId?: string
+  supplyCasingRate?: string
   total: number
   selectedOdooClerk: string
   setSelectedOdooClerk: (clerk: string) => void
@@ -37,6 +52,7 @@ export function useReviewOdooActions({
   reviewQuote,
   originalSnapshot,
   quoteNumber,
+  customerName,
   windows,
   taxTotals,
   quoteResult,
@@ -49,6 +65,16 @@ export function useReviewOdooActions({
   includeJCInPromo,
   includeMiscInPromo,
   includeLabourInPromo,
+  attachedUpgrade,
+  attachedDoorQuote,
+  attachedSealedUnit,
+  wantsUpgrade,
+  isSupplyOnly,
+  isServiceOnly,
+  supplyJambId,
+  supplyJambRate,
+  supplyCasingId,
+  supplyCasingRate,
   total,
   selectedOdooClerk,
   setSelectedOdooClerk,
@@ -98,6 +124,20 @@ export function useReviewOdooActions({
       includeJCInPromo,
       includeMiscInPromo,
       includeLabourInPromo,
+      attachedUpgrade,
+      attachedInstallOption: readSessionAttachedInstallOption(),
+      customOptions: readSessionCustomOptions(),
+      selectedRegionId: taxTotals?.selectedRegionId,
+      regionName: taxTotals?.regionName,
+      attachedDoorQuote,
+      attachedSealedUnit,
+      wantsUpgrade,
+      isSupplyOnly,
+      isServiceOnly,
+      supplyJambId,
+      supplyJambRate,
+      supplyCasingId,
+      supplyCasingRate,
       quoteSummaryTotal: total,
     }
 
@@ -112,6 +152,8 @@ export function useReviewOdooActions({
         status: finalStatus,
         reviewChanges,
         reviewerNotes: `Reviewed and approved by ${user?.username || "Admin"}`,
+        customerName: customerName || reviewQuote?.customerName,
+        quoteNumber,
         windows,
         taxTotals,
         quoteResult,
@@ -124,6 +166,20 @@ export function useReviewOdooActions({
         includeJCInPromo,
         includeMiscInPromo,
         includeLabourInPromo,
+        attachedUpgrade,
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        selectedRegionId: taxTotals?.selectedRegionId,
+        regionName: taxTotals?.regionName,
+        attachedDoorQuote,
+        attachedSealedUnit,
+        wantsUpgrade,
+        isSupplyOnly,
+        isServiceOnly,
+        supplyJambId,
+        supplyJambRate,
+        supplyCasingId,
+        supplyCasingRate,
         quoteSummaryTotal: total,
         odooAssignedTo: selectedOdooClerk,
       }

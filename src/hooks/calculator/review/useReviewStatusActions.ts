@@ -2,6 +2,10 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface UseReviewStatusActionsParams {
   reviewQuoteId: string | null
@@ -31,6 +35,10 @@ export interface UseReviewStatusActionsParams {
   wantsUpgrade?: boolean
   isSupplyOnly?: boolean
   isServiceOnly?: boolean
+  supplyJambId?: string
+  supplyJambRate?: string
+  supplyCasingId?: string
+  supplyCasingRate?: string
   total: number
   fileInputRef: React.RefObject<HTMLInputElement | null>
   setReviewActionLoading: (loading: boolean) => void
@@ -64,6 +72,10 @@ export function useReviewStatusActions({
   wantsUpgrade,
   isSupplyOnly,
   isServiceOnly,
+  supplyJambId,
+  supplyJambRate,
+  supplyCasingId,
+  supplyCasingRate,
   total,
   fileInputRef,
   setReviewActionLoading,
@@ -107,11 +119,19 @@ export function useReviewStatusActions({
           includeMiscInPromo,
           includeLabourInPromo,
           attachedUpgrade,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
+          selectedRegionId: taxTotals?.selectedRegionId,
+          regionName: taxTotals?.regionName,
           attachedDoorQuote,
           attachedSealedUnit,
           wantsUpgrade,
           isSupplyOnly,
           isServiceOnly,
+          supplyJambId,
+          supplyJambRate,
+          supplyCasingId,
+          supplyCasingRate,
           quoteSummaryTotal: total,
         }),
       })
@@ -204,11 +224,19 @@ export function useReviewStatusActions({
           includeMiscInPromo,
           includeLabourInPromo,
           attachedUpgrade,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
+          selectedRegionId: taxTotals?.selectedRegionId,
+          regionName: taxTotals?.regionName,
           attachedDoorQuote,
           attachedSealedUnit,
           wantsUpgrade,
           isSupplyOnly,
           isServiceOnly,
+          supplyJambId,
+          supplyJambRate,
+          supplyCasingId,
+          supplyCasingRate,
           quoteSummaryTotal: total,
         }),
       })
@@ -255,11 +283,19 @@ export function useReviewStatusActions({
           includeMiscInPromo,
           includeLabourInPromo,
           attachedUpgrade,
+          attachedInstallOption: readSessionAttachedInstallOption(),
+          customOptions: readSessionCustomOptions(),
+          selectedRegionId: taxTotals?.selectedRegionId,
+          regionName: taxTotals?.regionName,
           attachedDoorQuote,
           attachedSealedUnit,
           wantsUpgrade,
           isSupplyOnly,
           isServiceOnly,
+          supplyJambId,
+          supplyJambRate,
+          supplyCasingId,
+          supplyCasingRate,
           quoteSummaryTotal: total,
         }),
       })

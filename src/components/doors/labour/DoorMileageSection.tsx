@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select"
 import { DoorLogisticsSettings } from "@/lib/doors/types"
 import { Truck } from "lucide-react"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 interface DoorMileageSectionProps {
   showOutTownTravel: boolean
@@ -49,17 +50,19 @@ export function DoorMileageSection({
   const totalTravelFleet = vehicleCost + crewCost
 
   const handleKmChange = (val: string) => {
-    const num = parseFloat(val) || 0
+    const cleaned = sanitizeNonNegativeNumber(val)
+    const num = parseFloat(cleaned) || 0
     onUpdateParams({
-      travelKm: val,
+      travelKm: cleaned,
       showOutTownTravel: num > 0 || parseFloat(crewHours) > 0,
     })
   }
 
   const handleHoursChange = (val: string) => {
-    const num = parseFloat(val) || 0
+    const cleaned = sanitizeNonNegativeNumber(val)
+    const num = parseFloat(cleaned) || 0
     onUpdateParams({
-      crewHours: val,
+      crewHours: cleaned,
       showOutTownTravel: num > 0 || parseFloat(travelKm) > 0,
     })
   }
@@ -86,8 +89,10 @@ export function DoorMileageSection({
           </Label>
           <Input
             type="number"
-            step="1"
+            min="0"
+            step="any"
             value={travelKm}
+            onKeyDown={blockNegativeKey}
             onChange={(e) => handleKmChange(e.target.value)}
             placeholder="0"
             className="h-9 bg-background font-mono text-xs"
@@ -122,8 +127,10 @@ export function DoorMileageSection({
           </Label>
           <Input
             type="number"
+            min="0"
             step="0.5"
             value={crewHours}
+            onKeyDown={blockNegativeKey}
             onChange={(e) => handleHoursChange(e.target.value)}
             placeholder="0.0"
             className="h-9 bg-background font-mono text-xs"

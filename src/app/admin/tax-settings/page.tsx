@@ -10,9 +10,12 @@ import {
   PackagePlus,
   Layers,
   Truck,
+  RotateCcw,
+  History,
 } from "lucide-react"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 import { AppHeader } from "@/components/layout/AppHeader"
+import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
 import {
   AdminWindowLabourTab,
   AdminAddonsTab,
@@ -42,31 +45,80 @@ export default function TaxSettingsDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ text: "", type: "" })
+  const [showHistory, setShowHistory] = useState(false)
+
+  const loadSettings = async () => {
+    try {
+      const res = await fetch("/api/settings")
+      const data = await res.json()
+      if (data.windowLabourPerSqft !== undefined)
+        setWindowLabourPerSqft(data.windowLabourPerSqft)
+      if (data.windowMiscPerSqft !== undefined)
+        setWindowMiscPerSqft(data.windowMiscPerSqft)
+      if (data.windowLabourMin !== undefined)
+        setWindowLabourMin(data.windowLabourMin)
+      if (data.windowMiscMin !== undefined)
+        setWindowMiscMin(data.windowMiscMin)
+      if (data.extraLinPerWindow !== undefined)
+        setExtraLinPerWindow(data.extraLinPerWindow)
+
+      setAddons(data.addons || [])
+      setJambs(data.jambs || [])
+      setCasings(data.casings || [])
+      if (data.vehicleRate !== undefined) setVehicleRate(data.vehicleRate)
+      setCrewRates(data.crewRates || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.windowLabourPerSqft !== undefined)
-          setWindowLabourPerSqft(data.windowLabourPerSqft)
-        if (data.windowMiscPerSqft !== undefined)
-          setWindowMiscPerSqft(data.windowMiscPerSqft)
-        if (data.windowLabourMin !== undefined)
-          setWindowLabourMin(data.windowLabourMin)
-        if (data.windowMiscMin !== undefined)
-          setWindowMiscMin(data.windowMiscMin)
-        if (data.extraLinPerWindow !== undefined)
-          setExtraLinPerWindow(data.extraLinPerWindow)
-
-        setAddons(data.addons || [])
-        setJambs(data.jambs || [])
-        setCasings(data.casings || [])
-        if (data.vehicleRate !== undefined) setVehicleRate(data.vehicleRate)
-        setCrewRates(data.crewRates || [])
-        setLoading(false)
-      })
-      .catch(console.error)
+    loadSettings()
   }, [])
+
+  const handleDiscardChanges = () => {
+    if (
+      confirm(
+        "Discard all unsaved edits and reload current active rates from the database?"
+      )
+    ) {
+      loadSettings()
+      setMessage({
+        text: "Unsaved changes discarded. Reloaded active rates from database.",
+        type: "success",
+      })
+    }
+  }
+
+  const handleRestoreVersion = (
+    snapshot: Record<string, any>,
+    version: number
+  ) => {
+    if (snapshot.windowLabourPerSqft !== undefined)
+      setWindowLabourPerSqft(snapshot.windowLabourPerSqft)
+    if (snapshot.windowMiscPerSqft !== undefined)
+      setWindowMiscPerSqft(snapshot.windowMiscPerSqft)
+    if (snapshot.windowLabourMin !== undefined)
+      setWindowLabourMin(snapshot.windowLabourMin)
+    if (snapshot.windowMiscMin !== undefined)
+      setWindowMiscMin(snapshot.windowMiscMin)
+    if (snapshot.extraLinPerWindow !== undefined)
+      setExtraLinPerWindow(snapshot.extraLinPerWindow)
+
+    if (Array.isArray(snapshot.addons)) setAddons(snapshot.addons)
+    if (Array.isArray(snapshot.jambs)) setJambs(snapshot.jambs)
+    if (Array.isArray(snapshot.casings)) setCasings(snapshot.casings)
+    if (snapshot.vehicleRate !== undefined)
+      setVehicleRate(snapshot.vehicleRate)
+    if (Array.isArray(snapshot.crewRates)) setCrewRates(snapshot.crewRates)
+
+    setMessage({
+      text: `Loaded rates from Version ${version} snapshot. Click "Save Settings" to persist these rates.`,
+      type: "success",
+    })
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -153,7 +205,7 @@ export default function TaxSettingsDashboard() {
               </span>
               <div>
                 <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                  Window Tax &amp; Labour Settings
+                  Window Labour &amp; Pricing
                 </h1>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Configure window labour formulas, jobsite upcharges, extension
@@ -163,7 +215,27 @@ export default function TaxSettingsDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscardChanges}
+              className="cursor-pointer gap-1.5 text-xs"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Discard Changes</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(true)}
+              className="cursor-pointer gap-1.5 text-xs"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span>Version History</span>
+            </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
@@ -175,6 +247,15 @@ export default function TaxSettingsDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Pricing History Version Modal */}
+        <PricingHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          category="WINDOW_LABOUR"
+          title="Window Labour & Pricing"
+          onRestoreVersion={handleRestoreVersion}
+        />
 
         {message.text && (
           <div

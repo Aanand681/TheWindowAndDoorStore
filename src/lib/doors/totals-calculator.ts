@@ -85,11 +85,11 @@ export function calculateDoorQuoteTotals(
 
     // Out of town vehicle and crew travel
     if (showOutTownTravel) {
-      const km = Number(travelKm) || 0
+      const km = Math.max(0, Number(travelKm) || 0)
       vehicleTravelFee =
         Math.round(km * (logistics.vehicleRatePerKm || 0.98) * 100) / 100
 
-      const hrs = Number(crewHours) || 0
+      const hrs = Math.max(0, Number(crewHours) || 0)
       const hourlyRate =
         crewSize === "2"
           ? logistics.crewHourly2Men || 150
