@@ -6,7 +6,6 @@ import {
   getActiveAutoSave,
   clearActiveAutoSave,
   getSavedDrafts,
-  flushAutoSaveDraftToServer,
 } from "@/lib/quote-drafts-storage"
 import {
   SealedUnitLineItem,
@@ -48,9 +47,7 @@ export function useSealedUnitsAutoSave({
 }: UseSealedUnitsAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const lastSavedSnapshotRef = useRef<string>("")
-  const lastServerSyncSnapshotRef = useRef<string>("")
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const serverSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
   const currentPayloadRef = useRef<any>(null)
 
   const restoreAutoSaveIntoWorkspace = useCallback(
@@ -156,22 +153,9 @@ export function useSealedUnitsAutoSave({
       )
     }, 1200)
 
-    if (serverSyncTimerRef.current) {
-      clearTimeout(serverSyncTimerRef.current)
-    }
-    serverSyncTimerRef.current = setTimeout(() => {
-      if (lastServerSyncSnapshotRef.current !== currentSnapshot) {
-        flushAutoSaveDraftToServer(fullPayload)
-        lastServerSyncSnapshotRef.current = currentSnapshot
-      }
-    }, 6000)
-
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)
-      }
-      if (serverSyncTimerRef.current) {
-        clearTimeout(serverSyncTimerRef.current)
       }
     }
   }, [
@@ -185,52 +169,13 @@ export function useSealedUnitsAutoSave({
     quoteNotes,
   ])
 
-  // Boundary Flush on tab switch and window close
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const currentSnapshot = serializeSealedUnitSnapshot(currentSnapshotParams)
-      if (
-        document.visibilityState === "hidden" &&
-        currentPayloadRef.current &&
-        lastServerSyncSnapshotRef.current !== currentSnapshot
-      ) {
-        flushAutoSaveDraftToServer(currentPayloadRef.current)
-        lastServerSyncSnapshotRef.current = currentSnapshot
-      }
-    }
-
-    const handlePageHide = () => {
-      const currentSnapshot = serializeSealedUnitSnapshot(currentSnapshotParams)
-      if (
-        currentPayloadRef.current &&
-        lastServerSyncSnapshotRef.current !== currentSnapshot
-      ) {
-        flushAutoSaveDraftToServer(currentPayloadRef.current)
-        lastServerSyncSnapshotRef.current = currentSnapshot
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    window.addEventListener("pagehide", handlePageHide)
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      window.removeEventListener("pagehide", handlePageHide)
-    }
-  }, [currentSnapshotParams])
-
   const clearTimerAndSaveSnapshot = (snapshotString: string) => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current)
       autoSaveTimerRef.current = null
     }
-    if (serverSyncTimerRef.current) {
-      clearTimeout(serverSyncTimerRef.current)
-      serverSyncTimerRef.current = null
-    }
     clearActiveAutoSave("sealed_unit")
     lastSavedSnapshotRef.current = snapshotString
-    lastServerSyncSnapshotRef.current = snapshotString
   }
 
   return {

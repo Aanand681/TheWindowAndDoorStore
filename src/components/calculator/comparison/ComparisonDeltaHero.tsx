@@ -1,47 +1,26 @@
-import React from "react"
-import {
-  Sparkles,
-  CheckCircle2,
-  ArrowUpRight,
-  TrendingDown,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { formatMoney } from "@/lib/promo-logic"
-import {
-  AttachedUpgradeOption,
-  ComparisonDelta,
-  OptionBFinancials,
-} from "./types"
-import { UPGRADE_PRESETS } from "./comparison-helpers"
+"use client"
 
-interface ComparisonDeltaHeroProps {
+import React from "react"
+import { CheckCircle2, ArrowUpRight, TrendingDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/promo-logic"
+import { ComparisonDelta, OptionBFinancials } from "./types"
+
+export interface ComparisonDeltaHeroProps {
   delta: ComparisonDelta | null
   optionBFinancials: OptionBFinancials | null
-  attachedUpgrade: AttachedUpgradeOption | null
-  customUpgradeTitle: string
-  detectedUpgradeTitle: string
-  onUpgradeTitleChange: (title: string) => void
-  onToggleAttachUpgrade: () => void
 }
 
 export function ComparisonDeltaHero({
   delta,
   optionBFinancials,
-  attachedUpgrade,
-  customUpgradeTitle,
-  detectedUpgradeTitle,
-  onUpgradeTitleChange,
-  onToggleAttachUpgrade,
 }: ComparisonDeltaHeroProps) {
   if (!delta || !optionBFinancials) return null
 
   return (
     <div
       className={cn(
-        "rounded-2xl border p-4 shadow-md transition-all sm:p-5",
+        "rounded-2xl border p-4 shadow-sm transition-all sm:p-5",
         delta.isUpgrade
           ? "border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-primary/5 to-amber-500/10"
           : delta.isSavings
@@ -53,7 +32,7 @@ export function ComparisonDeltaHero({
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div
             className={cn(
-              "shrink-0 rounded-2xl p-3 shadow-sm",
+              "shrink-0 rounded-2xl p-3 shadow-xs",
               delta.isUpgrade
                 ? "bg-amber-500 text-amber-950"
                 : delta.isSavings
@@ -89,80 +68,15 @@ export function ComparisonDeltaHero({
           </div>
         </div>
 
-        {/* Attach to Quote PDF Action & Editable Upgrade/Deduct Description */}
-        {delta.preTax !== 0 && (
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
-            <div className="flex w-full flex-col gap-1 sm:w-80">
-              <div className="flex items-center justify-between">
-                <Label
-                  htmlFor="upgradeTitleInput"
-                  className="text-[11px] font-semibold text-muted-foreground"
-                >
-                  {delta.preTax < 0
-                    ? "Option / Economy Description on Quote PDF"
-                    : "Upgrade Description on Quote PDF"}
-                </Label>
-                <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                  Editable
-                </span>
-              </div>
-              <Input
-                id="upgradeTitleInput"
-                value={customUpgradeTitle || detectedUpgradeTitle}
-                onChange={(e) => onUpgradeTitleChange(e.target.value)}
-                placeholder={
-                  delta.preTax < 0
-                    ? "e.g. Dual Pane Option, Vinyl Casing..."
-                    : "e.g. Triple Pane (Solar Shield), Brick Mould..."
-                }
-                className="h-8 bg-background text-xs font-medium"
-              />
-              {/* Quick Presets */}
-              <div className="mt-0.5 flex flex-wrap gap-1">
-                {UPGRADE_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => onUpgradeTitleChange(preset)}
-                    className="cursor-pointer rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button
-              variant={attachedUpgrade ? "default" : "outline"}
-              size="sm"
-              onClick={onToggleAttachUpgrade}
-              className={cn(
-                "h-8 shrink-0 cursor-pointer gap-1.5 text-xs font-bold shadow-xs",
-                attachedUpgrade
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : delta.preTax < 0
-                    ? "border-sky-500/40 text-sky-600 hover:border-sky-500 hover:bg-sky-500/10 dark:text-sky-400"
-                    : "border-amber-500/40 text-amber-600 hover:border-amber-500 hover:bg-amber-500/10 dark:text-amber-400"
-              )}
-            >
-              {attachedUpgrade ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-white" />
-                  <span>Attached to Quote PDF</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  <span>
-                    {delta.preTax < 0
-                      ? "Attach Deduct Option to Quote PDF"
-                      : "Attach Upgrade to Quote PDF"}
-                  </span>
-                </>
-              )}
-            </Button>
-          </div>
-        )}
+        {/* Right side status badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            Option B Pre-Tax:{" "}
+            <strong className="text-foreground">
+              {formatMoney(optionBFinancials.afterDiscount)}
+            </strong>
+          </span>
+        </div>
       </div>
     </div>
   )

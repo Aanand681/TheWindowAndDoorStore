@@ -9,6 +9,7 @@ import {
   getSavedDrafts,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
+  syncRemoteDrafts,
 } from "@/lib/quote-drafts-storage"
 import { applyDraftDataToWorkspace } from "./drafts/workspace-draft-applier"
 import { executeSaveDraft } from "./drafts/draft-saver"
@@ -94,14 +95,18 @@ export function useCalculatorDrafts({
     [router, clearAutoSaveTimer]
   )
 
-  const handleSaveDraft = useCallback(() => {
-    executeSaveDraft({
+  const handleSaveDraft = useCallback(async (): Promise<QuoteDraftItem | null> => {
+    return await executeSaveDraft({
       workspace: workspaceRef.current,
       financials,
       loadedDraftId,
       setLoadedDraftId,
     })
   }, [financials, loadedDraftId])
+
+  useEffect(() => {
+    syncRemoteDrafts().catch(() => {})
+  }, [])
 
   const resetDraftState = useCallback(() => {
     setLoadedDraftId(null)

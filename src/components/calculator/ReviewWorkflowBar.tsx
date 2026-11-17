@@ -11,6 +11,7 @@ export interface ReviewWorkflowBarProps {
   setIsEditMode: (val: boolean) => void
   canEditCurrentQuote: boolean
   isReviewerOrAdmin: boolean
+  canApprove?: boolean
   isOdooClerk: boolean
   user: any
   reviewActionLoading: boolean
@@ -36,6 +37,7 @@ export function ReviewWorkflowBar({
   setIsEditMode,
   canEditCurrentQuote,
   isReviewerOrAdmin,
+  canApprove = false,
   isOdooClerk,
   user,
   reviewActionLoading,
@@ -46,10 +48,10 @@ export function ReviewWorkflowBar({
   setIsPreviewOpen,
   setOdooOrderNumberInput,
   setShowCompleteOdooModal,
-  staffList: _staffList,
-  setReassignTo: _setReassignTo,
-  setReassignNotes: _setReassignNotes,
-  setShowReassignModal: _setShowReassignModal,
+  staffList,
+  setReassignTo,
+  setReassignNotes,
+  setShowReassignModal,
   handleReturnReviewQuote,
   handleApproveReviewQuote,
 }: ReviewWorkflowBarProps) {
@@ -80,6 +82,7 @@ export function ReviewWorkflowBar({
         setIsEditMode={setIsEditMode}
         canEditCurrentQuote={canEditCurrentQuote}
         isReviewerOrAdmin={isReviewerOrAdmin}
+        canApprove={canApprove}
         isOdooClerk={isOdooClerk}
         reviewActionLoading={reviewActionLoading}
         handleSaveQuotePrices={handleSaveQuotePrices}
@@ -89,6 +92,10 @@ export function ReviewWorkflowBar({
         setIsPreviewOpen={setIsPreviewOpen}
         setOdooOrderNumberInput={setOdooOrderNumberInput}
         setShowCompleteOdooModal={setShowCompleteOdooModal}
+        staffList={staffList}
+        setReassignTo={setReassignTo}
+        setReassignNotes={setReassignNotes}
+        setShowReassignModal={setShowReassignModal}
         handleReturnReviewQuote={handleReturnReviewQuote}
         handleApproveReviewQuote={handleApproveReviewQuote}
       />

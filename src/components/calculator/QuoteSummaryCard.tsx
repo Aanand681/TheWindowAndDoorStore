@@ -8,6 +8,7 @@ import {
   readSessionInstallState,
   readSessionAttachedInstallOption,
   writeSessionAttachedInstallOption,
+  ATTACHED_INSTALL_CHANGE_EVENT,
   type CachedAttachedInstallOption,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useCombinedQuoteData } from "@/hooks/calculator/useCombinedQuoteData"
@@ -112,7 +113,15 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     React.useState<CachedAttachedInstallOption | null>(null)
 
   React.useEffect(() => {
-    setAttachedInstallOption(readSessionAttachedInstallOption())
+    const sync = () =>
+      setAttachedInstallOption(readSessionAttachedInstallOption())
+    sync()
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+      window.removeEventListener("storage", sync)
+    }
   }, [isSupply, quoteNumber, reviewQuote?._id])
 
   const windowGroupsBaseTotal = React.useMemo(() => {
@@ -381,6 +390,8 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 wantsUpgrade={wantsUpgrade}
                 setWantsUpgrade={setWantsUpgrade}
                 isReadOnly={isReadOnly}
+                isReviewerOrAdmin={props.isReviewerOrAdmin}
+                isOdooCompleted={props.isOdooCompleted}
                 upgrade={upgrade}
                 shownUpgrade={shownUpgrade}
                 attachedDoorQuote={attachedDoorQuote}

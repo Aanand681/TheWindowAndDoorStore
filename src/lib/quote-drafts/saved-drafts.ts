@@ -48,6 +48,75 @@ export function getSavedDrafts(): QuoteDraftItem[] {
   }
 }
 
+function upsertDraftInList(
+  existingDrafts: QuoteDraftItem[],
+  draft: QuoteDraftItem
+): QuoteDraftItem[] {
+  const qNum = (draft.quoteNumber || "").trim().toLowerCase()
+  const otherDrafts = existingDrafts.filter((d) => {
+    if (draft.id && d.id === draft.id) return false
+    if (
+      qNum &&
+      qNum !== "untitled" &&
+      d.quoteNumber &&
+      d.type === draft.type &&
+      d.quoteNumber.trim().toLowerCase() === qNum
+    ) {
+      return false
+    }
+    return true
+  })
+  return [draft, ...otherDrafts].slice(0, 50)
+}
+
+function createDraftPayload(
+  draft: Omit<QuoteDraftItem, "id" | "createdAt" | "updatedAt"> & {
+    id?: string
+  },
+  existingDrafts: QuoteDraftItem[]
+): QuoteDraftItem {
+  const now = new Date().toISOString()
+  const qNum = (draft.quoteNumber || "").trim().toLowerCase()
+  const existing = existingDrafts.find((d) => {
+    if (draft.id && d.id === draft.id) return true
+    if (
+      qNum &&
+      qNum !== "untitled" &&
+      d.quoteNumber &&
+      d.type === draft.type &&
+      d.quoteNumber.trim().toLowerCase() === qNum
+    ) {
+      return true
+    }
+    return false
+  })
+
+  const targetId =
+    draft.id ||
+    existing?.id ||
+    `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+  return {
+    id: targetId,
+    type: draft.type,
+    quoteNumber: draft.quoteNumber || "Untitled",
+    customerName: draft.customerName || "Unnamed Customer",
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
+    itemCount: draft.itemCount || 0,
+    subtotal: draft.subtotal || 0,
+    grandTotal: draft.grandTotal || 0,
+    summaryLabel:
+      draft.summaryLabel ||
+      (draft.type === "window"
+        ? "Window Quote"
+        : draft.type === "door"
+          ? "Door Quote"
+          : "Sealed Unit Quote"),
+    data: draft.data,
+  }
+}
+
 /**
  * Save or update a quote draft in the persistent drafts registry.
  * Guarantees that 1 quote is only saved once (updates existing record in-place).
@@ -62,71 +131,9 @@ export function saveQuoteDraft(
   }
 
   const existingDrafts = getSavedDrafts()
-  const now = new Date().toISOString()
-  const qNum = (draft.quoteNumber || "").trim().toLowerCase()
+  const fullDraft = createDraftPayload(draft, existingDrafts)
+  const trimmed = upsertDraftInList(existingDrafts, fullDraft)
 
-  // Find existing draft by ID or by quoteNumber + type to ensure 1 quote is only saved once
-  const existingIndex = existingDrafts.findIndex((d) => {
-    if (draft.id && d.id === draft.id) return true
-    if (
-      qNum &&
-      qNum !== "untitled" &&
-      d.quoteNumber &&
-      d.type === draft.type &&
-      d.quoteNumber.trim().toLowerCase() === qNum
-    ) {
-      return true
-    }
-    return false
-  })
-
-  let targetId = draft.id
-  if (!targetId) {
-    if (existingIndex >= 0) {
-      targetId = existingDrafts[existingIndex].id
-    } else {
-      targetId = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-    }
-  }
-
-  const fullDraft: QuoteDraftItem = {
-    id: targetId,
-    type: draft.type,
-    quoteNumber: draft.quoteNumber || "Untitled",
-    customerName: draft.customerName || "Unnamed Customer",
-    createdAt:
-      existingIndex >= 0 ? existingDrafts[existingIndex].createdAt : now,
-    updatedAt: now,
-    itemCount: draft.itemCount || 0,
-    subtotal: draft.subtotal || 0,
-    grandTotal: draft.grandTotal || 0,
-    summaryLabel:
-      draft.summaryLabel ||
-      (draft.type === "window" ? "Window Quote" : "Sealed Unit Quote"),
-    data: draft.data,
-  }
-
-  // Filter out any other records that had the same ID or same quoteNumber + type
-  const otherDrafts = existingDrafts.filter((d, idx) => {
-    if (idx === existingIndex) return false
-    if (draft.id && d.id === draft.id) return false
-    if (
-      qNum &&
-      qNum !== "untitled" &&
-      d.quoteNumber &&
-      d.type === draft.type &&
-      d.quoteNumber.trim().toLowerCase() === qNum
-    ) {
-      return false
-    }
-    return true
-  })
-
-  // Put the updated or newly created draft at the front
-  const updatedDrafts = [fullDraft, ...otherDrafts]
-
-  // Cap at 50 drafts
-  const trimmed = updatedDrafts.slice(0, 50)
   try {
     localStorage.setItem(SAVED_DRAFTS_STORAGE_KEY, JSON.stringify(trimmed))
     notifyDraftChange()
@@ -156,12 +163,15 @@ export function deleteQuoteDraft(id: string): void {
     localStorage.setItem(SAVED_DRAFTS_STORAGE_KEY, JSON.stringify(filtered))
     notifyDraftChange()
 
-    // Asynchronously delete from database
-    const query =
-      target?.quoteNumber && target?.type
-        ? `quoteNumber=${encodeURIComponent(target.quoteNumber)}&type=${encodeURIComponent(target.type)}`
-        : `id=${encodeURIComponent(id)}`
-    fetch(`/api/drafts?${query}`, { method: "DELETE" }).catch(() => {})
+    // Delete from database
+    const params = new URLSearchParams()
+    if (id) params.set("id", id)
+    if (target?.quoteNumber) params.set("quoteNumber", target.quoteNumber)
+    if (target?.type) params.set("type", target.type)
+
+    fetch(`/api/drafts?${params.toString()}`, { method: "DELETE" }).catch(
+      () => {}
+    )
   } catch (err) {
     console.error("Failed to delete draft from localStorage:", err)
   }
@@ -202,8 +212,62 @@ export function getQuoteDraftById(id: string): QuoteDraftItem | null {
 }
 
 /**
+ * Direct awaited save to MongoDB: uploads to MongoDB first, then upon confirmation
+ * updates the persistent saved drafts registry in localStorage and notifies listeners.
+ * If the database request fails, throws an error so the quote is NOT saved into the
+ * "Saved Quotes" list prematurely.
+ */
+export async function saveQuoteDraftDirectly(
+  draft: Omit<QuoteDraftItem, "id" | "createdAt" | "updatedAt"> & {
+    id?: string
+  }
+): Promise<QuoteDraftItem> {
+  if (typeof window === "undefined") {
+    throw new Error("Local storage is not available on server")
+  }
+
+  const existingDrafts = getSavedDrafts()
+  const candidateDraft = createDraftPayload(draft, existingDrafts)
+
+  // 1. Upload to MongoDB FIRST
+  const res = await fetch("/api/drafts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(candidateDraft),
+  })
+
+  if (!res.ok) {
+    throw new Error(
+      `Failed to upload quote draft to database (status ${res.status})`
+    )
+  }
+
+  const result = await res.json()
+  const mongoId = result?.draft?._id
+    ? String(result.draft._id)
+    : result?.draft?.id || candidateDraft.id
+
+  const savedRecord: QuoteDraftItem = {
+    ...candidateDraft,
+    id: mongoId,
+    updatedAt: result?.draft?.updatedAt || candidateDraft.updatedAt,
+  }
+
+  // 2. ONLY upon successful database confirmation: update the Saved Quotes registry
+  const updatedDrafts = upsertDraftInList(existingDrafts, savedRecord)
+  try {
+    localStorage.setItem(SAVED_DRAFTS_STORAGE_KEY, JSON.stringify(updatedDrafts))
+    notifyDraftChange()
+  } catch (err) {
+    console.error("Failed to write saved draft to localStorage:", err)
+  }
+
+  return savedRecord
+}
+
+/**
  * Sync remote database drafts with local storage.
- * Fetches user-owned drafts from MongoDB, merges any offline drafts, and triggers notifyDraftChange.
+ * Fetches user-owned drafts from MongoDB (single source of truth) and updates local storage.
  */
 export async function syncRemoteDrafts(): Promise<QuoteDraftItem[]> {
   if (typeof window === "undefined") return []
@@ -213,45 +277,27 @@ export async function syncRemoteDrafts(): Promise<QuoteDraftItem[]> {
     const serverDrafts = await res.json()
     if (!Array.isArray(serverDrafts)) return getSavedDrafts()
 
-    const localDrafts = getSavedDrafts()
-    const mergedMap = new Map<string, QuoteDraftItem>()
+    const serverDraftItems: QuoteDraftItem[] = serverDrafts.map((d: any) => ({
+      id: d._id ? String(d._id) : d.id,
+      type: d.type,
+      quoteNumber: d.quoteNumber,
+      customerName: d.customerName,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+      itemCount: d.itemCount,
+      subtotal: d.subtotal,
+      grandTotal: d.grandTotal,
+      summaryLabel: d.summaryLabel,
+      data: d.data,
+    }))
 
-    for (const d of serverDrafts) {
-      const id = d._id ? String(d._id) : d.id
-      const key = `${d.type}:${(d.quoteNumber || "").trim().toLowerCase()}`
-      mergedMap.set(key, {
-        id,
-        type: d.type,
-        quoteNumber: d.quoteNumber,
-        customerName: d.customerName,
-        createdAt: d.createdAt,
-        updatedAt: d.updatedAt,
-        itemCount: d.itemCount,
-        subtotal: d.subtotal,
-        grandTotal: d.grandTotal,
-        summaryLabel: d.summaryLabel,
-        data: d.data,
-      })
-    }
-
-    for (const ld of localDrafts) {
-      const key = `${ld.type}:${(ld.quoteNumber || "").trim().toLowerCase()}`
-      if (!mergedMap.has(key)) {
-        // Keep offline drafts locally without flooding the server with POST requests
-        mergedMap.set(key, ld)
-      } else {
-        // If server had empty summaryLabel but local had one, retain local summaryLabel
-        const existing = mergedMap.get(key)
-        if (existing && !existing.summaryLabel && ld.summaryLabel) {
-          existing.summaryLabel = ld.summaryLabel
-        }
-      }
-    }
-
-    const merged = Array.from(mergedMap.values()).slice(0, 50)
-    localStorage.setItem(SAVED_DRAFTS_STORAGE_KEY, JSON.stringify(merged))
+    // MongoDB is single source of truth: authoritative sync overwrites local storage
+    localStorage.setItem(
+      SAVED_DRAFTS_STORAGE_KEY,
+      JSON.stringify(serverDraftItems.slice(0, 50))
+    )
     notifyDraftChange()
-    return merged
+    return serverDraftItems
   } catch {
     return getSavedDrafts()
   }

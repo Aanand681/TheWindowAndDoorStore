@@ -178,11 +178,11 @@ export async function createQuoteService(
         ? "sealed_unit"
         : "window")
 
-  // Check if an existing DRAFT exists for this user and quoteNumber to transition in-place
-  const existingDraft = await SavedQuote.findOne({
+  // Check if an existing DRAFT or PENDING_REVIEW quote exists for this user and quoteNumber to update in-place
+  const existingQuote = await SavedQuote.findOne({
     preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
     quoteNumber: cleanQuoteNumber,
-    status: "DRAFT",
+    status: { $in: ["DRAFT", "PENDING_REVIEW"] },
   })
 
   const quotePayload = {
@@ -283,11 +283,23 @@ export async function createQuoteService(
   }
 
   let newQuote: any
-  if (existingDraft) {
-    Object.assign(existingDraft, quotePayload)
-    newQuote = await existingDraft.save()
+  if (existingQuote) {
+    Object.assign(existingQuote, quotePayload)
+    newQuote = await existingQuote.save()
   } else {
     newQuote = await SavedQuote.create(quotePayload)
+  }
+
+  // Purge any remaining DRAFT records for this quoteNumber so it never lingers under Saved Quotes
+  try {
+    await SavedQuote.deleteMany({
+      preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      quoteNumber: cleanQuoteNumber,
+      status: "DRAFT",
+      _id: { $ne: newQuote._id },
+    })
+  } catch (err) {
+    console.error("Failed to purge duplicate draft records:", err)
   }
 
   if (isDirectApprove && odooAssignedTo) {

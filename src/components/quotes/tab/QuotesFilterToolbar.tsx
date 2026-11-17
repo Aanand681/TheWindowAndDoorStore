@@ -17,6 +17,7 @@ export interface QuotesFilterToolbarProps {
   hasOdooAccess: boolean
   adminPendingCount: number
   adminOdooCount: number
+  employeeAssignedCount: number
   employeeInReviewCount: number
   employeeOdooDoneCount: number
   clerkPendingCount: number
@@ -37,6 +38,7 @@ export function QuotesFilterToolbar({
   hasOdooAccess,
   adminPendingCount,
   adminOdooCount,
+  employeeAssignedCount,
   employeeInReviewCount,
   employeeOdooDoneCount,
   clerkPendingCount,
@@ -106,12 +108,29 @@ export function QuotesFilterToolbar({
           {isEmployee && (
             <>
               <Button
+                variant={activeTab === "assigned" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleTabChange("assigned")}
+                className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                  employeeAssignedCount > 0
+                    ? "font-bold text-amber-600 dark:text-amber-400"
+                    : ""
+                }`}
+              >
+                <span>Assigned to Me</span>
+                {employeeAssignedCount > 0 && (
+                  <span className="rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                    {employeeAssignedCount}
+                  </span>
+                )}
+              </Button>
+              <Button
                 variant={activeTab === "review" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => handleTabChange("review")}
                 className="h-7 cursor-pointer text-xs font-semibold"
               >
-                In Review ({employeeInReviewCount})
+                My Submissions ({employeeInReviewCount})
               </Button>
               {hasOdooAccess ? (
                 <Button

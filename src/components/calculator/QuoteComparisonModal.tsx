@@ -12,6 +12,7 @@ import { ComparisonDeltaHero } from "./comparison/ComparisonDeltaHero"
 import { ComparisonOptionACard } from "./comparison/ComparisonOptionACard"
 import { ComparisonOptionBCard } from "./comparison/ComparisonOptionBCard"
 import { ComparisonDiffTable } from "./comparison/ComparisonDiffTable"
+import { ComparisonAttachCard } from "./comparison/ComparisonAttachCard"
 import { ComparisonFooterActions } from "./comparison/ComparisonFooterActions"
 
 export type { AttachedUpgradeOption, QuoteComparisonModalProps }
@@ -32,12 +33,9 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
     totalA,
     firstPaymentA,
     secondPaymentA,
-    appliedOption,
+    appliedOption = "A",
     isComparisonStaging = false,
     stagedOptionB,
-    onApplyOption,
-    onApplyAndCustomize,
-    onKeepOptionB,
     attachedUpgrade,
   } = props
 
@@ -60,17 +58,12 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
                   Dual PDF Upgrade &amp; Option Comparison
                 </h2>
                 <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-600 uppercase dark:text-amber-400">
-                  Phase 3 Hybrid
+                  Quote Options
                 </span>
-                {isComparisonStaging && (
-                  <span className="rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
-                    Live Staging Mode
-                  </span>
-                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Compare base quote with upgraded manufacturer PDF to calculate
-                &Delta; pre-tax upgrade cost.
+                Compare base quote with upgraded manufacturer PDF or add-ons to calculate
+                &Delta; pre-tax difference and attach to PDF.
               </p>
             </div>
           </div>
@@ -86,15 +79,10 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
-          {/* Delta Hero Card */}
+          {/* Delta Hero Card - Clean summary */}
           <ComparisonDeltaHero
             delta={comparison.delta}
             optionBFinancials={comparison.optionBFinancials}
-            attachedUpgrade={attachedUpgrade}
-            customUpgradeTitle={comparison.customUpgradeTitle}
-            detectedUpgradeTitle={comparison.detectedUpgradeTitle}
-            onUpgradeTitleChange={comparison.handleUpgradeTitleChange}
-            onToggleAttachUpgrade={comparison.handleToggleAttachUpgrade}
           />
 
           {/* Side-by-Side Comparison Columns */}
@@ -127,6 +115,7 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
               fileInputRef={comparison.fileInputRef}
               handleFileInputChange={comparison.handleFileInputChange}
               handleDrop={comparison.handleDrop}
+              onCopyOptionAWindows={comparison.handleCopyOptionAWindows}
               setIsDragging={comparison.setIsDragging}
               showOverrides={comparison.showOverrides}
               setShowOverrides={comparison.setShowOverrides}
@@ -155,21 +144,23 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
             currentWindows={currentWindows}
             effectiveOptionBWindows={comparison.effectiveOptionBWindows}
           />
+
+          {/* Attach Option to PDF Card - Placed at the bottom */}
+          <ComparisonAttachCard
+            delta={comparison.delta}
+            optionBFinancials={comparison.optionBFinancials}
+            attachedUpgrade={attachedUpgrade}
+            customUpgradeTitle={comparison.customUpgradeTitle}
+            detectedUpgradeTitle={comparison.detectedUpgradeTitle}
+            onUpgradeTitleChange={comparison.handleUpgradeTitleChange}
+            onToggleAttachUpgrade={comparison.handleToggleAttachUpgrade}
+          />
         </div>
 
         {/* Footer Actions */}
         <ComparisonFooterActions
           attachedUpgrade={attachedUpgrade}
           onClose={onClose}
-          appliedOption={appliedOption}
-          isComparisonStaging={isComparisonStaging}
-          effectiveOptionBWindows={comparison.effectiveOptionBWindows}
-          optionBMeta={comparison.optionBMeta}
-          currentWindows={currentWindows}
-          getOverridesPayload={comparison.getOverridesPayload}
-          onApplyOption={onApplyOption}
-          onApplyAndCustomize={onApplyAndCustomize}
-          onKeepOptionB={onKeepOptionB}
         />
       </div>
     </div>,

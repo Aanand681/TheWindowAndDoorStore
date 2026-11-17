@@ -5,7 +5,15 @@ import { toast } from "sonner"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
+  clearAllQuoteSessionState,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  deleteQuoteDraft,
+  getSavedDrafts,
+  syncRemoteDrafts,
+  DRAFT_CHANGE_EVENT,
+} from "@/lib/quote-drafts-storage"
+import { clearActiveAutoSave } from "@/lib/quote-drafts/autosave-drafts"
 
 export interface UseQuoteReviewSubmissionStateParams {
   user: any
@@ -38,6 +46,7 @@ export interface UseQuoteReviewSubmissionStateParams {
   setReviewQuoteId?: (id: string | null) => void
   setOriginalSnapshot?: (s: any) => void
   setIsEditMode?: (mode: boolean) => void
+  resetCalculatorDefaults?: () => void
 }
 
 export function useQuoteReviewSubmissionState({
@@ -71,6 +80,7 @@ export function useQuoteReviewSubmissionState({
   setReviewQuoteId,
   setOriginalSnapshot,
   setIsEditMode,
+  resetCalculatorDefaults,
 }: UseQuoteReviewSubmissionStateParams) {
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
   const [assignedReviewer, setAssignedReviewer] = useState<string>("")
@@ -173,34 +183,68 @@ export function useQuoteReviewSubmissionState({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit quote")
 
+      // 1. Always purge drafts for this submitted quote so it does not linger in Saved Quotes
+      try {
+        const drafts = getSavedDrafts()
+        const matching = drafts.find(
+          (d) =>
+            d.quoteNumber?.trim().toLowerCase() ===
+            quoteNumber.trim().toLowerCase()
+        )
+        if (matching) {
+          deleteQuoteDraft(matching.id)
+        }
+        fetch(
+          `/api/drafts?quoteNumber=${encodeURIComponent(quoteNumber.trim())}&type=window`,
+          { method: "DELETE" }
+        ).catch(() => {})
+      } catch {}
+
+      clearActiveAutoSave("window")
+      clearAllQuoteSessionState()
+      syncRemoteDrafts().catch(() => {})
+
       if (isDirectApprove) {
         toast.success(
           `Quote #${quoteNumber} approved & assigned to ${effectiveClerk} for Odoo entry!`
         )
+        if (setReviewQuote && data.quote) {
+          setReviewQuote(data.quote)
+        }
+        if (setReviewQuoteId && data.quote?._id) {
+          setReviewQuoteId(data.quote._id)
+        }
+        if (setOriginalSnapshot && (data.quote?.initialSnapshot || data.quote)) {
+          setOriginalSnapshot(data.quote.initialSnapshot || data.quote)
+        }
+        if (setIsEditMode) {
+          setIsEditMode(false)
+        }
+        if (typeof window !== "undefined" && data.quote?._id) {
+          window.history.pushState(
+            { tab: "promo", reviewQuoteId: data.quote._id },
+            "",
+            `/?reviewQuoteId=${data.quote._id}`
+          )
+        }
       } else {
         toast.success(
           `Quote #${quoteNumber} submitted to ${effectiveReviewer} for review!`
         )
-      }
 
-      if (setReviewQuote && data.quote) {
-        setReviewQuote(data.quote)
-      }
-      if (setReviewQuoteId && data.quote?._id) {
-        setReviewQuoteId(data.quote._id)
-      }
-      if (setOriginalSnapshot && (data.quote?.initialSnapshot || data.quote)) {
-        setOriginalSnapshot(data.quote.initialSnapshot || data.quote)
-      }
-      if (setIsEditMode) {
-        setIsEditMode(false)
-      }
-      if (typeof window !== "undefined" && data.quote?._id) {
-        window.history.pushState(
-          { tab: "promo", reviewQuoteId: data.quote._id },
-          "",
-          `/?reviewQuoteId=${data.quote._id}`
-        )
+        // 2. Trigger fresh new quote instead of locking into review mode
+        if (resetCalculatorDefaults) {
+          resetCalculatorDefaults()
+        } else {
+          if (setReviewQuote) setReviewQuote(null)
+          if (setReviewQuoteId) setReviewQuoteId(null)
+          if (setOriginalSnapshot) setOriginalSnapshot(null)
+          if (setIsEditMode) setIsEditMode(false)
+        }
+        if (typeof window !== "undefined") {
+          window.history.pushState({}, "", "/?tab=promo")
+        }
+        window.dispatchEvent(new CustomEvent(DRAFT_CHANGE_EVENT))
       }
 
       setShowSubmitModal(false)

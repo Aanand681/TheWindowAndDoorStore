@@ -79,6 +79,59 @@ describe("Quote Lifecycle & Security Gate Tests", () => {
       expect(res.allowed).toBe(true)
     })
 
+    it("strictly blocks a non-admin employee from approving a quote", async () => {
+      vi.mocked(Department.findOne).mockResolvedValueOnce({
+        permissions: { canApproveQuote: false },
+      } as any)
+
+      const res = await checkQuoteUpdateSecurity({
+        session: {
+          user: { role: "EMPLOYEE", username: "peer_reviewer", department: "SALES" },
+        },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "peer_reviewer",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { status: "APPROVED" },
+      })
+
+      expect(res.allowed).toBe(false)
+      expect(res.statusCode).toBe(403)
+      expect(res.error).toContain("Only administrators can approve quotes")
+    })
+
+    it("allows an assigned peer employee to modify pricing and return with notes", async () => {
+      const res = await checkQuoteUpdateSecurity({
+        session: { user: { role: "EMPLOYEE", username: "peer_reviewer" } },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "peer_reviewer",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { status: "RETURNED", reviewerNotes: "Please adjust window 3 size" },
+      })
+
+      expect(res.allowed).toBe(true)
+    })
+
+    it("allows an admin to approve a quote", async () => {
+      const res = await checkQuoteUpdateSecurity({
+        session: { user: { role: "ADMIN", username: "admin_user" } },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          assignedTo: "admin_user",
+          preparedBy: "sales_rep",
+          quoteNumber: "Q-999",
+        },
+        body: { status: "APPROVED" },
+      })
+
+      expect(res.allowed).toBe(true)
+    })
+
     it("blocks an employee without edit permission from modifying an APPROVED quote", async () => {
       vi.mocked(Department.findOne).mockResolvedValueOnce({
         permissions: { canEditApprovedQuote: false },

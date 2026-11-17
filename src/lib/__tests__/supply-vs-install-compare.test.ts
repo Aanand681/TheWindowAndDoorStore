@@ -509,6 +509,15 @@ describe("Supply vs Installation Comparison Logic", () => {
     expect(readSessionCustomOptions()[0].title).toBe("Exterior Brickmould Trim")
     expect(readSessionCustomOptions()[0].amountPreTaxCents).toBe(35000)
 
+    // 4. Test that passing empty array [] as prop properly falls back to session options
+    const propCustomOptions: any[] = []
+    const effectiveOptions =
+      Array.isArray(propCustomOptions) && propCustomOptions.length > 0
+        ? propCustomOptions
+        : readSessionCustomOptions()
+    expect(effectiveOptions.length).toBe(1)
+    expect(effectiveOptions[0].title).toBe("Exterior Brickmould Trim")
+
     delete (global as any).window
     delete (global as any).sessionStorage
   })

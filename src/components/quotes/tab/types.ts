@@ -1,5 +1,11 @@
 export type QuotesSubTabType =
-  "review" | "odoo" | "my" | "all" | "odoo_completed" | "all_assigned"
+  | "review"
+  | "assigned"
+  | "odoo"
+  | "my"
+  | "all"
+  | "odoo_completed"
+  | "all_assigned"
 
 export interface QuotesTabProps {
   currentUser: any

@@ -7,6 +7,7 @@ vi.mock("@/models/SavedQuote", () => ({
   default: {
     create: vi.fn(),
     findOne: vi.fn(),
+    deleteMany: vi.fn().mockResolvedValue({}),
   },
 }))
 

@@ -86,6 +86,6 @@ export interface UseCalculatorDraftsReturn {
   initialLoadDone: boolean
   loadDraftIntoWorkspace: (draft: QuoteDraftItem) => void
   restoreAutoSaveIntoWorkspace: (recovered: any) => void
-  handleSaveDraft: () => void
+  handleSaveDraft: () => Promise<QuoteDraftItem | null>
   resetDraftState: () => void
 }

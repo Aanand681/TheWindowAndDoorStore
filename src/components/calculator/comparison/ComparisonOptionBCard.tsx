@@ -1,5 +1,5 @@
 import React from "react"
-import { FileUp, RefreshCw } from "lucide-react"
+import { FileUp, RefreshCw, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { formatMoney } from "@/lib/promo-logic"
@@ -20,6 +20,7 @@ interface ComparisonOptionBCardProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleDrop: (e: React.DragEvent<HTMLDivElement>) => void
+  onCopyOptionAWindows?: () => void
   setIsDragging: (val: boolean) => void
   showOverrides: boolean
   setShowOverrides: (val: boolean) => void
@@ -50,6 +51,7 @@ export function ComparisonOptionBCard({
   fileInputRef,
   handleFileInputChange,
   handleDrop,
+  onCopyOptionAWindows,
   setIsDragging,
   showOverrides,
   setShowOverrides,
@@ -129,6 +131,20 @@ export function ComparisonOptionBCard({
               Drag &amp; drop the upgraded PDF quote here (e.g. Triple Pane,
               Painted, Brickmould), or click to browse.
             </p>
+            {onCopyOptionAWindows && (
+              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onCopyOptionAWindows}
+                  className="h-7 cursor-pointer gap-1.5 border-amber-500/30 bg-amber-500/10 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-400"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  <span>Use Option A Windows (For Add-ons / J&amp;C)</span>
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <>

@@ -215,7 +215,10 @@ export function QuoteUnifiedOptionsSection({
   }
 
   // Option E: Custom User Options (from props or session storage)
-  const effectiveCustomOptions = customOptions || readSessionCustomOptions()
+  const effectiveCustomOptions =
+    Array.isArray(customOptions) && customOptions.length > 0
+      ? customOptions
+      : readSessionCustomOptions()
   effectiveCustomOptions.forEach((cOpt) => {
     if (cOpt.title && cOpt.amountPreTaxCents !== 0) {
       entries.push({

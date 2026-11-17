@@ -64,6 +64,18 @@ export function QuoteCardActions({
   const isModified = quote.status === "MODIFIED"
   const isReturned = quote.status === "RETURNED"
 
+  const isAssignedToMe = Boolean(
+    myUsername &&
+    quote.assignedTo &&
+    quote.assignedTo.toLowerCase().trim() === myUsername
+  )
+  const canUserReviewThisQuote = canReview || isAssignedToMe
+  const canApprove = Boolean(
+    isAdmin ||
+    currentUser?.permissions?.canApproveQuote === true ||
+    currentUser?.role === "SUPERADMIN"
+  )
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-border/50 pt-3">
       <div className="flex items-center gap-1">
@@ -154,7 +166,7 @@ export function QuoteCardActions({
           </>
         ) : (
           <>
-            {isPending && canReview && (
+            {isPending && canApprove && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -191,7 +203,7 @@ export function QuoteCardActions({
               >
                 <span>
                   {isPending
-                    ? canReview
+                    ? canUserReviewThisQuote
                       ? "Open & Review"
                       : "View Quote"
                     : isReturned

@@ -6,6 +6,7 @@ import { CheckCircle2, Share2, Save, AlertCircle, Edit3 } from "lucide-react"
 
 export interface SummaryPendingReviewButtonsProps {
   isReviewerOrAdmin: boolean
+  canApprove?: boolean
   isEditMode: boolean
   setIsEditMode: (val: boolean) => void
   canEditCurrentQuote: boolean
@@ -24,6 +25,7 @@ export interface SummaryPendingReviewButtonsProps {
 
 export function SummaryPendingReviewButtons({
   isReviewerOrAdmin,
+  canApprove = false,
   isEditMode,
   setIsEditMode,
   canEditCurrentQuote,
@@ -42,15 +44,39 @@ export function SummaryPendingReviewButtons({
   if (isReviewerOrAdmin) {
     return (
       <>
-        <Button
-          variant="default"
-          className="h-11 w-full cursor-pointer bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
-          onClick={handleApproveReviewQuote}
-          disabled={reviewActionLoading}
-        >
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          {reviewActionLoading ? "Approving..." : "Approve & Save Changes"}
-        </Button>
+        {canApprove ? (
+          <Button
+            variant="default"
+            className="h-11 w-full cursor-pointer bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+            onClick={handleApproveReviewQuote}
+            disabled={reviewActionLoading}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {reviewActionLoading ? "Approving..." : "Approve & Save Changes"}
+          </Button>
+        ) : (
+          <Button
+            variant="default"
+            className="h-11 w-full cursor-pointer bg-primary text-sm font-bold text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+            onClick={() => {
+              const adminStaff = staffList.find(
+                (s) =>
+                  s.role === "ADMIN" ||
+                  s.role === "SUPERADMIN" ||
+                  s.department === "ADMIN"
+              ) || staffList[0]
+              setReassignTo(adminStaff ? adminStaff.username : "Admin")
+              setReassignNotes(
+                "Reviewed and verified. Forwarded to Admin for final approval."
+              )
+              setShowReassignModal(true)
+            }}
+            disabled={reviewActionLoading}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Forward to Admin for Approval
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"

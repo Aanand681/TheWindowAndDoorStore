@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import {
-  saveQuoteDraft,
+  saveQuoteDraftDirectly,
   getSavedDrafts,
   clearActiveAutoSave,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
+  syncRemoteDrafts,
 } from "@/lib/quote-drafts-storage"
 import {
   formatDoorSummarySentence,
@@ -112,21 +113,22 @@ export function useDoorDrafts({
 
   useEffect(() => {
     updateSavedCount()
+    syncRemoteDrafts().catch(() => {})
     window.addEventListener(DRAFT_CHANGE_EVENT, updateSavedCount)
     return () =>
       window.removeEventListener(DRAFT_CHANGE_EVENT, updateSavedCount)
   }, [])
 
-  const handleExplicitSaveDraft = () => {
+  const handleExplicitSaveDraft = async (): Promise<QuoteDraftItem | null> => {
     try {
       if (!customerName.trim()) {
         toast.error("Customer name is required before saving a draft.")
-        return
+        return null
       }
 
       if (!quoteNumber.trim()) {
         toast.error("Quote number is required before saving a draft.")
-        return
+        return null
       }
 
       if (
@@ -137,7 +139,7 @@ export function useDoorDrafts({
         toast.error(
           "Please configure and add at least one door unit before saving a draft."
         )
-        return
+        return null
       }
 
       const summaryLabel = formatDoorSummarySentence(lineItems)
@@ -151,7 +153,7 @@ export function useDoorDrafts({
         attachedSealedUnit,
       })
 
-      saveQuoteDraft({
+      const saved = await saveQuoteDraftDirectly({
         type: "door",
         quoteNumber,
         customerName,
@@ -192,9 +194,15 @@ export function useDoorDrafts({
         minute: "2-digit",
       })
       setLastSavedAt(nowStr)
-      toast.success(`Door quote draft #${quoteNumber} saved to Saved Quotes!`)
+      toast.success(
+        `Door quote draft #${quoteNumber} saved directly to database!`
+      )
+      return saved
     } catch {
-      toast.error("Failed to save draft")
+      toast.error(
+        "Failed to save draft to database. Please check your connection and try again."
+      )
+      return null
     }
   }
 

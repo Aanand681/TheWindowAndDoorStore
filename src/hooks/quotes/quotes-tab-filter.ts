@@ -79,12 +79,21 @@ export function filterAndSortQuotes({
         if (quote.odooAssignedTo && !isAssignedToMe) return false
         if (!isPendingEntry) return false
       } else {
-        if (prep !== myUsername) return false
+        const assigned = quote.assignedTo?.toLowerCase()?.trim()
+        const isAssignedToMeForReview =
+          quote.status === "PENDING_REVIEW" && assigned === myUsername
+        const isMyPrepared = prep === myUsername
 
-        if (activeTab === "review") {
-          if (quote.status !== "PENDING_REVIEW") return false
+        if (!isMyPrepared && !isAssignedToMeForReview) return false
+
+        if (activeTab === "assigned") {
+          if (!isAssignedToMeForReview) return false
+        } else if (activeTab === "review") {
+          if (quote.status !== "PENDING_REVIEW" || !isMyPrepared) return false
         } else if (activeTab === "odoo_completed") {
           if (quote.odooStatus !== "COMPLETED") return false
+        } else if (activeTab === "my") {
+          if (quote.status === "PENDING_REVIEW") return false
         }
       }
     }
@@ -184,6 +193,11 @@ export function computeQuotesTabCounts({
     return true
   }).length
 
+  const employeeAssignedCount = quotes.filter((q) => {
+    const assigned = q.assignedTo?.toLowerCase()?.trim()
+    return q.status === "PENDING_REVIEW" && assigned === myUsername
+  }).length
+
   const employeeInReviewCount = quotes.filter(
     (q) =>
       q.preparedBy?.toLowerCase() === myUsername &&
@@ -194,7 +208,10 @@ export function computeQuotesTabCounts({
       q.preparedBy?.toLowerCase() === myUsername && q.odooStatus === "COMPLETED"
   ).length
   const employeeHistoryCount = quotes.filter(
-    (q) => q.preparedBy?.toLowerCase() === myUsername
+    (q) =>
+      q.preparedBy?.toLowerCase() === myUsername &&
+      q.status !== "PENDING_REVIEW" &&
+      q.status !== "DRAFT"
   ).length
 
   const clerkPendingCount = quotes.filter((q) => {
@@ -224,6 +241,7 @@ export function computeQuotesTabCounts({
     adminPendingCount,
     adminOdooCount,
     adminArchiveCount,
+    employeeAssignedCount,
     employeeInReviewCount,
     employeeOdooDoneCount,
     employeeHistoryCount,

@@ -154,6 +154,24 @@ export function useQuoteComparison(props: QuoteComparisonModalProps) {
     }
   }
 
+  const handleCopyOptionAWindows = () => {
+    if (!currentWindows || currentWindows.length === 0) {
+      toast.error("No windows found in Option A to copy.")
+      return
+    }
+    const cloned = currentWindows.map((w) => ({ ...w }))
+    setOptionBWindows(cloned)
+    setOptionBMeta({
+      customerName: props.customerName,
+      quoteNumber: props.quoteNumber,
+    })
+    setShowOverrides(true)
+    setCustomUpgradeTitle("Option with Jambs & Casing")
+    toast.success(
+      "Copied Option A windows to Option B. Select Jambs & Casing below."
+    )
+  }
+
   const resolvedOptionAJambLabel = useMemo(
     () => resolveOptionALabel(supplyJambId, supplyJambName, dbJambs),
     [supplyJambId, supplyJambName, dbJambs]
@@ -332,6 +350,7 @@ export function useQuoteComparison(props: QuoteComparisonModalProps) {
     fileInputRef,
     handleFileInputChange,
     handleDrop,
+    handleCopyOptionAWindows,
     resolvedOptionAJambLabel,
     resolvedOptionACasingLabel,
     selectedOverrideJambDisplay,

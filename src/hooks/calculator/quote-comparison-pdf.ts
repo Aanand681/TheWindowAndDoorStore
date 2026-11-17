@@ -60,13 +60,12 @@ export async function parseAndValidateOptionBPdf(
       })
 
     if (isDuplicate) {
-      toast.error(
-        "This PDF has identical window configurations to Option A. Please select an upgraded quote (e.g. Triple Pane or Painted) to compare."
+      toast.info(
+        `Loaded ${parsed.length} identical window(s) for Option B. Select Jambs & Casing below to calculate add-on difference.`
       )
-      return null
+    } else {
+      toast.success(`Parsed ${parsed.length} window(s) from ${file.name}`)
     }
-
-    toast.success(`Parsed ${parsed.length} window(s) from ${file.name}`)
     return { meta, parsed }
   } catch (err: any) {
     toast.error(`Failed to parse PDF: ${err.message || "Unknown error"}`)

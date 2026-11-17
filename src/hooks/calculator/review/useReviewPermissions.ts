@@ -11,6 +11,8 @@ export interface UseReviewPermissionsReturn {
   isSuperAdmin: boolean
   isAdmin: boolean
   canReview: boolean
+  canApprove: boolean
+  isAssignedReviewer: boolean
   canEditApprovedQuote: boolean
   isReviewerOrAdmin: boolean
   isOdooClerk: boolean
@@ -28,16 +30,27 @@ export function useReviewPermissions({
   const effectivePerms = user?.permissions || user?.departmentPermissions || {}
   const isSuperAdmin = Boolean(user && user.role === "SUPERADMIN")
   const isAdmin = Boolean(user && (user.role === "ADMIN" || isSuperAdmin))
+  const canApprove = Boolean(
+    isAdmin || effectivePerms.canApproveQuote === true
+  )
   const canReview = Boolean(
-    isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote
+    isAdmin || effectivePerms.canReviewQuote || canApprove
   )
   const canEditApprovedQuote = Boolean(
     isAdmin || effectivePerms.canEditApprovedQuote
   )
 
+  const isAssignedReviewer = Boolean(
+    user &&
+    reviewQuote &&
+    reviewQuote.assignedTo &&
+    user.username &&
+    reviewQuote.assignedTo.toLowerCase() === user.username.toLowerCase()
+  )
+
   const isReviewerOrAdmin = Boolean(
     isAdmin ||
-    (user && reviewQuote && reviewQuote.assignedTo === user.username) ||
+    isAssignedReviewer ||
     canReview
   )
 
@@ -70,6 +83,8 @@ export function useReviewPermissions({
     isSuperAdmin,
     isAdmin,
     canReview,
+    canApprove,
+    isAssignedReviewer,
     canEditApprovedQuote,
     isReviewerOrAdmin,
     isOdooClerk,

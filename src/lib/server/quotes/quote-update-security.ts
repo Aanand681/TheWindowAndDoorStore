@@ -27,6 +27,21 @@ export async function checkQuoteUpdateSecurity(p: {
     userRole === "ADMIN" ||
     deptPerms.canEditApprovedQuote === true
 
+  const canApprove =
+    userRole === "SUPERADMIN" ||
+    userRole === "ADMIN" ||
+    deptPerms.canApproveQuote === true
+
+  // Strict approval restriction: Only admins can perform final quote approval
+  if (body.status === "APPROVED" && !canApprove) {
+    return {
+      allowed: false,
+      error:
+        "Only administrators can approve quotes. Please forward this quote to an administrator for approval.",
+      statusCode: 403,
+    }
+  }
+
   // Strict Reviewer Isolation on updates:
   // If a quote in PENDING_REVIEW is assigned to a specific admin/reviewer,
   // only that assigned reviewer or the preparer who created it can update or approve it.

@@ -11,6 +11,12 @@ import { SealedUnitSummaryAttachedBadges } from "./summary/SealedUnitSummaryAtta
 import { SealedUnitSummaryLedger } from "./summary/SealedUnitSummaryLedger"
 import { SealedUnitSummaryActions } from "./summary/SealedUnitSummaryActions"
 import { SupplyVsInstallCompareModal } from "@/components/shared/SupplyVsInstallCompareModal"
+import {
+  readSessionAttachedInstallOption,
+  writeSessionAttachedInstallOption,
+  ATTACHED_INSTALL_CHANGE_EVENT,
+  type CachedAttachedInstallOption,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface SealedUnitQuoteSummaryCardProps {
   lineItems: SealedUnitLineItem[]
@@ -84,6 +90,22 @@ export function SealedUnitQuoteSummaryCard({
   onRemoveAttachedDoorQuote,
 }: SealedUnitQuoteSummaryCardProps) {
   const [isCompareOpen, setIsCompareOpen] = React.useState(false)
+  const [attachedInstallOption, setAttachedInstallOption] =
+    React.useState<CachedAttachedInstallOption | null>(() =>
+      readSessionAttachedInstallOption()
+    )
+
+  React.useEffect(() => {
+    const sync = () =>
+      setAttachedInstallOption(readSessionAttachedInstallOption())
+    sync()
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+      window.removeEventListener("storage", sync)
+    }
+  }, [mode, quoteNumber])
   const isService = mode === "service_only"
   const hasAttachedWindow = Boolean(attachedWindowQuote)
   const hasAttachedDoor = Boolean(attachedDoorQuote)
@@ -212,8 +234,18 @@ export function SealedUnitQuoteSummaryCard({
           <SealedUnitSummaryAttachedBadges
             attachedWindowQuote={attachedWindowQuote}
             attachedDoorQuote={attachedDoorQuote}
+            attachedInstallOption={attachedInstallOption}
+            mode={mode}
+            isService={isService}
             onRemoveAttachedWindowQuote={onRemoveAttachedWindowQuote}
             onRemoveAttachedDoorQuote={onRemoveAttachedDoorQuote}
+            onRemoveAttachedInstallOption={() => {
+              setAttachedInstallOption(null)
+              writeSessionAttachedInstallOption(null)
+            }}
+            dynamicInstallDeltaDollars={
+              isInstallation ? combinedLabour + combinedMisc : undefined
+            }
           />
 
           {!hasContent ? (

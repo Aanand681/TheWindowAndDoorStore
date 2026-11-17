@@ -23,11 +23,18 @@ export function CalculatorUtilityModals({
   handleConfirmReset,
   handleSaveDraft,
 }: CalculatorUtilityModalsProps) {
-  const handleSaveDraftAndReset = () => {
+  const handleSaveDraftAndReset = async () => {
     if (handleSaveDraft) {
-      handleSaveDraft()
+      const saved = await handleSaveDraft()
+      // Only reset workspace if the quote was successfully saved to MongoDB
+      if (saved) {
+        handleConfirmReset()
+        setShowResetModal(false)
+      }
+    } else {
+      handleConfirmReset()
+      setShowResetModal(false)
     }
-    handleConfirmReset()
   }
 
   return (

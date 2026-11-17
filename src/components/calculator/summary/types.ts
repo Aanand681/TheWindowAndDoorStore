@@ -1,7 +1,6 @@
 import type {
   StaffMember,
   QuoteReviewState,
-  QuoteWindow,
   TaxCalculatedTotals,
   AttachedQuoteData,
   AttachedUpgradeOption,
@@ -51,6 +50,9 @@ export interface QuoteSummaryCardProps {
   canEditApprovedQuote: boolean
   canEditCurrentQuote: boolean
   isReviewerOrAdmin: boolean
+  isOdooCompleted?: boolean
+  canApprove?: boolean
+  isAssignedReviewer?: boolean
   reviewActionLoading: boolean
   staffList: StaffMember[]
   clerkList: StaffMember[]

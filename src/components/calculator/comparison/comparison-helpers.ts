@@ -4,7 +4,7 @@ import { toCents } from "@/lib/promo-logic"
 export const UPGRADE_PRESETS = [
   "Triple Pane Upgrade",
   "Triple Pane (Solar Shield)",
-  "Triple Pane (Solar Gain / Tempered)",
+  "Option with Jambs & Casing",
   "Brick Mould Upgrade",
 ]
 

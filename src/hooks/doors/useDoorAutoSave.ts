@@ -5,7 +5,6 @@ import {
   saveActiveAutoSave,
   getActiveAutoSave,
   clearActiveAutoSave,
-  flushAutoSaveDraftToServer,
 } from "@/lib/quote-drafts-storage"
 import {
   formatDoorSummarySentence,
@@ -97,8 +96,6 @@ export function useDoorAutoSave({
 }: UseDoorAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const initialLoadDone = useRef(false)
-  const serverSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const lastServerSyncFingerprintRef = useRef<string | null>(null)
   const currentPayloadRef = useRef<any>(null)
 
   // Load Active Auto-save Draft on Mount
@@ -232,39 +229,8 @@ export function useDoorAutoSave({
   }, [buildDoorPayload])
 
   const flushDoorToServer = useCallback(() => {
-    if (!currentPayloadRef.current) return
-    const payload = currentPayloadRef.current
-    if (payload.itemCount === 0 && (!payload.customerName || payload.customerName === "Valued Customer")) return
-
-    flushAutoSaveDraftToServer(payload)
-    lastServerSyncFingerprintRef.current = doorFingerprint
-  }, [doorFingerprint])
-
-  // Boundary Flush on tab switch and window close
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === "hidden" &&
-        lastServerSyncFingerprintRef.current !== doorFingerprint
-      ) {
-        flushDoorToServer()
-      }
-    }
-
-    const handlePageHide = () => {
-      if (lastServerSyncFingerprintRef.current !== doorFingerprint) {
-        flushDoorToServer()
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    window.addEventListener("pagehide", handlePageHide)
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      window.removeEventListener("pagehide", handlePageHide)
-    }
-  }, [doorFingerprint, flushDoorToServer])
+    // Explicit saves to MongoDB occur when user clicks "Save Draft".
+  }, [])
 
   useEffect(() => {
     if (!initialLoadDone.current) {
@@ -278,7 +244,6 @@ export function useDoorAutoSave({
       (!customerName || customerName === "Valued Customer")
     ) {
       clearActiveAutoSave("door")
-      lastServerSyncFingerprintRef.current = null
       return
     }
 
@@ -292,29 +257,15 @@ export function useDoorAutoSave({
       setLastSavedAt(nowStr)
     }, 700)
 
-    if (serverSyncTimerRef.current) {
-      clearTimeout(serverSyncTimerRef.current)
-    }
-    serverSyncTimerRef.current = setTimeout(() => {
-      if (lastServerSyncFingerprintRef.current !== doorFingerprint) {
-        flushDoorToServer()
-      }
-    }, 6000)
-
     return () => {
       clearTimeout(timer)
-      if (serverSyncTimerRef.current) {
-        clearTimeout(serverSyncTimerRef.current)
-      }
     }
   }, [
-    doorFingerprint,
     lineItems.length,
     attachedWindowQuote,
     attachedSealedUnit,
     customerName,
     buildDoorPayload,
-    flushDoorToServer,
   ])
 
   return {

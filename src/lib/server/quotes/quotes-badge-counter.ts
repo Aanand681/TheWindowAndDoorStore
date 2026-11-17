@@ -13,15 +13,6 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
   await dbConnect()
 
   const userRole = session.user.role
-  const userDept = session.user.department
-  let deptDoc: any = null
-  if (userDept) {
-    deptDoc = await Department.findOne({ code: userDept })
-  }
-  const canReview =
-    userRole === "ADMIN" ||
-    userRole === "SUPERADMIN" ||
-    deptDoc?.permissions?.canReviewQuote === true
   const isSuperAdmin = userRole === "SUPERADMIN"
 
   // Pending reviews specifically assigned to this user (visible to assigned admin only)
@@ -54,11 +45,7 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
     updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   })
 
-  const totalActionableCount = isSuperAdmin
-    ? pendingReviewCount + pendingOdooCount
-    : canReview
-      ? pendingReviewCount + pendingOdooCount
-      : pendingOdooCount
+  const totalActionableCount = pendingReviewCount + pendingOdooCount
 
   const badgeData = {
     pendingReviewCount,

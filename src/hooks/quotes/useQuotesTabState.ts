@@ -158,8 +158,8 @@ export function useQuotesTabState({
         } else {
           totalActionable = list.filter(
             (q: any) =>
-              q.preparedBy?.toLowerCase() === myUsername &&
-              q.status === "PENDING_REVIEW"
+              q.status === "PENDING_REVIEW" &&
+              q.assignedTo?.toLowerCase()?.trim() === myUsername
           ).length
         }
 

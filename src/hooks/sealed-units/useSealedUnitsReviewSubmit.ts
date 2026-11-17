@@ -8,6 +8,12 @@ import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  deleteQuoteDraft,
+  getSavedDrafts,
+  clearActiveAutoSave,
+  syncRemoteDrafts,
+} from "@/lib/quote-drafts-storage"
 
 interface UseSealedUnitsReviewSubmitProps {
   user: any
@@ -185,6 +191,26 @@ export function useSealedUnitsReviewSubmit({
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit quote")
+
+      // Purge drafts for this submitted quote so it does not linger in Saved Quotes
+      try {
+        const drafts = getSavedDrafts()
+        const matching = drafts.find(
+          (d) =>
+            d.quoteNumber?.trim().toLowerCase() ===
+            quoteNumber.trim().toLowerCase()
+        )
+        if (matching) {
+          deleteQuoteDraft(matching.id)
+        }
+        fetch(
+          `/api/drafts?quoteNumber=${encodeURIComponent(quoteNumber.trim())}&type=sealed_unit`,
+          { method: "DELETE" }
+        ).catch(() => {})
+      } catch {}
+
+      clearActiveAutoSave("sealed_unit")
+      syncRemoteDrafts().catch(() => {})
 
       if (isDirectApprove) {
         toast.success(

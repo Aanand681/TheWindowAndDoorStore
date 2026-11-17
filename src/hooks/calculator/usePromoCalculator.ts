@@ -107,12 +107,6 @@ export function usePromoCalculator({
   const switchTab = (tab: string, sub?: QuotesSubTabType) => {
     const validTab =
       tab === "promo" || tab === "tax" || tab === "quotes" ? tab : "promo"
-    if (
-      validTab !== "promo" &&
-      (draftsRef.current as any)?.flushDraftToServer
-    ) {
-      ;(draftsRef.current as any).flushDraftToServer()
-    }
     base.setActiveTab(validTab)
     if (sub) base.setQuotesSubTab(sub)
     if (typeof window !== "undefined") {

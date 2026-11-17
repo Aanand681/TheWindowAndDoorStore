@@ -4,7 +4,10 @@ import React from "react"
 import QuoteInvoice, {
   QuoteTemplateType,
 } from "@/components/quotes/QuoteInvoice"
-import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CalculatorPrintInvoiceProps {
   isPreviewOpen: boolean
@@ -125,6 +128,7 @@ export function CalculatorPrintInvoice({
       attachedSealedUnit={attachedSealedUnit}
       attachedDoorQuote={attachedDoorQuote}
       isSupplyOnly={isSupplyOnly}
+      customOptions={mounted ? readSessionCustomOptions() : undefined}
       isDualOption={Boolean(
         mounted &&
         readSessionAttachedInstallOption()?.enabled

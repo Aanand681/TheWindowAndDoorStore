@@ -38,6 +38,8 @@ export function buildReviewWorkflowProps(ctx: WorkflowInvoiceContext) {
     isEditMode: review.isEditMode,
     canEditCurrentQuote: review.canEditCurrentQuote,
     isReviewerOrAdmin: review.isReviewerOrAdmin,
+    canApprove: review.canApprove,
+    isAssignedReviewer: review.isAssignedReviewer,
     isOdooClerk: review.isOdooClerk,
     user: base.user,
     reviewActionLoading: review.reviewActionLoading,

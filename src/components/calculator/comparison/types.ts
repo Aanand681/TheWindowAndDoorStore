@@ -61,11 +61,11 @@ export interface QuoteComparisonModalProps {
   totalA: number
   firstPaymentA: number
   secondPaymentA: number
-  // Two-way Option Swapping & Full Workspace Staging
-  appliedOption: "A" | "B"
+  // Two-way Option Swapping & Full Workspace Staging (Optional)
+  appliedOption?: "A" | "B"
   isComparisonStaging?: boolean
   stagedOptionB?: StagedOptionBData
-  onApplyOption: (
+  onApplyOption?: (
     target: "A" | "B",
     windows: UIWindowItem[],
     meta?: { customerName?: string; quoteNumber?: string },

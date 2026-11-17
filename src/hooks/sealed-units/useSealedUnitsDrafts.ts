@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-  saveQuoteDraft,
+  saveQuoteDraftDirectly,
   getSavedDrafts,
   clearActiveAutoSave,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
+  syncRemoteDrafts,
 } from "@/lib/quote-drafts-storage"
 import {
   SealedUnitLineItem,
@@ -196,7 +197,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     loadDraftIntoWorkspace,
   })
 
-  const handleSaveDraft = useCallback(() => {
+  const handleSaveDraft = useCallback(async () => {
     const hasMeaningfulContent =
       lineItems.length > 0 ||
       (isServiceOnly &&
@@ -208,12 +209,12 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       toast.error(
         "Add at least one sealed unit, service sqft, or attach a quote before saving."
       )
-      return
+      return null
     }
 
     if (!customerName.trim()) {
       toast.error("Customer name is required before saving a quote.")
-      return
+      return null
     }
 
     const effectiveQuoteNumber = quoteNumber.trim() || generateQuoteNumber()
@@ -238,27 +239,38 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       totals,
     })
 
-    saveQuoteDraft({
-      type: "sealed_unit",
-      quoteNumber: effectiveQuoteNumber,
-      customerName: customerName.trim() || "Unnamed Customer",
-      itemCount:
-        isServiceOnly && lineItems.length === 0
-          ? 1
-          : lineItems.reduce((acc, it) => acc + it.quantity, 0),
-      subtotal: totals.subtotalPreTax || 0,
-      grandTotal: totals.grandTotal || 0,
-      summaryLabel: summaryTypeDesc,
-      data: payload,
-    })
+    try {
+      const saved = await saveQuoteDraftDirectly({
+        type: "sealed_unit",
+        quoteNumber: effectiveQuoteNumber,
+        customerName: customerName.trim() || "Unnamed Customer",
+        itemCount:
+          isServiceOnly && lineItems.length === 0
+            ? 1
+            : lineItems.reduce((acc, it) => acc + it.quantity, 0),
+        subtotal: totals.subtotalPreTax || 0,
+        grandTotal: totals.grandTotal || 0,
+        summaryLabel: summaryTypeDesc,
+        data: payload,
+      })
 
-    const snapshotString = serializeSealedUnitSnapshot({
-      ...currentSnapshotParams,
-      quoteNumber: effectiveQuoteNumber,
-    })
-    autoSave.clearTimerAndSaveSnapshot(snapshotString)
+      const snapshotString = serializeSealedUnitSnapshot({
+        ...currentSnapshotParams,
+        quoteNumber: effectiveQuoteNumber,
+      })
+      autoSave.clearTimerAndSaveSnapshot(snapshotString)
 
-    toast.success(`Sealed Unit Quote #${effectiveQuoteNumber} saved to drafts!`)
+      toast.success(
+        `Sealed Unit Quote #${effectiveQuoteNumber} saved directly to database!`
+      )
+      return saved
+    } catch (err) {
+      console.error("Failed to save sealed unit draft to database:", err)
+      toast.error(
+        "Failed to save draft to database. Please check your connection and try again."
+      )
+      return null
+    }
   }, [
     lineItems,
     isServiceOnly,
@@ -278,6 +290,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       setSavedDraftsCount(all.filter((d) => d.type === "sealed_unit").length)
     }
     updateCount()
+    syncRemoteDrafts().catch(() => {})
     window.addEventListener(DRAFT_CHANGE_EVENT, updateCount)
     return () => window.removeEventListener(DRAFT_CHANGE_EVENT, updateCount)
   }, [])

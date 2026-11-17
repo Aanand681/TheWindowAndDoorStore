@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import mongoose from "mongoose"
 import dbConnect from "@/lib/mongodb"
 import SavedQuote from "@/models/SavedQuote"
 import { getServerSession } from "next-auth/next"
@@ -36,9 +37,41 @@ export async function GET(request: Request) {
 
     await dbConnect()
 
+    // 1. Identify quote numbers that have already been submitted (non-DRAFT status)
+    const submittedQuoteDocs = await SavedQuote.find({
+      preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+      status: { $ne: "DRAFT" },
+    })
+      .select("quoteNumber")
+      .lean()
+
+    const submittedQuoteNumbers = submittedQuoteDocs
+      .map((q: any) => (q.quoteNumber || "").trim().toLowerCase())
+      .filter((n: string) => n && n !== "untitled")
+
+    // 2. Automatically purge any orphaned DRAFT records in MongoDB whose quote has been submitted
+    if (submittedQuoteNumbers.length > 0) {
+      await SavedQuote.deleteMany({
+        preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+        status: "DRAFT",
+        quoteNumber: {
+          $in: submittedQuoteNumbers.map(
+            (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+          ),
+        },
+      })
+    }
+
     const query: Record<string, unknown> = {
       preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
       status: "DRAFT",
+    }
+    if (submittedQuoteNumbers.length > 0) {
+      query.quoteNumber = {
+        $nin: submittedQuoteNumbers.map(
+          (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+        ),
+      }
     }
     if (type && ["window", "door", "sealed_unit"].includes(type)) {
       query.quoteType = type
@@ -319,18 +352,25 @@ export async function DELETE(request: Request) {
         baseFilter.quoteType = type
       }
       await SavedQuote.deleteMany(baseFilter)
-    } else if (id) {
-      await SavedQuote.deleteOne({ ...baseFilter, _id: id })
-    } else if (
-      quoteNumber &&
-      type &&
-      ["window", "door", "sealed_unit"].includes(type)
-    ) {
-      await SavedQuote.deleteOne({
-        ...baseFilter,
-        quoteNumber: quoteNumber.trim(),
-        quoteType: type as "window" | "sealed_unit" | "door",
-      })
+    } else if (id || (quoteNumber && type)) {
+      const orConditions: any[] = []
+      if (id && mongoose.Types.ObjectId.isValid(id)) {
+        orConditions.push({ _id: new mongoose.Types.ObjectId(id) })
+      }
+      if (quoteNumber && type) {
+        orConditions.push({
+          quoteNumber: quoteNumber.trim(),
+          quoteType: type,
+        })
+      } else if (quoteNumber) {
+        orConditions.push({ quoteNumber: quoteNumber.trim() })
+      }
+      if (orConditions.length > 0) {
+        await SavedQuote.deleteMany({
+          ...baseFilter,
+          $or: orConditions,
+        })
+      }
     } else {
       return NextResponse.json(
         { error: "Missing draft identifier" },

@@ -65,8 +65,6 @@ export function SubmitReviewModal({
   submittingQuote,
   onSubmit,
 }: SubmitReviewModalProps) {
-  if (!isOpen) return null
-
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN"
   const eligibleReviewers = staffList.filter(
     (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
@@ -111,6 +109,8 @@ export function SubmitReviewModal({
     setSelectedOdooClerk,
   ])
 
+  if (!isOpen) return null
+
   const units = totalUnits ?? windowsCount ?? 0
   let defaultPlural = "windows"
   let defaultSingular = "window"
@@ -127,6 +127,11 @@ export function SubmitReviewModal({
     lineCount && lineCount !== units
       ? `${units} ${displayLabel} (${lineCount} lines)`
       : `${units} ${displayLabel}`
+
+  const totalInCents =
+    quoteType === "door" || quoteType === "sealed_unit"
+      ? Math.round(total * 100)
+      : Math.round(total)
 
   return (
     <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-background/80 p-4 backdrop-blur-sm duration-200 fade-in">
@@ -218,7 +223,7 @@ export function SubmitReviewModal({
               Quote Total (incl. tax):
             </span>
             <span className="font-mono text-sm font-bold text-primary">
-              {formatMoney(total)}
+              {formatMoney(totalInCents)}
             </span>
           </div>
         </div>

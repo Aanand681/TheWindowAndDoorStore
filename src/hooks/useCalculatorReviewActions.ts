@@ -225,6 +225,7 @@ export function useCalculatorReviewActions({
     supplyCasingRate,
     total,
     fileInputRef,
+    resetCalculatorDefaults,
   })
 
   return {
@@ -271,6 +272,8 @@ export function useCalculatorReviewActions({
     showExitReviewForPdfModal: submissions.showExitReviewForPdfModal,
     setShowExitReviewForPdfModal: submissions.setShowExitReviewForPdfModal,
     isReviewerOrAdmin: permissions.isReviewerOrAdmin,
+    canApprove: permissions.canApprove,
+    isAssignedReviewer: permissions.isAssignedReviewer,
     isOdooClerk: permissions.isOdooClerk,
     isApprovedOrModified: permissions.isApprovedOrModified,
     canEditCurrentQuote: permissions.canEditCurrentQuote,

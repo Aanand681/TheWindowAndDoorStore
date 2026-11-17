@@ -88,6 +88,7 @@ export default function QuotesTab(props: QuotesTabProps) {
     adminPendingCount,
     adminOdooCount,
     adminArchiveCount,
+    employeeAssignedCount,
     employeeInReviewCount,
     employeeOdooDoneCount,
     employeeHistoryCount,
@@ -143,6 +144,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         adminPendingCount={adminPendingCount}
         adminOdooCount={adminOdooCount}
         adminArchiveCount={adminArchiveCount}
+        employeeAssignedCount={employeeAssignedCount}
         employeeInReviewCount={employeeInReviewCount}
         employeeOdooDoneCount={employeeOdooDoneCount}
         employeeHistoryCount={employeeHistoryCount}
@@ -165,6 +167,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         hasOdooAccess={hasOdooAccess}
         adminPendingCount={adminPendingCount}
         adminOdooCount={adminOdooCount}
+        employeeAssignedCount={employeeAssignedCount}
         employeeInReviewCount={employeeInReviewCount}
         employeeOdooDoneCount={employeeOdooDoneCount}
         clerkPendingCount={clerkPendingCount}

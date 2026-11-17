@@ -1,10 +1,13 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import { detectQuoteChanges } from "@/lib/quote-diff"
 import { formatWindowSummarySentence } from "@/lib/calculator/format-window-summary"
 import {
   AUTOSAVE_TTL_MS,
   isWorkspaceDirtyOrUnsaved,
+  saveQuoteDraftDirectly,
+  getSavedDrafts,
+  clearAllQuoteDrafts,
 } from "@/lib/quote-drafts-storage"
 
 describe("Drafts & Combined Quotes Architecture", () => {
@@ -229,5 +232,102 @@ describe("Drafts & Combined Quotes Architecture", () => {
     expect(draftPayload.attachedInstallOption.amountPreTaxCents).toBe(45000)
     expect(draftPayload.customOptions.length).toBe(1)
     expect(draftPayload.customOptions[0].title).toBe("Triple Pane Upgrade")
+  })
+
+  it("saveQuoteDraftDirectly only updates saved quotes list after successful MongoDB upload", async () => {
+    const store: Record<string, string> = {}
+    const mockStorage = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, val: string) => {
+        store[key] = String(val)
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+      clear: () => {
+        Object.keys(store).forEach((k) => delete store[k])
+      },
+    }
+    vi.stubGlobal("window", {
+      dispatchEvent: vi.fn(),
+      localStorage: mockStorage,
+    })
+    vi.stubGlobal("localStorage", mockStorage)
+
+    clearAllQuoteDrafts("all")
+
+    // Mock successful database response
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ draft: { _id: "mongo_test_id_999" } }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    const saved = await saveQuoteDraftDirectly({
+      type: "window",
+      quoteNumber: "Q-99901",
+      customerName: "Alice Walker",
+      itemCount: 2,
+      subtotal: 1200,
+      grandTotal: 1356,
+      summaryLabel: "2 Windows",
+      data: { quoteNumber: "Q-99901" } as any,
+    })
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(saved.id).toBe("mongo_test_id_999")
+
+    const savedList = getSavedDrafts()
+    expect(savedList.some((d) => d.id === "mongo_test_id_999")).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
+  it("saveQuoteDraftDirectly does NOT add to saved quotes list if database upload fails", async () => {
+    const store: Record<string, string> = {}
+    const mockStorage = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, val: string) => {
+        store[key] = String(val)
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+      clear: () => {
+        Object.keys(store).forEach((k) => delete store[k])
+      },
+    }
+    vi.stubGlobal("window", {
+      dispatchEvent: vi.fn(),
+      localStorage: mockStorage,
+    })
+    vi.stubGlobal("localStorage", mockStorage)
+
+    clearAllQuoteDrafts("all")
+
+    // Mock failed database response
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Database unavailable" }),
+    })
+    vi.stubGlobal("fetch", mockFetch)
+
+    await expect(
+      saveQuoteDraftDirectly({
+        type: "window",
+        quoteNumber: "Q-FAIL-01",
+        customerName: "Bob Failed",
+        itemCount: 1,
+        subtotal: 500,
+        grandTotal: 565,
+        summaryLabel: "1 Window",
+        data: { quoteNumber: "Q-FAIL-01" } as any,
+      })
+    ).rejects.toThrow(/Failed to upload quote draft to database/)
+
+    const savedList = getSavedDrafts()
+    expect(savedList.some((d) => d.quoteNumber === "Q-FAIL-01")).toBe(false)
+    vi.unstubAllGlobals()
   })
 })

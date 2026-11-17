@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import {
   saveActiveAutoSave,
   clearActiveAutoSave,
-  flushAutoSaveDraftToServer,
 } from "@/lib/quote-drafts-storage"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
@@ -100,9 +99,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     })
   )
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const serverSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastSavedFingerprintRef = useRef<string | null>(null)
-  const lastServerSyncFingerprintRef = useRef<string | null>(null)
   const currentPayloadRef = useRef<any>(null)
 
   useEffect(() => {
@@ -296,43 +293,9 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
   }, [buildPayload])
 
   const flushToServer = useCallback(() => {
-    if (!enabled || inReview) return
-    if (!currentPayloadRef.current) return
-    const payload = currentPayloadRef.current
-    if (!payload.quoteNumber?.trim() && !payload.customerName?.trim()) return
-    if (payload.itemCount === 0 && !payload.customerName?.trim()) return
-
-    flushAutoSaveDraftToServer(payload)
-    lastServerSyncFingerprintRef.current = inputFingerprint
-  }, [enabled, inReview, inputFingerprint])
-
-  // Boundary Event Flush: Flush draft to DB on tab switch (visibilitychange) and window close (pagehide)
-  useEffect(() => {
-    if (!enabled || inReview) return
-
-    const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === "hidden" &&
-        lastServerSyncFingerprintRef.current !== inputFingerprint
-      ) {
-        flushToServer()
-      }
-    }
-
-    const handlePageHide = () => {
-      if (lastServerSyncFingerprintRef.current !== inputFingerprint) {
-        flushToServer()
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    window.addEventListener("pagehide", handlePageHide)
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      window.removeEventListener("pagehide", handlePageHide)
-    }
-  }, [enabled, inReview, inputFingerprint, flushToServer])
+    // Explicit saves to MongoDB are performed when user clicks "Save Draft".
+    // Auto-save strictly maintains local crash recovery without cluttering the database.
+  }, [])
 
   useEffect(() => {
     if (!enabled || inReview) return
@@ -359,7 +322,6 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     if (!hasContent) {
       clearActiveAutoSave("window")
       lastSavedFingerprintRef.current = null
-      lastServerSyncFingerprintRef.current = null
       return
     }
 
@@ -372,7 +334,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       clearTimeout(autoSaveTimerRef.current)
     }
 
-    // Local Storage debounced at 800ms for instant crash recovery
+    // Local Storage debounced at 800ms for instant crash recovery (clean & offline)
     autoSaveTimerRef.current = setTimeout(() => {
       const payload = buildPayload()
       saveActiveAutoSave("window", payload)
@@ -385,22 +347,9 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       )
     }, 800)
 
-    // Smart Idle timer at 6000ms: syncs to MongoDB once user stops typing
-    if (serverSyncTimerRef.current) {
-      clearTimeout(serverSyncTimerRef.current)
-    }
-    serverSyncTimerRef.current = setTimeout(() => {
-      if (lastServerSyncFingerprintRef.current !== inputFingerprint) {
-        flushToServer()
-      }
-    }, 6000)
-
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)
-      }
-      if (serverSyncTimerRef.current) {
-        clearTimeout(serverSyncTimerRef.current)
       }
     }
   }, [
@@ -412,7 +361,6 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     attachedSealedUnit,
     attachedDoorQuote,
     buildPayload,
-    flushToServer,
   ])
 
   return {

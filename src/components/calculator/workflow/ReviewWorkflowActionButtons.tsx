@@ -11,6 +11,7 @@ import {
   Save,
   Send,
   Printer,
+  Share2,
 } from "lucide-react"
 
 export interface ReviewWorkflowActionButtonsProps {
@@ -19,6 +20,7 @@ export interface ReviewWorkflowActionButtonsProps {
   setIsEditMode: (val: boolean) => void
   canEditCurrentQuote: boolean
   isReviewerOrAdmin: boolean
+  canApprove?: boolean
   isOdooClerk: boolean
   reviewActionLoading: boolean
   handleSaveQuotePrices: () => void
@@ -28,6 +30,10 @@ export interface ReviewWorkflowActionButtonsProps {
   setIsPreviewOpen: (val: boolean) => void
   setOdooOrderNumberInput: (val: string) => void
   setShowCompleteOdooModal: (val: boolean) => void
+  staffList?: any[]
+  setReassignTo?: (val: string) => void
+  setReassignNotes?: (val: string) => void
+  setShowReassignModal?: (val: boolean) => void
   handleReturnReviewQuote: () => void
   handleApproveReviewQuote: () => void
 }
@@ -38,6 +44,7 @@ export function ReviewWorkflowActionButtons({
   setIsEditMode,
   canEditCurrentQuote,
   isReviewerOrAdmin,
+  canApprove = false,
   isOdooClerk,
   reviewActionLoading,
   handleSaveQuotePrices,
@@ -47,6 +54,10 @@ export function ReviewWorkflowActionButtons({
   setIsPreviewOpen,
   setOdooOrderNumberInput,
   setShowCompleteOdooModal,
+  staffList,
+  setReassignTo,
+  setReassignNotes,
+  setShowReassignModal,
   handleReturnReviewQuote,
   handleApproveReviewQuote,
 }: ReviewWorkflowActionButtonsProps) {
@@ -92,19 +103,51 @@ export function ReviewWorkflowActionButtons({
         </Button>
       )}
 
-      {/* 2. APPROVE QUOTE (Reviewer / Admin) */}
-      {reviewQuote.status === "PENDING_REVIEW" && isReviewerOrAdmin && (
-        <Button
-          size="sm"
-          onClick={handleApproveReviewQuote}
-          disabled={reviewActionLoading}
-          className="cursor-pointer bg-emerald-600 font-bold text-white shadow-md hover:bg-emerald-700"
-          title="Approve this quote"
-        >
-          <CheckCircle2 className="mr-1.5 h-4 w-4" />
-          {reviewActionLoading ? "Approving..." : "Approve Quote"}
-        </Button>
-      )}
+      {/* 2. APPROVE QUOTE (Strictly Admin / canApprove) */}
+      {reviewQuote.status === "PENDING_REVIEW" &&
+        isReviewerOrAdmin &&
+        canApprove && (
+          <Button
+            size="sm"
+            onClick={handleApproveReviewQuote}
+            disabled={reviewActionLoading}
+            className="cursor-pointer bg-emerald-600 font-bold text-white shadow-md hover:bg-emerald-700"
+            title="Approve this quote (Admin)"
+          >
+            <CheckCircle2 className="mr-1.5 h-4 w-4" />
+            {reviewActionLoading ? "Approving..." : "Approve Quote"}
+          </Button>
+        )}
+
+      {/* 2B. FORWARD TO ADMIN (Peer Reviewer without final approval rights) */}
+      {reviewQuote.status === "PENDING_REVIEW" &&
+        isReviewerOrAdmin &&
+        !canApprove &&
+        setShowReassignModal && (
+          <Button
+            size="sm"
+            onClick={() => {
+              const adminStaff =
+                staffList?.find(
+                  (s: any) =>
+                    s.role === "ADMIN" ||
+                    s.role === "SUPERADMIN" ||
+                    s.department === "ADMIN"
+                ) || staffList?.[0]
+              setReassignTo?.(adminStaff ? adminStaff.username : "Admin")
+              setReassignNotes?.(
+                "Reviewed and verified. Forwarded to Admin for final approval."
+              )
+              setShowReassignModal(true)
+            }}
+            disabled={reviewActionLoading}
+            className="cursor-pointer bg-primary font-bold text-primary-foreground shadow-md hover:bg-primary/90"
+            title="Forward reviewed quote to Admin for final approval"
+          >
+            <Share2 className="mr-1.5 h-4 w-4" />
+            Forward to Admin
+          </Button>
+        )}
 
       {/* 3. RETURN WITH NOTE (Reviewer / Admin) */}
       {reviewQuote.status === "PENDING_REVIEW" && isReviewerOrAdmin && (

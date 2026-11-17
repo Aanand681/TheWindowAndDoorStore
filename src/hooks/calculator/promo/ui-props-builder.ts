@@ -37,8 +37,7 @@ export function buildHeaderToolbarProps(ctx: CalculatorPropsContext) {
 }
 
 export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
-  const { base, pricing, windowsContext, supply, drafts, comparison, review } =
-    ctx
+  const { base, pricing, windowsContext, supply, drafts, review } = ctx
   return {
     windows: windowsContext.windows,
     surchargeRate: base.surchargeRate,
@@ -187,6 +186,9 @@ export function buildSummaryProps(ctx: CalculatorPropsContext) {
     canEditApprovedQuote: review.canEditApprovedQuote,
     canEditCurrentQuote: review.canEditCurrentQuote,
     isReviewerOrAdmin: review.isReviewerOrAdmin,
+    isOdooCompleted: review.isOdooCompleted,
+    canApprove: review.canApprove,
+    isAssignedReviewer: review.isAssignedReviewer,
     reviewActionLoading: review.reviewActionLoading,
     staffList: review.staffList,
     clerkList: review.clerkList,

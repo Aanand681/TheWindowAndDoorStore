@@ -8,6 +8,7 @@ import type { QuotesSubTabType } from "../types"
 export interface EmployeeStatsCardsProps {
   activeTab: QuotesSubTabType
   handleTabChange: (tab: QuotesSubTabType) => void
+  employeeAssignedCount: number
   employeeInReviewCount: number
   employeeOdooDoneCount: number
   employeeHistoryCount: number
@@ -16,32 +17,58 @@ export interface EmployeeStatsCardsProps {
 export function EmployeeStatsCards({
   activeTab,
   handleTabChange,
+  employeeAssignedCount,
   employeeInReviewCount,
   employeeOdooDoneCount,
   employeeHistoryCount,
 }: EmployeeStatsCardsProps) {
   return (
     <>
-      {/* Employee Card 1: In Review */}
+      {/* Employee Card 1: Assigned to Review (Quotes from other staff for peer review) */}
+      <Card
+        className={`cursor-pointer border transition-all duration-200 ${
+          activeTab === "assigned"
+            ? "border-amber-500/50 bg-amber-500/10 shadow-md ring-2 ring-amber-500/20"
+            : "border-border/70 bg-card/40 hover:border-border"
+        }`}
+        onClick={() => handleTabChange("assigned")}
+      >
+        <CardContent className="flex items-center justify-between p-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-amber-500 uppercase">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Assigned to Review</span>
+            </div>
+            <div className="mt-1 font-mono text-2xl font-black text-foreground">
+              {employeeAssignedCount}
+            </div>
+          </div>
+          <div className="rounded-full bg-amber-500/20 p-2.5 text-amber-500">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employee Card 2: My Submissions In Review */}
       <Card
         className={`cursor-pointer border transition-all duration-200 ${
           activeTab === "review"
-            ? "border-amber-500/50 bg-amber-500/10 shadow-md ring-2 ring-amber-500/20"
+            ? "border-sky-500/50 bg-sky-500/10 shadow-md ring-2 ring-sky-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("review")}
       >
         <CardContent className="flex items-center justify-between p-4">
           <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-amber-500 uppercase">
+            <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-sky-500 uppercase">
               <Clock className="h-3.5 w-3.5" />
-              <span>In Review</span>
+              <span>My Submissions</span>
             </div>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
               {employeeInReviewCount}
             </div>
           </div>
-          <div className="rounded-full bg-amber-500/20 p-2.5 text-amber-500">
+          <div className="rounded-full bg-sky-500/20 p-2.5 text-sky-500">
             <AlertCircle className="h-5 w-5" />
           </div>
         </CardContent>

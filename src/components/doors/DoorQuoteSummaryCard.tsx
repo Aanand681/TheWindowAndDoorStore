@@ -11,6 +11,7 @@ import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
 import {
   readSessionAttachedInstallOption,
   writeSessionAttachedInstallOption,
+  ATTACHED_INSTALL_CHANGE_EVENT,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { formatSealedUnitSummarySentence } from "@/lib/sealed-units-logic"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
@@ -83,7 +84,15 @@ export function DoorQuoteSummaryCard({
   } | null>(null)
 
   useEffect(() => {
-    setAttachedInstallOption(readSessionAttachedInstallOption())
+    const sync = () =>
+      setAttachedInstallOption(readSessionAttachedInstallOption())
+    sync()
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
+      window.removeEventListener("storage", sync)
+    }
   }, [mode, quoteNumber])
   const isInstallation = mode === "installation"
   const upgradeItems = lineItems.filter((i) => i.upgradeOption?.enabled)

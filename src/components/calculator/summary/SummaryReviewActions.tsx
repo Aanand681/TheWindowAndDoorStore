@@ -15,6 +15,7 @@ export interface SummaryReviewActionsProps {
   canEditApprovedQuote: boolean
   canEditCurrentQuote: boolean
   isReviewerOrAdmin: boolean
+  canApprove?: boolean
   reviewActionLoading: boolean
   staffList: any[]
   clerkList: any[]
@@ -47,6 +48,7 @@ export function SummaryReviewActions({
   canEditApprovedQuote,
   canEditCurrentQuote,
   isReviewerOrAdmin,
+  canApprove = false,
   reviewActionLoading,
   staffList,
   clerkList,
@@ -139,6 +141,7 @@ export function SummaryReviewActions({
           {reviewQuote.status === "PENDING_REVIEW" && (
             <SummaryPendingReviewButtons
               isReviewerOrAdmin={isReviewerOrAdmin}
+              canApprove={canApprove}
               isEditMode={isEditMode}
               setIsEditMode={setIsEditMode}
               canEditCurrentQuote={canEditCurrentQuote}
