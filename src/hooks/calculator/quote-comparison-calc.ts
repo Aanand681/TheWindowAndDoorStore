@@ -169,12 +169,11 @@ export function calculateOptionBFinancials(
   if (hstRate === 13) {
     hst = Math.round(afterDiscount * 0.13)
   } else if (hstRate === 8) {
-    const material = Math.max(
-      0,
-      promoResult.base + promoResult.surcharge - promoDiscount + jcTotalCents
-    )
-    const service = Math.max(0, afterDiscount - material)
-    hst = Math.round(material * 0.05) + Math.round(service * 0.13)
+    // Surcharge is excluded from materials (treated as handling/service).
+    const material = Math.max(0, promoResult.base - promoDiscount + jcTotalCents)
+    const hstBase = Math.round(afterDiscount * 0.13)
+    const materialExemption = Math.round(material * 0.08)
+    hst = Math.max(0, hstBase - materialExemption)
   }
 
   const total = afterDiscount + hst

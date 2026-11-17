@@ -117,26 +117,40 @@ export function swapCustomPricesForSupply(
   const jc =
     currentCustomJC !== "" && currentCustomJC !== undefined
       ? Math.round(parseFloat(currentCustomJC) * 100) / 100
-      : Number(
-          snap.finalJC ??
-            (snap.jcLabourCents ? snap.jcLabourCents / 100 : (snap.jc ?? 0))
-        )
+      : Math.round(
+          Number(
+            snap.fullInstallJCCents !== undefined && snap.fullInstallJCCents > 0
+              ? snap.fullInstallJCCents / 100
+              : snap.finalJC ??
+                  (snap.jcLabourCents ? snap.jcLabourCents / 100 : (snap.jc ?? 0))
+          ) * 100
+        ) / 100
   const labour =
     currentCustomLabour !== "" && currentCustomLabour !== undefined
       ? Math.round(parseFloat(currentCustomLabour) * 100) / 100
-      : Number(
-          snap.finalLabour ??
-            (snap.standardLabourCents
-              ? snap.standardLabourCents / 100
-              : (snap.labourWindows ?? 0))
-        )
+      : Math.round(
+          Number(
+            snap.fullInstallLabourCents !== undefined &&
+              snap.fullInstallLabourCents > 0
+              ? snap.fullInstallLabourCents / 100
+              : snap.finalLabour ??
+                  (snap.standardLabourCents
+                    ? snap.standardLabourCents / 100
+                    : (snap.labourWindows ?? 0))
+          ) * 100
+        ) / 100
   const misc =
     currentCustomMisc !== "" && currentCustomMisc !== undefined
       ? Math.round(parseFloat(currentCustomMisc) * 100) / 100
-      : Number(
-          snap.finalMisc ??
-            (snap.miscLabourCents ? snap.miscLabourCents / 100 : 0)
-        )
+      : Math.round(
+          Number(
+            snap.fullInstallMiscCents !== undefined &&
+              snap.fullInstallMiscCents > 0
+              ? snap.fullInstallMiscCents / 100
+              : snap.finalMisc ??
+                  (snap.miscLabourCents ? snap.miscLabourCents / 100 : 0)
+          ) * 100
+        ) / 100
 
   if (jc > 0) refs.lastInstallJCAmountRef.current = jc
   if (labour > 0) refs.lastInstallLabourAmountRef.current = labour

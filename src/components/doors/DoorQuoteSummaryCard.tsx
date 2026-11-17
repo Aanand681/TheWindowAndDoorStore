@@ -156,6 +156,18 @@ export function DoorQuoteSummaryCard({
     customMisc !== "" ? parseFloat(customMisc) || 0 : defaultDoorMisc
   const combinedMisc = effectiveDoorMisc + winMisc + suMisc
 
+  const compareDoorLabour =
+    customLabour !== ""
+      ? parseFloat(customLabour) || 0
+      : (totals.fullInstallLabour ?? totals.combinedLabourTotal)
+  const compareLabour = compareDoorLabour + winLabour + suLabour
+
+  const compareDoorMisc =
+    customMisc !== ""
+      ? parseFloat(customMisc) || 0
+      : (totals.fullInstallMisc ?? totals.miscTotal)
+  const compareMisc = compareDoorMisc + winMisc + suMisc
+
   const combinedSurcharge = totals.surchargeTotal + winSurcharge + suSurcharge
   const {
     combinedSubtotal,
@@ -286,6 +298,7 @@ export function DoorQuoteSummaryCard({
         quoteNumber={quoteNumber}
         customerName={customerName}
         currentMode={mode === "supply_only" ? "supply" : "install"}
+        currentSubtotal={combinedSubtotal}
         baseLabel="Door Units"
         baseAmount={totals.rawDoorBaseTotal + totals.stormDoorTotal}
         attachedLabel={
@@ -299,8 +312,8 @@ export function DoorQuoteSummaryCard({
           (hasAttachedWindow ? winBase + winJC - winDiscount : 0) +
           (hasAttachedSU ? suGlass : 0)
         }
-        labourAmount={combinedLabour}
-        miscAmount={combinedMisc}
+        labourAmount={compareLabour}
+        miscAmount={compareMisc}
         surchargeAmount={combinedSurcharge}
         surchargeLabel="Surcharge (8% on materials)"
         discountAmount={

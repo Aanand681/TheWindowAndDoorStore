@@ -218,4 +218,47 @@ describe("calculateTaxTotals - Jamb and Casing Calculations", () => {
     expect(res?.setup).toBe(727.5)
     expect(res?.extras).toBe(140 + 727.5)
   })
+
+  it("calculates fullInstallLabourCents and fullInstallMiscCents baseline even in Supply Mode", () => {
+    const res = calculateTaxTotals({
+      windows: dummyWindows,
+      region: dummyRegion,
+      effectiveIsSupplyOnly: true,
+      dbAddons: [],
+      addons: {},
+      manualKm: "0",
+      manualHours: "0",
+      crew: "2",
+      dbCrewRates: [],
+      dbVehicleRate: 0.98,
+      setupFee: "0",
+      jambId: "none",
+      jambName: "",
+      jambRate: "",
+      dbJambs: dbJambsWithRate,
+      casingId: "none",
+      casingName: "",
+      casingRate: "",
+      dbCasings,
+      includeLabour: true,
+      includeMisc: true,
+      includeJC: true,
+      discount: "0",
+      hstOn: true,
+      selectedRegionId: "r1",
+      coords: "",
+    })
+
+    expect(res).not.toBeNull()
+    // In Supply Mode, active quote labour & misc & JC are 0
+    expect(res?.finalLabour).toBe(0)
+    expect(res?.finalMisc).toBe(0)
+    expect(res?.finalJC).toBe(0)
+    expect(res?.standardLabourCents).toBe(0)
+
+    // Full baseline install values are preserved for instant compare
+    expect(res?.fullInstallLabourCents).toBeGreaterThan(0)
+    expect(res?.fullInstallMiscCents).toBeGreaterThan(0)
+    expect(res?.fullInstallJCCents).toBeGreaterThan(0)
+  })
 })

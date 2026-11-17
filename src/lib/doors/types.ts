@@ -136,6 +136,8 @@ export interface DoorQuoteTotals {
   totalAdditionalTravel: number
   totalTravelAndSetup: number
   combinedLabourTotal: number
+  fullInstallLabour?: number
+  fullInstallMisc?: number
   miscTotal: number
   subtotalPreTax: number
   hstAmount: number

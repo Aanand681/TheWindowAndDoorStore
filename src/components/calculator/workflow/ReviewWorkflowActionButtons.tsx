@@ -145,7 +145,7 @@ export function ReviewWorkflowActionButtons({
             title="Forward reviewed quote to Admin for final approval"
           >
             <Share2 className="mr-1.5 h-4 w-4" />
-            Forward to Admin
+            Forward / Reassign Quote
           </Button>
         )}
 

@@ -74,7 +74,9 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
   let sq = 0,
     ln = 0,
     wLab = 0,
-    wMisc = 0
+    wMisc = 0,
+    rawWLab = 0,
+    rawWMisc = 0
   const lines = windows.map((w) => {
     const W = parseInches(w.w)
     const H = parseInches(w.h)
@@ -94,6 +96,13 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
       p.windowLabourSettings?.miscPerSqft ?? region.miscPerSqft ?? 8
     const labMin = p.windowLabourSettings?.labourMin ?? region.labourMin ?? 325
     const miscMin = p.windowLabourSettings?.miscMin ?? region.miscMin ?? 74
+
+    // Always compute full installation window labour and misc baseline
+    const rawLabItem = Math.max(unitSq * labRate, labMin) * q
+    const rawMiscItem = Math.max(unitSq * miscRate, miscMin) * q
+    rawWLab += rawLabItem
+    rawWMisc += rawMiscItem
+
     const labRaw = effectiveIsSupplyOnly ? 0 : unitSq * labRate
     const miscRaw = effectiveIsSupplyOnly ? 0 : unitSq * miscRate
     const lab = effectiveIsSupplyOnly ? 0 : Math.max(labRaw, labMin) * q
@@ -107,13 +116,17 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
 
   let aLab = 0,
     aMisc = 0
-  if (!effectiveIsSupplyOnly) {
-    dbAddons.forEach((a) => {
-      const q = Number(addons[a.id]) || 0
+  let rawALab = 0,
+    rawAMisc = 0
+  dbAddons.forEach((a) => {
+    const q = Number(addons[a.id]) || 0
+    rawALab += q * a.lab
+    rawAMisc += q * a.misc
+    if (!effectiveIsSupplyOnly) {
       aLab += q * a.lab
       aMisc += q * a.misc
-    })
-  }
+    }
+  })
 
   const isSupply = effectiveIsSupplyOnly
   const labourWindows = isSupply ? 0 : wLab + aLab
@@ -141,6 +154,22 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
       fixedSetupFee +
       (region.baseTravelFee || 0)
 
+  // Baseline installation extras (unaffected by isSupply)
+  const rawKm = Number(manualKm) || 0
+  const rawHrs = Number(manualHours) || 0
+  const rawCrewRate = crewObj ? crewObj.hourlyRate : 0
+  const rawVehicle = rawKm * dbVehicleRate
+  const rawCrewTravel = rawHrs * rawCrewRate
+  const rawSetup = Number(setupFee) || 0
+  const rawFixedSetupFee =
+    region.fixedSetupFee !== undefined ? Number(region.fixedSetupFee) : 140
+  const rawExtras =
+    rawVehicle +
+    rawCrewTravel +
+    rawSetup +
+    rawFixedSetupFee +
+    (region.baseTravelFee || 0)
+
   const foundJamb = dbJambs.find((j) => j.id === jambId)
   const jRate =
     jambId === "none"
@@ -160,11 +189,32 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
   const casingTot = isSupply || casingId === "none" ? 0 : ln * cRate
   const jc = jambTot + casingTot
 
+  // Full baseline installation J&C rates (defaulting to j3 + vinyl if currently none)
+  const installJambId = jambId && jambId !== "none" ? jambId : "j3"
+  const installFoundJamb = dbJambs.find((j) => j.id === installJambId)
+  const installJRate =
+    installJambId === "custom"
+      ? Number(jambRate) || 0
+      : Number(installFoundJamb?.rate ?? installFoundJamb?.pricePerFoot ?? 0)
+
+  const installCasingId = casingId && casingId !== "none" ? casingId : "vinyl"
+  const installFoundCasing = dbCasings.find((c) => c.id === installCasingId)
+  const installCRate =
+    installCasingId === "custom"
+      ? Number(casingRate) || 0
+      : Number(installFoundCasing?.rate ?? installFoundCasing?.pricePerFoot ?? 0)
+
+  const fullInstallJC = ln * installJRate + ln * installCRate
+  const fullInstallLabour = rawWLab + rawALab + rawExtras
+  const fullInstallMisc = rawWMisc + rawAMisc
+
   const labourTotal = isSupply ? extras : labourWindows + extras
 
-  const finalLabour = includeLabour && !isSupply ? labourTotal : 0
-  const finalMisc = includeMisc && !isSupply ? miscTotal : 0
-  const finalJC = includeJC && !isSupply ? jc : 0
+  const finalLabour =
+    includeLabour && !isSupply ? Math.round(labourTotal * 100) / 100 : 0
+  const finalMisc =
+    includeMisc && !isSupply ? Math.round(miscTotal * 100) / 100 : 0
+  const finalJC = includeJC && !isSupply ? Math.round(jc * 100) / 100 : 0
 
   const disc = Number(discount) || 0
   const customMaterialsList = Array.isArray(p.customMaterials)
@@ -281,9 +331,9 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
     jcLabourCents: Math.round((finalJC || 0) * 100),
     miscLabourCents: Math.round((finalMisc || 0) * 100),
     standardLabourCents: Math.round((finalLabour || 0) * 100),
-    fullInstallLabourCents: Math.round((labourWindows + extras) * 100),
-    fullInstallMiscCents: Math.round(miscTotal * 100),
-    fullInstallJCCents: Math.round(jc * 100),
+    fullInstallLabourCents: Math.round(fullInstallLabour * 100),
+    fullInstallMiscCents: Math.round(fullInstallMisc * 100),
+    fullInstallJCCents: Math.round(fullInstallJC * 100),
     jcTotal: finalJC,
   }
 }

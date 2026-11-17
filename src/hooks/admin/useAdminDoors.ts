@@ -34,7 +34,10 @@ export function useAdminDoors() {
 
   const fetchDoorSettings = async () => {
     try {
-      const res = await fetch("/api/doors/settings")
+      const res = await fetch("/api/doors/settings", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      })
       const data = await res.json()
       if (Array.isArray(data.presets) && data.presets.length > 0)
         setPresets(data.presets)
@@ -64,6 +67,24 @@ export function useAdminDoors() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to save settings")
+
+      if (data.settings) {
+        if (Array.isArray(data.settings.presets))
+          setPresets(data.settings.presets)
+        if (Array.isArray(data.settings.upcharges))
+          setUpcharges(data.settings.upcharges)
+        if (data.settings.formula) setFormula(data.settings.formula)
+        if (data.settings.logistics) setLogistics(data.settings.logistics)
+      }
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          "door_settings_updated_at",
+          Date.now().toString()
+        )
+        window.dispatchEvent(new CustomEvent("door-settings-updated"))
+      }
+
       toast.success("Door settings and rates updated successfully!")
     } catch (err: any) {
       toast.error(err.message || "Error saving settings")

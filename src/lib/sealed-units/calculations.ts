@@ -39,6 +39,8 @@ export interface SealedUnitTotalsResult {
   totalAdditionalTravel: number
   totalTravelAndSetup: number
   combinedLabourTotal: number
+  fullInstallLabour?: number
+  fullInstallMisc?: number
   miscTotal: number
   subtotalPreTax: number
   hstAmount: number
@@ -211,8 +213,13 @@ export function calculateSealedUnitTotals(
     : 0
 
   // Per user specification: For service only, travel charges roll under Labour
+  const fullInstallLabour =
+    Math.round((unitLabourSum + baseSetupFee + totalAdditionalTravel) * 100) /
+    100
+  const fullInstallMisc = Math.round(miscTotal * 100) / 100
+
   const combinedLabourTotal = isInstallation
-    ? unitLabourSum + totalTravelAndSetup
+    ? fullInstallLabour
     : isServiceOnly
       ? serviceLabourTotal + totalTravelAndSetup
       : 0
@@ -263,6 +270,8 @@ export function calculateSealedUnitTotals(
     totalAdditionalTravel,
     totalTravelAndSetup,
     combinedLabourTotal,
+    fullInstallLabour,
+    fullInstallMisc,
     miscTotal,
     subtotalPreTax,
     hstAmount,

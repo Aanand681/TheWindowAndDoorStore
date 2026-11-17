@@ -1,9 +1,20 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { History, RotateCcw, X, Clock, User, CheckCircle2, Loader2 } from "lucide-react"
+import {
+  History,
+  RotateCcw,
+  X,
+  Clock,
+  User,
+  CheckCircle2,
+  Loader2,
+  Trash2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PricingCategory } from "@/models/PricingHistory"
+import { useConfirm } from "@/components/ui/confirm-dialog"
+import { toast } from "sonner"
 
 interface PricingHistoryItem {
   _id: string
@@ -33,6 +44,8 @@ export function PricingHistoryModal({
   const [history, setHistory] = useState<PricingHistoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [restoredVersion, setRestoredVersion] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (!isOpen) return
@@ -54,18 +67,65 @@ export function PricingHistoryModal({
 
   if (!isOpen) return null
 
-  const handleRestore = (item: PricingHistoryItem) => {
+  const handleRestore = async (item: PricingHistoryItem) => {
     const formattedDate = new Date(item.createdAt).toLocaleString()
-    const ok = confirm(
-      `Restore pricing configuration to Version ${item.version} (saved on ${formattedDate} by ${item.savedBy})?\n\nThis will populate the form with these historical rates so you can review and click "Save Settings" to persist.`
-    )
+    const ok = await confirm({
+      title: `Restore Version ${item.version}?`,
+      description: `This will populate the form with historical rates from Version ${item.version} (saved on ${formattedDate} by ${item.savedBy}).\n\nYou can review these rates and click "Save Changes" to persist them.`,
+      confirmText: "Restore Rates",
+      variant: "default",
+    })
     if (!ok) return
 
     onRestoreVersion(item.snapshot, item.version)
     setRestoredVersion(item.version)
+    toast.success(`Loaded rates from Version ${item.version}.`)
     setTimeout(() => {
       onClose()
     }, 500)
+  }
+
+  const handleDelete = async (
+    item: PricingHistoryItem,
+    isLatest: boolean,
+    isOnlyVersion: boolean
+  ) => {
+    if (isLatest) {
+      toast.error(
+        "Cannot delete the active live version. Only older historical revisions can be removed."
+      )
+      return
+    }
+    if (isOnlyVersion) {
+      toast.error(
+        "Cannot delete the only remaining version. At least one baseline snapshot must be preserved."
+      )
+      return
+    }
+
+    const formattedDate = new Date(item.createdAt).toLocaleString()
+    const ok = await confirm({
+      title: `Delete Version ${item.version} Snapshot?`,
+      description: `Are you sure you want to permanently delete Version ${item.version} snapshot (saved on ${formattedDate} by ${item.savedBy})?\n\nThis action cannot be undone.`,
+      confirmText: "Delete Snapshot",
+      variant: "destructive",
+    })
+    if (!ok) return
+
+    setDeletingId(item._id)
+    try {
+      const res = await fetch(`/api/pricing-history?id=${item._id}`, {
+        method: "DELETE",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to delete snapshot")
+      setHistory((prev) => prev.filter((entry) => entry._id !== item._id))
+      toast.success(`Version ${item.version} snapshot removed.`)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete snapshot")
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -122,6 +182,8 @@ export function PricingHistoryModal({
                 minute: "2-digit",
               })
               const isLatest = idx === 0
+              const isOnlyVersion = history.length <= 1
+              const canDelete = !isLatest && !isOnlyVersion
               const isRestored = restoredVersion === item.version
 
               return (
@@ -168,7 +230,7 @@ export function PricingHistoryModal({
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex items-center gap-1.5">
                     {isRestored ? (
                       <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                         <CheckCircle2 className="h-4 w-4" /> Restored
@@ -184,6 +246,32 @@ export function PricingHistoryModal({
                         <span>Restore</span>
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        handleDelete(item, isLatest, isOnlyVersion)
+                      }
+                      disabled={!canDelete || deletingId === item._id}
+                      className={`h-8 w-8 p-0 ${
+                        !canDelete
+                          ? "opacity-25 cursor-not-allowed text-muted-foreground hover:bg-transparent"
+                          : "text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                      }`}
+                      title={
+                        isLatest
+                          ? "Active live version cannot be deleted. Only older historical revisions can be removed."
+                          : isOnlyVersion
+                          ? "Cannot delete the only remaining version. At least one baseline snapshot must be preserved."
+                          : `Delete Version ${item.version}`
+                      }
+                    >
+                      {deletingId === item._id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               )

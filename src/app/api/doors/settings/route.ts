@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import dbConnect from "@/lib/mongodb"
 import DoorSettings from "@/models/DoorSettings"
 import { getServerSession } from "next-auth/next"
@@ -7,14 +8,18 @@ import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
 import { DEFAULT_DOOR_SETTINGS_DATA } from "@/lib/doors/constants"
 import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
+import { triggerPusherEvent } from "@/lib/pusher-server"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function GET() {
   try {
     const cacheKey = "doors:settings"
     const headers = {
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
     }
     const cached = (await cacheGet(cacheKey)) as any
     if (cached) {
@@ -32,8 +37,8 @@ export async function GET() {
       ? settings.toObject({ flattenMaps: true })
       : settings
 
-    // Cache in Redis for 1 day
-    cacheSet(cacheKey, plain, 86400).catch(() => {})
+    // Cache in Redis for fast warm queries
+    cacheSet(cacheKey, plain, 300).catch(() => {})
     return NextResponse.json(plain, { headers })
   } catch (error: any) {
     console.error("Error fetching door settings:", error)
@@ -83,6 +88,11 @@ export async function PUT(request: Request) {
     // Invalidate Redis cache
     await cacheDel("doors:settings").catch(() => {})
 
+    // Invalidate Next.js cache
+    revalidatePath("/api/doors/settings")
+    revalidatePath("/admin/doors")
+    revalidatePath("/doors")
+
     const plain = settings.toObject
       ? settings.toObject({ flattenMaps: true })
       : settings
@@ -104,6 +114,12 @@ export async function PUT(request: Request) {
       },
       savedBy
     ).catch((err) => console.error("Error saving Door settings snapshot:", err))
+
+    // Real-time broadcast signal to all active tabs and users
+    triggerPusherEvent("admin-settings", "DOOR_SETTINGS_UPDATED", {
+      updatedAt: Date.now(),
+      savedBy,
+    }).catch(() => {})
 
     return NextResponse.json({
       success: true,

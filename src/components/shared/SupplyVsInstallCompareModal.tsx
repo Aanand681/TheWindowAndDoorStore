@@ -122,69 +122,111 @@ export function SupplyVsInstallCompareModal(
   const hasSupplyJC = opt1JCAmount > 0
 
   // 1. Calculate Subtotals: Check current subtotal when provided for exact ledger alignment
-  const jcDiff = Math.max(0, opt2JCAmount - opt1JCAmount)
-  const totalInstallAdd = labourAmount + miscAmount + jcDiff
+  const opt1JCCents = Math.round((opt1JCAmount || 0) * 100)
+  const opt2JCCents = Math.round((opt2JCAmount || 0) * 100)
+  const labourCents = Math.round((labourAmount || 0) * 100)
+  const miscCents = Math.round((miscAmount || 0) * 100)
+  const jcDiffCents = Math.max(0, opt2JCCents - opt1JCCents)
+  const totalInstallAddCents = labourCents + miscCents + jcDiffCents
 
-  let supplySubtotal = 0
-  let installSubtotal = 0
+  let supplySubtotalCents = 0
+  let installSubtotalCents = 0
 
   if (currentSubtotal !== undefined && currentSubtotal > 0) {
+    const curCents = Math.round(currentSubtotal * 100)
     if (currentMode === "install") {
-      installSubtotal = Math.round(currentSubtotal * 100) / 100
-      supplySubtotal =
-        Math.max(0, Math.round((installSubtotal - totalInstallAdd) * 100)) / 100
+      installSubtotalCents = curCents
+      supplySubtotalCents = Math.max(
+        0,
+        installSubtotalCents - totalInstallAddCents
+      )
     } else {
-      supplySubtotal = Math.round(currentSubtotal * 100) / 100
-      installSubtotal =
-        Math.round((supplySubtotal + totalInstallAdd) * 100) / 100
+      supplySubtotalCents = curCents
+      installSubtotalCents = supplySubtotalCents + totalInstallAddCents
     }
   } else {
-    supplySubtotal =
-      Math.round(
-        (baseAmount +
-          opt1JCAmount +
-          attachedAmount +
-          surchargeAmount +
-          hardwareAmount -
-          discountAmount) *
-          100
-      ) / 100
+    const baseCents = Math.round(baseAmount * 100)
+    const attachedCents = Math.round((attachedAmount || 0) * 100)
+    const surchargeCents = Math.round((surchargeAmount || 0) * 100)
+    const hardwareCents = Math.round((hardwareAmount || 0) * 100)
+    const discountCents = Math.round((discountAmount || 0) * 100)
 
-    installSubtotal =
-      Math.round(
-        (baseAmount +
-          opt2JCAmount +
-          attachedAmount +
-          surchargeAmount +
-          hardwareAmount -
-          discountAmount +
-          labourAmount +
-          miscAmount) *
-          100
-      ) / 100
+    supplySubtotalCents = Math.max(
+      0,
+      baseCents +
+        opt1JCCents +
+        attachedCents +
+        surchargeCents +
+        hardwareCents -
+        discountCents
+    )
+
+    installSubtotalCents = Math.max(
+      0,
+      baseCents +
+        opt2JCCents +
+        attachedCents +
+        surchargeCents +
+        hardwareCents -
+        discountCents +
+        labourCents +
+        miscCents
+    )
   }
 
-  const supplyHst = Math.round(supplySubtotal * (hstRate / 100) * 100) / 100
-  const supplyTotal = Math.round((supplySubtotal + supplyHst) * 100) / 100
-  const supplyFirstPayment = Math.floor((supplyTotal / 2) * 100) / 100
-  const supplySecondPayment =
-    Math.round((supplyTotal - supplyFirstPayment) * 100) / 100
+  // Tax calculations strictly in integer cents
+  const computeTaxCents = (subCents: number) => {
+    if (hstRate === 13) {
+      return Math.round(subCents * 0.13)
+    }
+    if (hstRate === 8) {
+      return Math.round(subCents * 0.05)
+    }
+    if (hstRate === 5) {
+      return Math.round(subCents * 0.05)
+    }
+    if (hstRate === 0) {
+      return 0
+    }
+    return Math.round((subCents * hstRate) / 100)
+  }
 
-  const installHst = Math.round(installSubtotal * (hstRate / 100) * 100) / 100
-  const installTotal = Math.round((installSubtotal + installHst) * 100) / 100
-  const installFirstPayment = Math.floor((installTotal / 2) * 100) / 100
-  const installSecondPayment =
-    Math.round((installTotal - installFirstPayment) * 100) / 100
+  const supplyHstCents = computeTaxCents(supplySubtotalCents)
+  const supplyTotalCents = supplySubtotalCents + supplyHstCents
+  const supplyFirstPaymentCents = Math.floor(supplyTotalCents / 2)
+  const supplySecondPaymentCents = supplyTotalCents - supplyFirstPaymentCents
 
-  // Extra price formula: Install Subtotal - Supply Subtotal
-  const extraPriceSubtotal = Math.max(
+  const installHstCents = computeTaxCents(installSubtotalCents)
+  const installTotalCents = installSubtotalCents + installHstCents
+  const installFirstPaymentCents = Math.floor(installTotalCents / 2)
+  const installSecondPaymentCents =
+    installTotalCents - installFirstPaymentCents
+
+  // Extra price formula: Install Subtotal - Supply Subtotal in exact cents
+  const extraSubtotalCents = Math.max(
     0,
-    Math.round((installSubtotal - supplySubtotal) * 100) / 100
+    installSubtotalCents - supplySubtotalCents
   )
-  const extraPriceTotalWithTax = Math.max(
+  const extraTotalCents = Math.max(
     0,
-    Math.round((installTotal - supplyTotal) * 100) / 100
+    installTotalCents - supplyTotalCents
   )
+
+  // Convert to dollars strictly for presentation
+  const supplySubtotal = supplySubtotalCents / 100
+  const supplyHst = supplyHstCents / 100
+  const supplyTotal = supplyTotalCents / 100
+  const supplyFirstPayment = supplyFirstPaymentCents / 100
+  const supplySecondPayment = supplySecondPaymentCents / 100
+
+  const installSubtotal = installSubtotalCents / 100
+  const installHst = installHstCents / 100
+  const installTotal = installTotalCents / 100
+  const installFirstPayment = installFirstPaymentCents / 100
+  const installSecondPayment = installSecondPaymentCents / 100
+
+  const extraPriceSubtotal = extraSubtotalCents / 100
+  const extraPriceTotalWithTax = extraTotalCents / 100
 
   const attachTitle =
     currentMode === "install"
@@ -196,7 +238,7 @@ export function SupplyVsInstallCompareModal(
   const handleToggleAttach = () => {
     const next = !isOptionAttached
     setIsOptionAttached(next)
-    const extraCents = Math.round(extraPriceSubtotal * 100)
+    const extraCents = extraSubtotalCents
     writeSessionAttachedInstallOption(
       next
         ? {

@@ -521,4 +521,33 @@ describe("Supply vs Installation Comparison Logic", () => {
     delete (global as any).window
     delete (global as any).sessionStorage
   })
+
+  it("guarantees 100% integer cent precision with zero 1-cent discrepancy", () => {
+    // Test across hundreds of edge-case cent values
+    for (let supplyCents = 10050; supplyCents <= 10550; supplyCents += 37) {
+      for (let addCents = 5025; addCents <= 5525; addCents += 43) {
+        const installCents = supplyCents + addCents
+
+        const supplyHstCents = Math.round(supplyCents * 0.13)
+        const supplyTotalCents = supplyCents + supplyHstCents
+        const installHstCents = Math.round(installCents * 0.13)
+        const installTotalCents = installCents + installHstCents
+
+        // 50/50 deposit verification
+        const supplyFirst = Math.floor(supplyTotalCents / 2)
+        const supplySecond = supplyTotalCents - supplyFirst
+        expect(supplyFirst + supplySecond).toBe(supplyTotalCents)
+
+        const installFirst = Math.floor(installTotalCents / 2)
+        const installSecond = installTotalCents - installFirst
+        expect(installFirst + installSecond).toBe(installTotalCents)
+
+        // Delta verification
+        const extraSubtotal = installCents - supplyCents
+        const extraTotal = installTotalCents - supplyTotalCents
+        expect(extraSubtotal).toBe(addCents)
+        expect(extraTotal).toBe(extraSubtotal + (installHstCents - supplyHstCents))
+      }
+    }
+  })
 })

@@ -8,13 +8,16 @@ import { DEFAULT_LABOUR_UPGRADE_TIERS } from "@/lib/promo-logic"
 import { handleApiError } from "@/lib/api-error"
 import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function GET() {
   try {
     const cacheKey = "settings:global"
     const headers = {
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
     }
     const cached = await cacheGet(cacheKey)
     if (cached) {

@@ -63,3 +63,47 @@ export async function getPricingHistory(
   return history
 }
 
+export async function deletePricingSnapshot(id: string): Promise<{
+  success: boolean
+  error?: string
+  status?: number
+  deleted?: any
+}> {
+  await dbConnect()
+
+  const target = await PricingHistory.findById(id).lean()
+  if (!target) {
+    return { success: false, error: "Snapshot not found", status: 404 }
+  }
+
+  const category = (target as any).category
+  const totalCount = await PricingHistory.countDocuments({ category })
+
+  if (totalCount <= 1) {
+    return {
+      success: false,
+      error:
+        "Cannot delete the only remaining version. At least one baseline snapshot must be preserved.",
+      status: 400,
+    }
+  }
+
+  // Check if target is the active newest version
+  const latest = await PricingHistory.findOne({ category })
+    .sort({ version: -1 })
+    .select("_id version")
+    .lean()
+
+  if (latest && (latest as any)._id?.toString() === id.toString()) {
+    return {
+      success: false,
+      error:
+        "Cannot delete the active live version. You can only delete older historical revisions.",
+      status: 400,
+    }
+  }
+
+  const deleted = await PricingHistory.findByIdAndDelete(id).lean()
+  return { success: true, deleted }
+}
+

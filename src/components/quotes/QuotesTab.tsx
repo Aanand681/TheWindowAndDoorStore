@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { FileText, Database } from "lucide-react"
 import type { QuotesSubTabType, QuotesTabProps } from "./tab/types"
 import { useQuotesTabState } from "@/hooks/quotes/useQuotesTabState"
-import { QuotesStatsRibbon } from "./tab/QuotesStatsRibbon"
 import { QuotesFilterToolbar } from "./tab/QuotesFilterToolbar"
 import { QuoteCardItem } from "./tab/QuoteCardItem"
 import { QuotesModals } from "./tab/QuotesModals"
@@ -132,26 +131,6 @@ export default function QuotesTab(props: QuotesTabProps) {
           </Button>
         )}
       </div>
-
-      {/* Stats Counter Cards (Role-Tailored 3-Card Grid) */}
-      <QuotesStatsRibbon
-        canReview={canReview}
-        isEmployee={isEmployee}
-        isClerk={isClerk}
-        hasOdooAccess={hasOdooAccess}
-        activeTab={activeTab}
-        handleTabChange={handleTabChange}
-        adminPendingCount={adminPendingCount}
-        adminOdooCount={adminOdooCount}
-        adminArchiveCount={adminArchiveCount}
-        employeeAssignedCount={employeeAssignedCount}
-        employeeInReviewCount={employeeInReviewCount}
-        employeeOdooDoneCount={employeeOdooDoneCount}
-        employeeHistoryCount={employeeHistoryCount}
-        clerkPendingCount={clerkPendingCount}
-        clerkCompletedCount={clerkCompletedCount}
-        clerkTotalAssignedCount={clerkTotalAssignedCount}
-      />
 
       {/* Filter & Search Bar */}
       <QuotesFilterToolbar

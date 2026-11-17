@@ -111,11 +111,13 @@ export function calculateDoorQuoteTotals(
     Math.round((upchargesTotal + globalUpchargesTotal) * 100) / 100
 
   // Combined Labour = Unit labour + Jobsite upcharges + Travel & Setup
-  const combinedLabourTotal = isInstallation
-    ? Math.round(
-        (unitLabourTotal + combinedUpchargesTotal + totalTravelAndSetup) * 100
-      ) / 100
-    : 0
+  const fullInstallLabour =
+    Math.round(
+      (unitLabourTotal + combinedUpchargesTotal + totalTravelAndSetup) * 100
+    ) / 100
+  const fullInstallMisc = Math.round(miscTotal * 100) / 100
+
+  const combinedLabourTotal = isInstallation ? fullInstallLabour : 0
 
   // In Supply Only: zero out misc, labour, travel
   if (isSupplyOnly) {
@@ -186,6 +188,8 @@ export function calculateDoorQuoteTotals(
     totalAdditionalTravel: Math.round(totalAdditionalTravel * 100) / 100,
     totalTravelAndSetup: Math.round(totalTravelAndSetup * 100) / 100,
     combinedLabourTotal,
+    fullInstallLabour,
+    fullInstallMisc,
     miscTotal: Math.round(miscTotal * 100) / 100,
     subtotalPreTax,
     hstAmount,

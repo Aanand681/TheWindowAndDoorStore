@@ -42,6 +42,8 @@ interface SealedUnitQuoteSummaryCardProps {
     totalAdditionalTravel: number
     totalTravelAndSetup: number
     combinedLabourTotal: number
+    fullInstallLabour?: number
+    fullInstallMisc?: number
     miscTotal: number
     serviceLabourTotal?: number
     subtotalPreTax: number
@@ -163,6 +165,11 @@ export function SealedUnitQuoteSummaryCard({
   const suMaterials = isService ? 0 : totals.glassBefore8PercentTotal
   const combinedLabour = totals.combinedLabourTotal + winLabour + doorLabour
   const combinedMisc = totals.miscTotal + winMisc + doorMisc
+  const compareSULabour =
+    totals.fullInstallLabour ?? totals.combinedLabourTotal
+  const compareLabour = compareSULabour + winLabour + doorLabour
+  const compareSUMisc = totals.fullInstallMisc ?? totals.miscTotal
+  const compareMisc = compareSUMisc + winMisc + doorMisc
   const combinedSurcharge =
     totals.glass8PercentSurchargeTotal + winSurcharge + doorSurcharge
   const combinedSubtotal = hasAnyAttached
@@ -314,6 +321,7 @@ export function SealedUnitQuoteSummaryCard({
         quoteNumber={quoteNumber}
         customerName={customerName}
         currentMode={mode === "supply_only" ? "supply" : "install"}
+        currentSubtotal={combinedSubtotal}
         baseLabel={isService ? "Service Total" : "Glass Units"}
         baseAmount={totals.glassBefore8PercentTotal}
         attachedLabel={
@@ -327,8 +335,8 @@ export function SealedUnitQuoteSummaryCard({
           (hasAttachedWindow ? winBase + winJC - winDiscount : 0) +
           (hasAttachedDoor ? doorRawBase - doorDiscount : 0)
         }
-        labourAmount={combinedLabour}
-        miscAmount={combinedMisc}
+        labourAmount={compareLabour}
+        miscAmount={compareMisc}
         surchargeAmount={combinedSurcharge}
         surchargeLabel="Surcharge (8% on glass)"
         hstRate={hstRate}

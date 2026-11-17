@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import {
   getPricingHistory,
   recordPricingSnapshot,
+  deletePricingSnapshot,
 } from "@/lib/server/pricing-history/service"
 import { PricingCategory } from "@/models/PricingHistory"
 import { handleApiError } from "@/lib/api-error"
@@ -82,6 +83,46 @@ export async function POST(request: Request) {
     )
 
     return NextResponse.json({ success: true, record })
+  } catch (error: any) {
+    return handleApiError(error)
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = session.user as any
+    if (user.role !== "ADMIN" && user.role !== "SUPERADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Snapshot ID is required" },
+        { status: 400 }
+      )
+    }
+
+    const result = await deletePricingSnapshot(id)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || "Failed to delete snapshot" },
+        { status: result.status || 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Snapshot deleted successfully",
+      deleted: result.deleted,
+    })
   } catch (error: any) {
     return handleApiError(error)
   }

@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider } from "./theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog"
 import { SessionTimeoutWatcher } from "./SessionTimeoutWatcher"
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -27,8 +28,10 @@ export function Providers({ children }: { children: ReactNode }) {
       <SessionTimeoutWatcher />
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          {children}
-          <Toaster />
+          <ConfirmDialogProvider>
+            {children}
+            <Toaster />
+          </ConfirmDialogProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>

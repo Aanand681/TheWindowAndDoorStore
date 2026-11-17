@@ -45,15 +45,34 @@ export function SummaryPendingReviewButtons({
     return (
       <>
         {canApprove ? (
-          <Button
-            variant="default"
-            className="h-11 w-full cursor-pointer bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
-            onClick={handleApproveReviewQuote}
-            disabled={reviewActionLoading}
-          >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            {reviewActionLoading ? "Approving..." : "Approve & Save Changes"}
-          </Button>
+          <>
+            <Button
+              variant="default"
+              className="h-11 w-full cursor-pointer bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+              onClick={handleApproveReviewQuote}
+              disabled={reviewActionLoading}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {reviewActionLoading ? "Approving..." : "Approve & Save Changes"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const other = staffList.find(
+                  (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
+                )
+                setReassignTo(other ? other.username : "")
+                setReassignNotes("")
+                setShowReassignModal(true)
+              }}
+              disabled={reviewActionLoading}
+              className="h-10 w-full cursor-pointer border-primary/40 text-xs font-semibold text-primary shadow-sm hover:bg-primary/10"
+            >
+              <Share2 className="mr-1.5 h-4 w-4" />
+              Forward / Reassign Quote
+            </Button>
+          </>
         ) : (
           <Button
             variant="default"
@@ -74,26 +93,9 @@ export function SummaryPendingReviewButtons({
             disabled={reviewActionLoading}
           >
             <Share2 className="mr-2 h-4 w-4" />
-            Forward to Admin for Approval
+            Forward / Reassign Quote
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const other = staffList.find(
-              (s) => s.username?.toLowerCase() !== user?.username?.toLowerCase()
-            )
-            setReassignTo(other ? other.username : "")
-            setReassignNotes("")
-            setShowReassignModal(true)
-          }}
-          disabled={reviewActionLoading}
-          className="h-10 w-full cursor-pointer border-primary/40 text-xs font-semibold text-primary shadow-sm hover:bg-primary/10"
-        >
-          <Share2 className="mr-1.5 h-4 w-4" />
-          Forward / Reassign Quote
-        </Button>
         <Button
           variant="outline"
           className="h-10 w-full cursor-pointer border-emerald-500/40 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
