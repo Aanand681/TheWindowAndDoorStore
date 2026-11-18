@@ -41,6 +41,29 @@ export function SummaryPendingReviewButtons({
   handleCancelEdits,
   handleExitReview,
 }: SummaryPendingReviewButtonsProps) {
+  if (isEditMode) {
+    return (
+      <div className="space-y-2">
+        <Button
+          variant="default"
+          className="h-11 w-full cursor-pointer bg-amber-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-amber-700"
+          onClick={handleSaveQuotePrices}
+          disabled={reviewActionLoading}
+        >
+          <Save className="mr-2 h-4 w-4" /> Save Revisions
+        </Button>
+        <Button
+          variant="outline"
+          className="h-10 w-full text-xs font-semibold text-muted-foreground hover:bg-muted"
+          onClick={handleCancelEdits}
+          disabled={reviewActionLoading}
+        >
+          Cancel Edits
+        </Button>
+      </div>
+    )
+  }
+
   if (isReviewerOrAdmin) {
     return (
       <>

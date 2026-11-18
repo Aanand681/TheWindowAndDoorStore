@@ -78,6 +78,7 @@ export function ReviewWorkflowBar({
       />
       <ReviewWorkflowActionButtons
         reviewQuote={reviewQuote}
+        user={user}
         isEditMode={isEditMode}
         setIsEditMode={setIsEditMode}
         canEditCurrentQuote={canEditCurrentQuote}

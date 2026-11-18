@@ -172,22 +172,9 @@ export function useNotifications() {
 
     if (n.quoteId) {
       const originSubTab = n.type === "QUOTE_SUBMITTED" ? "review" : "my"
-      if (typeof window !== "undefined" && window.location.pathname === "/") {
-        window.dispatchEvent(
-          new CustomEvent("load-review-quote", {
-            detail: { quoteId: n.quoteId, originSubTab },
-          })
-        )
-        window.history.pushState(
-          {},
-          "",
-          `/?reviewQuoteId=${n.quoteId}&sub=${originSubTab}`
-        )
-      } else {
-        router.push(`/?reviewQuoteId=${n.quoteId}&sub=${originSubTab}`)
-      }
+      router.push(`/review/${n.quoteId}?sub=${originSubTab}`)
     } else {
-      router.push("/?tab=quotes")
+      router.push("/quotes")
     }
   }
 

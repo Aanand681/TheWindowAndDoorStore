@@ -75,6 +75,7 @@ export interface SealedUnitItemBuilderProps {
   onSaveDraft?: () => void
   onOpenSavedQuotes?: () => void
   savedDraftsCount?: number
+  isReadOnly?: boolean
 }
 
 export function SealedUnitItemBuilder({
@@ -123,6 +124,7 @@ export function SealedUnitItemBuilder({
   computedGrillConfig,
   activeGrillPreview,
   grills,
+  isReadOnly = false,
   onAddItem,
 }: SealedUnitItemBuilderProps) {
   const widthRef = useRef<HTMLInputElement>(null)
@@ -241,6 +243,7 @@ export function SealedUnitItemBuilder({
 
       <div className="space-y-3 p-3 sm:p-3.5">
         <form onSubmit={onAddItem} className="space-y-3">
+          <fieldset disabled={isReadOnly} className="space-y-3 border-0 p-0 m-0">
           <SealedUnitGlassSpecsForm
             treatment={treatment}
             setTreatment={setTreatment}
@@ -285,47 +288,54 @@ export function SealedUnitItemBuilder({
             activeGrillPreview={activeGrillPreview}
             grills={grills}
           />
+          </fieldset>
 
           {/* Action Buttons: Add / Update Item & Clear / Cancel */}
-          <div className="flex gap-2 pt-0.5">
-            {editingItem ? (
-              <>
-                <Button
-                  type="submit"
-                  className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>Update Sealed Unit</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancelEdit}
-                  className="h-9 cursor-pointer px-3 text-xs"
-                >
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  type="submit"
-                  className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Add to Quote</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResetInputs}
-                  className="h-9 cursor-pointer px-3 text-xs"
-                >
-                  Clear
-                </Button>
-              </>
-            )}
-          </div>
+          {isReadOnly ? (
+            <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
+              Review Mode (Read-Only) — Click &ldquo;Edit Quote&rdquo; in the top bar to make changes.
+            </div>
+          ) : (
+            <div className="flex gap-2 pt-0.5">
+              {editingItem ? (
+                <>
+                  <Button
+                    type="submit"
+                    className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Update Sealed Unit</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancelEdit}
+                    className="h-9 cursor-pointer px-3 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="submit"
+                    className="h-9 flex-1 cursor-pointer gap-1.5 bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add to Quote</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetInputs}
+                    className="h-9 cursor-pointer px-3 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </form>
       </div>
     </div>

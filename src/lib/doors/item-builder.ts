@@ -25,6 +25,10 @@ export function buildDoorLineItem(params: {
   unitMisc?: number
   formula: DoorFormulaSettings
   hardwareType?: DoorHardwareType
+  supplyHardwareType?: DoorHardwareType
+  supplyHardwarePrice?: number
+  installHardwareType?: DoorHardwareType
+  installHardwarePrice?: number
   customHardwareName?: string
   customHardwarePrice?: number
   upcharges?: DoorSelectedUpcharge[]
@@ -44,6 +48,10 @@ export function buildDoorLineItem(params: {
     unitMisc: paramMisc,
     formula,
     hardwareType = "none",
+    supplyHardwareType,
+    supplyHardwarePrice,
+    installHardwareType,
+    installHardwarePrice,
     customHardwareName,
     customHardwarePrice,
     upcharges = [],
@@ -157,6 +165,14 @@ export function buildDoorLineItem(params: {
     unitMisc,
     hardwareType,
     hardwarePrice,
+    supplyHardwareType:
+      supplyHardwareType !== undefined ? supplyHardwareType : hardwareType,
+    supplyHardwarePrice:
+      supplyHardwarePrice !== undefined ? supplyHardwarePrice : hardwarePrice,
+    installHardwareType:
+      installHardwareType !== undefined ? installHardwareType : hardwareType,
+    installHardwarePrice:
+      installHardwarePrice !== undefined ? installHardwarePrice : hardwarePrice,
     customerHardwareFee,
     customHardwareName,
     customHardwarePrice,

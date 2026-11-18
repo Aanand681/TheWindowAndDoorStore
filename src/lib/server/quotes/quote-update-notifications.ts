@@ -7,6 +7,7 @@ import {
   sendQuoteReviewRequestedEmail,
   getAppUrl,
 } from "@/lib/email"
+import { formatReviewerName } from "@/lib/format-reviewer"
 
 export async function dispatchQuoteUpdateNotifications(p: {
   request: Request
@@ -118,11 +119,12 @@ export async function dispatchQuoteUpdateNotifications(p: {
     const preparerUser = await User.findOne({
       username: updatedQuote.preparedBy,
     })
-    const reviewerDisplay =
+    const reviewerDisplay = formatReviewerName(
       updatedQuote.reviewedBy ||
-      reviewerUsername ||
-      updatedQuote.assignedTo ||
-      "Admin"
+        updatedQuote.lastEditedBy ||
+        reviewerUsername ||
+        updatedQuote.assignedTo
+    )
 
     if (updatedQuote.preparedBy && preparerUser?.muteNotifications !== true) {
       try {
@@ -198,11 +200,12 @@ export async function dispatchQuoteUpdateNotifications(p: {
       (existingQuote.status !== "APPROVED" && newStatus === "APPROVED"))
   if (isNewOdooAssignment) {
     try {
-      const reviewerDisplay =
+      const reviewerDisplay = formatReviewerName(
         updatedQuote.reviewedBy ||
-        reviewerUsername ||
-        (session?.user as any)?.username ||
-        "Admin"
+          updatedQuote.lastEditedBy ||
+          reviewerUsername ||
+          (session?.user as any)?.username
+      )
       const existingNotif = await Notification.findOne({
         quoteId: updatedQuote._id.toString(),
         recipientUsername: {

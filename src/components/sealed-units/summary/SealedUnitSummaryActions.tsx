@@ -12,6 +12,7 @@ export interface SealedUnitSummaryActionsProps {
   user?: any
   onOpenSubmitModal?: () => void
   onPrint: () => void
+  isReviewMode?: boolean
 }
 
 export function SealedUnitSummaryActions({
@@ -19,13 +20,14 @@ export function SealedUnitSummaryActions({
   user,
   onOpenSubmitModal,
   onPrint,
+  isReviewMode = false,
 }: SealedUnitSummaryActionsProps) {
   const isAdminOrSuperAdmin =
     user?.role === "ADMIN" || user?.role === "SUPERADMIN"
 
   return (
     <div className="space-y-2 border-t border-border/40 pt-2">
-      {onOpenSubmitModal && (
+      {onOpenSubmitModal && !isReviewMode && (
         <Button
           type="button"
           variant="default"

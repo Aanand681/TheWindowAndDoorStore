@@ -122,5 +122,11 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     setShowResetModal: base.setShowResetModal,
     handleConfirmReset: drafts.handleConfirmReset,
     handleSaveDraft: drafts.handleSaveDraft,
+    showConflictModal: drafts.showConflictModal,
+    setShowConflictModal: drafts.setShowConflictModal,
+    pendingDraftToLoad: drafts.pendingDraftToLoad,
+    onConflictSaveExistingAndLoad: drafts.handleConflictSaveExistingAndLoad,
+    onConflictContinueWithNew: drafts.handleConflictContinueWithNew,
+    onConflictCancel: drafts.handleConflictCancel,
   }
 }

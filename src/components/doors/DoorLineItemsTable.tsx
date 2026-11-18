@@ -27,6 +27,7 @@ interface DoorLineItemsTableProps {
   onEdit: (item: DoorLineItem) => void
   onDuplicate: (id: string) => void
   onDelete: (id: string) => void
+  isReadOnly?: boolean
   className?: string
 }
 
@@ -36,6 +37,7 @@ export function DoorLineItemsTable({
   onEdit,
   onDuplicate,
   onDelete,
+  isReadOnly = false,
   className,
 }: DoorLineItemsTableProps) {
   if (lineItems.length === 0) {
@@ -106,7 +108,9 @@ export function DoorLineItemsTable({
                   </th>
                 )}
                 <th className="w-32 px-3 py-2.5 text-right">Line Total</th>
-                <th className="w-24 px-3 py-2.5 text-center">Actions</th>
+                {!isReadOnly && (
+                  <th className="w-24 px-3 py-2.5 text-center">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -195,44 +199,54 @@ export function DoorLineItemsTable({
                         </div>
                       </td>
 
-                      <td className="px-3 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(item)}
-                            className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
-                            title="Edit Door"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDuplicate(item.id)}
-                            className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
-                            title="Duplicate Door"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(item.id)}
-                            className="h-7 w-7 cursor-pointer text-destructive hover:bg-destructive/10"
-                            title="Delete Door"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
+                      {!isReadOnly && (
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(item)}
+                              className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                              title="Edit Door"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDuplicate(item.id)}
+                              className="h-7 w-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                              title="Duplicate Door"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(item.id)}
+                              className="h-7 w-7 cursor-pointer text-destructive hover:bg-destructive/10"
+                              title="Delete Door"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
 
                     {/* Upgrade Option Row: Simple & Clean */}
                     {hasUpgrade && item.upgradeOption && (
                       <tr className="border-b border-emerald-500/20 bg-emerald-50/5">
                         <td
-                          colSpan={isInstallation ? 7 : 6}
+                          colSpan={
+                            isInstallation
+                              ? isReadOnly
+                                ? 6
+                                : 7
+                              : isReadOnly
+                                ? 5
+                                : 6
+                          }
                           className="px-4 py-2"
                         >
                           <div className="flex items-center justify-between gap-2 text-xs">

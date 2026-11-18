@@ -16,6 +16,7 @@ export interface QuotesStatsRibbonProps {
   adminArchiveCount: number
   employeeAssignedCount: number
   employeeInReviewCount: number
+  employeeReturnedCount: number
   employeeOdooDoneCount: number
   employeeHistoryCount: number
   clerkPendingCount: number
@@ -35,6 +36,7 @@ export function QuotesStatsRibbon({
   adminArchiveCount,
   employeeAssignedCount,
   employeeInReviewCount,
+  employeeReturnedCount,
   employeeOdooDoneCount,
   employeeHistoryCount,
   clerkPendingCount,
@@ -42,7 +44,7 @@ export function QuotesStatsRibbon({
   clerkTotalAssignedCount,
 }: QuotesStatsRibbonProps) {
   return (
-    <div className={`grid grid-cols-1 gap-4 ${isEmployee ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+    <div className={`grid grid-cols-1 gap-4 ${isEmployee ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-3"}`}>
       {canReview && (
         <AdminStatsCards
           activeTab={activeTab}
@@ -59,6 +61,7 @@ export function QuotesStatsRibbon({
           handleTabChange={handleTabChange}
           employeeAssignedCount={employeeAssignedCount}
           employeeInReviewCount={employeeInReviewCount}
+          employeeReturnedCount={employeeReturnedCount}
           employeeOdooDoneCount={employeeOdooDoneCount}
           employeeHistoryCount={employeeHistoryCount}
         />

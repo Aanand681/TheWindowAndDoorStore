@@ -36,7 +36,7 @@ interface ComparisonOptionBCardProps {
   selectedOverrideCasingDisplay: string
   optionBFinancials: OptionBFinancials | null
   surchargeRate: number
-  hstRate: number
+  hstRate?: number
 }
 
 export function ComparisonOptionBCard({
@@ -67,7 +67,6 @@ export function ComparisonOptionBCard({
   selectedOverrideCasingDisplay,
   optionBFinancials,
   surchargeRate,
-  hstRate,
 }: ComparisonOptionBCardProps) {
   return (
     <div className="flex flex-col justify-between space-y-4 rounded-2xl border border-border/80 bg-muted/20 p-4 sm:p-5">
@@ -237,38 +236,11 @@ export function ComparisonOptionBCard({
                     {formatMoney(optionBFinancials.afterDiscount)}
                   </span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>HST ({hstRate}%):</span>
-                  <span className="font-semibold text-foreground">
-                    {formatMoney(optionBFinancials.hst)}
-                  </span>
-                </div>
               </div>
             )}
           </>
         )}
       </div>
-
-      {/* Total Card for Option B */}
-      {optionBFinancials && (
-        <div className="rounded-xl border border-border/80 bg-card p-3 shadow-xs">
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase">
-              Option B Total
-            </span>
-            <span className="text-lg font-black text-amber-500">
-              {formatMoney(optionBFinancials.total)}
-            </span>
-          </div>
-          <div className="mt-1 flex justify-between border-t border-border/40 pt-1 text-[11px] text-muted-foreground">
-            <span>Deposits (50/50):</span>
-            <span>
-              {formatMoney(optionBFinancials.firstPayment)} /{" "}
-              {formatMoney(optionBFinancials.secondPayment)}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

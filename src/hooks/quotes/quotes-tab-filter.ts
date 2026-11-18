@@ -47,6 +47,8 @@ export function filterAndSortQuotes({
     if (canReview) {
       if (activeTab === "review") {
         if (quote.status !== "PENDING_REVIEW") return false
+      } else if (activeTab === "returned") {
+        if (quote.status !== "RETURNED") return false
       } else if (activeTab === "odoo") {
         if (
           !Boolean(
@@ -90,10 +92,12 @@ export function filterAndSortQuotes({
           if (!isAssignedToMeForReview) return false
         } else if (activeTab === "review") {
           if (quote.status !== "PENDING_REVIEW" || !isMyPrepared) return false
+        } else if (activeTab === "returned") {
+          if (quote.status !== "RETURNED" || !isMyPrepared) return false
         } else if (activeTab === "odoo_completed") {
           if (quote.odooStatus !== "COMPLETED") return false
         } else if (activeTab === "my") {
-          if (quote.status === "PENDING_REVIEW") return false
+          if (quote.status === "PENDING_REVIEW" || quote.status === "RETURNED") return false
         }
       }
     }
@@ -151,7 +155,9 @@ export function filterAndSortQuotes({
         return bPending - aPending
       }
     }
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const timeA = new Date(a.updatedAt || a.createdAt).getTime()
+    const timeB = new Date(b.updatedAt || b.createdAt).getTime()
+    return timeB - timeA
   })
 }
 
@@ -203,6 +209,11 @@ export function computeQuotesTabCounts({
       q.preparedBy?.toLowerCase() === myUsername &&
       q.status === "PENDING_REVIEW"
   ).length
+  const employeeReturnedCount = quotes.filter(
+    (q) =>
+      q.preparedBy?.toLowerCase() === myUsername &&
+      q.status === "RETURNED"
+  ).length
   const employeeOdooDoneCount = quotes.filter(
     (q) =>
       q.preparedBy?.toLowerCase() === myUsername && q.odooStatus === "COMPLETED"
@@ -211,6 +222,7 @@ export function computeQuotesTabCounts({
     (q) =>
       q.preparedBy?.toLowerCase() === myUsername &&
       q.status !== "PENDING_REVIEW" &&
+      q.status !== "RETURNED" &&
       q.status !== "DRAFT"
   ).length
 
@@ -243,6 +255,7 @@ export function computeQuotesTabCounts({
     adminArchiveCount,
     employeeAssignedCount,
     employeeInReviewCount,
+    employeeReturnedCount,
     employeeOdooDoneCount,
     employeeHistoryCount,
     clerkPendingCount,

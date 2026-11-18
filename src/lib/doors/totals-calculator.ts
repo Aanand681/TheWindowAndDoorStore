@@ -32,6 +32,7 @@ export function calculateDoorQuoteTotals(
   let netDoorSupplyTotal = 0
   let stormDoorTotal = 0
   let hardwareTotal = 0
+  let hardwareQty = 0
   let unitLabourTotal = 0
   let upchargesTotal = 0
   let miscTotal = 0
@@ -54,25 +55,27 @@ export function calculateDoorQuoteTotals(
     doorWithSurchargeTotal += itemBaseTotal + itemSurchargeTotal
     netDoorSupplyTotal += itemBaseTotal
     hardwareTotal += item.lineHardwareTotal
-
-    if (!isSupplyOnly) {
-      unitLabourTotal += item.unitLabour * q
-      upchargesTotal += item.upchargesTotal * q
-      miscTotal += item.lineMiscTotal
+    if (item.hardwareType && item.hardwareType !== "none") {
+      hardwareQty += q
     }
+
+    // Unit labour and line misc are always computed for full installation capability
+    unitLabourTotal += (item.unitLabour || 0) * q
+    upchargesTotal += (item.upchargesTotal || 0) * q
+    miscTotal += item.lineMiscTotal || 0
   })
 
   const totalUnits = totalDoors + totalStormDoors
 
-  // Travel & Setup Logistics (Only apply when installation is active and at least 1 unit exists)
-  let baseSetupFee = 0
+  // Travel & Setup Logistics: Always compute installation travel/setup baseline
+  let fullBaseSetupFee = 0
   let additionalFarFee = 0
   let vehicleTravelFee = 0
   let crewTravelFee = 0
 
-  if (isInstallation && totalUnits > 0 && travelFeeType !== "none") {
+  if (totalUnits > 0 && travelFeeType !== "none") {
     // Local setup fee default ($140.00)
-    baseSetupFee = logistics.setupFeeDefault || 140.0
+    fullBaseSetupFee = logistics.setupFeeDefault || 140.0
 
     // Far area setup (Dryden / Sioux Lookout $727.50, Small $363.50, or Custom)
     if (travelFeeType === "far_std") {
@@ -100,38 +103,38 @@ export function calculateDoorQuoteTotals(
 
   const totalAdditionalTravel =
     additionalFarFee + vehicleTravelFee + crewTravelFee
-  const totalTravelAndSetup = baseSetupFee + totalAdditionalTravel
+  const fullTravelAndSetup = fullBaseSetupFee + totalAdditionalTravel
+  const totalTravelAndSetup = isInstallation ? fullTravelAndSetup : 0
+  const baseSetupFee = isInstallation ? fullBaseSetupFee : 0
 
-  // Global jobsite upcharges applied once for the entire quote
+  // Global jobsite upcharges applied for installation baseline
   const globalUpchargesTotal =
-    isInstallation && Array.isArray(params.globalUpcharges)
+    Array.isArray(params.globalUpcharges)
       ? params.globalUpcharges.reduce((acc, u) => acc + (u.total || 0), 0)
       : 0
   const combinedUpchargesTotal =
     Math.round((upchargesTotal + globalUpchargesTotal) * 100) / 100
 
-  // Combined Labour = Unit labour + Jobsite upcharges + Travel & Setup
+  // Combined Labour: Preserve full installation labour & misc regardless of active mode
   const fullInstallLabour =
     Math.round(
-      (unitLabourTotal + combinedUpchargesTotal + totalTravelAndSetup) * 100
+      (unitLabourTotal + combinedUpchargesTotal + fullTravelAndSetup) * 100
     ) / 100
   const fullInstallMisc = Math.round(miscTotal * 100) / 100
 
+  // Active quote labour and misc: applied to quote ledger only in installation mode
   const combinedLabourTotal = isInstallation ? fullInstallLabour : 0
+  const activeMiscTotal = isInstallation ? fullInstallMisc : 0
 
-  // In Supply Only: zero out misc, labour, travel
-  if (isSupplyOnly) {
-    miscTotal = 0
-  }
-
-  // Pre-tax Subtotal: Clean Door Base Total - Door Discount + Surcharge + Labour + Misc + Hardware
+  // Pre-tax Subtotal: Clean Door Base Total - Door Discount + Surcharge + Active Labour + Active Misc + Hardware
   const totalDoorBase = rawDoorBaseTotal + stormDoorTotal
   const subtotalPreTax =
     Math.round(
       (totalDoorBase -
         discountTotal +
         surchargeTotal +
-        (isInstallation ? combinedLabourTotal + miscTotal : 0) +
+        combinedLabourTotal +
+        activeMiscTotal +
         hardwareTotal) *
         100
     ) / 100
@@ -179,9 +182,11 @@ export function calculateDoorQuoteTotals(
     netDoorSupplyTotal: Math.round(netDoorSupplyTotal * 100) / 100,
     stormDoorTotal: Math.round(stormDoorTotal * 100) / 100,
     hardwareTotal: Math.round(hardwareTotal * 100) / 100,
+    hardwareQty,
     unitLabourTotal: Math.round(unitLabourTotal * 100) / 100,
     upchargesTotal: combinedUpchargesTotal,
     baseSetupFee: Math.round(baseSetupFee * 100) / 100,
+    fullBaseSetupFee: Math.round(fullBaseSetupFee * 100) / 100,
     additionalFarFee: Math.round(additionalFarFee * 100) / 100,
     vehicleTravelFee: Math.round(vehicleTravelFee * 100) / 100,
     crewTravelFee: Math.round(crewTravelFee * 100) / 100,
@@ -190,7 +195,7 @@ export function calculateDoorQuoteTotals(
     combinedLabourTotal,
     fullInstallLabour,
     fullInstallMisc,
-    miscTotal: Math.round(miscTotal * 100) / 100,
+    miscTotal: Math.round(activeMiscTotal * 100) / 100,
     subtotalPreTax,
     hstAmount,
     hstBase,

@@ -7,6 +7,9 @@ import {
   getActiveAutoSave,
   clearActiveAutoSave,
   getSavedDrafts,
+  isAutoSaveAlreadySaved,
+  isDraftMeaningful,
+  isWorkspaceDirtyOrUnsaved,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
   syncRemoteDrafts,
@@ -49,6 +52,30 @@ export function useCalculatorDrafts({
   )
   const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState(false)
   const [initialLoadDone, setInitialLoadDone] = useState(false)
+  const [showConflictModal, setShowConflictModal] = useState(false)
+  const [pendingDraftToLoad, setPendingDraftToLoad] =
+    useState<QuoteDraftItem | null>(null)
+
+  const cleanUrlLoadDraftId = () => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    url.searchParams.delete("loadDraftId")
+    window.history.replaceState({}, "", url.toString())
+  }
+
+  const loadDraftDirectly = useCallback((draft: QuoteDraftItem) => {
+    const d = draft.data as any
+    if (!d) return
+
+    setLoadedDraftId(draft.id)
+    applyDraftDataToWorkspace(
+      workspaceRef.current,
+      d,
+      setLoadedDraftTaxTotals
+    )
+    clearActiveAutoSave("window")
+    toast.success(`Loaded Window Quote #${draft.quoteNumber}`)
+  }, [])
 
   const restoreAutoSaveIntoWorkspace = useCallback(
     (recovered: any) => {
@@ -75,24 +102,49 @@ export function useCalculatorDrafts({
     (draft: QuoteDraftItem) => {
       if (draft.type === "sealed_unit") {
         clearAutoSaveTimer()
-        clearActiveAutoSave("window")
         router.push(`/sealed-units?loadDraftId=${draft.id}`)
+        setIsSavedQuotesOpen(false)
+        return
+      }
+      if (draft.type === "door") {
+        clearAutoSaveTimer()
+        router.push(`/doors?loadDraftId=${draft.id}`)
+        setIsSavedQuotesOpen(false)
         return
       }
 
-      const d = draft.data as any
-      if (!d) return
+      const ws = workspaceRef.current
+      const isDirty = isWorkspaceDirtyOrUnsaved("window", {
+        id: loadedDraftId || undefined,
+        quoteNumber: ws.quoteNumber,
+        customerName: ws.customerName,
+        itemCount: ws.windows.length,
+        grandTotal: financials.total,
+        data: {
+          windows: ws.windows,
+          attachedSealedUnit: ws.attachedSealedUnit,
+          attachedDoorQuote: ws.attachedDoorQuote,
+          attachedUpgrade: ws.attachedUpgrade,
+        },
+      })
 
-      setLoadedDraftId(draft.id)
-      applyDraftDataToWorkspace(
-        workspaceRef.current,
-        d,
-        setLoadedDraftTaxTotals
-      )
-      clearActiveAutoSave("window")
-      toast.success(`Loaded Window Quote #${draft.quoteNumber}`)
+      if (isDirty) {
+        setPendingDraftToLoad(draft)
+        setShowConflictModal(true)
+        setIsSavedQuotesOpen(false)
+        return
+      }
+
+      loadDraftDirectly(draft)
+      setIsSavedQuotesOpen(false)
     },
-    [router, clearAutoSaveTimer]
+    [
+      router,
+      clearAutoSaveTimer,
+      financials.total,
+      loadedDraftId,
+      loadDraftDirectly,
+    ]
   )
 
   const handleSaveDraft = useCallback(async (): Promise<QuoteDraftItem | null> => {
@@ -103,6 +155,31 @@ export function useCalculatorDrafts({
       setLoadedDraftId,
     })
   }, [financials, loadedDraftId])
+
+  const handleConflictSaveExistingAndLoad = useCallback(async () => {
+    if (!pendingDraftToLoad) return
+    const saved = await handleSaveDraft()
+    if (saved) {
+      loadDraftDirectly(pendingDraftToLoad)
+      setShowConflictModal(false)
+      setPendingDraftToLoad(null)
+      cleanUrlLoadDraftId()
+    }
+  }, [pendingDraftToLoad, handleSaveDraft, loadDraftDirectly])
+
+  const handleConflictContinueWithNew = useCallback(() => {
+    if (!pendingDraftToLoad) return
+    loadDraftDirectly(pendingDraftToLoad)
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
+  }, [pendingDraftToLoad, loadDraftDirectly])
+
+  const handleConflictCancel = useCallback(() => {
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
+  }, [])
 
   useEffect(() => {
     syncRemoteDrafts().catch(() => {})
@@ -147,11 +224,21 @@ export function useCalculatorDrafts({
     if (queryDraftId) {
       const drafts = getSavedDrafts()
       const targetDraft = drafts.find((d) => d.id === queryDraftId)
-      if (targetDraft) {
-        loadDraftIntoWorkspace(targetDraft)
-        const url = new URL(window.location.href)
-        url.searchParams.delete("loadDraftId")
-        window.history.replaceState({}, "", url.toString())
+      if (targetDraft && targetDraft.type === "window") {
+        const recovered = getActiveAutoSave("window")
+        const isUnsaved =
+          recovered &&
+          !isAutoSaveAlreadySaved("window", recovered) &&
+          isDraftMeaningful("window", recovered)
+
+        if (isUnsaved) {
+          restoreAutoSaveIntoWorkspace(recovered)
+          setPendingDraftToLoad(targetDraft)
+          setShowConflictModal(true)
+        } else {
+          loadDraftDirectly(targetDraft)
+          cleanUrlLoadDraftId()
+        }
       }
     } else {
       const recovered = getActiveAutoSave("window")
@@ -162,7 +249,7 @@ export function useCalculatorDrafts({
     }
   }, [
     initialReviewQuoteId,
-    loadDraftIntoWorkspace,
+    loadDraftDirectly,
     restoreAutoSaveIntoWorkspace,
   ])
 
@@ -179,5 +266,11 @@ export function useCalculatorDrafts({
     restoreAutoSaveIntoWorkspace,
     handleSaveDraft,
     resetDraftState,
+    showConflictModal,
+    setShowConflictModal,
+    pendingDraftToLoad,
+    handleConflictSaveExistingAndLoad,
+    handleConflictContinueWithNew,
+    handleConflictCancel,
   }
 }

@@ -17,6 +17,7 @@ export interface SealedUnitLineItemsTableProps {
   onDuplicateItem?: (id: string) => void
   onRemoveItem: (id: string) => void
   onResetQuote: () => void
+  isReadOnly?: boolean
 }
 
 export function SealedUnitLineItemsTable({
@@ -31,6 +32,7 @@ export function SealedUnitLineItemsTable({
   onDuplicateItem,
   onRemoveItem,
   onResetQuote,
+  isReadOnly = false,
 }: SealedUnitLineItemsTableProps) {
   const isService = mode === "service_only"
   const isInstall = mode === "installation"
@@ -91,7 +93,9 @@ export function SealedUnitLineItemsTable({
                   <th className="w-24 px-2.5 py-2.5 text-right">Labour</th>
                   <th className="w-20 px-2.5 py-2.5 text-right">Misc</th>
                   <th className="w-24 px-2.5 py-2.5 text-right">Line Total</th>
-                  <th className="w-24 px-2.5 py-2.5 text-center">Actions</th>
+                  {!isReadOnly && (
+                    <th className="w-24 px-2.5 py-2.5 text-center">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -283,42 +287,44 @@ export function SealedUnitLineItemsTable({
                       </td>
 
                       {/* Actions */}
-                      <td className="px-2.5 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          {onEditItem && (
+                      {!isReadOnly && (
+                        <td className="px-2.5 py-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {onEditItem && (
+                              <button
+                                type="button"
+                                onClick={() => onEditItem(item)}
+                                className={`cursor-pointer rounded-md p-1 transition-colors ${
+                                  isItemEditing
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                }`}
+                                title="Edit sealed unit"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {onDuplicateItem && (
+                              <button
+                                type="button"
+                                onClick={() => onDuplicateItem(item.id)}
+                                className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                title="Duplicate sealed unit"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => onEditItem(item)}
-                              className={`cursor-pointer rounded-md p-1 transition-colors ${
-                                isItemEditing
-                                  ? "bg-primary text-primary-foreground shadow-xs"
-                                  : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                              }`}
-                              title="Edit sealed unit"
+                              onClick={() => onRemoveItem(item.id)}
+                              className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-destructive/10"
+                              title="Remove sealed unit"
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                          {onDuplicateItem && (
-                            <button
-                              type="button"
-                              onClick={() => onDuplicateItem(item.id)}
-                              className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                              title="Duplicate sealed unit"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => onRemoveItem(item.id)}
-                            className="cursor-pointer rounded-md p-1 text-destructive transition-colors hover:bg-destructive/10"
-                            title="Remove sealed unit"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}

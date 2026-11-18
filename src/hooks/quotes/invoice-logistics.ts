@@ -6,6 +6,7 @@ export function getInvoiceTravelItems({
   effectiveDoorTotals,
   isSUHost,
   effectiveSUTotals,
+  isSupplyOnly = false,
 }: {
   isWindowHost: boolean
   taxTotals: any
@@ -14,7 +15,12 @@ export function getInvoiceTravelItems({
   effectiveDoorTotals: any
   isSUHost: boolean
   effectiveSUTotals: any
+  isSupplyOnly?: boolean
 }): { label: string; amount: number }[] {
+  if (isSupplyOnly) {
+    return []
+  }
+
   const travelItems: { label: string; amount: number }[] = []
 
   if (isWindowHost && taxTotals) {

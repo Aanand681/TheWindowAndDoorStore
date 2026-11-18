@@ -12,6 +12,7 @@ vi.mock("@/lib/mongodb", () => ({
 
 vi.mock("@/models/PricingHistory", () => {
   const mockEntries: any[] = []
+  let mockIdCounter = 0
 
   return {
     default: {
@@ -26,7 +27,8 @@ vi.mock("@/models/PricingHistory", () => {
         })),
       })),
       create: vi.fn().mockImplementation(async (data) => {
-        const entry = { _id: `id_${Date.now()}`, ...data, createdAt: new Date() }
+        mockIdCounter += 1
+        const entry = { _id: `id_${Date.now()}_${mockIdCounter}`, ...data, createdAt: new Date() }
         mockEntries.push(entry)
         return entry
       }),

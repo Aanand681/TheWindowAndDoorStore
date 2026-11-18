@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   DoorLineItem,
@@ -11,6 +11,7 @@ import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
 import {
   readSessionAttachedInstallOption,
   writeSessionAttachedInstallOption,
+  readSessionDoorHardwareConfig,
   ATTACHED_INSTALL_CHANGE_EVENT,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { formatSealedUnitSummarySentence } from "@/lib/sealed-units-logic"
@@ -21,6 +22,7 @@ import { DoorSummaryAttachedBadges } from "./summary/DoorSummaryAttachedBadges"
 import { DoorSummaryLedger } from "./summary/DoorSummaryLedger"
 import { DoorSummaryUpgrades } from "./summary/DoorSummaryUpgrades"
 import { DoorSummaryActions } from "./summary/DoorSummaryActions"
+import { CustomOptionsSection } from "@/components/calculator/summary/CustomOptionsSection"
 import { SupplyVsInstallCompareModal } from "@/components/shared/SupplyVsInstallCompareModal"
 
 interface DoorQuoteSummaryCardProps {
@@ -46,6 +48,9 @@ interface DoorQuoteSummaryCardProps {
   onOpenAttachModal?: () => void
   onRemoveAttachedWindowQuote?: () => void
   onRemoveAttachedSealedUnit?: () => void
+  onApplyDoorHardware?: (config: any) => void
+  isReadOnly?: boolean
+  isReviewMode?: boolean
   className?: string
 }
 
@@ -71,6 +76,9 @@ export function DoorQuoteSummaryCard({
   attachedSealedUnit,
   onRemoveAttachedWindowQuote,
   onRemoveAttachedSealedUnit,
+  onApplyDoorHardware,
+  isReadOnly = false,
+  isReviewMode = false,
   className,
 }: DoorQuoteSummaryCardProps) {
   const [editingField, setEditingField] = useState<"labour" | "misc" | null>(
@@ -81,6 +89,8 @@ export function DoorQuoteSummaryCard({
   const [attachedInstallOption, setAttachedInstallOption] = useState<{
     enabled: boolean
     amountPreTaxCents: number
+    hardwareTotal?: number
+    hardwareBreakdown?: any[]
   } | null>(null)
 
   useEffect(() => {
@@ -168,6 +178,70 @@ export function DoorQuoteSummaryCard({
       : (totals.fullInstallMisc ?? totals.miscTotal)
   const compareMisc = compareDoorMisc + winMisc + suMisc
 
+  const supplyHardwareDollars = useMemo(() => {
+    return lineItems.reduce((acc, item) => {
+      if (item.category === "storm") return acc
+      const q = item.quantity || 1
+      const price =
+        mode === "supply_only"
+          ? item.lineHardwareTotal || 0
+          : item.supplyHardwareType && item.supplyHardwareType !== "none"
+            ? (item.supplyHardwarePrice || 0) * q
+            : 0
+      return acc + price
+    }, 0)
+  }, [lineItems, mode])
+
+  const installHardwareDollars = useMemo(() => {
+    if (attachedInstallOption?.hardwareTotal !== undefined) {
+      return Number(attachedInstallOption.hardwareTotal) || 0
+    }
+    const saved = readSessionDoorHardwareConfig()
+    if (saved?.totalPrice !== undefined) {
+      return Number(saved.totalPrice) || 0
+    }
+    if (mode === "installation") {
+      return totals.hardwareTotal || 0
+    }
+    const nonStormCount = lineItems.reduce(
+      (acc, it) => acc + (it.category === "storm" ? 0 : it.quantity || 1),
+      0
+    )
+    return Math.round(nonStormCount * 158.0 * 100) / 100
+  }, [
+    attachedInstallOption,
+    mode,
+    totals.hardwareTotal,
+    lineItems,
+  ])
+
+  const dynamicInstallDeltaDollars = useMemo(() => {
+    const netHardware = Math.max(
+      0,
+      installHardwareDollars - supplyHardwareDollars
+    )
+    return (
+      Math.round(
+        (compareLabour + compareMisc + netHardware) * 100
+      ) / 100
+    )
+  }, [compareLabour, compareMisc, installHardwareDollars, supplyHardwareDollars])
+
+  useEffect(() => {
+    if (attachedInstallOption?.enabled && dynamicInstallDeltaDollars > 0) {
+      const current = readSessionAttachedInstallOption()
+      const newCents = Math.round(dynamicInstallDeltaDollars * 100)
+      if (current?.enabled && current.amountPreTaxCents !== newCents) {
+        const updated = {
+          ...current,
+          amountPreTaxCents: newCents,
+        }
+        writeSessionAttachedInstallOption(updated)
+        setAttachedInstallOption(updated)
+      }
+    }
+  }, [dynamicInstallDeltaDollars, attachedInstallOption?.enabled])
+
   const combinedSurcharge = totals.surchargeTotal + winSurcharge + suSurcharge
   const {
     combinedSubtotal,
@@ -216,6 +290,7 @@ export function DoorQuoteSummaryCard({
           mode={mode}
           onModeChange={onModeChange}
           onOpenCompare={() => setIsCompareOpen(true)}
+          isReadOnly={isReadOnly}
         />
 
         <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-3.5 pt-3">
@@ -230,9 +305,7 @@ export function DoorQuoteSummaryCard({
               setAttachedInstallOption(null)
               writeSessionAttachedInstallOption(null)
             }}
-            dynamicInstallDeltaDollars={
-              isInstallation ? combinedLabour + combinedMisc : undefined
-            }
+            dynamicInstallDeltaDollars={dynamicInstallDeltaDollars}
           />
 
           <DoorSummaryLedger
@@ -276,15 +349,22 @@ export function DoorQuoteSummaryCard({
             setEditingField={setEditingField}
             tempEditVal={tempEditVal}
             setTempEditVal={setTempEditVal}
+            isReadOnly={isReadOnly}
           />
 
           <DoorSummaryUpgrades
             upgradeItems={upgradeItems}
           />
 
+          <CustomOptionsSection
+            canModifyOptions={!isReadOnly}
+            quoteNumber={quoteNumber}
+          />
+
           <DoorSummaryActions
             isAdmin={isAdmin}
             canSubmit={lineItems.length > 0}
+            isReviewMode={isReviewMode}
             onSubmitQuote={onSubmitQuote}
             onPrintPreview={onPrintPreview}
           />
@@ -322,12 +402,31 @@ export function DoorQuoteSummaryCard({
         discountLabel="10% Discount"
         hardwareAmount={totals.hardwareTotal}
         hardwareLabel="Lockset & Hardware"
+        doorItems={lineItems}
+        standardHardwarePrice={158.0}
+        onApplyDoorHardware={onApplyDoorHardware}
         hstRate={isFirstNation ? 5 : 13}
         onApplyMode={(m) =>
           onModeChange(m === "supply" ? "supply_only" : "installation")
         }
-        onToggleAttachOption={(att, c) => {
-          const opt = att ? { enabled: true, amountPreTaxCents: c } : null
+        onToggleAttachOption={(
+          att,
+          c,
+          title,
+          hasSupplyJC,
+          hardwareConfig,
+          hardwareTotal
+        ) => {
+          const opt = att
+            ? {
+                enabled: true,
+                amountPreTaxCents: c,
+                title,
+                hasSupplyJC,
+                hardwareConfig,
+                hardwareTotal,
+              }
+            : null
           setAttachedInstallOption(opt)
         }}
       />

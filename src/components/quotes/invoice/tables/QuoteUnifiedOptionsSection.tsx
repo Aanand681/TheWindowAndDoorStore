@@ -26,6 +26,10 @@ export interface QuoteUnifiedOptionsSectionProps {
     amountPreTaxCents?: number
     title?: string
     hasSupplyJC?: boolean
+    hardwareTotal?: number
+    hardwareQty?: number
+    hardwareConfig?: any
+    hardwareBreakdown?: any[]
   } | null
   wantsUpgrade?: boolean
   shownUpgrade?: number
@@ -172,8 +176,38 @@ export function QuoteUnifiedOptionsSection({
               parseFloat(cachedSupply.customJC) > 0)
           )
 
+    let hardwareNote = ""
+    if (isSupplyOnly) {
+      const hwConfig =
+        attachedInstallOption?.hardwareConfig || sessionOpt?.hardwareConfig
+      const hwQty =
+        attachedInstallOption?.hardwareQty ||
+        sessionOpt?.hardwareQty ||
+        hwConfig?.totalQty
+
+      if (hwQty && hwQty > 0) {
+        hardwareNote = ` (incl. ${hwQty} locksets & deadbolts)`
+      } else {
+        const hwBreakdown =
+          attachedInstallOption?.hardwareBreakdown ||
+          sessionOpt?.hardwareBreakdown
+        const activeHw = Array.isArray(hwBreakdown)
+          ? hwBreakdown.filter((h: any) => {
+              const hType = h.hardwareType || h.type
+              const hCost =
+                Number(h.price !== undefined ? h.price : h.amount) || 0
+              return hType !== "none" && hCost > 0
+            })
+          : []
+
+        if (activeHw.length > 0) {
+          hardwareNote = ` (incl. ${activeHw.length} locksets & deadbolts)`
+        }
+      }
+    }
+
     const finalTitle = isSupplyOnly
-      ? `${productText} with Installation`
+      ? `${productText} with Installation${hardwareNote}`
       : hasSupplyJC
         ? `${productText} with J&C for Supply Only`
         : `${productText} for Supply Only`
@@ -252,7 +286,7 @@ export function QuoteUnifiedOptionsSection({
                 style={{ fontSize: `${microFs}px` }}
                 className="font-medium text-[#334155]"
               >
-                {opt.title} {opt.isDeduct ? "deduct:" : "add:"}
+                {opt.title}
               </span>
             </div>
             <span

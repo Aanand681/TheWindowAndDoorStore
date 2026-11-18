@@ -3,6 +3,8 @@ import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
+  writeSessionAttachedInstallOption,
+  writeSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface SealedUnitSnapshotParams {
@@ -120,6 +122,14 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
     setters.setAttachedWindowQuote(d.attachedWindowQuote)
   if (d.attachedDoorQuote !== undefined)
     setters.setAttachedDoorQuote(d.attachedDoorQuote)
+  if (d.attachedInstallOption !== undefined) {
+    writeSessionAttachedInstallOption(d.attachedInstallOption ?? null)
+  }
+  if (d.customOptions !== undefined) {
+    writeSessionCustomOptions(
+      Array.isArray(d.customOptions) ? d.customOptions : []
+    )
+  }
 }
 
 export function createDraftSavePayload(

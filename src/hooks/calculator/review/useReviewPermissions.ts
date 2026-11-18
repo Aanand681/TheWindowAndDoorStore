@@ -13,6 +13,7 @@ export interface UseReviewPermissionsReturn {
   canReview: boolean
   canApprove: boolean
   isAssignedReviewer: boolean
+  isPreparer: boolean
   canEditApprovedQuote: boolean
   isReviewerOrAdmin: boolean
   isOdooClerk: boolean
@@ -48,6 +49,14 @@ export function useReviewPermissions({
     reviewQuote.assignedTo.toLowerCase() === user.username.toLowerCase()
   )
 
+  const isPreparer = Boolean(
+    user &&
+    reviewQuote &&
+    user.username &&
+    reviewQuote.preparedBy &&
+    reviewQuote.preparedBy.toLowerCase() === user.username.toLowerCase()
+  )
+
   const isReviewerOrAdmin = Boolean(
     isAdmin ||
     isAssignedReviewer ||
@@ -69,10 +78,12 @@ export function useReviewPermissions({
   )
   const isApprovedOrModified =
     reviewQuote?.status === "APPROVED" || reviewQuote?.status === "MODIFIED"
+  const isPendingReview = reviewQuote?.status === "PENDING_REVIEW"
   const canEditCurrentQuote = Boolean(
     !isOdooCompleted &&
     !isOdooClerk &&
-    (isApprovedOrModified ? canEditApprovedQuote : true)
+    (isApprovedOrModified ? canEditApprovedQuote : true) &&
+    (!isPendingReview || (isReviewerOrAdmin && !isPreparer))
   )
   const isReadOnly = Boolean(
     reviewQuote && (!isEditMode || !canEditCurrentQuote || isOdooCompleted)
@@ -85,6 +96,7 @@ export function useReviewPermissions({
     canReview,
     canApprove,
     isAssignedReviewer,
+    isPreparer,
     canEditApprovedQuote,
     isReviewerOrAdmin,
     isOdooClerk,

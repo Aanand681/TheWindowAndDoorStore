@@ -9,6 +9,7 @@ import {
   Edit3,
   ArrowRight,
   CheckSquare,
+  RotateCcw,
 } from "lucide-react"
 import type { QuotesSubTabType } from "../types"
 
@@ -29,7 +30,8 @@ interface QuoteCardActionsProps {
     originSubTab?: QuotesSubTabType
   ) => void
   handleToggleStar: (id: string, currentStarred: boolean) => void
-  promptDeleteQuote: (id: string, quoteNum: string) => void
+  promptDeleteQuote: (id: string, quoteNum: string, isPending?: boolean) => void
+  handleRecallQuote?: (id: string, quoteNumber: string) => Promise<boolean>
   handlePreviewQuote: (quote: any) => void
   setSelectedQuoteForReview: (quote: any) => void
   setReviewerNotes: (val: string) => void
@@ -52,6 +54,7 @@ export function QuoteCardActions({
   onOpenQuote,
   handleToggleStar,
   promptDeleteQuote,
+  handleRecallQuote,
   handlePreviewQuote,
   setSelectedQuoteForReview,
   setReviewerNotes,
@@ -100,7 +103,9 @@ export function QuoteCardActions({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => promptDeleteQuote(quote._id, quote.quoteNumber)}
+              onClick={() =>
+                promptDeleteQuote(quote._id, quote.quoteNumber, isPending)
+              }
               className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
               title="Delete quote"
             >
@@ -166,6 +171,30 @@ export function QuoteCardActions({
           </>
         ) : (
           <>
+            {isPending &&
+              (quote.preparedBy === currentUser?.username ||
+                quote.preparedBy?.toLowerCase() === myUsername) &&
+              handleRecallQuote && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const ok = await handleRecallQuote(
+                      quote._id,
+                      quote.quoteNumber
+                    )
+                    if (ok) {
+                      onOpenQuote(quote._id, true, activeTab)
+                    }
+                  }}
+                  className="h-8 cursor-pointer gap-1 border-amber-500/50 bg-amber-500/10 text-xs font-bold text-amber-600 shadow-sm hover:bg-amber-500/20 dark:text-amber-400"
+                  title="Withdraw quote from review to make changes"
+                >
+                  <RotateCcw className="mr-0.5 h-3.5 w-3.5" />
+                  <span>Recall &amp; Edit</span>
+                </Button>
+              )}
+
             {isPending && canApprove && (
               <Button
                 variant="secondary"
@@ -198,7 +227,9 @@ export function QuoteCardActions({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onOpenQuote(quote._id, false, activeTab)}
+                onClick={() =>
+                  onOpenQuote(quote._id, Boolean(isReturned), activeTab)
+                }
                 className="h-8 cursor-pointer gap-1.5 text-xs font-bold shadow-sm"
               >
                 <span>

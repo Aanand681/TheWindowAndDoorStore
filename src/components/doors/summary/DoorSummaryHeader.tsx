@@ -13,6 +13,7 @@ export interface DoorSummaryHeaderProps {
   mode: DoorQuotingMode
   onModeChange: (mode: DoorQuotingMode) => void
   onOpenCompare?: () => void
+  isReadOnly?: boolean
 }
 
 export function DoorSummaryHeader({
@@ -21,6 +22,7 @@ export function DoorSummaryHeader({
   mode,
   onModeChange,
   onOpenCompare,
+  isReadOnly = false,
 }: DoorSummaryHeaderProps) {
   return (
     <CardHeader className="border-b border-border/50 p-3.5 pb-2.5">
@@ -43,9 +45,11 @@ export function DoorSummaryHeader({
           <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
             <button
               type="button"
+              disabled={isReadOnly}
               onClick={() => onModeChange("installation")}
               className={cn(
-                "flex cursor-pointer items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
+                "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
+                isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 mode === "installation"
                   ? "bg-black text-white shadow-xs dark:bg-white dark:text-black"
                   : "text-muted-foreground hover:text-foreground"
@@ -56,9 +60,11 @@ export function DoorSummaryHeader({
             </button>
             <button
               type="button"
+              disabled={isReadOnly}
               onClick={() => onModeChange("supply_only")}
               className={cn(
-                "flex cursor-pointer items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
+                "flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
+                isReadOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 mode === "supply_only"
                   ? "bg-black text-white shadow-xs dark:bg-white dark:text-black"
                   : "text-muted-foreground hover:text-foreground"

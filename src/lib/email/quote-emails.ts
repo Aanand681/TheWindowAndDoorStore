@@ -3,6 +3,7 @@ import {
   getEmailTransporterConfig,
   createNodemailerTransporter,
 } from "./transporter"
+import { formatReviewerName } from "@/lib/format-reviewer"
 
 export async function sendQuoteReviewReminderEmail(params: {
   toEmail: string
@@ -121,6 +122,7 @@ export async function sendQuoteApprovedEmail(params: {
 
     const isModified = params.status === "MODIFIED"
     const isReturned = params.status === "RETURNED"
+    const reviewerName = formatReviewerName(params.reviewerName)
     const statusLabel = isReturned
       ? "Returned for Revision"
       : isModified
@@ -136,7 +138,7 @@ export async function sendQuoteApprovedEmail(params: {
     if (params.reviewChanges && params.reviewChanges.length > 0) {
       changesHtml = `
         <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px; margin: 16px 0;">
-          <div style="font-weight: 700; font-size: 13px; color: #b45309; margin-bottom: 6px;">Changes Made by ${params.reviewerName}:</div>
+          <div style="font-weight: 700; font-size: 13px; color: #b45309; margin-bottom: 6px;">Changes Made by ${reviewerName}:</div>
           <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #78350f;">
             ${params.reviewChanges.map((c) => `<li>${c}</li>`).join("")}
           </ul>
@@ -165,7 +167,7 @@ export async function sendQuoteApprovedEmail(params: {
           </div>
           <p style="font-size: 15px; color: #1e293b;">Hello <b>${params.employeeName}</b>,</p>
           <p style="font-size: 14px; color: #475569; line-height: 1.5;">
-            <b>${params.reviewerName}</b> has reviewed your quote <b>#${params.quoteNumber}</b> for <b>${params.customerName}</b>.
+            <b>${reviewerName}</b> has reviewed your quote <b>#${params.quoteNumber}</b> for <b>${params.customerName}</b>.
           </p>
           <div style="text-align: center; margin: 16px 0;">
             <span style="background: ${statusColor}; color: #ffffff; font-weight: 700; font-size: 13px; padding: 6px 16px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px;">

@@ -11,8 +11,17 @@ import { useDoorTravel } from "./useDoorTravel"
 import { useDoorDrafts } from "./useDoorDrafts"
 import { useDoorAutoSave } from "./useDoorAutoSave"
 import { useDoorReviewSubmit } from "./useDoorReviewSubmit"
+import { useDoorReviewLoader } from "./door-review-loader"
+import { useDoorReviewActions } from "./door-review-actions"
 
-export function useDoorCalculatorPage() {
+export interface UseDoorCalculatorPageOptions {
+  initialReviewQuoteId?: string
+  initialIsEditMode?: boolean
+}
+
+export function useDoorCalculatorPage(
+  options: UseDoorCalculatorPageOptions = {}
+) {
   const { data: session } = useSession()
   const user = session?.user as any
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN"
@@ -175,6 +184,12 @@ export function useDoorCalculatorPage() {
     setIsSavedQuotesOpen,
     showResetModal,
     setShowResetModal,
+    showConflictModal,
+    setShowConflictModal,
+    pendingDraftToLoad,
+    handleConflictSaveExistingAndLoad,
+    handleConflictContinueWithNew,
+    handleConflictCancel,
     handleExplicitSaveDraft,
     handleLoadQuoteFromDrafts,
     handleConfirmReset,
@@ -221,7 +236,101 @@ export function useDoorCalculatorPage() {
     crewSize,
   })
 
+  // 11. Review Mode & Workflow Hooks
+  const reviewLoader = useDoorReviewLoader({
+    user,
+    presets,
+    formula,
+    setCustomerName,
+    setQuoteNumber,
+    setQuoteNotes,
+    setMode,
+    setLineItems,
+    setGlobalUpcharges,
+    setSelectedRegionId,
+    setTravelFeeType,
+    setCustomTravelFee,
+    setShowOutTownTravel,
+    setTravelKm,
+    setCrewHours,
+    setCrewSize,
+    setIsFirstNation: handleToggleFirstNation,
+    setHstRate,
+    setCustomLabour,
+    setCustomMisc,
+    setAttachedWindowQuote,
+    setAttachedSealedUnit,
+    onConfirmReset: handleConfirmReset,
+    initialReviewQuoteId: options.initialReviewQuoteId,
+    initialIsEditMode: options.initialIsEditMode,
+  })
+
+  const reviewActions = useDoorReviewActions({
+    user,
+    reviewQuoteId: reviewLoader.reviewQuoteId,
+    reviewQuote: reviewLoader.reviewQuote,
+    setReviewQuote: reviewLoader.setReviewQuote,
+    setOriginalSnapshot: reviewLoader.setOriginalSnapshot,
+    setIsEditMode: reviewLoader.setIsEditMode,
+    handleExitReview: reviewLoader.handleExitReview,
+    customerName,
+    quoteNumber,
+    quoteNotes,
+    mode,
+    lineItems,
+    totals,
+    globalUpcharges,
+    selectedRegionId,
+    travelFeeType,
+    customTravelFee,
+    showOutTownTravel,
+    travelKm,
+    crewHours,
+    crewSize,
+    isFirstNation,
+    hstRate,
+    customLabour,
+    customMisc,
+    attachedWindowQuote,
+    attachedSealedUnit,
+    staffList,
+    clerkList,
+  })
+
+  const reviewWorkflowProps = {
+    reviewQuote: reviewLoader.reviewQuote,
+    activeTab: "door",
+    isEditMode: reviewLoader.isEditMode,
+    setIsEditMode: reviewLoader.setIsEditMode,
+    canEditCurrentQuote: reviewLoader.perms.canEditCurrentQuote,
+    isReviewerOrAdmin: reviewLoader.perms.isReviewerOrAdmin,
+    canApprove: reviewLoader.perms.canApprove,
+    isAssignedReviewer: reviewLoader.perms.isAssignedReviewer,
+    isOdooClerk: reviewLoader.perms.isOdooClerk,
+    user,
+    reviewActionLoading: reviewActions.reviewActionLoading,
+    handleSaveQuotePrices: reviewActions.handleSaveQuotePrices,
+    handleCancelEdits: reviewLoader.handleCancelEdits,
+    handleResubmitReturnedQuote: reviewActions.handleResubmitReturnedQuote,
+    handleExitReview: reviewLoader.handleExitReview,
+    setIsPreviewOpen: setShowPreviewModal,
+    setOdooOrderNumberInput: reviewActions.setOdooOrderNumberInput,
+    setShowCompleteOdooModal: reviewActions.setShowCompleteOdooModal,
+    staffList,
+    setReassignTo: reviewActions.setReassignTo,
+    setReassignNotes: reviewActions.setReassignNotes,
+    setShowReassignModal: reviewActions.setShowReassignModal,
+    handleReturnReviewQuote: reviewActions.handleReturnReviewQuote,
+    handleApproveReviewQuote: reviewActions.handleApproveReviewQuote,
+  }
+
   return {
+    reviewQuote: reviewLoader.reviewQuote,
+    isEditMode: reviewLoader.isEditMode,
+    isReadOnly: reviewLoader.perms.isReadOnly,
+    reviewWorkflowProps,
+    reviewLoader,
+    reviewActions,
     user,
     isAdmin,
     presets,
@@ -261,6 +370,7 @@ export function useDoorCalculatorPage() {
     isAttachModalOpen,
     setIsAttachModalOpen,
     lineItems,
+    setLineItems,
     editingItem,
     setEditingItem,
     handleSaveItem,
@@ -286,6 +396,12 @@ export function useDoorCalculatorPage() {
     setIsSavedQuotesOpen,
     showResetModal,
     setShowResetModal,
+    showConflictModal,
+    setShowConflictModal,
+    pendingDraftToLoad,
+    handleConflictSaveExistingAndLoad,
+    handleConflictContinueWithNew,
+    handleConflictCancel,
     handleExplicitSaveDraft,
     handleLoadQuoteFromDrafts,
     handleConfirmReset,

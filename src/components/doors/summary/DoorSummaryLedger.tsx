@@ -55,6 +55,7 @@ export interface DoorSummaryLedgerProps {
   setEditingField: (field: "labour" | "misc" | null) => void
   tempEditVal: string
   setTempEditVal: (val: string) => void
+  isReadOnly?: boolean
 }
 
 export function DoorSummaryLedger({
@@ -98,6 +99,7 @@ export function DoorSummaryLedger({
   setEditingField,
   tempEditVal,
   setTempEditVal,
+  isReadOnly = false,
 }: DoorSummaryLedgerProps) {
   return (
     <div className="space-y-2 text-xs sm:text-sm">
@@ -143,9 +145,13 @@ export function DoorSummaryLedger({
         </div>
       )}
 
-      {totals.hardwareTotal > 0 && (
+      {isInstallation && totals.hardwareTotal > 0 && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
-          <span className="font-medium text-foreground">Lockset &amp; Hardware</span>
+          <span className="font-medium text-foreground">
+            {totals.hardwareQty && totals.hardwareQty > 0
+              ? `${totals.hardwareQty} Locksets & Deadbolts`
+              : "Locksets & Deadbolts"}
+          </span>
           <span className="font-mono font-semibold text-foreground">
             +${totals.hardwareTotal.toFixed(2)}
           </span>
@@ -193,6 +199,7 @@ export function DoorSummaryLedger({
           setTempEditVal={setTempEditVal}
           setter={setCustomMisc}
           suffix={hasAnyAttached ? "(all quotes)" : undefined}
+          isReadOnly={isReadOnly}
         />
       )}
 
@@ -210,6 +217,7 @@ export function DoorSummaryLedger({
           setTempEditVal={setTempEditVal}
           setter={setCustomLabour}
           suffix={hasAnyAttached ? "(all quotes)" : undefined}
+          isReadOnly={isReadOnly}
         />
       )}
 
@@ -273,7 +281,10 @@ export function DoorSummaryLedger({
                 onToggleFirstNation(num === 8)
               }}
             >
-              <SelectTrigger className="h-7 w-[190px] bg-background/50 text-xs font-medium shadow-none">
+              <SelectTrigger
+                disabled={isReadOnly}
+                className="h-7 w-[190px] bg-background/50 text-xs font-medium shadow-none"
+              >
                 <SelectValue>
                   {(hstRate !== undefined ? hstRate : isFirstNation ? 8 : 13) === 8
                     ? "8% Material Exemption"

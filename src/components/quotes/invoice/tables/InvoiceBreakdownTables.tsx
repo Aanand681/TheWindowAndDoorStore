@@ -38,7 +38,7 @@ export function InvoiceBreakdownTables({
   return (
     <div className="space-y-2">
       {/* Travel & Set-up Breakdown */}
-      {travelItems.length > 0 && (
+      {!isSupplyOnly && travelItems.length > 0 && (
         <div>
           <div
             style={{ fontSize: `${smallFs}px` }}

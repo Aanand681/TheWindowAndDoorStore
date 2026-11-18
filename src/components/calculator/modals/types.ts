@@ -84,6 +84,16 @@ export interface CalculatorUtilityModalsProps {
   setShowResetModal: (show: boolean) => void
   handleConfirmReset: () => void
   handleSaveDraft?: () => Promise<any> | void
+
+  // Conflict Modal
+  showConflictModal?: boolean
+  setShowConflictModal?: (show: boolean) => void
+  pendingDraftToLoad?: QuoteDraftItem | null
+  onConflictSaveExistingAndLoad?: () => Promise<void> | void
+  onConflictContinueWithNew?: () => void
+  onConflictCancel?: () => void
+  customerName: string
+  quoteNumber: string
 }
 
 export interface CalculatorComparisonModalProps {

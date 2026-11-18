@@ -203,8 +203,7 @@ export function DoorPrintInvoice({
                         <span className="text-[7.5pt] font-medium text-slate-700">
                           {item.upgradeOption?.title ||
                             item.customDescription ||
-                            item.presetLabel}{" "}
-                          {diff < 0 ? "deduct:" : "add:"}
+                            item.presetLabel}
                         </span>
                       </div>
                       <span className="font-mono font-bold">

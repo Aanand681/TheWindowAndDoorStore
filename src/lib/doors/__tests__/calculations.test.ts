@@ -160,6 +160,10 @@ describe("Door Calculations Engine", () => {
       expect(totals.miscTotal).toBe(0)
       expect(totals.totalTravelAndSetup).toBe(0)
 
+      // Retains full installation capability for comparison and badges
+      expect(totals.fullInstallLabour).toBeGreaterThan(0)
+      expect(totals.fullInstallMisc).toBeGreaterThan(0)
+
       // Subtotal = Base ($2000) - Discount ($200) + Surcharge ($160) + Hardware ($158) = $2118
       expect(totals.subtotalPreTax).toBe(2118)
       // 13% HST on $2118 = $275.34

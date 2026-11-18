@@ -154,9 +154,13 @@ export function DoorPrintLedger({
 
       {totals.hardwareTotal > 0 && (
         <div className="flex justify-between text-[7.5pt]">
-          <span className="text-slate-600">Hardware &amp; Lockset:</span>
+          <span className="text-slate-600">
+            {totals.hardwareQty && totals.hardwareQty > 0
+              ? `${totals.hardwareQty} Locksets & Deadbolts:`
+              : "Locksets & Deadbolts:"}
+          </span>
           <span className="font-mono font-semibold">
-            ${totals.hardwareTotal.toFixed(2)}
+            +${totals.hardwareTotal.toFixed(2)}
           </span>
         </div>
       )}

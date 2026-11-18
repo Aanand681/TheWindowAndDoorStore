@@ -5,9 +5,13 @@ import { ResetModalWrapper } from "@/components/calculator/modals/ResetModalWrap
 import { SubmitReviewModal } from "@/components/calculator/SubmitReviewModal"
 import { SavedQuotesModal } from "@/components/calculator/SavedQuotesModal"
 import { AttachQuoteModal } from "@/components/calculator/AttachQuoteModal"
+import { UnsavedQuoteConflictModal } from "@/components/shared/UnsavedQuoteConflictModal"
 import QuoteInvoice from "@/components/quotes/QuoteInvoice"
 import QuotePreviewModal from "@/components/quotes/QuotePreviewModal"
-import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTemplateType } from "@/components/sealed-units"
 import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
@@ -53,6 +57,12 @@ interface SealedUnitsModalsGroupProps {
     setAttachedDoorQuote: (val: any) => void
     loadDraftIntoWorkspace: (draft: any) => void
     handleSaveDraft?: () => Promise<any> | void
+    showConflictModal?: boolean
+    setShowConflictModal?: (val: boolean) => void
+    pendingDraftToLoad?: any
+    handleConflictSaveExistingAndLoad?: () => Promise<void> | void
+    handleConflictContinueWithNew?: () => void
+    handleConflictCancel?: () => void
   }
   settings: {
     staffList: any[]
@@ -155,6 +165,8 @@ export function SealedUnitsModalsGroup({
           attachedWindowQuote={drafts.attachedWindowQuote}
           attachedDoorQuote={drafts.attachedDoorQuote}
           isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
+          attachedInstallOption={readSessionAttachedInstallOption()}
+          customOptions={readSessionCustomOptions()}
         />
       )}
 
@@ -181,6 +193,9 @@ export function SealedUnitsModalsGroup({
         regionName={regionName}
         attachedWindowQuote={drafts.attachedWindowQuote}
         attachedDoorQuote={drafts.attachedDoorQuote}
+        isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
+        attachedInstallOption={readSessionAttachedInstallOption()}
+        customOptions={readSessionCustomOptions()}
       />
 
       {/* Saved Quotes & Drafts Modal */}
@@ -203,6 +218,32 @@ export function SealedUnitsModalsGroup({
         onAttachDoor={drafts.setAttachedDoorQuote}
         onDetachDoor={() => drafts.setAttachedDoorQuote(null)}
       />
+
+      {/* Unsaved Quote Conflict Dialog */}
+      {drafts.showConflictModal && (
+        <UnsavedQuoteConflictModal
+          isOpen={Boolean(drafts.showConflictModal)}
+          onClose={
+            drafts.handleConflictCancel ||
+            (() => drafts.setShowConflictModal?.(false))
+          }
+          quoteTypeLabel="Sealed Unit"
+          existingQuoteTitle={
+            drafts.customerName || drafts.quoteNumber
+              ? `#${drafts.quoteNumber || "Draft"} - ${drafts.customerName || "Unnamed"}`
+              : "Draft in progress"
+          }
+          incomingQuoteTitle={
+            drafts.pendingDraftToLoad?.quoteNumber
+              ? `Sealed Unit Quote #${drafts.pendingDraftToLoad.quoteNumber}`
+              : "new sealed unit quote"
+          }
+          onSaveExistingAndLoad={
+            drafts.handleConflictSaveExistingAndLoad || (() => {})
+          }
+          onContinueWithNew={drafts.handleConflictContinueWithNew || (() => {})}
+        />
+      )}
     </>
   )
 }

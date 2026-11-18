@@ -10,12 +10,12 @@ interface ComparisonOptionACardProps {
   surchargeRate: number
   effectiveJC: number
   effectiveLabour: number
-  hstRate: number
+  hstRate?: number
   quoteResultA: any
   afterDiscountA: number
-  totalA: number
-  firstPaymentA: number
-  secondPaymentA: number
+  totalA?: number
+  firstPaymentA?: number
+  secondPaymentA?: number
   appliedOption: "A" | "B"
 }
 
@@ -26,12 +26,8 @@ export function ComparisonOptionACard({
   surchargeRate,
   effectiveJC,
   effectiveLabour,
-  hstRate,
   quoteResultA,
   afterDiscountA,
-  totalA,
-  firstPaymentA,
-  secondPaymentA,
   appliedOption,
 }: ComparisonOptionACardProps) {
   return (
@@ -104,30 +100,6 @@ export function ComparisonOptionACard({
               {formatMoney(afterDiscountA)}
             </span>
           </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>HST ({hstRate}%):</span>
-            <span className="font-semibold text-foreground">
-              {formatMoney(totalA - afterDiscountA)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Total Card */}
-      <div className="rounded-xl border border-border/80 bg-card p-3 shadow-xs">
-        <div className="flex items-baseline justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase">
-            Option A Total
-          </span>
-          <span className="text-lg font-black text-foreground">
-            {formatMoney(totalA)}
-          </span>
-        </div>
-        <div className="mt-1 flex justify-between border-t border-border/40 pt-1 text-[11px] text-muted-foreground">
-          <span>Deposits (50/50):</span>
-          <span>
-            {formatMoney(firstPaymentA)} / {formatMoney(secondPaymentA)}
-          </span>
         </div>
       </div>
     </div>

@@ -12,10 +12,13 @@ import {
   Send,
   Printer,
   Share2,
+  RotateCcw,
 } from "lucide-react"
+import { toast } from "sonner"
 
 export interface ReviewWorkflowActionButtonsProps {
   reviewQuote: any
+  user?: any
   isEditMode: boolean
   setIsEditMode: (val: boolean) => void
   canEditCurrentQuote: boolean
@@ -40,6 +43,7 @@ export interface ReviewWorkflowActionButtonsProps {
 
 export function ReviewWorkflowActionButtons({
   reviewQuote,
+  user,
   isEditMode,
   setIsEditMode,
   canEditCurrentQuote,
@@ -105,6 +109,7 @@ export function ReviewWorkflowActionButtons({
 
       {/* 2. APPROVE QUOTE (Strictly Admin / canApprove) */}
       {reviewQuote.status === "PENDING_REVIEW" &&
+        !isEditMode &&
         isReviewerOrAdmin &&
         canApprove && (
           <Button
@@ -121,6 +126,7 @@ export function ReviewWorkflowActionButtons({
 
       {/* 2B. FORWARD TO ADMIN (Peer Reviewer without final approval rights) */}
       {reviewQuote.status === "PENDING_REVIEW" &&
+        !isEditMode &&
         isReviewerOrAdmin &&
         !canApprove &&
         setShowReassignModal && (
@@ -150,7 +156,9 @@ export function ReviewWorkflowActionButtons({
         )}
 
       {/* 3. RETURN WITH NOTE (Reviewer / Admin) */}
-      {reviewQuote.status === "PENDING_REVIEW" && isReviewerOrAdmin && (
+      {reviewQuote.status === "PENDING_REVIEW" &&
+        !isEditMode &&
+        isReviewerOrAdmin && (
         <Button
           variant="outline"
           size="sm"
@@ -195,15 +203,60 @@ export function ReviewWorkflowActionButtons({
           </>
         )}
 
-      {/* Read-Only Banner for non-reviewers when pending */}
+      {/* Read-Only Banner / Recall Action for preparer or non-reviewers when pending */}
       {reviewQuote.status === "PENDING_REVIEW" &&
-        !isReviewerOrAdmin &&
-        !isEditMode && (
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            <Clock className="h-3.5 w-3.5 text-amber-500" />
-            <span>
-              In Review with {reviewQuote.assignedTo || "Reviewer"} (Read-Only)
-            </span>
+        !isEditMode &&
+        (reviewQuote.preparedBy?.toLowerCase() ===
+          user?.username?.toLowerCase() ||
+          !isReviewerOrAdmin) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 text-amber-500" />
+              <span>
+                In Review with {reviewQuote.assignedTo || "Reviewer"} (Read-Only)
+              </span>
+            </div>
+            {reviewQuote.preparedBy?.toLowerCase() ===
+              user?.username?.toLowerCase() && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Withdraw this quote from review to make revisions? It will be unlocked for editing."
+                    )
+                  )
+                    return
+                  try {
+                    const res = await fetch(`/api/quotes/${reviewQuote._id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        status: "RETURNED",
+                        reviewerNotes: `Withdrawn by preparer (${user?.username || "preparer"}) for revision.`,
+                      }),
+                    })
+                    if (!res.ok) {
+                      const err = await res.json()
+                      throw new Error(err.error || "Failed to recall quote")
+                    }
+                    toast.success(
+                      "Quote recalled from review. Unlocked for editing."
+                    )
+                    setIsEditMode(true)
+                    window.location.reload()
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to recall quote")
+                  }
+                }}
+                className="cursor-pointer border-amber-500/50 bg-amber-500/10 font-bold text-amber-600 shadow-sm hover:bg-amber-500/20 dark:text-amber-400"
+                title="Withdraw quote from review to make revisions"
+              >
+                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                Recall &amp; Edit
+              </Button>
+            )}
           </div>
         )}
 

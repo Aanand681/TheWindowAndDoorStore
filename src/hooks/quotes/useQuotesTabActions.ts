@@ -26,6 +26,7 @@ export function useQuotesTabActions({
   const [quoteToDelete, setQuoteToDelete] = useState<{
     id: string
     quoteNumber: string
+    isPending?: boolean
   } | null>(null)
   const [isDeletingQuote, setIsDeletingQuote] = useState(false)
 
@@ -71,8 +72,37 @@ export function useQuotesTabActions({
     }
   }
 
-  const promptDeleteQuote = (id: string, quoteNum: string) => {
-    setQuoteToDelete({ id, quoteNumber: quoteNum })
+  const promptDeleteQuote = (id: string, quoteNum: string, isPending?: boolean) => {
+    setQuoteToDelete({ id, quoteNumber: quoteNum, isPending: Boolean(isPending) })
+  }
+
+  const handleRecallQuote = async (id: string, quoteNumber: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/quotes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "RETURNED",
+          reviewerNotes: `Withdrawn by preparer (${currentUser?.username || "preparer"}) for revision.`,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to recall quote")
+      }
+      const updated = await res.json()
+      setQuotes((prev) =>
+        prev.map((q) => (q._id === id ? { ...q, ...updated, status: "RETURNED" } : q))
+      )
+      toast.success(`Quote #${quoteNumber} recalled. Unlocked for editing.`)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("quote-count-updated"))
+      }
+      return true
+    } catch (err: any) {
+      toast.error(err.message || "Failed to recall quote")
+      return false
+    }
   }
 
   const confirmDeleteQuote = async () => {
@@ -221,6 +251,7 @@ export function useQuotesTabActions({
     handleToggleStar,
     promptDeleteQuote,
     confirmDeleteQuote,
+    handleRecallQuote,
     handleQuickApprove,
     handleConfirmOdooEntry,
     handleFlushStorage,

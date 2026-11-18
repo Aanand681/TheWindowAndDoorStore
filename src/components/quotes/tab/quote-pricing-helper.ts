@@ -14,10 +14,36 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
 
   // 1. Door Quote Handling
   if (isDoorQuote) {
-    const rawGrandTotal =
+    let rawGrandTotal =
       Number(quote.taxTotals?.grandTotal) ||
       Number(quote.quoteSummaryTotal) ||
       0
+
+    if (rawGrandTotal <= 0) {
+      rawGrandTotal =
+        Number(quote.initialSnapshot?.taxTotals?.grandTotal) ||
+        Number(quote.initialSnapshot?.quoteSummaryTotal) ||
+        0
+    }
+
+    if (
+      rawGrandTotal <= 0 &&
+      Array.isArray(quote.windows) &&
+      quote.windows.length > 0
+    ) {
+      const lineSum = quote.windows.reduce(
+        (sum: number, w: any) =>
+          sum +
+          (Number(w.lineTotal) ||
+            Number(w.finalUnitPrice || w.inksterBasePrice || 0) *
+              (w.quantity || 1)),
+        0
+      )
+      if (lineSum > 0) {
+        rawGrandTotal = Math.round(lineSum * 1.13 * 100) / 100
+      }
+    }
+
     const totalCents =
       rawGrandTotal > 0 && rawGrandTotal < 100000
         ? Math.round(rawGrandTotal * 100)
@@ -71,10 +97,35 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
 
   // 2. Sealed Unit Quote Handling
   if (isSealedUnitQuote) {
-    const rawGrandTotal =
+    let rawGrandTotal =
       Number(quote.taxTotals?.grandTotal) ||
       Number(quote.quoteSummaryTotal) ||
       0
+
+    if (rawGrandTotal <= 0) {
+      rawGrandTotal =
+        Number(quote.initialSnapshot?.taxTotals?.grandTotal) ||
+        Number(quote.initialSnapshot?.quoteSummaryTotal) ||
+        0
+    }
+
+    if (
+      rawGrandTotal <= 0 &&
+      Array.isArray(quote.windows) &&
+      quote.windows.length > 0
+    ) {
+      const lineSum = quote.windows.reduce(
+        (sum: number, w: any) =>
+          sum +
+          (Number(w.lineTotal) ||
+            Number(w.finalUnitPrice || 0) * (w.quantity || 1)),
+        0
+      )
+      if (lineSum > 0) {
+        rawGrandTotal = Math.round(lineSum * 1.13 * 100) / 100
+      }
+    }
+
     const totalCents =
       rawGrandTotal > 0 && rawGrandTotal < 100000
         ? Math.round(rawGrandTotal * 100)

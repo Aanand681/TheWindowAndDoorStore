@@ -2,7 +2,13 @@
 
 import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Clock, AlertCircle, ClipboardCheck, CheckCircle2 } from "lucide-react"
+import {
+  Clock,
+  AlertCircle,
+  ClipboardCheck,
+  CheckCircle2,
+  RotateCcw,
+} from "lucide-react"
 import type { QuotesSubTabType } from "../types"
 
 export interface EmployeeStatsCardsProps {
@@ -10,6 +16,7 @@ export interface EmployeeStatsCardsProps {
   handleTabChange: (tab: QuotesSubTabType) => void
   employeeAssignedCount: number
   employeeInReviewCount: number
+  employeeReturnedCount: number
   employeeOdooDoneCount: number
   employeeHistoryCount: number
 }
@@ -19,6 +26,7 @@ export function EmployeeStatsCards({
   handleTabChange,
   employeeAssignedCount,
   employeeInReviewCount,
+  employeeReturnedCount,
   employeeOdooDoneCount,
   employeeHistoryCount,
 }: EmployeeStatsCardsProps) {
@@ -69,6 +77,43 @@ export function EmployeeStatsCards({
             </div>
           </div>
           <div className="rounded-full bg-sky-500/20 p-2.5 text-sky-500">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employee Card 3: Needs Revision (Returned Quotes) */}
+      <Card
+        className={`cursor-pointer border transition-all duration-200 ${
+          activeTab === "returned"
+            ? "border-amber-500/50 bg-amber-500/10 shadow-md ring-2 ring-amber-500/20"
+            : employeeReturnedCount > 0
+              ? "border-amber-500/40 bg-amber-500/5 hover:border-amber-500/70"
+              : "border-border/70 bg-card/40 hover:border-border"
+        }`}
+        onClick={() => handleTabChange("returned")}
+      >
+        <CardContent className="flex items-center justify-between p-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-amber-500 uppercase">
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Needs Revision</span>
+            </div>
+            <div
+              className={`mt-1 font-mono text-2xl font-black ${
+                employeeReturnedCount > 0 ? "text-amber-500" : "text-foreground"
+              }`}
+            >
+              {employeeReturnedCount}
+            </div>
+          </div>
+          <div
+            className={`rounded-full p-2.5 ${
+              employeeReturnedCount > 0
+                ? "animate-pulse bg-amber-500/20 text-amber-500"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
             <AlertCircle className="h-5 w-5" />
           </div>
         </CardContent>

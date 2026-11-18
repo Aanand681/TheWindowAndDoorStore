@@ -6,6 +6,9 @@ import {
   getActiveAutoSave,
   clearActiveAutoSave,
   getSavedDrafts,
+  isAutoSaveAlreadySaved,
+  isDraftMeaningful,
+  QuoteDraftItem,
 } from "@/lib/quote-drafts-storage"
 import {
   SealedUnitLineItem,
@@ -31,6 +34,7 @@ interface UseSealedUnitsAutoSaveProps {
   attachedDoorQuote: any
   setters: WorkspaceSetters
   loadDraftIntoWorkspace: (draft: any) => void
+  onConflictDetected?: (draft: QuoteDraftItem) => void
 }
 
 export function useSealedUnitsAutoSave({
@@ -44,6 +48,7 @@ export function useSealedUnitsAutoSave({
   attachedDoorQuote,
   setters,
   loadDraftIntoWorkspace,
+  onConflictDetected,
 }: UseSealedUnitsAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const lastSavedSnapshotRef = useRef<string>("")
@@ -77,8 +82,21 @@ export function useSealedUnitsAutoSave({
         const allDrafts = getSavedDrafts()
         const match = allDrafts.find((d) => d.id === draftId)
         if (match && match.type === "sealed_unit") {
-          loadDraftIntoWorkspace(match)
-          window.history.replaceState({}, "", "/sealed-units")
+          const recovered = getActiveAutoSave("sealed_unit")
+          const isUnsaved =
+            recovered &&
+            !isAutoSaveAlreadySaved("sealed_unit", recovered) &&
+            isDraftMeaningful("sealed_unit", recovered)
+
+          if (isUnsaved) {
+            restoreAutoSaveIntoWorkspace(recovered)
+            onConflictDetected?.(match)
+          } else {
+            loadDraftIntoWorkspace(match)
+            const url = new URL(window.location.href)
+            url.searchParams.delete("loadDraftId")
+            window.history.replaceState({}, "", url.toString())
+          }
           return
         }
       }
@@ -92,7 +110,7 @@ export function useSealedUnitsAutoSave({
     ) {
       restoreAutoSaveIntoWorkspace(recovered)
     }
-  }, [loadDraftIntoWorkspace, restoreAutoSaveIntoWorkspace])
+  }, [loadDraftIntoWorkspace, restoreAutoSaveIntoWorkspace, onConflictDetected])
 
   // Debounced auto-save effect
   useEffect(() => {

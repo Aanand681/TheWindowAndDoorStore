@@ -5,3 +5,5 @@ export * from "./SealedUnitLineItemsTable"
 export * from "./SealedUnitPrintInvoice"
 export * from "./SealedUnitPreviewModal"
 export * from "./SealedUnitOfficePricingCard"
+export * from "./SealedUnitsCalculator"
+

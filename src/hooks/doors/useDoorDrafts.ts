@@ -1,10 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
   saveQuoteDraftDirectly,
   getSavedDrafts,
+  getActiveAutoSave,
   clearActiveAutoSave,
+  isAutoSaveAlreadySaved,
+  isDraftMeaningful,
+  isWorkspaceDirtyOrUnsaved,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
   syncRemoteDrafts,
@@ -17,7 +22,14 @@ import { toast } from "sonner"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
+  writeSessionAttachedInstallOption,
+  writeSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  applyDoorDraftToWorkspace,
+  DoorWorkspaceSetters,
+} from "./door-draft-applier"
+import { executeSaveDoorDraft } from "./door-draft-saver"
 
 interface UseDoorDraftsProps {
   customerName: string
@@ -102,9 +114,105 @@ export function useDoorDrafts({
   totals,
   setLastSavedAt,
 }: UseDoorDraftsProps) {
+  const router = useRouter()
   const [savedDraftsCount, setSavedDraftsCount] = useState<number>(0)
   const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState<boolean>(false)
   const [showResetModal, setShowResetModal] = useState<boolean>(false)
+  const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
+  const [pendingDraftToLoad, setPendingDraftToLoad] =
+    useState<QuoteDraftItem | null>(null)
+
+  const setters: DoorWorkspaceSetters = useMemo(
+    () => ({
+      setCustomerName,
+      setQuoteNumber,
+      setMode,
+      setLineItems,
+      setGlobalUpcharges,
+      setSelectedRegionId,
+      setTravelFeeType,
+      setCustomTravelFee,
+      setShowOutTownTravel,
+      setTravelKm,
+      setCrewHours,
+      setCrewSize,
+      setQuoteNotes,
+      setIsFirstNation,
+      setCustomLabour,
+      setCustomMisc,
+      setAttachedWindowQuote,
+      setAttachedSealedUnit,
+    }),
+    [
+      setCustomerName,
+      setQuoteNumber,
+      setMode,
+      setLineItems,
+      setGlobalUpcharges,
+      setSelectedRegionId,
+      setTravelFeeType,
+      setCustomTravelFee,
+      setShowOutTownTravel,
+      setTravelKm,
+      setCrewHours,
+      setCrewSize,
+      setQuoteNotes,
+      setIsFirstNation,
+      setCustomLabour,
+      setCustomMisc,
+      setAttachedWindowQuote,
+      setAttachedSealedUnit,
+    ]
+  )
+
+  const isCurrentWorkspaceDirty = () => {
+    return isWorkspaceDirtyOrUnsaved("door", {
+      quoteNumber,
+      customerName,
+      itemCount: lineItems.length,
+      grandTotal: totals.grandTotal,
+      data: {
+        lineItems,
+        attachedWindowQuote,
+        attachedSealedUnit,
+      },
+    })
+  }
+
+  const cleanUrlLoadDraftId = () => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    url.searchParams.delete("loadDraftId")
+    window.history.replaceState({}, "", url.toString())
+  }
+
+  // Check URL query param ?loadDraftId=... on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const loadDraftId = params.get("loadDraftId")
+    if (!loadDraftId) return
+
+    const drafts = getSavedDrafts()
+    const target = drafts.find((d) => d.id === loadDraftId)
+    if (!target || target.type !== "door") return
+
+    const autoSave = getActiveAutoSave("door")
+    const isUnsaved =
+      autoSave &&
+      !isAutoSaveAlreadySaved("door", autoSave) &&
+      isDraftMeaningful("door", autoSave)
+
+    if (isUnsaved) {
+      setPendingDraftToLoad(target)
+      setShowConflictModal(true)
+    } else {
+      applyDoorDraftToWorkspace(target, setters)
+      clearActiveAutoSave("door")
+      toast.success(`Loaded Door Quote #${target.quoteNumber}`)
+      cleanUrlLoadDraftId()
+    }
+  }, [setters])
 
   const updateSavedCount = () => {
     const all = getSavedDrafts()
@@ -120,74 +228,29 @@ export function useDoorDrafts({
   }, [])
 
   const handleExplicitSaveDraft = async (): Promise<QuoteDraftItem | null> => {
-    try {
-      if (!customerName.trim()) {
-        toast.error("Customer name is required before saving a draft.")
-        return null
-      }
+    const saved = await executeSaveDoorDraft({
+      customerName,
+      quoteNumber,
+      lineItems,
+      attachedWindowQuote,
+      attachedSealedUnit,
+      totals,
+      mode,
+      globalUpcharges,
+      selectedRegionId,
+      travelFeeType,
+      customTravelFee,
+      showOutTownTravel,
+      travelKm,
+      crewHours,
+      crewSize,
+      isFirstNation,
+      customLabour,
+      customMisc,
+      quoteNotes,
+    })
 
-      if (!quoteNumber.trim()) {
-        toast.error("Quote number is required before saving a draft.")
-        return null
-      }
-
-      if (
-        lineItems.length === 0 &&
-        !attachedWindowQuote &&
-        !attachedSealedUnit
-      ) {
-        toast.error(
-          "Please configure and add at least one door unit before saving a draft."
-        )
-        return null
-      }
-
-      const summaryLabel = formatDoorSummarySentence(lineItems)
-      const effectiveTotals = computeEffectiveDoorGrandTotal({
-        totals,
-        mode,
-        customLabour,
-        customMisc,
-        isFirstNation,
-        attachedWindowQuote,
-        attachedSealedUnit,
-      })
-
-      const saved = await saveQuoteDraftDirectly({
-        type: "door",
-        quoteNumber,
-        customerName,
-        itemCount: lineItems.length,
-        subtotal: effectiveTotals.combinedSubtotal,
-        grandTotal: effectiveTotals.grandTotal,
-        summaryLabel,
-        data: {
-          quoteNumber,
-          customerName,
-          quoteNotes,
-          mode,
-          lineItems,
-          globalUpcharges,
-          selectedRegionId: selectedRegionId || "",
-          travelFeeType,
-          customTravelFee,
-          showOutTownTravel,
-          travelKm,
-          crewHours,
-          crewSize,
-          isFirstNation,
-          customLabour,
-          customMisc,
-          attachedWindowQuote,
-          attachedSealedUnit,
-          attachedInstallOption: readSessionAttachedInstallOption(),
-          customOptions: readSessionCustomOptions(),
-          subtotal: effectiveTotals.combinedSubtotal,
-          grandTotal: effectiveTotals.grandTotal,
-          itemCount: lineItems.length,
-          totals,
-        },
-      })
+    if (saved) {
       updateSavedCount()
       const nowStr = new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -197,53 +260,62 @@ export function useDoorDrafts({
       toast.success(
         `Door quote draft #${quoteNumber} saved directly to database!`
       )
-      return saved
-    } catch {
-      toast.error(
-        "Failed to save draft to database. Please check your connection and try again."
-      )
-      return null
     }
+    return saved
   }
 
   const handleLoadQuoteFromDrafts = (draft: QuoteDraftItem) => {
-    if (draft.type !== "door") {
-      toast.info(
-        `Selected a ${draft.type} draft. Switch to that calculator to open it.`
-      )
+    if (draft.type === "window") {
+      router.push(`/calculator?loadDraftId=${draft.id}`)
+      setIsSavedQuotesOpen(false)
+      return
+    }
+    if (draft.type === "sealed_unit") {
+      router.push(`/sealed-units?loadDraftId=${draft.id}`)
+      setIsSavedQuotesOpen(false)
       return
     }
 
-    const d = draft.data as any
-    if (d.customerName) setCustomerName(d.customerName)
-    if (d.quoteNumber) setQuoteNumber(d.quoteNumber)
-    if (d.mode) setMode(d.mode)
-    if (Array.isArray(d.lineItems)) setLineItems(d.lineItems)
-    if (Array.isArray(d.globalUpcharges)) setGlobalUpcharges(d.globalUpcharges)
-    if (d.selectedRegionId && setSelectedRegionId)
-      setSelectedRegionId(d.selectedRegionId)
-    if (d.travelFeeType) setTravelFeeType(d.travelFeeType)
-    if (d.customTravelFee !== undefined) setCustomTravelFee(d.customTravelFee)
-    if (d.showOutTownTravel !== undefined)
-      setShowOutTownTravel(d.showOutTownTravel)
-    if (d.travelKm !== undefined) setTravelKm(d.travelKm)
-    if (d.crewHours !== undefined) setCrewHours(d.crewHours)
-    if (d.crewSize) setCrewSize(d.crewSize)
-    if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes)
-    if (d.isFirstNation !== undefined) setIsFirstNation(d.isFirstNation)
-    if (d.customLabour !== undefined) setCustomLabour(String(d.customLabour))
-    else setCustomLabour("")
-    if (d.customMisc !== undefined) setCustomMisc(String(d.customMisc))
-    else setCustomMisc("")
-    if (d.attachedWindowQuote !== undefined)
-      setAttachedWindowQuote(d.attachedWindowQuote)
-    else setAttachedWindowQuote(null)
-    if (d.attachedSealedUnit !== undefined)
-      setAttachedSealedUnit(d.attachedSealedUnit)
-    else setAttachedSealedUnit(null)
+    if (isCurrentWorkspaceDirty()) {
+      setPendingDraftToLoad(draft)
+      setShowConflictModal(true)
+      setIsSavedQuotesOpen(false)
+      return
+    }
 
+    applyDoorDraftToWorkspace(draft, setters)
+    clearActiveAutoSave("door")
     setIsSavedQuotesOpen(false)
     toast.success(`Loaded Door Quote #${draft.quoteNumber}`)
+  }
+
+  const handleConflictSaveExistingAndLoad = async () => {
+    if (!pendingDraftToLoad) return
+    const saved = await handleExplicitSaveDraft()
+    if (saved) {
+      applyDoorDraftToWorkspace(pendingDraftToLoad, setters)
+      clearActiveAutoSave("door")
+      toast.success(`Loaded Door Quote #${pendingDraftToLoad.quoteNumber}`)
+      setShowConflictModal(false)
+      setPendingDraftToLoad(null)
+      cleanUrlLoadDraftId()
+    }
+  }
+
+  const handleConflictContinueWithNew = () => {
+    if (!pendingDraftToLoad) return
+    applyDoorDraftToWorkspace(pendingDraftToLoad, setters)
+    clearActiveAutoSave("door")
+    toast.success(`Loaded Door Quote #${pendingDraftToLoad.quoteNumber}`)
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
+  }
+
+  const handleConflictCancel = () => {
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
   }
 
   const handleConfirmReset = () => {
@@ -264,6 +336,8 @@ export function useDoorDrafts({
     setQuoteNumber("")
     setAttachedWindowQuote(null)
     setAttachedSealedUnit(null)
+    writeSessionAttachedInstallOption(null)
+    writeSessionCustomOptions([])
     clearActiveAutoSave("door")
     setLastSavedAt(null)
     setShowResetModal(false)
@@ -276,6 +350,12 @@ export function useDoorDrafts({
     setIsSavedQuotesOpen,
     showResetModal,
     setShowResetModal,
+    showConflictModal,
+    setShowConflictModal,
+    pendingDraftToLoad,
+    handleConflictSaveExistingAndLoad,
+    handleConflictContinueWithNew,
+    handleConflictCancel,
     handleExplicitSaveDraft,
     handleLoadQuoteFromDrafts,
     handleConfirmReset,

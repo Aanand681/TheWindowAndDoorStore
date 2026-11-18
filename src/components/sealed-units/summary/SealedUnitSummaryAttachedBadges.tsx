@@ -37,11 +37,11 @@ export function SealedUnitSummaryAttachedBadges({
       : attachedInstallOption?.mode !== "install"
 
   const displayDollars =
-    attachedInstallOption?.amountPreTaxCents &&
-    attachedInstallOption.amountPreTaxCents > 0
-      ? attachedInstallOption.amountPreTaxCents / 100
-      : dynamicInstallDeltaDollars && dynamicInstallDeltaDollars > 0
-        ? dynamicInstallDeltaDollars
+    dynamicInstallDeltaDollars && dynamicInstallDeltaDollars > 0
+      ? dynamicInstallDeltaDollars
+      : attachedInstallOption?.amountPreTaxCents &&
+          attachedInstallOption.amountPreTaxCents > 0
+        ? attachedInstallOption.amountPreTaxCents / 100
         : 0
 
   return (

@@ -45,11 +45,19 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
     updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   })
 
-  const totalActionableCount = pendingReviewCount + pendingOdooCount
+  // Returned quotes prepared by this user that require revision
+  const returnedCount = await SavedQuote.countDocuments({
+    status: "RETURNED",
+    preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") },
+  })
+
+  const totalActionableCount =
+    pendingReviewCount + pendingOdooCount + returnedCount
 
   const badgeData = {
     pendingReviewCount,
     pendingOdooCount,
+    returnedCount,
     totalActionableCount,
     myUpdatesCount,
   }

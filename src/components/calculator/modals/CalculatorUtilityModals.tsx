@@ -6,6 +6,7 @@ import {
   AttachQuoteModalWrapper,
   ResetModalWrapper,
 } from "./index"
+import { UnsavedQuoteConflictModal } from "@/components/shared/UnsavedQuoteConflictModal"
 import { CalculatorUtilityModalsProps } from "./types"
 
 export function CalculatorUtilityModals({
@@ -22,6 +23,14 @@ export function CalculatorUtilityModals({
   setShowResetModal,
   handleConfirmReset,
   handleSaveDraft,
+  showConflictModal,
+  setShowConflictModal,
+  pendingDraftToLoad,
+  onConflictSaveExistingAndLoad,
+  onConflictContinueWithNew,
+  onConflictCancel,
+  customerName,
+  quoteNumber,
 }: CalculatorUtilityModalsProps) {
   const handleSaveDraftAndReset = async () => {
     if (handleSaveDraft) {
@@ -64,6 +73,26 @@ export function CalculatorUtilityModals({
         onConfirm={handleConfirmReset}
         onSaveDraftAndReset={handleSaveDraftAndReset}
       />
+
+      {showConflictModal && (
+        <UnsavedQuoteConflictModal
+          isOpen={Boolean(showConflictModal)}
+          onClose={onConflictCancel || (() => setShowConflictModal?.(false))}
+          quoteTypeLabel="Window"
+          existingQuoteTitle={
+            customerName || quoteNumber
+              ? `#${quoteNumber || "Draft"} - ${customerName || "Unnamed"}`
+              : "Draft in progress"
+          }
+          incomingQuoteTitle={
+            pendingDraftToLoad?.quoteNumber
+              ? `Window Quote #${pendingDraftToLoad.quoteNumber}`
+              : "new window quote"
+          }
+          onSaveExistingAndLoad={onConflictSaveExistingAndLoad || (() => {})}
+          onContinueWithNew={onConflictContinueWithNew || (() => {})}
+        />
+      )}
     </>
   )
 }

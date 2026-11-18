@@ -88,4 +88,10 @@ export interface UseCalculatorDraftsReturn {
   restoreAutoSaveIntoWorkspace: (recovered: any) => void
   handleSaveDraft: () => Promise<QuoteDraftItem | null>
   resetDraftState: () => void
+  showConflictModal: boolean
+  setShowConflictModal: (show: boolean) => void
+  pendingDraftToLoad: QuoteDraftItem | null
+  handleConflictSaveExistingAndLoad: () => Promise<void> | void
+  handleConflictContinueWithNew: () => void
+  handleConflictCancel: () => void
 }

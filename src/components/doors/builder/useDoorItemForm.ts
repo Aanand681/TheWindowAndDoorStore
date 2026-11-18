@@ -198,6 +198,30 @@ export function useDoorItemForm({
       unitLabour: isNaN(labP) ? currentPreset.labour : labP,
       unitMisc: isNaN(miscP) ? currentPreset.misc : miscP,
       hardwareType,
+      supplyHardwareType:
+        mode === "supply_only"
+          ? hardwareType
+          : editingItem?.supplyHardwareType,
+      supplyHardwarePrice:
+        mode === "supply_only"
+          ? hardwareType === "custom"
+            ? customHwP
+            : hardwareType === "standard"
+              ? Number(formula.locksetDeadboltPrice) || 158.0
+              : 0
+          : editingItem?.supplyHardwarePrice,
+      installHardwareType:
+        mode === "installation"
+          ? hardwareType
+          : editingItem?.installHardwareType,
+      installHardwarePrice:
+        mode === "installation"
+          ? hardwareType === "custom"
+            ? customHwP
+            : hardwareType === "standard"
+              ? Number(formula.locksetDeadboltPrice) || 158.0
+              : 0
+          : editingItem?.installHardwarePrice,
       customHardwareName:
         hardwareType === "custom" ? customHardwareName : undefined,
       customHardwarePrice: customHwP,

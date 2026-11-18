@@ -11,6 +11,8 @@ import {
   ClipboardCheck,
   AlertTriangle,
 } from "lucide-react"
+import { formatReviewerName } from "@/lib/format-reviewer"
+import { parseDiffItem, calculateNetDiffDelta } from "@/lib/format-quote-diff"
 
 export interface ReviewWorkflowStatusInfoProps {
   reviewQuote: any
@@ -27,6 +29,42 @@ export function ReviewWorkflowStatusInfo({
   isOdooClerk,
   user,
 }: ReviewWorkflowStatusInfoProps) {
+  const netDelta = calculateNetDiffDelta(reviewQuote)
+  const reviewerName = formatReviewerName(
+    reviewQuote.reviewedBy ||
+      reviewQuote.lastEditedBy ||
+      reviewQuote.assignedTo
+  )
+
+  const renderBadgeIcon = (type: "added" | "updated" | "removed" | "info") => {
+    if (type === "added") {
+      return (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold ring-1 ring-emerald-500/30">
+          +
+        </span>
+      )
+    }
+    if (type === "updated") {
+      return (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold ring-1 ring-amber-500/30">
+          ~
+        </span>
+      )
+    }
+    if (type === "removed") {
+      return (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-destructive/20 text-destructive text-[10px] font-bold ring-1 ring-destructive/30">
+          -
+        </span>
+      )
+    }
+    return (
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+        •
+      </span>
+    )
+  }
+
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2">
@@ -60,7 +98,7 @@ export function ReviewWorkflowStatusInfo({
                 {isReviewerOrAdmin
                   ? "Review Mode Active"
                   : reviewQuote.assignedTo
-                    ? `In Review with ${reviewQuote.assignedTo} (Read-Only)`
+                    ? `In Review with ${formatReviewerName(reviewQuote.assignedTo)} (Read-Only)`
                     : "In Review (Read-Only)"}
               </span>
             )}
@@ -102,7 +140,7 @@ export function ReviewWorkflowStatusInfo({
             <span>
               Assigned to:{" "}
               <strong className="text-foreground">
-                {reviewQuote.assignedTo}
+                {formatReviewerName(reviewQuote.assignedTo)}
               </strong>
             </span>
           </>
@@ -123,8 +161,7 @@ export function ReviewWorkflowStatusInfo({
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
             <strong className="text-amber-900 dark:text-amber-300">
-              Revision requested by{" "}
-              {reviewQuote.reviewedBy || reviewQuote.assignedTo || "Reviewer"}:
+              Revision requested by {reviewerName}:
             </strong>
             <p className="mt-0.5 font-normal text-foreground/90 italic">
               &ldquo;{reviewQuote.reviewerNotes}&rdquo;
@@ -137,24 +174,41 @@ export function ReviewWorkflowStatusInfo({
       {reviewQuote.status === "MODIFIED" &&
         !isOdooClerk &&
         user?.department !== "CLERK" && (
-          <div className="mt-2 animate-in rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-medium text-blue-950 shadow-xs fade-in dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100">
-            <div className="mb-1.5 flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-300">
-              <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span>
-                What{" "}
-                {reviewQuote.reviewedBy || reviewQuote.assignedTo || "Admin"}{" "}
-                Edited &amp; Approved:
-              </span>
+          <div className="mt-2 animate-in rounded-xl border border-blue-200 bg-blue-50/90 p-3 text-xs font-medium text-blue-950 shadow-xs fade-in dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-100 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 pb-1.5 dark:border-blue-800/60 font-bold text-blue-900 dark:text-blue-300">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span>What {reviewerName} Edited &amp; Approved:</span>
+              </div>
+              {netDelta && (
+                <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  {netDelta} Net
+                </span>
+              )}
             </div>
             {reviewQuote.reviewChanges &&
             reviewQuote.reviewChanges.length > 0 ? (
-              <ul className="mt-1 list-disc space-y-1 pl-5 font-medium text-blue-800 dark:text-blue-200">
-                {reviewQuote.reviewChanges.map((c: string, idx: number) => (
-                  <li key={idx} className="leading-snug">
-                    {c}
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-1.5 pt-0.5">
+                {reviewQuote.reviewChanges.map((c: string, idx: number) => {
+                  const item = parseDiffItem(c)
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-background/60 px-2.5 py-1.5 border border-border/50 text-foreground"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {renderBadgeIcon(item.type)}
+                        <span className="text-xs">{item.text}</span>
+                      </div>
+                      {item.delta && (
+                        <span className="inline-flex items-center rounded bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                          {item.delta}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             ) : (
               <p className="mt-0.5 text-blue-700 italic dark:text-blue-300">
                 Price or specification adjustments made during review.

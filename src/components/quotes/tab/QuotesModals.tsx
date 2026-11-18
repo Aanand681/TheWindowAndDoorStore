@@ -25,10 +25,11 @@ export interface QuotesModalsProps {
   reviewingAction: boolean
   handleQuickApprove: (quote: any, newStatus: "APPROVED" | "RETURNED") => void
   staffList: any[]
-  quoteToDelete: { id: string; quoteNumber: string } | null
+  quoteToDelete: { id: string; quoteNumber: string; isPending?: boolean } | null
   setQuoteToDelete: (val: any) => void
   isDeletingQuote: boolean
   confirmDeleteQuote: () => void
+  handleRecallQuote?: (id: string, quoteNumber: string) => Promise<boolean>
   previewQuote: any
   setPreviewQuote: (val: any) => void
   isPreviewOpen: boolean
@@ -70,6 +71,7 @@ export function QuotesModals({
   setQuoteToDelete,
   isDeletingQuote,
   confirmDeleteQuote,
+  handleRecallQuote,
   previewQuote,
   setPreviewQuote,
   isPreviewOpen,
@@ -118,6 +120,7 @@ export function QuotesModals({
         setQuoteToDelete={setQuoteToDelete}
         isDeletingQuote={isDeletingQuote}
         confirmDeleteQuote={confirmDeleteQuote}
+        onRecallQuote={handleRecallQuote}
       />
 
       <QuotePreviewModalWrapper

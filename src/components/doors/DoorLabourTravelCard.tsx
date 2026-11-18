@@ -47,6 +47,7 @@ interface DoorLabourTravelCardProps {
     crewHours?: string
     crewSize?: "2" | "3"
   }) => void
+  isReadOnly?: boolean
   className?: string
 }
 
@@ -66,6 +67,7 @@ export function DoorLabourTravelCard({
   crewSize,
   logistics,
   onUpdateParams,
+  isReadOnly = false,
   className,
 }: DoorLabourTravelCardProps) {
   const isInstallation = mode === "installation"
@@ -112,30 +114,32 @@ export function DoorLabourTravelCard({
       </CardHeader>
 
       <CardContent className="space-y-3.5 p-3.5 !pt-3">
-        <DoorSiteUpchargesSection
-          availableUpcharges={availableUpcharges}
-          globalUpcharges={globalUpcharges}
-          onUpdateGlobalUpcharges={onUpdateGlobalUpcharges}
-        />
+        <fieldset disabled={isReadOnly} className="space-y-3.5 border-0 p-0 m-0">
+          <DoorSiteUpchargesSection
+            availableUpcharges={availableUpcharges}
+            globalUpcharges={globalUpcharges}
+            onUpdateGlobalUpcharges={onUpdateGlobalUpcharges}
+          />
 
-        <DoorSetupPresetsSection
-          regions={regions}
-          selectedRegionId={selectedRegionId}
-          onSelectRegion={onSelectRegion}
-          travelFeeType={travelFeeType}
-          customTravelFee={customTravelFee}
-          logistics={logistics}
-          onUpdateParams={onUpdateParams}
-        />
+          <DoorSetupPresetsSection
+            regions={regions}
+            selectedRegionId={selectedRegionId}
+            onSelectRegion={onSelectRegion}
+            travelFeeType={travelFeeType}
+            customTravelFee={customTravelFee}
+            logistics={logistics}
+            onUpdateParams={onUpdateParams}
+          />
 
-        <DoorMileageSection
-          showOutTownTravel={showOutTownTravel}
-          travelKm={travelKm}
-          crewHours={crewHours}
-          crewSize={crewSize}
-          logistics={logistics}
-          onUpdateParams={onUpdateParams}
-        />
+          <DoorMileageSection
+            showOutTownTravel={showOutTownTravel}
+            travelKm={travelKm}
+            crewHours={crewHours}
+            crewSize={crewSize}
+            logistics={logistics}
+            onUpdateParams={onUpdateParams}
+          />
+        </fieldset>
       </CardContent>
     </Card>
   )

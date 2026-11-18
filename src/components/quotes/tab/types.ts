@@ -6,6 +6,7 @@ export type QuotesSubTabType =
   | "all"
   | "odoo_completed"
   | "all_assigned"
+  | "returned"
 
 export interface QuotesTabProps {
   currentUser: any

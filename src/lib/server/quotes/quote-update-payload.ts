@@ -1,5 +1,6 @@
 import SavedQuote from "@/models/SavedQuote"
 import { detectQuoteChanges } from "@/lib/quote-diff"
+import { formatReviewerName } from "@/lib/format-reviewer"
 
 export interface BuildQuoteUpdatePayloadResult {
   error?: string
@@ -260,6 +261,11 @@ export async function buildQuoteUpdatePayload(p: {
     ...updateData,
   }
 
+  const effectiveEditor = formatReviewerName(reviewerUsername, userRole)
+  updateData.lastEditedBy = effectiveEditor
+  updateData.lastEditedAt = new Date()
+  updateData.updatedAt = new Date()
+
   // 3. Automatically detect all changes against baseline
   const autoDetectedChanges = detectQuoteChanges(baseline, targetState)
   const clientChanges = Array.isArray(body.reviewChanges)
@@ -271,6 +277,9 @@ export async function buildQuoteUpdatePayload(p: {
 
   if (mergedChanges.length > 0) {
     updateData.reviewChanges = mergedChanges
+    updateData.reviewedBy = effectiveEditor
+    updateData.reviewedAt = new Date()
+    updateData.reviewedByRole = userRole || "ADMIN"
     if (
       body.status === "APPROVED" ||
       body.status === "MODIFIED" ||
@@ -315,7 +324,7 @@ export async function buildQuoteUpdatePayload(p: {
 
   if (isReviewAction) {
     updateData.reviewedAt = new Date()
-    updateData.reviewedBy = reviewerUsername || "Admin"
+    updateData.reviewedBy = effectiveEditor
     updateData.reviewedByRole = userRole || "ADMIN"
   }
 

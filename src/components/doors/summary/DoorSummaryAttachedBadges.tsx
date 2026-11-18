@@ -35,12 +35,16 @@ export function DoorSummaryAttachedBadges({
       ? mode === "supply_only"
       : attachedInstallOption?.mode !== "install"
 
+  const hwTotal = Number(attachedInstallOption?.hardwareTotal) || 0
+  const hardwareSummary =
+    hwTotal > 0 ? ` incl. $${hwTotal.toFixed(2)} hardware` : ""
+
   const displayDollars =
-    attachedInstallOption?.amountPreTaxCents &&
-    attachedInstallOption.amountPreTaxCents > 0
-      ? attachedInstallOption.amountPreTaxCents / 100
-      : dynamicInstallDeltaDollars && dynamicInstallDeltaDollars > 0
-        ? dynamicInstallDeltaDollars
+    dynamicInstallDeltaDollars && dynamicInstallDeltaDollars > 0
+      ? dynamicInstallDeltaDollars
+      : attachedInstallOption?.amountPreTaxCents &&
+          attachedInstallOption.amountPreTaxCents > 0
+        ? attachedInstallOption.amountPreTaxCents / 100
         : 0
 
   return (
@@ -51,11 +55,10 @@ export function DoorSummaryAttachedBadges({
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
             <span>
               {isCurrentlySupply
-                ? "Option for Installation Attached (+$"
+                ? `Option for Installation Attached (+$${displayDollars.toFixed(2)}${hardwareSummary})`
                 : attachedInstallOption?.hasSupplyJC
-                  ? "Option with J&C for Supply Only Attached (-$"
-                  : "Option for Supply Only Attached (-$"}
-              {displayDollars.toFixed(2)})
+                  ? `Option with J&C for Supply Only Attached (-$${displayDollars.toFixed(2)})`
+                  : `Option for Supply Only Attached (-$${displayDollars.toFixed(2)})`}
             </span>
           </span>
           {onRemoveAttachedInstallOption && (

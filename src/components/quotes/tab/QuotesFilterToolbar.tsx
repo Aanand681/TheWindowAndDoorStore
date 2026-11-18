@@ -19,6 +19,7 @@ export interface QuotesFilterToolbarProps {
   adminOdooCount: number
   employeeAssignedCount: number
   employeeInReviewCount: number
+  employeeReturnedCount: number
   employeeOdooDoneCount: number
   clerkPendingCount: number
   clerkCompletedCount: number
@@ -40,6 +41,7 @@ export function QuotesFilterToolbar({
   adminOdooCount,
   employeeAssignedCount,
   employeeInReviewCount,
+  employeeReturnedCount,
   employeeOdooDoneCount,
   clerkPendingCount,
   clerkCompletedCount,
@@ -131,6 +133,23 @@ export function QuotesFilterToolbar({
                 className="h-7 cursor-pointer text-xs font-semibold"
               >
                 My Submissions ({employeeInReviewCount})
+              </Button>
+              <Button
+                variant={activeTab === "returned" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleTabChange("returned")}
+                className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                  employeeReturnedCount > 0
+                    ? "font-bold text-amber-600 dark:text-amber-400"
+                    : ""
+                }`}
+              >
+                <span>Needs Revision</span>
+                {employeeReturnedCount > 0 && (
+                  <span className="rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                    {employeeReturnedCount}
+                  </span>
+                )}
               </Button>
               {hasOdooAccess ? (
                 <Button

@@ -7,6 +7,7 @@ import { ShieldCheck, Send, Printer } from "lucide-react"
 export interface DoorSummaryActionsProps {
   isAdmin?: boolean
   canSubmit: boolean
+  isReviewMode?: boolean
   onSubmitQuote: () => void
   onPrintPreview: () => void
 }
@@ -14,30 +15,33 @@ export interface DoorSummaryActionsProps {
 export function DoorSummaryActions({
   isAdmin = false,
   canSubmit,
+  isReviewMode = false,
   onSubmitQuote,
   onPrintPreview,
 }: DoorSummaryActionsProps) {
   return (
     <div className="space-y-2 border-t border-border/50 pt-2">
-      {/* Button 1: Submit / Approve & Assign Quote */}
-      <Button
-        type="button"
-        onClick={onSubmitQuote}
-        disabled={!canSubmit}
-        className="h-10 w-full cursor-pointer gap-2 bg-emerald-600 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:text-sm"
-      >
-        {isAdmin ? (
-          <>
-            <ShieldCheck className="h-4 w-4" />
-            Approve &amp; Assign Quote
-          </>
-        ) : (
-          <>
-            <Send className="h-4 w-4" />
-            Submit Quote for Review
-          </>
-        )}
-      </Button>
+      {/* Button 1: Submit / Approve & Assign Quote (Hidden in Review Mode) */}
+      {!isReviewMode && (
+        <Button
+          type="button"
+          onClick={onSubmitQuote}
+          disabled={!canSubmit}
+          className="h-10 w-full cursor-pointer gap-2 bg-emerald-600 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:text-sm"
+        >
+          {isAdmin ? (
+            <>
+              <ShieldCheck className="h-4 w-4" />
+              Approve &amp; Assign Quote
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" />
+              Submit Quote for Review
+            </>
+          )}
+        </Button>
+      )}
 
       {/* Button 2: Preview & Print Door Quote */}
       <Button

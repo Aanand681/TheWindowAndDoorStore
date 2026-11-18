@@ -82,14 +82,7 @@ export function useQuotesTabState({
       const sub = params.get("sub") as QuotesSubTabType
       if (
         sub &&
-        [
-          "review",
-          "odoo",
-          "my",
-          "all",
-          "odoo_completed",
-          "all_assigned",
-        ].includes(sub)
+        ["review", "odoo", "my", "all", "odoo_completed", "all_assigned", "returned"].includes(sub)
       ) {
         setActiveTab(sub)
       }
@@ -156,11 +149,17 @@ export function useQuotesTabState({
               q.odooStatus !== "COMPLETED"
           ).length
         } else {
-          totalActionable = list.filter(
+          const assigned = list.filter(
             (q: any) =>
               q.status === "PENDING_REVIEW" &&
               q.assignedTo?.toLowerCase()?.trim() === myUsername
           ).length
+          const returned = list.filter(
+            (q: any) =>
+              q.status === "RETURNED" &&
+              q.preparedBy?.toLowerCase()?.trim() === myUsername
+          ).length
+          totalActionable = assigned + returned
         }
 
         if (onQuotesCountChangeRef.current)

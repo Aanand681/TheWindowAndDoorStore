@@ -10,6 +10,7 @@ import { SealedUnitSummaryHeader } from "./summary/SealedUnitSummaryHeader"
 import { SealedUnitSummaryAttachedBadges } from "./summary/SealedUnitSummaryAttachedBadges"
 import { SealedUnitSummaryLedger } from "./summary/SealedUnitSummaryLedger"
 import { SealedUnitSummaryActions } from "./summary/SealedUnitSummaryActions"
+import { CustomOptionsSection } from "@/components/calculator/summary/CustomOptionsSection"
 import { SupplyVsInstallCompareModal } from "@/components/shared/SupplyVsInstallCompareModal"
 import {
   readSessionAttachedInstallOption,
@@ -67,6 +68,8 @@ interface SealedUnitQuoteSummaryCardProps {
   onOpenAttachModal?: () => void
   onRemoveAttachedWindowQuote?: () => void
   onRemoveAttachedDoorQuote?: () => void
+  isReadOnly?: boolean
+  isReviewMode?: boolean
 }
 
 export function SealedUnitQuoteSummaryCard({
@@ -90,6 +93,8 @@ export function SealedUnitQuoteSummaryCard({
   attachedDoorQuote,
   onRemoveAttachedWindowQuote,
   onRemoveAttachedDoorQuote,
+  isReadOnly = false,
+  isReviewMode = false,
 }: SealedUnitQuoteSummaryCardProps) {
   const [isCompareOpen, setIsCompareOpen] = React.useState(false)
   const [attachedInstallOption, setAttachedInstallOption] =
@@ -170,6 +175,25 @@ export function SealedUnitQuoteSummaryCard({
   const compareLabour = compareSULabour + winLabour + doorLabour
   const compareSUMisc = totals.fullInstallMisc ?? totals.miscTotal
   const compareMisc = compareSUMisc + winMisc + doorMisc
+
+  const dynamicInstallDeltaDollars = React.useMemo(() => {
+    return Math.round((compareLabour + compareMisc) * 100) / 100
+  }, [compareLabour, compareMisc])
+
+  React.useEffect(() => {
+    if (attachedInstallOption?.enabled && dynamicInstallDeltaDollars > 0) {
+      const current = readSessionAttachedInstallOption()
+      const newCents = Math.round(dynamicInstallDeltaDollars * 100)
+      if (current?.enabled && current.amountPreTaxCents !== newCents) {
+        const updated = {
+          ...current,
+          amountPreTaxCents: newCents,
+        }
+        writeSessionAttachedInstallOption(updated)
+        setAttachedInstallOption(updated)
+      }
+    }
+  }, [dynamicInstallDeltaDollars, attachedInstallOption?.enabled])
   const combinedSurcharge =
     totals.glass8PercentSurchargeTotal + winSurcharge + doorSurcharge
   const combinedSubtotal = hasAnyAttached
@@ -235,6 +259,7 @@ export function SealedUnitQuoteSummaryCard({
           onModeChange={onModeChange}
           isService={isService}
           onOpenCompare={() => setIsCompareOpen(true)}
+          isReadOnly={isReadOnly}
         />
 
         <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-3.5 pt-3">
@@ -250,9 +275,7 @@ export function SealedUnitQuoteSummaryCard({
               setAttachedInstallOption(null)
               writeSessionAttachedInstallOption(null)
             }}
-            dynamicInstallDeltaDollars={
-              isInstallation ? combinedLabour + combinedMisc : undefined
-            }
+            dynamicInstallDeltaDollars={dynamicInstallDeltaDollars}
           />
 
           {!hasContent ? (
@@ -303,6 +326,11 @@ export function SealedUnitQuoteSummaryCard({
             />
           )}
 
+          <CustomOptionsSection
+            canModifyOptions={!isReadOnly}
+            quoteNumber={quoteNumber}
+          />
+
           <SealedUnitSummaryActions
             quoteNotes={quoteNotes}
             setQuoteNotes={setQuoteNotes}
@@ -310,6 +338,7 @@ export function SealedUnitQuoteSummaryCard({
             user={user}
             onOpenSubmitModal={onOpenSubmitModal}
             onPrint={onPrint}
+            isReviewMode={isReviewMode}
           />
         </CardContent>
       </Card>
@@ -344,6 +373,18 @@ export function SealedUnitQuoteSummaryCard({
           onModeChange &&
           onModeChange(m === "supply" ? "supply_only" : "installation")
         }
+        onToggleAttachOption={(att, c, title, hasSupplyJC) => {
+          const opt = att
+            ? {
+                enabled: true,
+                amountPreTaxCents: c,
+                title,
+                hasSupplyJC,
+              }
+            : null
+          setAttachedInstallOption(opt)
+          writeSessionAttachedInstallOption(opt)
+        }}
       />
     </>
   )

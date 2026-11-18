@@ -62,6 +62,10 @@ export interface DoorLineItem {
   unitMisc: number
   hardwareType: DoorHardwareType
   hardwarePrice: number
+  supplyHardwareType?: DoorHardwareType
+  supplyHardwarePrice?: number
+  installHardwareType?: DoorHardwareType
+  installHardwarePrice?: number
   customerHardwareFee?: number
   customHardwareName?: string
   customHardwarePrice?: number
@@ -127,9 +131,11 @@ export interface DoorQuoteTotals {
   netDoorSupplyTotal: number
   stormDoorTotal: number
   hardwareTotal: number
+  hardwareQty?: number
   unitLabourTotal: number
   upchargesTotal: number
   baseSetupFee: number
+  fullBaseSetupFee?: number
   additionalFarFee: number
   vehicleTravelFee: number
   crewTravelFee: number

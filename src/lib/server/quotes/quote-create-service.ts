@@ -178,12 +178,16 @@ export async function createQuoteService(
         ? "sealed_unit"
         : "window")
 
-  // Check if an existing DRAFT or PENDING_REVIEW quote exists for this user and quoteNumber to update in-place
-  const existingQuote = await SavedQuote.findOne({
-    preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
-    quoteNumber: cleanQuoteNumber,
-    status: { $in: ["DRAFT", "PENDING_REVIEW"] },
-  })
+  // Check if an existing DRAFT, PENDING_REVIEW, or RETURNED quote exists for this user and quoteNumber to update in-place
+  const existingQuote = await SavedQuote.findOne(
+    {
+      preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      quoteNumber: cleanQuoteNumber,
+      status: { $in: ["DRAFT", "PENDING_REVIEW", "RETURNED"] },
+    },
+    null,
+    { sort: { updatedAt: -1, createdAt: -1 } }
+  )
 
   const quotePayload = {
     quoteNumber: cleanQuoteNumber,
@@ -285,6 +289,7 @@ export async function createQuoteService(
   let newQuote: any
   if (existingQuote) {
     Object.assign(existingQuote, quotePayload)
+    existingQuote.updatedAt = new Date()
     newQuote = await existingQuote.save()
   } else {
     newQuote = await SavedQuote.create(quotePayload)

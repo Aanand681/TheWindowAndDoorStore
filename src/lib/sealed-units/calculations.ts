@@ -146,56 +146,48 @@ export function calculateSealedUnitTotals(
     serviceLabourTotal = Math.round(serviceLabourTotal * 100) / 100
   }
 
-  // Installation unit-based labour (enforces minimum labour per unit from database settings)
-  const unitLabourSum = isInstallation
-    ? lineItems.reduce((acc, item) => {
-        const unitL =
-          item.unitLabour > 0
-            ? Math.max(item.unitLabour, minLabourPerUnit)
-            : Math.max(
-                item.actualSqft * (labour.labourRatePerSqft || 14.4),
-                minLabourPerUnit
-              )
-        return acc + unitL * item.quantity
-      }, 0)
-    : 0
+  // Installation unit-based labour baseline
+  const fullUnitLabourSum = lineItems.reduce((acc, item) => {
+    const unitL =
+      item.unitLabour > 0
+        ? Math.max(item.unitLabour, minLabourPerUnit)
+        : Math.max(
+            item.actualSqft * (labour.labourRatePerSqft || 14.4),
+            minLabourPerUnit
+          )
+    return acc + unitL * item.quantity
+  }, 0)
 
-  // Misc / consumables
-  const miscTotal = isInstallation
-    ? lineItems.reduce((acc, item) => acc + item.totalMisc, 0)
-    : isServiceOnly
-      ? Math.round(effectiveServiceSqft * effectiveMiscRate * 100) / 100
-      : 0
+  // Misc / consumables baseline
+  const fullMiscTotal = lineItems.reduce(
+    (acc, item) => acc + (item.totalMisc || 0),
+    0
+  )
 
-  // Fixed Base Setup Fee: $140 for both Installation and Service Only (local standard)
-  const appliesTravelAndSetup = isInstallation || isServiceOnly
-  const baseSetupFee = appliesTravelAndSetup
-    ? labour.setupFeeDefault || 140.0
-    : 0
+  // Fixed Base Setup Fee baseline: $140 local standard
+  const fullBaseSetupFee = labour.setupFeeDefault || 140.0
 
-  // Far Area Surcharges (Far Standard / Dryden / Sioux Lookout = $727.50, Far Small = $363.50, Custom)
-  let additionalFarFee = 0
-  if (appliesTravelAndSetup) {
-    if (travelFeeType === "far_std") {
-      additionalFarFee = labour.setupFeeFarStandard || 727.5
-    } else if (travelFeeType === "far_small") {
-      additionalFarFee = labour.setupFeeFarSmall || 363.5
-    } else if (travelFeeType === "custom") {
-      additionalFarFee = Math.max(0, Number(customTravelFee) || 0)
-    }
+  // Far Area Surcharges
+  let fullAdditionalFarFee = 0
+  if (travelFeeType === "far_std") {
+    fullAdditionalFarFee = labour.setupFeeFarStandard || 727.5
+  } else if (travelFeeType === "far_small") {
+    fullAdditionalFarFee = labour.setupFeeFarSmall || 363.5
+  } else if (travelFeeType === "custom") {
+    fullAdditionalFarFee = Math.max(0, Number(customTravelFee) || 0)
   }
 
-  // Out-of-town vehicle & crew travel (manual km & crew hours)
-  let vehicleTravelFee = 0
-  let crewTravelFee = 0
+  // Out-of-town vehicle & crew travel
+  let fullVehicleTravelFee = 0
+  let fullCrewTravelFee = 0
   const isOutTownActive = Boolean(
     showOutTownTravel ||
-      (Number(travelKm) > 0) ||
-      (Number(crewHours) > 0)
+      Number(travelKm) > 0 ||
+      Number(crewHours) > 0
   )
-  if (appliesTravelAndSetup && isOutTownActive) {
+  if (isOutTownActive) {
     const km = Number(travelKm) || 0
-    vehicleTravelFee =
+    fullVehicleTravelFee =
       Math.round(km * (labour.vehicleRatePerKm || 0.98) * 100) / 100
 
     const hrs = Number(crewHours) || 0
@@ -203,20 +195,35 @@ export function calculateSealedUnitTotals(
       crewSize === "2"
         ? labour.crewHourly2Men || 150
         : labour.crewHourly3Men || 200
-    crewTravelFee = Math.round(hrs * hourlyRate * 100) / 100
+    fullCrewTravelFee = Math.round(hrs * hourlyRate * 100) / 100
   }
 
-  const totalAdditionalTravel =
-    additionalFarFee + vehicleTravelFee + crewTravelFee
-  const totalTravelAndSetup = appliesTravelAndSetup
-    ? baseSetupFee + totalAdditionalTravel
-    : 0
+  const fullTotalAdditionalTravel =
+    fullAdditionalFarFee + fullVehicleTravelFee + fullCrewTravelFee
+  const fullTravelAndSetup = fullBaseSetupFee + fullTotalAdditionalTravel
 
-  // Per user specification: For service only, travel charges roll under Labour
+  // Full Installation baseline totals (preserved across all modes for comparison & option badges)
   const fullInstallLabour =
-    Math.round((unitLabourSum + baseSetupFee + totalAdditionalTravel) * 100) /
-    100
-  const fullInstallMisc = Math.round(miscTotal * 100) / 100
+    Math.round((fullUnitLabourSum + fullTravelAndSetup) * 100) / 100
+  const fullInstallMisc = Math.round(fullMiscTotal * 100) / 100
+
+  // Active mode travel and setup
+  const appliesTravelAndSetup = isInstallation || isServiceOnly
+  const baseSetupFee = appliesTravelAndSetup ? fullBaseSetupFee : 0
+  const additionalFarFee = appliesTravelAndSetup ? fullAdditionalFarFee : 0
+  const vehicleTravelFee = appliesTravelAndSetup ? fullVehicleTravelFee : 0
+  const crewTravelFee = appliesTravelAndSetup ? fullCrewTravelFee : 0
+  const totalAdditionalTravel = appliesTravelAndSetup
+    ? fullTotalAdditionalTravel
+    : 0
+  const totalTravelAndSetup = appliesTravelAndSetup ? fullTravelAndSetup : 0
+
+  const unitLabourSum = isInstallation ? fullUnitLabourSum : 0
+  const miscTotal = isInstallation
+    ? fullMiscTotal
+    : isServiceOnly
+      ? Math.round(effectiveServiceSqft * effectiveMiscRate * 100) / 100
+      : 0
 
   const combinedLabourTotal = isInstallation
     ? fullInstallLabour

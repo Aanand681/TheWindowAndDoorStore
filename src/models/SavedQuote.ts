@@ -103,6 +103,8 @@ export interface ISavedQuote extends Document {
   reviewedAt?: Date
   reviewedBy?: string
   reviewedByRole?: string
+  lastEditedBy?: string
+  lastEditedAt?: Date
   lastReminderSentAt?: Date
   createdAt: Date
   updatedAt: Date
@@ -298,6 +300,14 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       type: String,
       default: "",
       trim: true,
+    },
+    lastEditedBy: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    lastEditedAt: {
+      type: Date,
     },
     odooAssignedTo: {
       type: String,

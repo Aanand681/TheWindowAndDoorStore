@@ -23,7 +23,8 @@ export interface QuoteCardItemProps {
     originSubTab?: QuotesSubTabType
   ) => void
   handleToggleStar: (id: string, currentStarred: boolean) => void
-  promptDeleteQuote: (id: string, quoteNum: string) => void
+  promptDeleteQuote: (id: string, quoteNum: string, isPending?: boolean) => void
+  handleRecallQuote?: (id: string, quoteNumber: string) => Promise<boolean>
   handlePreviewQuote: (quote: any) => void
   setSelectedQuoteForReview: (quote: any) => void
   setReviewerNotes: (val: string) => void

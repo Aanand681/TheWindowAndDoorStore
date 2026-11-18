@@ -222,7 +222,7 @@ export function CustomOptionsSection({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs sm:text-sm font-bold text-foreground">
-                      {opt.amountPreTaxCents < 0 ? "deduct: -" : "add: +"}
+                      {opt.amountPreTaxCents < 0 ? "-" : "+"}
                       {formatMoney(Math.abs(opt.amountPreTaxCents))}
                     </span>
                     {canModifyOptions && (

@@ -318,7 +318,7 @@ export function useQuoteComparison(props: QuoteComparisonModalProps) {
       })
       const isLess = delta.preTax < 0
       toast.success(
-        `Attached "${effectiveUpgradeTitle} ${isLess ? "less" : "adds"} ${formatMoney(Math.abs(delta.preTax))}" to quote PDF!`
+        `Attached "${effectiveUpgradeTitle} (${isLess ? "-" : "+"}${formatMoney(Math.abs(delta.preTax))})" to quote PDF!`
       )
     }
   }

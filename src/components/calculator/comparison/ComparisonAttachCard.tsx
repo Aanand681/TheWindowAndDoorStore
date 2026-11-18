@@ -133,7 +133,7 @@ export function ComparisonAttachCard({
           <span className="text-[11px] text-muted-foreground">
             {attachedUpgrade
               ? "This optional upgrade card will appear on the printed quote PDF."
-              : "Option will display as an optional add/deduct card on the PDF."}
+              : "Option will display as an optional option on the PDF."}
           </span>
         </div>
       </div>

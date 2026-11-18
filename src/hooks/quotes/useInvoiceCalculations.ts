@@ -102,6 +102,14 @@ export function useInvoiceCalculations({
       doors.length === 0)
   const isWindowHost = !isDoorHost && !isSUHost
 
+  const isSupplyOnly = Boolean(
+    isSupplyOnlyProp !== undefined
+      ? isSupplyOnlyProp
+      : taxTotals?.isSupplyOnly ||
+          regionName?.toLowerCase().includes("supply") ||
+          taxTotals?.regionName?.toLowerCase().includes("supply")
+  )
+
   // 3. Logistics & Travel Deduplication
   const travelItems = getInvoiceTravelItems({
     isWindowHost,
@@ -111,15 +119,8 @@ export function useInvoiceCalculations({
     effectiveDoorTotals,
     isSUHost,
     effectiveSUTotals,
+    isSupplyOnly,
   })
-
-  const isSupplyOnly = Boolean(
-    isSupplyOnlyProp !== undefined
-      ? isSupplyOnlyProp
-      : taxTotals?.isSupplyOnly ||
-          regionName?.toLowerCase().includes("supply") ||
-          taxTotals?.regionName?.toLowerCase().includes("supply")
-  )
 
   const hasSupplyJamb = Boolean(
     (taxTotals?.selectedJamb &&

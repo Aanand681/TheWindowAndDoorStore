@@ -57,6 +57,7 @@ export interface SealedUnitLabourTravelCardProps {
     effectiveLabourRate?: number
     effectiveMiscRate?: number
   }
+  isReadOnly?: boolean
 }
 
 export function SealedUnitLabourTravelCard({
@@ -81,6 +82,7 @@ export function SealedUnitLabourTravelCard({
   crewSize,
   setCrewSize,
   totals,
+  isReadOnly = false,
 }: SealedUnitLabourTravelCardProps) {
   const currentMode = setMode
     ? mode
@@ -118,6 +120,7 @@ export function SealedUnitLabourTravelCard({
       </div>
 
       <div className="space-y-3 p-3 sm:p-3.5">
+        <fieldset disabled={isReadOnly} className="space-y-3 border-0 p-0 m-0">
         {currentMode === "installation" ? (
           <>
             {/* Installation Labour Info Bar */}
@@ -281,6 +284,7 @@ export function SealedUnitLabourTravelCard({
             </p>
           </div>
         )}
+        </fieldset>
       </div>
     </div>
   )

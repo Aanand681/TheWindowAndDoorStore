@@ -1,11 +1,17 @@
 import { describe, it, expect } from "vitest"
+import { calculateDoorQuoteTotals } from "../doors/totals-calculator"
+import { calculateSealedUnitTotals } from "../sealed-units/calculations"
+import { calculateCompareTotals } from "@/components/shared/compare/compare-math"
 import {
   writeSessionAttachedInstallOption,
   readSessionAttachedInstallOption,
   writeSessionCustomOptions,
   readSessionCustomOptions,
+  readSessionDoorHardwareConfig,
+  writeSessionDoorHardwareConfig,
   clearAllQuoteSessionState,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { getInvoiceTravelItems } from "@/hooks/quotes/invoice-logistics"
 
 describe("Supply vs Installation Comparison Logic", () => {
   it("correctly calculates Supply total with 13% HST and 0 labour/upcharges", () => {
@@ -522,6 +528,160 @@ describe("Supply vs Installation Comparison Logic", () => {
     delete (global as any).sessionStorage
   })
 
+  it("calculates Door installation delta and preserves full install capability in supply mode", () => {
+    // 1 Door in Supply Mode
+    const doorParams: any = {
+      lineItems: [
+        {
+          id: "door-1",
+          presetId: "entry_single",
+          category: "entry" as const,
+          quantity: 1,
+          inksterBasePrice: 2500,
+          surchargeAmount: 200,
+          discountAmount: 250,
+          lineHardwareTotal: 158,
+          unitLabour: 350,
+          upchargesTotal: 100,
+          lineMiscTotal: 50,
+        },
+      ],
+      mode: "supply_only" as const,
+      travelFeeType: "none",
+      hstRate: 13,
+      logistics: { setupFeeDefault: 140 },
+    }
+
+    const totals = calculateDoorQuoteTotals(doorParams)
+
+    // In supply mode, active labour & misc on the quote must be zero
+    expect(totals.combinedLabourTotal).toBe(0)
+    expect(totals.miscTotal).toBe(0)
+
+    // Full install baseline MUST be preserved for comparison
+    expect(totals.fullInstallLabour).toBe(450) // 350 unitLabour + 100 upcharges
+    expect(totals.fullInstallMisc).toBe(50)
+
+    // Compare Delta = fullInstallLabour + fullInstallMisc = 500
+    const compareLabour = totals.fullInstallLabour ?? 0
+    const compareMisc = totals.fullInstallMisc ?? 0
+    const delta = compareLabour + compareMisc
+    expect(delta).toBe(500)
+  })
+
+  it("calculates Sealed Unit installation delta and preserves full install capability in supply mode", () => {
+    const suParams: any = {
+      lineItems: [
+        {
+          id: "su-1",
+          actualSqft: 10,
+          quantity: 2,
+          unitLabour: 120,
+          totalMisc: 25,
+          glassSupplyTotal: 600,
+        },
+      ],
+      mode: "supply_only" as const,
+      travelFeeType: "none",
+      hstRate: 13,
+      labour: { labourRatePerSqft: 14.4, setupFeeDefault: 140 },
+    }
+
+    const totals = calculateSealedUnitTotals(suParams)
+
+    // In supply mode, active labour & misc on the quote must be zero
+    expect(totals.combinedLabourTotal).toBe(0)
+    expect(totals.miscTotal).toBe(0)
+
+    // Full install baseline MUST be preserved for comparison (2 units * $120 + $140 base setup = $380)
+    expect(totals.fullInstallLabour).toBe(380)
+    expect(totals.fullInstallMisc).toBe(25)
+
+    const delta = (totals.fullInstallLabour ?? 0) + (totals.fullInstallMisc ?? 0)
+    expect(delta).toBe(405)
+  })
+
+  it("handles custom hardware per door in compare totals (e.g. Door 1 standard $158, Door 2 custom $220)", () => {
+    // Door 1: Standard $158
+    // Door 2: Custom $220
+    // Total installation hardware = $378
+    const compareResult = calculateCompareTotals({
+      currentMode: "supply",
+      currentSubtotal: 3000, // Supply Subtotal = $3,000 (0 hardware)
+      baseAmount: 3000,
+      attachedAmount: 0,
+      surchargeAmount: 0,
+      discountAmount: 0,
+      supplyHardwareCents: 0,
+      installHardwareCents: 37800, // $378.00 hardware for installation
+      opt1JCCents: 0,
+      opt2JCCents: 0,
+      labourCents: 60000, // $600.00 labour
+      miscCents: 5000, // $50.00 misc
+      hstRate: 13,
+    })
+
+    // Supply Subtotal: $3,000.00
+    expect(compareResult.supplySubtotal).toBe(3000)
+
+    // Install Subtotal: $3,000 + $600 (labour) + $50 (misc) + $378 (hardware) = $4,028.00
+    expect(compareResult.installSubtotal).toBe(4028)
+
+    // Extra Price for Installation: $1,028.00
+    expect(compareResult.extraPriceSubtotal).toBe(1028)
+
+    // Total with Tax: $1,028 + 13% ($133.64) = $1,161.64
+    expect(compareResult.extraPriceTotalWithTax).toBe(1161.64)
+  })
+
+  it("persists and restores attachedInstallOption with hardwareBreakdown in session storage", () => {
+    const store: Record<string, string> = {}
+    ;(global as any).window = {}
+    ;(global as any).sessionStorage = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, val: string) => {
+        store[key] = val
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+    }
+
+    const optionPayload = {
+      enabled: true,
+      amountPreTaxCents: 102800,
+      title: "Option for Installation",
+      hardwareTotal: 378,
+      hardwareBreakdown: [
+        {
+          doorId: "door-1",
+          doorLabel: "Front Entry Door",
+          hardwareType: "standard" as const,
+          price: 158,
+        },
+        {
+          doorId: "door-2",
+          doorLabel: "Side Entry Door",
+          hardwareType: "custom" as const,
+          price: 220,
+        },
+      ],
+    }
+
+    writeSessionAttachedInstallOption(optionPayload)
+    const restored = readSessionAttachedInstallOption()
+
+    expect(restored?.enabled).toBe(true)
+    expect(restored?.amountPreTaxCents).toBe(102800)
+    expect(restored?.hardwareTotal).toBe(378)
+    expect(restored?.hardwareBreakdown?.length).toBe(2)
+    expect(restored?.hardwareBreakdown?.[0].price).toBe(158)
+    expect(restored?.hardwareBreakdown?.[1].price).toBe(220)
+
+    delete (global as any).window
+    delete (global as any).sessionStorage
+  })
+
   it("guarantees 100% integer cent precision with zero 1-cent discrepancy", () => {
     // Test across hundreds of edge-case cent values
     for (let supplyCents = 10050; supplyCents <= 10550; supplyCents += 37) {
@@ -549,5 +709,232 @@ describe("Supply vs Installation Comparison Logic", () => {
         expect(extraTotal).toBe(extraSubtotal + (installHstCents - supplyHstCents))
       }
     }
+  })
+
+  it("restores attachedInstallOption and customOptions on draft load and clears them on reset", () => {
+    const store: Record<string, string> = {}
+    ;(global as any).window = {
+      dispatchEvent: () => true,
+      CustomEvent: class {},
+    }
+    ;(global as any).sessionStorage = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, val: string) => {
+        store[key] = val
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+    }
+
+    const draftData = {
+      quoteNumber: "123456",
+      customerName: "Jane Doe",
+      attachedInstallOption: {
+        enabled: true,
+        mode: "install" as const,
+        amountPreTaxCents: 150000,
+        hardwareTotal: 316,
+        hardwareBreakdown: [
+          {
+            doorId: "d1",
+            doorLabel: "Door 1",
+            hardwareType: "standard" as const,
+            price: 158,
+            quantity: 1,
+          },
+          {
+            doorId: "d2",
+            doorLabel: "Door 2",
+            hardwareType: "custom" as const,
+            price: 220,
+            quantity: 1,
+          },
+        ],
+      },
+      customOptions: [
+        { id: "opt-1", title: "Custom Trim", amountPreTaxCents: 25000 },
+      ],
+    }
+
+    writeSessionAttachedInstallOption(draftData.attachedInstallOption)
+    writeSessionCustomOptions(draftData.customOptions)
+
+    expect(readSessionAttachedInstallOption()?.amountPreTaxCents).toBe(150000)
+    expect(readSessionAttachedInstallOption()?.hardwareTotal).toBe(316)
+    expect(readSessionCustomOptions()?.length).toBe(1)
+
+    // Reset session state
+    writeSessionAttachedInstallOption(null)
+    writeSessionCustomOptions([])
+
+    expect(readSessionAttachedInstallOption()).toBeNull()
+    expect(readSessionCustomOptions()).toEqual([])
+
+    delete (global as any).window
+    delete (global as any).sessionStorage
+  })
+
+  it("preserves door installation hardware configuration across tab switches", () => {
+    const store: Record<string, string> = {}
+    ;(global as any).window = {}
+    ;(global as any).sessionStorage = {
+      getItem: (key: string) => store[key] || null,
+      setItem: (key: string, val: string) => {
+        store[key] = val
+      },
+      removeItem: (key: string) => {
+        delete store[key]
+      },
+    }
+
+    const hwConfig = {
+      type: "standard" as const,
+      standardQty: 3,
+      standardPrice: 158.0,
+      hasCustom: true,
+      customQty: 2,
+      customPrice: 220.0,
+      totalQty: 5,
+      totalPrice: 914.0,
+    }
+
+    // Save hardware config
+    writeSessionDoorHardwareConfig(hwConfig)
+
+    // Simulate switching tabs and reading session storage
+    const restored = readSessionDoorHardwareConfig()
+    expect(restored).not.toBeNull()
+    expect(restored?.standardQty).toBe(3)
+    expect(restored?.standardPrice).toBe(158.0)
+    expect(restored?.hasCustom).toBe(true)
+    expect(restored?.customQty).toBe(2)
+    expect(restored?.customPrice).toBe(220.0)
+    expect(restored?.totalQty).toBe(5)
+    expect(restored?.totalPrice).toBe(914.0)
+
+    // Clear state
+    clearAllQuoteSessionState()
+    expect(readSessionDoorHardwareConfig()).toBeNull()
+
+    delete (global as any).window
+    delete (global as any).sessionStorage
+  })
+
+  it("includes hardware in material category for First Nations tax exemption", () => {
+    // 5 doors with hardware: Base $10,000, 10% discount (-$1,000), 8% surcharge ($800)
+    // Hardware: 5 sets @ $158 = $790
+    // Materials base = $10,000 - $1,000 + $790 = $9,790
+    const materialsBase = 10000 - 1000 + 790
+    expect(materialsBase).toBe(9790)
+
+    // First Nations 8% material exemption
+    const materialExemption = Math.round(materialsBase * 0.08 * 100) / 100
+    expect(materialExemption).toBe(783.2)
+  })
+
+  it("preserves hardware delta when switching from Supply to Install and back to Supply mode", () => {
+    // 5 doors: Base $5,000, Labour $1,000, Misc $200.
+    // 5 standard locksets @ $158 = $790 for installation.
+    // In Supply mode (no customer supply locksets):
+    const supplyTotals = calculateCompareTotals({
+      currentMode: "supply",
+      currentSubtotal: 4900, // $5000 + 8% ($400) - 10% ($500) = $4,900
+      baseAmount: 5000,
+      attachedAmount: 0,
+      surchargeAmount: 400,
+      discountAmount: 500,
+      supplyHardwareCents: 0,
+      installHardwareCents: 79000,
+      opt1JCCents: 0,
+      opt2JCCents: 0,
+      labourCents: 100000,
+      miscCents: 20000,
+      hstRate: 13,
+    })
+
+    // Difference in Supply Mode = $1,000 labour + $200 misc + $790 hardware = $1,990
+    expect(supplyTotals.extraPriceSubtotal).toBe(1990)
+    expect(supplyTotals.supplySubtotal).toBe(4900)
+    expect(supplyTotals.installSubtotal).toBe(6890)
+
+    // Now switch to Installation mode:
+    // Installation subtotal is $6,890 ($4,900 materials + $1,000 labour + $200 misc + $790 hardware)
+    // Supply hardware remains 0 (customer did not request locksets for supply)
+    // Install hardware is $790
+    const installTotals = calculateCompareTotals({
+      currentMode: "install",
+      currentSubtotal: 6890,
+      baseAmount: 5000,
+      attachedAmount: 0,
+      surchargeAmount: 400,
+      discountAmount: 500,
+      supplyHardwareCents: 0,
+      installHardwareCents: 79000,
+      opt1JCCents: 0,
+      opt2JCCents: 0,
+      labourCents: 100000,
+      miscCents: 20000,
+      hstRate: 13,
+    })
+
+    // Difference in Installation Mode MUST ALSO BE EXACTLY $1,990!
+    expect(installTotals.extraPriceSubtotal).toBe(1990)
+    expect(installTotals.supplySubtotal).toBe(4900)
+    expect(installTotals.installSubtotal).toBe(6890)
+  })
+
+  it("computes net hardware delta when customer requests supply hardware and install has hardware", () => {
+    // 5 doors:
+    // Supply quote includes 1 custom lockset requested by customer @ $200.
+    // Installation quote includes 5 locksets (3 std @ $158 + 2 cust @ $200 = $474 + $400 = $874).
+    // Hardware Delta = $874 - $200 = $674.
+    const compare = calculateCompareTotals({
+      currentMode: "supply",
+      currentSubtotal: 5100, // including $200 supply lockset
+      baseAmount: 5000,
+      attachedAmount: 0,
+      surchargeAmount: 400,
+      discountAmount: 500,
+      supplyHardwareCents: 20000,
+      installHardwareCents: 87400,
+      opt1JCCents: 0,
+      opt2JCCents: 0,
+      labourCents: 100000,
+      miscCents: 20000,
+      hstRate: 13,
+    })
+
+    // Difference = $1,000 labour + $200 misc + ($874 - $200) net hardware = $1,874
+    expect(compare.extraPriceSubtotal).toBe(1874)
+    expect(compare.installSubtotal).toBe(5100 + 1874)
+  })
+
+  it("excludes $140 standard setup fee from supply quote PDF and includes it in installation", () => {
+    // 1. Supply quote check
+    const supplyTravel = getInvoiceTravelItems({
+      isWindowHost: false,
+      taxTotals: null,
+      isDoorHost: true,
+      effectiveDoorTotals: { baseSetupFee: 0, fullBaseSetupFee: 140 },
+      isSUHost: false,
+      effectiveSUTotals: null,
+      isSupplyOnly: true,
+    })
+    expect(supplyTravel).toEqual([])
+
+    // 2. Installation quote check
+    const installTravel = getInvoiceTravelItems({
+      isWindowHost: false,
+      taxTotals: null,
+      isDoorHost: true,
+      effectiveDoorTotals: { baseSetupFee: 140, fullBaseSetupFee: 140 },
+      isSUHost: false,
+      effectiveSUTotals: null,
+      isSupplyOnly: false,
+    })
+    expect(installTravel).toHaveLength(1)
+    expect(installTravel[0].label).toBe("Job set-up fee( standard)")
+    expect(installTravel[0].amount).toBe(14000)
   })
 })

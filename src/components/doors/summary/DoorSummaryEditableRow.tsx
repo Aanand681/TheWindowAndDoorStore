@@ -21,6 +21,7 @@ export interface DoorSummaryEditableRowProps {
   setTempEditVal: (val: string) => void
   setter?: (val: string) => void
   suffix?: string
+  isReadOnly?: boolean
 }
 
 export function DoorSummaryEditableRow({
@@ -36,6 +37,7 @@ export function DoorSummaryEditableRow({
   setTempEditVal,
   setter,
   suffix,
+  isReadOnly = false,
 }: DoorSummaryEditableRowProps) {
   const isEditing = editingField === field
   const isCustom = customVal !== ""
@@ -138,7 +140,7 @@ export function DoorSummaryEditableRow({
             custom
           </span>
         )}
-        {isCustom && setter && (
+        {isCustom && setter && !isReadOnly && (
           <Button
             type="button"
             size="sm"
@@ -170,7 +172,7 @@ export function DoorSummaryEditableRow({
         >
           ${amount.toFixed(2)}
         </span>
-        {setter && isInstallation && (
+        {setter && isInstallation && !isReadOnly && (
           <button
             type="button"
             onClick={() => {

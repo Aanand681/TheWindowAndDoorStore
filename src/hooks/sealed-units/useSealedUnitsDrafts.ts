@@ -7,6 +7,10 @@ import {
   saveQuoteDraftDirectly,
   getSavedDrafts,
   clearActiveAutoSave,
+  getActiveAutoSave,
+  isAutoSaveAlreadySaved,
+  isDraftMeaningful,
+  isWorkspaceDirtyOrUnsaved,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
   syncRemoteDrafts,
@@ -22,6 +26,10 @@ import {
   createDraftSavePayload,
   WorkspaceSetters,
 } from "./sealed-units-storage-helpers"
+import {
+  writeSessionAttachedInstallOption,
+  writeSessionCustomOptions,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useSealedUnitsAutoSave } from "./useSealedUnitsAutoSave"
 
 export interface SealedUnitFormInputs {
@@ -108,6 +116,16 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
   const [attachedDoorQuote, setAttachedDoorQuote] = useState<any | null>(null)
   const [savedDraftsCount, setSavedDraftsCount] = useState<number>(0)
   const [showResetModal, setShowResetModal] = useState<boolean>(false)
+  const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
+  const [pendingDraftToLoad, setPendingDraftToLoad] =
+    useState<QuoteDraftItem | null>(null)
+
+  const cleanUrlLoadDraftId = () => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    url.searchParams.delete("loadDraftId")
+    window.history.replaceState({}, "", url.toString())
+  }
 
   const setters: WorkspaceSetters = useMemo(
     () => ({
@@ -172,6 +190,31 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     (draft: QuoteDraftItem) => {
       if (draft.type === "window") {
         router.push(`/calculator?loadDraftId=${draft.id}`)
+        setIsSavedQuotesOpen(false)
+        return
+      }
+      if (draft.type === "door") {
+        router.push(`/doors?loadDraftId=${draft.id}`)
+        setIsSavedQuotesOpen(false)
+        return
+      }
+
+      const isDirty = isWorkspaceDirtyOrUnsaved("sealed_unit", {
+        quoteNumber,
+        customerName,
+        itemCount: lineItems.length,
+        grandTotal: totals.grandTotal,
+        data: {
+          lineItems,
+          attachedWindowQuote,
+          attachedDoorQuote,
+        },
+      })
+
+      if (isDirty) {
+        setPendingDraftToLoad(draft)
+        setShowConflictModal(true)
+        setIsSavedQuotesOpen(false)
         return
       }
 
@@ -179,9 +222,20 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       if (!d) return
 
       applyDraftDataToWorkspace(d, setters)
+      clearActiveAutoSave("sealed_unit")
+      setIsSavedQuotesOpen(false)
       toast.success(`Loaded Sealed Unit Quote #${draft.quoteNumber}`)
     },
-    [router, setters]
+    [
+      router,
+      setters,
+      quoteNumber,
+      customerName,
+      lineItems,
+      totals.grandTotal,
+      attachedWindowQuote,
+      attachedDoorQuote,
+    ]
   )
 
   const autoSave = useSealedUnitsAutoSave({
@@ -195,6 +249,10 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     attachedDoorQuote,
     setters,
     loadDraftIntoWorkspace,
+    onConflictDetected: (match) => {
+      setPendingDraftToLoad(match)
+      setShowConflictModal(true)
+    },
   })
 
   const handleSaveDraft = useCallback(async () => {
@@ -284,6 +342,37 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     autoSave,
   ])
 
+  const handleConflictSaveExistingAndLoad = useCallback(async () => {
+    if (!pendingDraftToLoad) return
+    const saved = await handleSaveDraft()
+    if (saved) {
+      applyDraftDataToWorkspace(pendingDraftToLoad.data, setters)
+      clearActiveAutoSave("sealed_unit")
+      toast.success(
+        `Loaded Sealed Unit Quote #${pendingDraftToLoad.quoteNumber}`
+      )
+      setShowConflictModal(false)
+      setPendingDraftToLoad(null)
+      cleanUrlLoadDraftId()
+    }
+  }, [pendingDraftToLoad, handleSaveDraft, setters])
+
+  const handleConflictContinueWithNew = useCallback(() => {
+    if (!pendingDraftToLoad) return
+    applyDraftDataToWorkspace(pendingDraftToLoad.data, setters)
+    clearActiveAutoSave("sealed_unit")
+    toast.success(`Loaded Sealed Unit Quote #${pendingDraftToLoad.quoteNumber}`)
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
+  }, [pendingDraftToLoad, setters])
+
+  const handleConflictCancel = useCallback(() => {
+    setShowConflictModal(false)
+    setPendingDraftToLoad(null)
+    cleanUrlLoadDraftId()
+  }, [])
+
   useEffect(() => {
     const updateCount = () => {
       const all = getSavedDrafts()
@@ -302,6 +391,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     setCustomerName("")
     setQuoteNumber(generateQuoteNumber())
     setQuoteNotes("")
+    writeSessionAttachedInstallOption(null)
+    writeSessionCustomOptions([])
     setShowResetModal(false)
     clearActiveAutoSave("sealed_unit")
     autoSave.clearTimerAndSaveSnapshot("")
@@ -332,5 +423,11 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     loadDraftIntoWorkspace,
     handleSaveDraft,
     handleResetWorkspace,
+    showConflictModal,
+    setShowConflictModal,
+    pendingDraftToLoad,
+    handleConflictSaveExistingAndLoad,
+    handleConflictContinueWithNew,
+    handleConflictCancel,
   }
 }

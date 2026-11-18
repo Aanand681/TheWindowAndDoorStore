@@ -7,6 +7,7 @@ import { FileText, Database } from "lucide-react"
 import type { QuotesSubTabType, QuotesTabProps } from "./tab/types"
 import { useQuotesTabState } from "@/hooks/quotes/useQuotesTabState"
 import { QuotesFilterToolbar } from "./tab/QuotesFilterToolbar"
+import { QuotesStatsRibbon } from "./tab/QuotesStatsRibbon"
 import { QuoteCardItem } from "./tab/QuoteCardItem"
 import { QuotesModals } from "./tab/QuotesModals"
 
@@ -83,12 +84,14 @@ export default function QuotesTab(props: QuotesTabProps) {
     handleQuickApprove,
     handleConfirmOdooEntry,
     handleFlushStorage,
+    handleRecallQuote,
     sortedQuotes,
     adminPendingCount,
     adminOdooCount,
     adminArchiveCount,
     employeeAssignedCount,
     employeeInReviewCount,
+    employeeReturnedCount,
     employeeOdooDoneCount,
     employeeHistoryCount,
     clerkPendingCount,
@@ -132,6 +135,26 @@ export default function QuotesTab(props: QuotesTabProps) {
         )}
       </div>
 
+      <QuotesStatsRibbon
+        canReview={canReview}
+        isEmployee={isEmployee}
+        isClerk={isClerk}
+        hasOdooAccess={hasOdooAccess}
+        activeTab={activeTab}
+        handleTabChange={handleTabChange}
+        adminPendingCount={adminPendingCount}
+        adminOdooCount={adminOdooCount}
+        adminArchiveCount={adminArchiveCount}
+        employeeAssignedCount={employeeAssignedCount}
+        employeeInReviewCount={employeeInReviewCount}
+        employeeReturnedCount={employeeReturnedCount}
+        employeeOdooDoneCount={employeeOdooDoneCount}
+        employeeHistoryCount={employeeHistoryCount}
+        clerkPendingCount={clerkPendingCount}
+        clerkCompletedCount={clerkCompletedCount}
+        clerkTotalAssignedCount={clerkTotalAssignedCount}
+      />
+
       {/* Filter & Search Bar */}
       <QuotesFilterToolbar
         search={search}
@@ -148,6 +171,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         adminOdooCount={adminOdooCount}
         employeeAssignedCount={employeeAssignedCount}
         employeeInReviewCount={employeeInReviewCount}
+        employeeReturnedCount={employeeReturnedCount}
         employeeOdooDoneCount={employeeOdooDoneCount}
         clerkPendingCount={clerkPendingCount}
         clerkCompletedCount={clerkCompletedCount}
@@ -190,6 +214,7 @@ export default function QuotesTab(props: QuotesTabProps) {
               onOpenQuote={onOpenQuote}
               handleToggleStar={handleToggleStar}
               promptDeleteQuote={promptDeleteQuote}
+              handleRecallQuote={handleRecallQuote}
               handlePreviewQuote={handlePreviewQuote}
               setSelectedQuoteForReview={setSelectedQuoteForReview}
               setReviewerNotes={setReviewerNotes}
@@ -221,6 +246,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         setQuoteToDelete={setQuoteToDelete}
         isDeletingQuote={isDeletingQuote}
         confirmDeleteQuote={confirmDeleteQuote}
+        handleRecallQuote={handleRecallQuote}
         previewQuote={previewQuote}
         setPreviewQuote={setPreviewQuote}
         isPreviewOpen={isPreviewOpen}

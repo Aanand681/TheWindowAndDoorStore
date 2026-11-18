@@ -11,6 +11,7 @@ interface SealedUnitsCustomerInfoBarProps {
   quoteNumber: string
   setQuoteNumber: (val: string) => void
   onRegenerateQuoteNumber: () => void
+  isReadOnly?: boolean
 }
 
 export function SealedUnitsCustomerInfoBar({
@@ -19,6 +20,7 @@ export function SealedUnitsCustomerInfoBar({
   quoteNumber,
   setQuoteNumber,
   onRegenerateQuoteNumber,
+  isReadOnly = false,
 }: SealedUnitsCustomerInfoBarProps) {
   return (
     <div className="rounded-2xl border border-border/80 bg-card/70 p-3 shadow-sm backdrop-blur-xl sm:p-3.5">
@@ -33,6 +35,7 @@ export function SealedUnitsCustomerInfoBar({
           </Label>
           <Input
             value={customerName}
+            disabled={isReadOnly}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="Enter customer name (required)"
             className="h-9 bg-background text-xs font-medium shadow-xs sm:text-sm"
@@ -46,20 +49,23 @@ export function SealedUnitsCustomerInfoBar({
               <Hash className="h-3.5 w-3.5 text-primary" />
               <span>6-Digit Quote Number</span>
             </Label>
-            <button
-              type="button"
-              onClick={onRegenerateQuoteNumber}
-              className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-              title="Generate a fresh unique 6-digit quote number"
-            >
-              <RefreshCw className="h-3 w-3" />
-              <span>Regenerate</span>
-            </button>
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={onRegenerateQuoteNumber}
+                className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                title="Generate a fresh unique 6-digit quote number"
+              >
+                <RefreshCw className="h-3 w-3" />
+                <span>Regenerate</span>
+              </button>
+            )}
           </div>
           <div className="relative">
             <Input
               suppressHydrationWarning
               value={quoteNumber}
+              disabled={isReadOnly}
               onChange={(e) =>
                 setQuoteNumber(e.target.value.replace(/\D/g, "").slice(0, 8))
               }

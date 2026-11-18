@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/promo-logic"
+import { formatReviewerName } from "@/lib/format-reviewer"
 
 interface QuoteCardHeaderProps {
   quote: any
@@ -79,7 +80,7 @@ export function QuoteCardHeader({
                 {canReview
                   ? "Pending Review"
                   : quote.assignedTo
-                    ? `In Review with ${quote.assignedTo}`
+                    ? `In Review with ${formatReviewerName(quote.assignedTo)}`
                     : "In Review"}
               </span>
             </span>
@@ -88,7 +89,10 @@ export function QuoteCardHeader({
             <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold text-emerald-500">
               <CheckCircle2 className="h-3 w-3" />
               <span>
-                Approved by {quote.reviewedBy || quote.assignedTo || "Admin"}
+                Approved by{" "}
+                {formatReviewerName(
+                  quote.reviewedBy || quote.lastEditedBy || quote.assignedTo
+                )}
               </span>
             </span>
           )}
@@ -97,7 +101,9 @@ export function QuoteCardHeader({
               <Sparkles className="h-3 w-3" />
               <span>
                 Modified &amp; Approved by{" "}
-                {quote.reviewedBy || quote.assignedTo || "Admin"}
+                {formatReviewerName(
+                  quote.reviewedBy || quote.lastEditedBy || quote.assignedTo
+                )}
               </span>
             </span>
           )}

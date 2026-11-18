@@ -6,6 +6,7 @@ import { ResetModalWrapper } from "@/components/calculator/modals/ResetModalWrap
 import { SubmitReviewModal } from "@/components/calculator/SubmitReviewModal"
 import { SavedQuotesModal } from "@/components/calculator/SavedQuotesModal"
 import { AttachQuoteModal } from "@/components/calculator/AttachQuoteModal"
+import { UnsavedQuoteConflictModal } from "@/components/shared/UnsavedQuoteConflictModal"
 import { QuoteDraftItem } from "@/lib/quote-drafts-storage"
 import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
 import {
@@ -65,6 +66,12 @@ interface DoorModalsGroupProps {
   onLoadQuoteFromDrafts: (draft: QuoteDraftItem) => void
   onConfirmReset: () => void
   onSaveDraft?: () => Promise<any> | void
+  showConflictModal?: boolean
+  setShowConflictModal?: (show: boolean) => void
+  pendingDraftToLoad?: QuoteDraftItem | null
+  onConflictSaveExistingAndLoad?: () => Promise<void> | void
+  onConflictContinueWithNew?: () => void
+  onConflictCancel?: () => void
 }
 
 export function DoorModalsGroup({
@@ -114,6 +121,12 @@ export function DoorModalsGroup({
   onLoadQuoteFromDrafts,
   onConfirmReset,
   onSaveDraft,
+  showConflictModal,
+  setShowConflictModal,
+  pendingDraftToLoad,
+  onConflictSaveExistingAndLoad,
+  onConflictContinueWithNew,
+  onConflictCancel,
 }: DoorModalsGroupProps) {
   const totalDoorUnits =
     totals.totalUnits ||
@@ -223,6 +236,27 @@ export function DoorModalsGroup({
         }
         title="Start New Door Quote?"
       />
+
+      {/* 6. Unsaved Quote Conflict Dialog */}
+      {showConflictModal && (
+        <UnsavedQuoteConflictModal
+          isOpen={Boolean(showConflictModal)}
+          onClose={onConflictCancel || (() => setShowConflictModal?.(false))}
+          quoteTypeLabel="Door"
+          existingQuoteTitle={
+            customerName || quoteNumber
+              ? `#${quoteNumber || "Draft"} - ${customerName || "Unnamed"}`
+              : "Draft in progress"
+          }
+          incomingQuoteTitle={
+            pendingDraftToLoad?.quoteNumber
+              ? `Door Quote #${pendingDraftToLoad.quoteNumber}`
+              : "new door quote"
+          }
+          onSaveExistingAndLoad={onConflictSaveExistingAndLoad || (() => {})}
+          onContinueWithNew={onConflictContinueWithNew || (() => {})}
+        />
+      )}
     </>
   )
 }

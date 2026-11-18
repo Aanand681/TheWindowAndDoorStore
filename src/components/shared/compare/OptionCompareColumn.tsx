@@ -27,11 +27,6 @@ export interface OptionCompareColumnProps {
   hardwareAmount?: number
   hardwareLabel?: string
   subtotal: number
-  hstRate: number
-  hstAmount: number
-  total: number
-  firstPayment: number
-  secondPayment: number
   totalColorClass?: string
   buttonVariant?: "default" | "outline" | "secondary"
   onApply: () => void
@@ -57,13 +52,8 @@ export function OptionCompareColumn({
   discountAmount = 0,
   discountLabel = "Discount",
   hardwareAmount = 0,
-  hardwareLabel = "Lockset & Hardware",
+  hardwareLabel = "Locksets & Deadbolts",
   subtotal,
-  hstRate,
-  hstAmount,
-  total,
-  firstPayment,
-  secondPayment,
   totalColorClass = "text-foreground",
   buttonVariant = "outline",
   onApply,
@@ -127,6 +117,32 @@ export function OptionCompareColumn({
             </div>
           )}
 
+          {/* Surcharge */}
+          {surchargeAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="max-w-[190px] truncate">{surchargeLabel}:</span>
+              <span className="font-semibold text-foreground">
+                +${surchargeAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          {/* Discount */}
+          {discountAmount > 0 && (
+            <div className="flex justify-between font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="max-w-[190px] truncate">{discountLabel}:</span>
+              <span>-${discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
+          {/* Locksets & Deadbolts Hardware (inserted when present in installation option) */}
+          {hardwareAmount > 0 && (
+            <div className="flex justify-between font-semibold text-primary">
+              <span className="max-w-[210px] truncate">{hardwareLabel}:</span>
+              <span>+${hardwareAmount.toFixed(2)}</span>
+            </div>
+          )}
+
           {/* Labour */}
           <div className="flex justify-between">
             <span>Labour:</span>
@@ -155,84 +171,23 @@ export function OptionCompareColumn({
             </span>
           </div>
 
-          {/* Surcharge */}
-          {surchargeAmount > 0 && (
-            <div className="flex justify-between">
-              <span className="max-w-[190px] truncate">{surchargeLabel}:</span>
-              <span className="font-semibold text-foreground">
-                +${surchargeAmount.toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {/* Discount */}
-          {discountAmount > 0 && (
-            <div className="flex justify-between font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="max-w-[190px] truncate">{discountLabel}:</span>
-              <span>-${discountAmount.toFixed(2)}</span>
-            </div>
-          )}
-
-          {/* Hardware */}
-          {hardwareAmount > 0 && (
-            <div className="flex justify-between">
-              <span className="max-w-[190px] truncate">{hardwareLabel}:</span>
-              <span className="font-semibold text-foreground">
-                +${hardwareAmount.toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {/* Pre-Tax Subtotal */}
-          <div className="flex justify-between border-t border-border/40 pt-1.5 text-xs font-bold text-foreground sm:text-sm">
+          {/* Pre-Tax Subtotal (Stops here without Tax / Grand Total as requested) */}
+          <div className="flex items-baseline justify-between border-t border-border/40 pt-2 text-sm font-bold text-foreground">
             <span>Subtotal:</span>
-            <span>${subtotal.toFixed(2)}</span>
-          </div>
-
-          {/* HST */}
-          <div className="flex justify-between text-muted-foreground">
-            <span>HST ({hstRate}%):</span>
-            <span>${hstAmount.toFixed(2)}</span>
+            <span
+              className={cn(
+                "font-mono text-base font-bold sm:text-lg",
+                totalColorClass
+              )}
+            >
+              ${subtotal.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Footer: Grand Total, 50% Deposits, and Action Button */}
-      <div className="space-y-2.5 border-t border-border/60 pt-2">
-        <div className="flex items-baseline justify-between">
-          <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-            Total incl. HST:
-          </span>
-          <span
-            className={cn(
-              "font-mono text-lg font-bold sm:text-xl",
-              totalColorClass
-            )}
-          >
-            ${total.toFixed(2)}
-          </span>
-        </div>
-
-        {/* 50/50 Deposit Schedule */}
-        <div className="grid grid-cols-2 gap-2 text-center font-mono text-xs">
-          <div className="rounded-lg border border-border/50 bg-muted/50 p-1.5">
-            <span className="block text-[10px] font-bold text-muted-foreground uppercase">
-              First 50%
-            </span>
-            <span className="text-xs font-bold text-foreground">
-              ${firstPayment.toFixed(2)}
-            </span>
-          </div>
-          <div className="rounded-lg border border-border/50 bg-muted/50 p-1.5">
-            <span className="block text-[10px] font-bold text-muted-foreground uppercase">
-              Final 50%
-            </span>
-            <span className="text-xs font-bold text-foreground">
-              ${secondPayment.toFixed(2)}
-            </span>
-          </div>
-        </div>
-
+      {/* Footer: Action Button */}
+      <div className="border-t border-border/60 pt-2">
         <Button
           type="button"
           variant={isActive ? "secondary" : buttonVariant}
