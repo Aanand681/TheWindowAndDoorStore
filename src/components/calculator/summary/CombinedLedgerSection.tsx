@@ -109,38 +109,57 @@ export function CombinedLedgerSection({
 
         {/* Door units materials price (Itemized as headings) */}
         {combinedData.hasDoor &&
-          (attachedDoorQuote?.lineItems &&
-          attachedDoorQuote.lineItems.length > 0 ? (
-            attachedDoorQuote.lineItems.map((dItem: any, dIdx: number) => {
-              const q = dItem.quantity || 1
-              const heading = formatDoorItemHeading(dItem)
-              const itemBaseCents = Math.round(
-                (dItem.inksterBasePrice || 0) * q * 100
+          (() => {
+            const items = attachedDoorQuote?.lineItems || []
+            const hasItemPrices = items.some((dItem: any) =>
+              Boolean(
+                dItem.inksterBasePrice ||
+                dItem.finalUnitPrice ||
+                dItem.unitPrice ||
+                dItem.basePrice ||
+                dItem.lineTotal
               )
-              return (
-                <div
-                  key={dItem.id || dIdx}
-                  className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
-                >
-                  <span className="truncate font-medium text-foreground">
-                    {heading}
-                  </span>
-                  <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                    +{formatMoney(itemBaseCents)}
-                  </span>
-                </div>
-              )
-            })
-          ) : (
-            <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-              <span className="truncate font-medium text-foreground">
-                {combinedData.doorSummarySentence}
-              </span>
-              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                +{formatMoney(combinedData.doorMaterialsCents)}
-              </span>
-            </div>
-          ))}
+            )
+
+            if (items.length > 0 && hasItemPrices) {
+              return items.map((dItem: any, dIdx: number) => {
+                const q = Math.max(1, Number(dItem.quantity) || 1)
+                const heading = formatDoorItemHeading(dItem)
+                const rawPrice = Number(
+                  dItem.inksterBasePrice ??
+                  dItem.finalUnitPrice ??
+                  dItem.unitPrice ??
+                  dItem.basePrice ??
+                  (dItem.lineTotal ? dItem.lineTotal / q : 0)
+                )
+                const itemBaseCents = Math.round(rawPrice * q * 100)
+                return (
+                  <div
+                    key={dItem.id || dIdx}
+                    className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
+                  >
+                    <span className="truncate font-medium text-foreground">
+                      {heading}
+                    </span>
+                    <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                      +{formatMoney(itemBaseCents)}
+                    </span>
+                  </div>
+                )
+              })
+            }
+
+            return (
+              <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
+                <span className="truncate font-medium text-foreground">
+                  {combinedData.doorSummarySentence}
+                </span>
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                  +{formatMoney(combinedData.doorMaterialsCents)}
+                </span>
+              </div>
+            )
+          })()}
 
         {/* Attached Door Hardware if any */}
         {combinedData.hasDoor &&

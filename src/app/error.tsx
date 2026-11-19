@@ -14,6 +14,19 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("Application Error:", error)
+    const isChunkError =
+      error.name === "ChunkLoadError" ||
+      error.message?.includes("Loading chunk") ||
+      error.message?.includes("failed to fetch dynamically imported module")
+
+    if (isChunkError && typeof window !== "undefined") {
+      const now = Date.now()
+      const lastReload = Number(sessionStorage.getItem("last_chunk_reload") || "0")
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem("last_chunk_reload", String(now))
+        window.location.reload()
+      }
+    }
   }, [error])
 
   return (

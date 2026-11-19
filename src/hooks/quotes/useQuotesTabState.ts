@@ -221,7 +221,11 @@ export function useQuotesTabState({
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href)
       url.searchParams.set("sub", newTab)
-      window.history.pushState({ sub: newTab }, "", url.toString())
+      const current =
+        typeof window.history.state === "object" && window.history.state !== null
+          ? window.history.state
+          : {}
+      window.history.pushState({ ...current, sub: newTab }, "", url.toString())
     }
   }
 

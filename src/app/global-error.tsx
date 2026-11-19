@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { RefreshCw, LogIn } from "lucide-react"
 
 export default function GlobalError({
@@ -9,6 +10,22 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    console.error("Global Application Error:", error)
+    const isChunkError =
+      error.name === "ChunkLoadError" ||
+      error.message?.includes("Loading chunk") ||
+      error.message?.includes("failed to fetch dynamically imported module")
+
+    if (isChunkError && typeof window !== "undefined") {
+      const now = Date.now()
+      const lastReload = Number(sessionStorage.getItem("last_chunk_reload") || "0")
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem("last_chunk_reload", String(now))
+        window.location.reload()
+      }
+    }
+  }, [error])
   return (
     <html lang="en">
       <body className="flex min-h-screen items-center justify-center bg-slate-950 p-4 font-sans text-slate-100">

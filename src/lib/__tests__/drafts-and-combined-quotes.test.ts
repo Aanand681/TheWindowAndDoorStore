@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import { detectQuoteChanges } from "@/lib/quote-diff"
 import { formatWindowSummarySentence } from "@/lib/calculator/format-window-summary"
+import { buildDoorAttachPayload } from "@/components/calculator/attach/attach-payload-builders"
 import {
   AUTOSAVE_TTL_MS,
   isWorkspaceDirtyOrUnsaved,
@@ -356,5 +357,90 @@ describe("Drafts & Combined Quotes Architecture", () => {
     const savedList = getSavedDrafts()
     expect(savedList.some((d) => d.quoteNumber === "Q-FAIL-01")).toBe(false)
     vi.unstubAllGlobals()
+  })
+
+  it("buildDoorAttachPayload automatically reconstructs totals from lineItems when draft totals are missing", () => {
+    const rawDoorDraft = {
+      id: "draft_door_1",
+      type: "door" as const,
+      quoteNumber: "D-1001",
+      customerName: "Alice Door",
+      itemCount: 1,
+      subtotal: 0,
+      grandTotal: 0,
+      summaryLabel: "1 Steel Entry Door",
+      data: {
+        quoteNumber: "D-1001",
+        customerName: "Alice Door",
+        lineItems: [
+          {
+            id: "line_1",
+            presetId: "entry_1",
+            presetLabel: "Steel Entry Door",
+            category: "entry",
+            quantity: 1,
+            inksterBasePrice: 1200,
+            surchargeAmount: 96,
+            discountAmount: 100,
+            unitLabour: 350,
+            unitMisc: 50,
+            lineHardwareTotal: 147,
+          },
+        ],
+      },
+    }
+
+    const payload = buildDoorAttachPayload(rawDoorDraft as any)
+    expect(payload.totals.rawDoorBaseTotal).toBe(1200)
+    expect(payload.totals.surchargeTotal).toBe(96)
+    expect(payload.totals.discountTotal).toBe(100)
+    expect(payload.totals.hardwareTotal).toBe(147)
+    expect(payload.totals.combinedLabourTotal).toBe(350)
+    expect(payload.totals.miscTotal).toBe(50)
+    expect(payload.totals.subtotalPreTax).toBeGreaterThan(1200)
+    expect(payload.totals.grandTotal).toBeGreaterThan(payload.totals.subtotalPreTax)
+  })
+
+  it("buildDoorAttachPayload preserves explicit totals and discount labels", () => {
+    const rawDoorDraft = {
+      id: "draft_door_2",
+      type: "door" as const,
+      quoteNumber: "D-1002",
+      customerName: "Bob Door",
+      itemCount: 1,
+      subtotal: 1800,
+      grandTotal: 2034,
+      summaryLabel: "1 Patio Door",
+      data: {
+        discountLabel: "Fall Door Special",
+        totals: {
+          rawDoorBaseTotal: 1500,
+          stormDoorTotal: 0,
+          hardwareTotal: 0,
+          surchargeTotal: 120,
+          discountTotal: 150,
+          combinedLabourTotal: 280,
+          miscTotal: 50,
+          subtotalPreTax: 1800,
+          grandTotal: 2034,
+        },
+        lineItems: [
+          {
+            id: "line_p1",
+            presetLabel: "Patio Door",
+            quantity: 1,
+            inksterBasePrice: 1500,
+          },
+        ],
+      },
+    }
+
+    const payload = buildDoorAttachPayload(rawDoorDraft as any)
+    expect(payload.discountLabel).toBe("Fall Door Special")
+    expect(payload.totals.rawDoorBaseTotal).toBe(1500)
+    expect(payload.totals.surchargeTotal).toBe(120)
+    expect(payload.totals.discountTotal).toBe(150)
+    expect(payload.totals.subtotalPreTax).toBe(1800)
+    expect(payload.totals.grandTotal).toBe(2034)
   })
 })

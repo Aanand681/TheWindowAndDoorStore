@@ -25,11 +25,13 @@ import { buildModalProps } from "@/hooks/calculator/promo/modal-props-builder"
 export interface UsePromoCalculatorOptions {
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function usePromoCalculator({
   initialReviewQuoteId,
   initialIsEditMode,
+  originSubTab,
 }: UsePromoCalculatorOptions = {}) {
   const base = useCalculatorBaseState()
   const windowsContext = useCalculatorWindows()
@@ -63,6 +65,7 @@ export function usePromoCalculator({
     drafts: {
       resetDraftState: () => draftsRef.current?.resetDraftState?.(),
     },
+    originSubTab,
   })
 
   const { drafts } = useCalculatorDraftsSync({
@@ -118,7 +121,11 @@ export function usePromoCalculator({
         url.searchParams.set("tab", validTab)
         if (sub) url.searchParams.set("sub", sub)
       }
-      window.history.pushState({ tab: validTab, sub }, "", url.toString())
+      const current =
+        typeof window.history.state === "object" && window.history.state !== null
+          ? window.history.state
+          : {}
+      window.history.pushState({ ...current, tab: validTab, sub }, "", url.toString())
     }
   }
 

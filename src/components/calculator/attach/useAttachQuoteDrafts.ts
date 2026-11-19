@@ -10,12 +10,10 @@ import {
   DRAFT_CHANGE_EVENT,
 } from "@/lib/quote-drafts-storage"
 import {
-  calculateSealedUnitTotals,
-  formatSealedUnitSummarySentence,
-  getSealedUnitServiceSummaryLabel,
-} from "@/lib/sealed-units-logic"
-import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
-import { formatDoorSummarySentence } from "@/lib/doors/calculations"
+  buildDoorAttachPayload,
+  buildSealedUnitAttachPayload,
+  buildWindowAttachPayload,
+} from "./attach-payload-builders"
 
 export interface UseAttachQuoteDraftsProps {
   isOpen: boolean
@@ -109,201 +107,18 @@ export function useAttachQuoteDrafts({
   }
 
   const handleAttachItem = (draft: QuoteDraftItem) => {
-    const rawData = (draft.data as any) || {}
-
     if (draft.type === "door") {
-      const lineItems = rawData.lineItems || (draft as any).windows || []
-      const doorSentence = formatDoorSummarySentence(lineItems)
-      const srcTotals =
-        rawData.totals ||
-        rawData.taxTotals ||
-        (draft as any).taxTotals ||
-        (draft as any).data?.totals ||
-        (draft as any).data?.taxTotals ||
-        {}
-      const payload = {
-        quoteNumber: draft.quoteNumber,
-        customerName: draft.customerName,
-        itemCount: draft.itemCount,
-        type: "door",
-        lineItems,
-        summaryLabel: doorSentence,
-        summarySentence: doorSentence,
-        totals: {
-          grandTotal: srcTotals.grandTotal ?? draft.grandTotal,
-          subtotalPreTax: srcTotals.subtotalPreTax ?? srcTotals.subtotal ?? draft.subtotal,
-          rawDoorBaseTotal: srcTotals.rawDoorBaseTotal ?? srcTotals.totalPrice ?? draft.subtotal,
-          stormDoorTotal: srcTotals.stormDoorTotal ?? 0,
-          hardwareTotal: srcTotals.hardwareTotal ?? 0,
-          materialsTotal: srcTotals.materialsTotal ?? srcTotals.totalPrice ?? draft.subtotal,
-          combinedLabourTotal: srcTotals.combinedLabourTotal ?? srcTotals.combinedLabour ?? 0,
-          miscTotal: srcTotals.miscTotal ?? 0,
-          surchargeTotal: srcTotals.surchargeTotal ?? 0,
-          discountTotal: srcTotals.discountTotal ?? 0,
-          hstAmount: srcTotals.hstAmount ?? (draft.grandTotal - draft.subtotal),
-          depositAmount: srcTotals.depositAmount ?? (Math.round(draft.grandTotal * 0.5 * 100) / 100),
-          unitLabourTotal: srcTotals.unitLabourTotal,
-          upchargesTotal: srcTotals.upchargesTotal,
-        },
-        taxTotals: srcTotals,
-        isInstallation: rawData.mode === "installation" || rawData.isInstallation === true,
-        globalUpcharges: rawData.globalUpcharges || [],
-        hstRate: rawData.isFirstNation ? 8 : (srcTotals.hstRate ?? 13),
-      }
-
+      const payload = buildDoorAttachPayload(draft)
       if (onAttachDoor) onAttachDoor(payload)
       else if (onAttach) onAttach(payload)
       toast.success(`Attached Door Quote #${draft.quoteNumber}!`)
     } else if (draft.type === "sealed_unit") {
-      const lineItems = rawData.lineItems || (draft as any).lineItems || []
-      const calculatedTotals =
-        rawData.totals ||
-        calculateSealedUnitTotals({
-          lineItems,
-          isInstallation: Boolean(rawData.isInstallation),
-          travelFeeType: rawData.travelFeeType || "none",
-          customTravelFee: rawData.customTravelFee,
-          showOutTownTravel: Boolean(rawData.showOutTownTravel),
-          travelKm: rawData.travelKm,
-          crewHours: rawData.crewHours,
-          crewSize: rawData.crewSize || "2",
-          hstRate: rawData.hstRate ?? 13,
-        })
-
-      const isService = rawData.sealedUnitMode === "service_only"
-      const summarySentence = isService
-        ? getSealedUnitServiceSummaryLabel(
-            lineItems,
-            calculatedTotals.totalSqft
-          )
-        : formatSealedUnitSummarySentence(lineItems)
-
-      const payload = {
-        quoteNumber: draft.quoteNumber,
-        customerName: draft.customerName,
-        itemCount: draft.itemCount,
-        type: "sealed_unit",
-        lineItems,
-        summaryLabel: summarySentence,
-        summarySentence,
-        totals: calculatedTotals,
-        isInstallation: Boolean(rawData.isInstallation),
-        sealedUnitMode: rawData.sealedUnitMode,
-        hstRate: rawData.hstRate ?? 13,
-      }
-
+      const payload = buildSealedUnitAttachPayload(draft)
       if (onAttachSealedUnit) onAttachSealedUnit(payload)
       else if (onAttach) onAttach(payload)
       toast.success(`Attached Sealed Unit Quote #${draft.quoteNumber}!`)
     } else if (draft.type === "window") {
-      const rawRate = Number(rawData.surchargeRate ?? 8)
-      const decimalRate = rawRate > 1 ? rawRate / 100 : rawRate
-      const baseDollars = Number(
-        rawData.effectiveBase ??
-          (rawData.quoteResult?.base
-            ? rawData.quoteResult.base / 100
-            : rawData.subtotal || draft.subtotal || 0)
-      )
-
-      let surchargeDollars: number
-      if (
-        rawData.effectiveSurcharge !== undefined &&
-        rawData.effectiveSurcharge !== null &&
-        Number(rawData.effectiveSurcharge) <= baseDollars
-      ) {
-        surchargeDollars = Number(rawData.effectiveSurcharge)
-      } else if (
-        rawData.quoteResult?.surcharge &&
-        rawData.quoteResult.surcharge / 100 <= baseDollars
-      ) {
-        surchargeDollars = rawData.quoteResult.surcharge / 100
-      } else {
-        surchargeDollars = Math.round(baseDollars * decimalRate * 100) / 100
-      }
-
-      const labourDollars =
-        rawData.effectiveLabour ??
-        (rawData.customLabour !== undefined
-          ? rawData.customLabour
-          : Number(
-              rawData.taxTotals?.finalLabour ??
-                rawData.taxTotals?.labourTotal ??
-                0
-            ))
-      const miscDollars =
-        rawData.effectiveMisc ??
-        (rawData.customMisc !== undefined
-          ? rawData.customMisc
-          : Number(
-              rawData.taxTotals?.finalMisc ?? rawData.taxTotals?.miscTotal ?? 0
-            ))
-      const jcDollars =
-        rawData.effectiveJC ??
-        (rawData.customJC !== undefined
-          ? rawData.customJC
-          : Number(
-              rawData.taxTotals?.finalJC ?? rawData.taxTotals?.jcTotal ?? 0
-            ))
-      const promoDiscountDollars =
-        (rawData.quoteResult?.promoDiscount
-          ? rawData.quoteResult.promoDiscount / 100
-          : 0) ||
-        rawData.promoDiscount ||
-        0
-      const promoName =
-        rawData.quoteResult?.promoName || rawData.activePromoName || ""
-      const hasJamb = Boolean(
-        rawData.taxTotals?.selectedJamb &&
-        (Number(rawData.taxTotals.selectedJamb.total) > 0 ||
-          Number(rawData.taxTotals.selectedJamb.rate) > 0)
-      )
-      const hasCasing = Boolean(
-        rawData.taxTotals?.selectedCasing &&
-        (Number(rawData.taxTotals.selectedCasing.total) > 0 ||
-          Number(rawData.taxTotals.selectedCasing.rate) > 0)
-      )
-      const jcLabel =
-        hasJamb && hasCasing
-          ? "Jambs & Casing"
-          : hasJamb
-            ? "Jambs Only"
-            : hasCasing
-              ? "Casing Only"
-              : "Jambs & Casing"
-
-      const windowSentence = formatWindowSummarySentence(rawData.windows || [])
-      const finalSentence =
-        windowSentence !== "0 Windows"
-          ? windowSentence
-          : draft.summaryLabel || "Windows & Glazing"
-
-      const payload = {
-        quoteNumber: draft.quoteNumber,
-        customerName: draft.customerName,
-        itemCount: draft.itemCount,
-        type: "window",
-        windows: rawData.windows || [],
-        summaryLabel: finalSentence,
-        summarySentence: finalSentence,
-        jcLabel: jcDollars > 0 ? jcLabel : "",
-        promoName: promoDiscountDollars > 0 ? promoName : "",
-        totals: {
-          subtotal: draft.subtotal,
-          grandTotal: draft.grandTotal,
-          base: baseDollars,
-          surcharge: surchargeDollars,
-          labour: labourDollars,
-          misc: miscDollars,
-          jc: jcDollars,
-          promoDiscount: promoDiscountDollars,
-        },
-        taxTotals: rawData.taxTotals,
-        quoteResult: rawData.quoteResult,
-        surchargeRate: decimalRate,
-        hstRate: rawData.hstRate ?? 13,
-        isSupplyOnly: Boolean(rawData.isSupplyOnly),
-      }
-
+      const payload = buildWindowAttachPayload(draft)
       if (onAttachWindow) onAttachWindow(payload)
       else if (onAttach) onAttach(payload)
       toast.success(`Attached Window Quote #${draft.quoteNumber}!`)

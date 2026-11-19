@@ -115,26 +115,17 @@ export function computeCombinedQuoteFinancials(
   let doorMiscCents = 0
 
   if (hasAttachedDoor) {
-    const doorTotals = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
-    const doorRawBaseCents = Math.round(
-      ((doorTotals.rawDoorBaseTotal ?? doorTotals.totalPrice ?? 0) +
-        (doorTotals.stormDoorTotal || 0) +
-        (doorTotals.hardwareTotal || 0)) *
-        100
-    )
-    const doorDiscountCents = Math.round((doorTotals.discountTotal || 0) * 100)
+    const dt = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
+    const baseVal = (dt.rawDoorBaseTotal ?? dt.totalPrice ?? dt.materialsTotal ?? 0) + (dt.stormDoorTotal || 0) + (dt.hardwareTotal || 0)
+    const doorRawBaseCents = Math.round(baseVal * 100)
+    const doorDiscountCents = Math.round((dt.discountTotal ?? dt.discount ?? 0) * 100)
     doorMaterialsCents = Math.max(0, doorRawBaseCents - doorDiscountCents)
-    doorSurchargeCents = Math.round((doorTotals.surchargeTotal || 0) * 100)
-    const hasExplicitUnitLabour =
-      doorTotals.unitLabourTotal !== undefined ||
-      doorTotals.upchargesTotal !== undefined
-    doorLabourCents = Math.round(
-      (hasExplicitUnitLabour
-        ? (doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)
-        : (doorTotals.combinedLabourTotal ?? doorTotals.combinedLabour ?? 0)) *
-        100
-    )
-    doorMiscCents = Math.round((doorTotals.miscTotal || 0) * 100)
+    const surchVal = dt.surchargeTotal ?? dt.surcharge ?? (doorRawBaseCents > 0 ? Math.round(doorRawBaseCents * 0.08) / 100 : 0)
+    doorSurchargeCents = Math.round(surchVal * 100)
+    const hasExplicit = dt.unitLabourTotal !== undefined || dt.upchargesTotal !== undefined
+    const labVal = hasExplicit ? (dt.unitLabourTotal || 0) + (dt.upchargesTotal || 0) : (dt.combinedLabourTotal ?? dt.combinedLabour ?? 0)
+    doorLabourCents = Math.round(labVal * 100)
+    doorMiscCents = Math.round((dt.miscTotal ?? dt.misc ?? 0) * 100)
   }
 
   const windowBaseCents = Math.max(0, quoteResult?.base || 0)

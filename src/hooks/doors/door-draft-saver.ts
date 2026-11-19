@@ -127,6 +127,11 @@ export async function executeSaveDoorDraft(
         grandTotal: effectiveTotals.grandTotal,
         itemCount: lineItems.length,
         totals,
+        taxTotals: {
+          ...totals,
+          subtotalPreTax: effectiveTotals.combinedSubtotal,
+          grandTotal: effectiveTotals.grandTotal,
+        },
       },
     })
 

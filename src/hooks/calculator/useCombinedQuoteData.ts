@@ -75,32 +75,47 @@ export function useCombinedQuoteData({
     const suMiscCents = hasSU ? Math.round((suTotals.miscTotal || 0) * 100) : 0
 
     const hasDoor = Boolean(attachedDoorQuote)
-    const doorTotals = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
+    const doorTotals =
+      attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
     const doorRawBaseCents = hasDoor
       ? Math.round(
-          ((doorTotals.rawDoorBaseTotal ?? doorTotals.totalPrice ?? 0) +
+          ((doorTotals.rawDoorBaseTotal ??
+            doorTotals.totalPrice ??
+            doorTotals.materialsTotal ??
+            0) +
             (doorTotals.stormDoorTotal || 0) +
             (doorTotals.hardwareTotal || 0)) *
             100
         )
       : 0
     const doorDiscountCents = hasDoor
-      ? Math.round((doorTotals.discountTotal || 0) * 100)
+      ? Math.round((doorTotals.discountTotal ?? doorTotals.discount ?? 0) * 100)
       : 0
     const doorMaterialsCents = doorRawBaseCents
     const doorSurchargeCents = hasDoor
-      ? Math.round((doorTotals.surchargeTotal || 0) * 100)
+      ? Math.round(
+          (doorTotals.surchargeTotal ??
+            doorTotals.surcharge ??
+            (doorRawBaseCents > 0
+              ? Math.round(doorRawBaseCents * 0.08) / 100
+              : 0)) *
+            100
+        )
       : 0
     const doorLabourCents = hasDoor
       ? Math.round(
-          ((doorTotals.unitLabourTotal !== undefined || doorTotals.upchargesTotal !== undefined)
-            ? (doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)
-            : (doorTotals.combinedLabourTotal ?? doorTotals.combinedLabour ?? 0)) *
+          ((doorTotals.unitLabourTotal !== undefined ||
+          doorTotals.upchargesTotal !== undefined)
+            ? (doorTotals.unitLabourTotal || 0) +
+              (doorTotals.upchargesTotal || 0)
+            : (doorTotals.combinedLabourTotal ??
+              doorTotals.combinedLabour ??
+              0)) *
             100
         )
       : 0
     const doorMiscCents = hasDoor
-      ? Math.round((doorTotals.miscTotal || 0) * 100)
+      ? Math.round((doorTotals.miscTotal ?? doorTotals.misc ?? 0) * 100)
       : 0
 
     const windowBaseCents = quoteResult?.base || 0

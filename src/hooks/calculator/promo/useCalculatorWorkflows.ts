@@ -14,8 +14,9 @@ export function useCalculatorWorkflows(p: {
   pricing: any
   supply: any
   drafts: any
+  originSubTab?: string
 }) {
-  const { base, windowsContext, pricing, supply, drafts } = p
+  const { base, windowsContext, pricing, supply, drafts, originSubTab } = p
   const { windows, setWindows, fileInputRef } = windowsContext
 
   const comparison = useCalculatorComparison({
@@ -179,6 +180,7 @@ export function useCalculatorWorkflows(p: {
     setSupplyCasingRate: supply.setSupplyCasingRate,
     quotesSubTab: base.quotesSubTab,
     setQuotesSubTab: base.setQuotesSubTab,
+    originSubTab,
     setActiveTab: base.setActiveTab,
     fileInputRef,
     resetCalculatorDefaults,

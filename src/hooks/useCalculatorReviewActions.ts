@@ -58,6 +58,7 @@ export interface UseCalculatorReviewActionsProps {
   setSupplyCasingRate?: (val: string) => void
   quotesSubTab?: QuotesSubTabType
   setQuotesSubTab: (tab: QuotesSubTabType) => void
+  originSubTab?: string
   setActiveTab: (tab: any) => void
   fileInputRef: React.RefObject<HTMLInputElement | null>
   resetCalculatorDefaults: () => void
@@ -116,20 +117,15 @@ export function useCalculatorReviewActions({
   setSupplyCasingRate,
   quotesSubTab,
   setQuotesSubTab,
+  originSubTab,
   setActiveTab,
   fileInputRef,
   resetCalculatorDefaults,
 }: UseCalculatorReviewActionsProps) {
-  // Pre-calculate permissions base
   const effectivePerms = user?.permissions || user?.departmentPermissions || {}
-  const isSuperAdmin = Boolean(user && user.role === "SUPERADMIN")
-  const isAdmin = Boolean(user && (user.role === "ADMIN" || isSuperAdmin))
-  const canReview = Boolean(
-    isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote
-  )
-  const canEditApprovedQuote = Boolean(
-    isAdmin || effectivePerms.canEditApprovedQuote
-  )
+  const isAdmin = Boolean(user && (user.role === "ADMIN" || user.role === "SUPERADMIN"))
+  const canReview = Boolean(isAdmin || effectivePerms.canReviewQuote || effectivePerms.canApproveQuote)
+  const canEditApprovedQuote = Boolean(isAdmin || effectivePerms.canEditApprovedQuote)
 
   // 1. Review Quote Lifecycle & Loader Hook
   const {
@@ -178,6 +174,7 @@ export function useCalculatorReviewActions({
     setSupplyCasingId,
     setSupplyCasingRate,
     setTaxTotals,
+    originSubTab,
   })
 
   // 2. Computed Permissions & Role Checks Hook
