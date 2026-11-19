@@ -261,4 +261,40 @@ describe("calculateTaxTotals - Jamb and Casing Calculations", () => {
     expect(res?.fullInstallMiscCents).toBeGreaterThan(0)
     expect(res?.fullInstallJCCents).toBeGreaterThan(0)
   })
+
+  it("does not apply the $140 fixed setup fee when a quote has not started or has no active window items", () => {
+    const res = calculateTaxTotals({
+      windows: [{ id: "1", qty: "1", w: "", h: "", base: "0" }],
+      region: dummyRegion,
+      effectiveIsSupplyOnly: false,
+      dbAddons: [],
+      addons: {},
+      manualKm: "0",
+      manualHours: "0",
+      crew: "2",
+      dbCrewRates: [],
+      dbVehicleRate: 0.98,
+      setupFee: "0",
+      jambId: "none",
+      jambName: "",
+      jambRate: "",
+      dbJambs: dbJambsWithRate,
+      casingId: "none",
+      casingName: "",
+      casingRate: "",
+      dbCasings,
+      includeLabour: true,
+      includeMisc: true,
+      includeJC: true,
+      discount: "0",
+      hstOn: true,
+      selectedRegionId: "r1",
+      coords: "",
+    })
+
+    expect(res).not.toBeNull()
+    expect(res?.fixedSetupFee).toBe(0)
+    expect(res?.finalLabour).toBe(0)
+    expect(res?.standardLabourCents).toBe(0)
+  })
 })

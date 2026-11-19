@@ -138,21 +138,35 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
   const crewObj = dbCrewRates.find((c) => c.crewSize === crew)
   const crewRate = isSupply ? 0 : crewObj ? crewObj.hourlyRate : 0
 
+  const hasActiveQuoteItems =
+    sq > 0 ||
+    windows.some(
+      (w) =>
+        (Number(w.base) || 0) > 0 ||
+        (Number(w.argon) || 0) > 0 ||
+        (Number(w.solar) || 0) > 0 ||
+        (Number(w.triple) || 0) > 0
+    ) ||
+    (Array.isArray(p.customMaterials) && p.customMaterials.length > 0)
+
+  const defaultSetupFee =
+    region.fixedSetupFee !== undefined ? Number(region.fixedSetupFee) : 140
+
+  const fixedSetupFee =
+    isSupply || !hasActiveQuoteItems ? 0 : defaultSetupFee
+
+  const activeBaseTravel = !hasActiveQuoteItems ? 0 : (region.baseTravelFee || 0)
+
   const vehicle = isSupply ? 0 : km * dbVehicleRate
   const crewTravel = isSupply ? 0 : hrs * crewRate
   const setup = isSupply ? 0 : Number(setupFee) || 0
-  const fixedSetupFee = isSupply
-    ? 0
-    : region.fixedSetupFee !== undefined
-      ? Number(region.fixedSetupFee)
-      : 140
   const extras = isSupply
     ? 0
     : vehicle +
       crewTravel +
       setup +
       fixedSetupFee +
-      (region.baseTravelFee || 0)
+      activeBaseTravel
 
   // Baseline installation extras (unaffected by isSupply)
   const rawKm = Number(manualKm) || 0
@@ -161,14 +175,13 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
   const rawVehicle = rawKm * dbVehicleRate
   const rawCrewTravel = rawHrs * rawCrewRate
   const rawSetup = Number(setupFee) || 0
-  const rawFixedSetupFee =
-    region.fixedSetupFee !== undefined ? Number(region.fixedSetupFee) : 140
+  const rawFixedSetupFee = !hasActiveQuoteItems ? 0 : defaultSetupFee
   const rawExtras =
     rawVehicle +
     rawCrewTravel +
     rawSetup +
     rawFixedSetupFee +
-    (region.baseTravelFee || 0)
+    activeBaseTravel
 
   const foundJamb = dbJambs.find((j) => j.id === jambId)
   const jRate =

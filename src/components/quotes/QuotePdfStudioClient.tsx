@@ -1,10 +1,15 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useMemo } from "react"
 import { FileText } from "lucide-react"
+import { toast } from "sonner"
 import { useQuotePdfStudio } from "@/hooks/useQuotePdfStudio"
 import { useDoorPdfStudio } from "@/hooks/useDoorPdfStudio"
 import { classifyPdfFile, QuotePdfType } from "@/lib/pdf-studio/classifier"
+import {
+  buildCombinedPdfFileName,
+  combineWindowAndDoorPdfs,
+} from "@/lib/pdf-studio/pdf-combiner"
 import { AppHeader } from "@/components/layout/AppHeader"
 import {
   StudioUploadCard,
@@ -20,6 +25,7 @@ import {
 export default function QuotePdfStudioClient() {
   const [productType, setProductType] = useState<StudioProductType>("window")
   const [detectedType, setDetectedType] = useState<QuotePdfType | null>(null)
+  const [isCombining, setIsCombining] = useState(false)
   const unifiedFileInputRef = useRef<HTMLInputElement>(null)
 
   // Window Studio Hook
@@ -27,6 +33,79 @@ export default function QuotePdfStudioClient() {
 
   // Door Studio Hook
   const doorStudio = useDoorPdfStudio()
+
+  const windowCount = windowStudio.quoteData.items.length
+  const doorCount = doorStudio.doorQuoteData.lines.length
+  const hasBothQuotes = windowCount > 0 && doorCount > 0
+
+  const combinedFileName = useMemo(() => {
+    return buildCombinedPdfFileName({
+      customerName:
+        windowStudio.quoteData.customerName ||
+        doorStudio.doorQuoteData.customerName,
+      windowQuoteNo: windowStudio.quoteData.quoteNumber,
+      doorQuoteNo: doorStudio.doorQuoteData.quoteNumber,
+    })
+  }, [
+    windowStudio.quoteData.customerName,
+    windowStudio.quoteData.quoteNumber,
+    doorStudio.doorQuoteData.customerName,
+    doorStudio.doorQuoteData.quoteNumber,
+  ])
+
+  const handleDownloadCombinedPdf = async () => {
+    if (!hasBothQuotes) {
+      toast.error("Both Window and Door quote items must be loaded first.")
+      return
+    }
+
+    setIsCombining(true)
+    try {
+      let winUrl = windowStudio.pdfUrl
+      if (!winUrl && windowStudio.quoteData.items.length > 0) {
+        await windowStudio.handleGeneratePdf()
+        winUrl = windowStudio.pdfUrl
+      }
+
+      let doorUrl = doorStudio.pdfUrl
+      if (!doorUrl && doorStudio.doorQuoteData.lines.length > 0) {
+        await doorStudio.handleGeneratePdf()
+        doorUrl = doorStudio.pdfUrl
+      }
+
+      if (!winUrl || !doorUrl) {
+        throw new Error(
+          "Unable to obtain generated PDF for both Windows and Doors."
+        )
+      }
+
+      const [winBuffer, doorBuffer] = await Promise.all([
+        fetch(winUrl).then((r) => r.arrayBuffer()),
+        fetch(doorUrl).then((r) => r.arrayBuffer()),
+      ])
+
+      const combinedBytes = await combineWindowAndDoorPdfs(winBuffer, doorBuffer)
+      const blob = new Blob([new Uint8Array(combinedBytes)], {
+        type: "application/pdf",
+      })
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement("a")
+      a.href = url
+      a.download = combinedFileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success(`Combined PDF downloaded as "${combinedFileName}"`)
+    } catch (err: any) {
+      console.error("Failed to combine PDFs:", err)
+      toast.error(err.message || "Failed to combine Window and Door PDFs")
+    } finally {
+      setIsCombining(false)
+    }
+  }
 
   // Unified File Upload with Auto-detection
   const handleUnifiedFileUpload = async (file: File) => {
@@ -95,6 +174,8 @@ export default function QuotePdfStudioClient() {
             productType={productType}
             onProductTypeChange={setProductType}
             detectedType={detectedType}
+            windowCount={windowCount}
+            doorCount={doorCount}
           />
         </div>
 
@@ -176,6 +257,10 @@ export default function QuotePdfStudioClient() {
             <StudioPdfPreviewCard
               pdfUrl={activePdfUrl}
               onDownloadPdf={activeDownload}
+              hasBothQuotes={hasBothQuotes}
+              onDownloadCombinedPdf={handleDownloadCombinedPdf}
+              isCombining={isCombining}
+              combinedFileName={combinedFileName}
             />
           </div>
         </div>
