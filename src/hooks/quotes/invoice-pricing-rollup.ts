@@ -21,6 +21,7 @@ export interface InvoicePricingRollupParams {
   hstRate: number
   afterDiscount: number
   taxTotals?: any
+  isSupplyOnly?: boolean
 }
 
 export function calculateInvoicePricingRollup({
@@ -46,7 +47,9 @@ export function calculateInvoicePricingRollup({
   hstRate,
   afterDiscount,
   taxTotals,
+  isSupplyOnly = false,
 }: InvoicePricingRollupParams) {
+  const isSupply = Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
   const promoDiscountCents = isWindowHost
     ? activePromo?.discount || 0
     : attachedWindowQuote?.totals?.promoDiscount
@@ -75,14 +78,14 @@ export function calculateInvoicePricingRollup({
     winMaterialsCents > 0
       ? Math.round(winMaterialsCents * 0.08)
       : rawWinSurchargeCents
-  const winLabourCents = hasWindows
+  const winLabourCents = hasWindows && !isSupply
     ? isWindowHost
       ? taxLabourCents
       : attachedWindowQuote?.totals?.labour
         ? Math.round(attachedWindowQuote.totals.labour * 100)
         : 0
     : 0
-  const winMiscCents = hasWindows
+  const winMiscCents = hasWindows && !isSupply
     ? isWindowHost
       ? taxMiscCents
       : attachedWindowQuote?.totals?.misc
@@ -97,6 +100,7 @@ export function calculateInvoicePricingRollup({
         : 0
     : 0
 
+  const suIsSupply = isSupply || effectiveSUTotals?.sealedUnitMode === "supply_only" || Boolean(effectiveSUTotals?.isSupplyOnly)
   const suGlassCents =
     hasSealedUnits && !isAttachedSUService
       ? Math.round((effectiveSUTotals.glassBefore8PercentTotal || 0) * 100)
@@ -105,19 +109,25 @@ export function calculateInvoicePricingRollup({
     hasSealedUnits && !isAttachedSUService
       ? Math.round((effectiveSUTotals.glass8PercentSurchargeTotal || 0) * 100)
       : 0
-  const suMiscCents = hasSealedUnits
+  const suMiscCents = hasSealedUnits && !suIsSupply
     ? Math.round((effectiveSUTotals.miscTotal || 0) * 100)
     : 0
-  const suLabourCents = hasSealedUnits
+  const suLabourCents = hasSealedUnits && !suIsSupply
     ? isSUHost
       ? Math.round((effectiveSUTotals.combinedLabourTotal || 0) * 100)
       : Math.round(
           (effectiveSUTotals.serviceLabourTotal ??
             effectiveSUTotals.unitLabourSum ??
-            0) * 100
+            Math.max(
+              0,
+              (effectiveSUTotals.combinedLabourTotal || 0) -
+                (effectiveSUTotals.baseSetupFee || 0) -
+                (effectiveSUTotals.totalTravelAndSetup || 0)
+            )) * 100
         )
     : 0
 
+  const doorIsSupply = isSupply || effectiveDoorTotals?.mode === "supply_only" || Boolean(effectiveDoorTotals?.isSupplyOnly)
   const doorRawBaseCents = hasDoors
     ? Math.round(
         ((effectiveDoorTotals.rawDoorBaseTotal || 0) +
@@ -136,27 +146,40 @@ export function calculateInvoicePricingRollup({
   const doorSurchargeCents = hasDoors
     ? Math.round((effectiveDoorTotals.surchargeTotal || 0) * 100)
     : 0
-  const doorMiscCents = hasDoors
+  const doorMiscCents = hasDoors && !doorIsSupply
     ? Math.round((effectiveDoorTotals.miscTotal || 0) * 100)
     : 0
-  const doorLabourCents = hasDoors
+
+  const rawPureDoorLabour =
+    effectiveDoorTotals.doorPureLabourTotal !== undefined
+      ? Number(effectiveDoorTotals.doorPureLabourTotal)
+      : (effectiveDoorTotals.unitLabourTotal !== undefined ||
+          effectiveDoorTotals.upchargesTotal !== undefined)
+        ? (effectiveDoorTotals.unitLabourTotal || 0) +
+          (effectiveDoorTotals.upchargesTotal || 0)
+        : Math.max(
+            0,
+            (effectiveDoorTotals.combinedLabourTotal || 0) -
+              (effectiveDoorTotals.baseSetupFee || 0) -
+              (effectiveDoorTotals.totalTravelAndSetup || 0)
+          )
+
+  const doorLabourCents = hasDoors && !doorIsSupply
     ? isDoorHost
       ? Math.round((effectiveDoorTotals.combinedLabourTotal || 0) * 100)
-      : Math.round(
-          ((effectiveDoorTotals.unitLabourTotal || 0) +
-            (effectiveDoorTotals.upchargesTotal || 0)) *
-            100
-        )
+      : Math.round(rawPureDoorLabour * 100)
     : 0
 
-  const effectiveMiscTotalCents =
-    (hasWindows ? winMiscCents : 0) +
-    (hasSealedUnits ? suMiscCents : 0) +
-    (hasDoors ? doorMiscCents : 0)
-  const effectiveLabourTotalCents =
-    (hasWindows ? winLabourCents : 0) +
-    (hasSealedUnits ? suLabourCents : 0) +
-    (hasDoors ? doorLabourCents : 0)
+  const effectiveMiscTotalCents = isSupply
+    ? 0
+    : (hasWindows ? winMiscCents : 0) +
+      (hasSealedUnits ? suMiscCents : 0) +
+      (hasDoors ? doorMiscCents : 0)
+  const effectiveLabourTotalCents = isSupply
+    ? 0
+    : (hasWindows ? winLabourCents : 0) +
+      (hasSealedUnits ? suLabourCents : 0) +
+      (hasDoors ? doorLabourCents : 0)
   const effectiveSurchargeTotalCents =
     (hasWindows ? winSurchargeCents : 0) +
     (hasSealedUnits ? suSurchargeCents : 0) +

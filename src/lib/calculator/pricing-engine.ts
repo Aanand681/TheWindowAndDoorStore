@@ -18,6 +18,7 @@ export interface CombinedPricingParams {
   effectiveMisc?: number // cents
   effectiveLabour?: number // cents
   hstRate?: number // 13 or 8 (First Nation exempt) or 0
+  isSupplyOnly?: boolean
 }
 
 export interface CombinedPricingResult {
@@ -73,8 +74,10 @@ export function computeCombinedQuoteFinancials(
     effectiveMisc = 0,
     effectiveLabour = 0,
     hstRate = 13,
+    isSupplyOnly = false,
   } = params
 
+  const isSupply = Boolean(isSupplyOnly)
   let autoSubtotalDollars = Math.round(afterDiscount || 0) / 100
   let autoGrandTotalDollars = Math.round(total || 0) / 100
 
@@ -94,19 +97,29 @@ export function computeCombinedQuoteFinancials(
       attachedSealedUnit?.sealedUnitMode === "service_only" ||
       attachedSealedUnit?.data?.sealedUnitMode === "service_only" ||
       Boolean(suTotals.isServiceOnly)
+    const isSUSupply =
+      isSupply ||
+      attachedSealedUnit?.sealedUnitMode === "supply_only" ||
+      Boolean(attachedSealedUnit?.isSupplyOnly) ||
+      Boolean(suTotals.isSupplyOnly)
+
     suGlassCents = !isAttachedSUService
       ? Math.round((suTotals.glassBefore8PercentTotal || 0) * 100)
       : 0
     suSurchargeCents = !isAttachedSUService
       ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100)
       : 0
-    suLabourCents = Math.round(
-      (suTotals.serviceLabourTotal ??
-        suTotals.unitLabourSum ??
-        suTotals.combinedLabourTotal ??
-        0) * 100
-    )
-    suMiscCents = Math.round((suTotals.miscTotal || 0) * 100)
+    const rawPureSULab =
+      suTotals.serviceLabourTotal ??
+      suTotals.unitLabourSum ??
+      Math.max(
+        0,
+        (suTotals.combinedLabourTotal || 0) -
+          (suTotals.baseSetupFee || 0) -
+          (suTotals.totalTravelAndSetup || 0)
+      )
+    suLabourCents = isSUSupply ? 0 : Math.round(rawPureSULab * 100)
+    suMiscCents = isSUSupply ? 0 : Math.round((suTotals.miscTotal || 0) * 100)
   }
 
   let doorMaterialsCents = 0
@@ -116,26 +129,55 @@ export function computeCombinedQuoteFinancials(
 
   if (hasAttachedDoor) {
     const dt = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
-    const baseVal = (dt.rawDoorBaseTotal ?? dt.totalPrice ?? dt.materialsTotal ?? 0) + (dt.stormDoorTotal || 0) + (dt.hardwareTotal || 0)
+    const isDoorSupply =
+      isSupply ||
+      attachedDoorQuote?.mode === "supply_only" ||
+      Boolean(attachedDoorQuote?.isSupplyOnly) ||
+      Boolean(dt.isSupplyOnly)
+
+    const baseVal =
+      (dt.rawDoorBaseTotal ?? dt.totalPrice ?? dt.materialsTotal ?? 0) +
+      (dt.stormDoorTotal || 0) +
+      (dt.hardwareTotal || 0)
     const doorRawBaseCents = Math.round(baseVal * 100)
-    const doorDiscountCents = Math.round((dt.discountTotal ?? dt.discount ?? 0) * 100)
+    const doorDiscountCents = Math.round(
+      (dt.discountTotal ?? dt.discount ?? 0) * 100
+    )
     doorMaterialsCents = Math.max(0, doorRawBaseCents - doorDiscountCents)
-    const surchVal = dt.surchargeTotal ?? dt.surcharge ?? (doorRawBaseCents > 0 ? Math.round(doorRawBaseCents * 0.08) / 100 : 0)
+    const surchVal =
+      dt.surchargeTotal ??
+      dt.surcharge ??
+      (doorRawBaseCents > 0 ? Math.round(doorRawBaseCents * 0.08) / 100 : 0)
     doorSurchargeCents = Math.round(surchVal * 100)
-    const hasExplicit = dt.unitLabourTotal !== undefined || dt.upchargesTotal !== undefined
-    const labVal = hasExplicit ? (dt.unitLabourTotal || 0) + (dt.upchargesTotal || 0) : (dt.combinedLabourTotal ?? dt.combinedLabour ?? 0)
-    doorLabourCents = Math.round(labVal * 100)
-    doorMiscCents = Math.round((dt.miscTotal ?? dt.misc ?? 0) * 100)
+
+    const rawPureDoorLab =
+      dt.doorPureLabourTotal !== undefined
+        ? Number(dt.doorPureLabourTotal)
+        : dt.unitLabourTotal !== undefined || dt.upchargesTotal !== undefined
+          ? (dt.unitLabourTotal || 0) + (dt.upchargesTotal || 0)
+          : Math.max(
+              0,
+              (dt.combinedLabourTotal ?? dt.combinedLabour ?? 0) -
+                (dt.baseSetupFee || 0) -
+                (dt.totalTravelAndSetup || 0)
+            )
+
+    doorLabourCents = isDoorSupply ? 0 : Math.round(rawPureDoorLab * 100)
+    doorMiscCents = isDoorSupply
+      ? 0
+      : Math.round((dt.miscTotal ?? dt.misc ?? 0) * 100)
   }
 
   const windowBaseCents = Math.max(0, quoteResult?.base || 0)
   const windowSurchargeCents = Math.max(0, quoteResult?.surcharge || 0)
   const windowDiscountCents = Math.max(0, quoteResult?.promoDiscount || 0)
 
-  const combinedMiscCents =
-    Math.max(0, effectiveMisc) + suMiscCents + doorMiscCents
-  const combinedLabourCents =
-    Math.max(0, effectiveLabour) + suLabourCents + doorLabourCents
+  const combinedMiscCents = isSupply
+    ? 0
+    : Math.max(0, effectiveMisc) + suMiscCents + doorMiscCents
+  const combinedLabourCents = isSupply
+    ? 0
+    : Math.max(0, effectiveLabour) + suLabourCents + doorLabourCents
   const combinedSurchargeCents =
     windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 
@@ -188,39 +230,19 @@ export function computeCombinedQuoteFinancials(
     return {
       subtotalDollars: autoSubtotalDollars,
       grandTotalDollars: autoGrandTotalDollars,
-      combinedSubtotalCents,
-      combinedTaxCents,
-      combinedTotalCents,
-      combinedHstBaseCents,
-      combinedMaterialExemptionCents,
-      windowBaseCents,
-      windowSurchargeCents,
-      windowDiscountCents,
-      suGlassCents,
-      suSurchargeCents,
-      suLabourCents,
-      suMiscCents,
-      doorMaterialsCents,
-      doorSurchargeCents,
-      doorLabourCents,
-      doorMiscCents,
-      combinedMiscCents,
-      combinedLabourCents,
-      combinedSurchargeCents,
+      combinedSubtotalCents, combinedTaxCents, combinedTotalCents,
+      combinedHstBaseCents, combinedMaterialExemptionCents,
+      windowBaseCents, windowSurchargeCents, windowDiscountCents,
+      suGlassCents, suSurchargeCents, suLabourCents, suMiscCents,
+      doorMaterialsCents, doorSurchargeCents, doorLabourCents, doorMiscCents,
+      combinedMiscCents, combinedLabourCents, combinedSurchargeCents,
     }
   }
 
   // Standalone window quote fallback
   const computedStandaloneSubtotal =
-    windowBaseCents -
-    windowDiscountCents +
-    effectiveJC +
-    combinedMiscCents +
-    combinedLabourCents +
-    combinedSurchargeCents
-
-  const subtotalCents =
-    afterDiscount > 0 ? Math.round(afterDiscount) : computedStandaloneSubtotal
+    windowBaseCents - windowDiscountCents + effectiveJC + combinedMiscCents + combinedLabourCents + combinedSurchargeCents
+  const subtotalCents = afterDiscount > 0 ? Math.round(afterDiscount) : computedStandaloneSubtotal
 
   let taxCents = 0
   let standaloneHstBaseCents = 0
@@ -230,21 +252,12 @@ export function computeCombinedQuoteFinancials(
     taxCents = Math.round(subtotalCents * 0.13)
     standaloneHstBaseCents = taxCents
   } else if (hstRate === 8) {
-    // Surcharge is excluded from materials (treated as handling/service).
-    const materialsCents = Math.max(
-      0,
-      windowBaseCents - windowDiscountCents + effectiveJC
-    )
+    const materialsCents = Math.max(0, windowBaseCents - windowDiscountCents + effectiveJC)
     standaloneHstBaseCents = Math.round(subtotalCents * 0.13)
     standaloneMaterialExemptionCents = Math.round(materialsCents * 0.08)
-    taxCents = Math.max(
-      0,
-      standaloneHstBaseCents - standaloneMaterialExemptionCents
-    )
+    taxCents = Math.max(0, standaloneHstBaseCents - standaloneMaterialExemptionCents)
   } else if (hstRate === 0) {
-    taxCents = 0
-    standaloneHstBaseCents = 0
-    standaloneMaterialExemptionCents = 0
+    taxCents = 0; standaloneHstBaseCents = 0; standaloneMaterialExemptionCents = 0
   } else if (total > 0 && afterDiscount > 0) {
     taxCents = Math.max(0, Math.round(total) - subtotalCents)
     standaloneHstBaseCents = taxCents
@@ -255,26 +268,14 @@ export function computeCombinedQuoteFinancials(
   const grandTotalDollars = Math.round(totalCents) / 100
 
   return {
-    subtotalDollars,
-    grandTotalDollars,
-    combinedSubtotalCents: subtotalCents,
-    combinedTaxCents: taxCents,
-    combinedTotalCents: totalCents,
-    combinedHstBaseCents: standaloneHstBaseCents,
-    combinedMaterialExemptionCents: standaloneMaterialExemptionCents,
-    windowBaseCents,
-    windowSurchargeCents,
-    windowDiscountCents,
-    suGlassCents: 0,
-    suSurchargeCents: 0,
-    suLabourCents: 0,
-    suMiscCents: 0,
-    doorMaterialsCents: 0,
-    doorSurchargeCents: 0,
-    doorLabourCents: 0,
-    doorMiscCents: 0,
-    combinedMiscCents: effectiveMisc,
-    combinedLabourCents: effectiveLabour,
+    subtotalDollars, grandTotalDollars,
+    combinedSubtotalCents: subtotalCents, combinedTaxCents: taxCents, combinedTotalCents: totalCents,
+    combinedHstBaseCents: standaloneHstBaseCents, combinedMaterialExemptionCents: standaloneMaterialExemptionCents,
+    windowBaseCents, windowSurchargeCents, windowDiscountCents,
+    suGlassCents: 0, suSurchargeCents: 0, suLabourCents: 0, suMiscCents: 0,
+    doorMaterialsCents: 0, doorSurchargeCents: 0, doorLabourCents: 0, doorMiscCents: 0,
+    combinedMiscCents: isSupply ? 0 : effectiveMisc,
+    combinedLabourCents: isSupply ? 0 : effectiveLabour,
     combinedSurchargeCents: windowSurchargeCents,
   }
 }

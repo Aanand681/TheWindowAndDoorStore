@@ -12,6 +12,7 @@ import {
   getInvoiceTravelItems,
   getInvoiceDetailedExtrasList,
 } from "./invoice-logistics"
+import { getInvoiceLabourItems } from "./invoice-labour"
 import {
   getWindowBreakdown,
   getInvoiceSubtitle,
@@ -123,19 +124,13 @@ export function useInvoiceCalculations({
   })
 
   const hasSupplyJamb = Boolean(
-    (taxTotals?.selectedJamb &&
-      (Number(taxTotals.selectedJamb.rate) > 0 ||
-        Number(taxTotals.selectedJamb.total) > 0)) ||
-    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) ||
-    (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
+    (taxTotals?.selectedJamb && (Number(taxTotals.selectedJamb.rate) > 0 || Number(taxTotals.selectedJamb.total) > 0)) ||
+    (taxTotals?.jambTot && Number(taxTotals.jambTot) > 0) || (taxTotals?.jambRate && Number(taxTotals.jambRate) > 0) ||
     (taxTotals?.jambId && taxTotals.jambId !== "none")
   )
   const hasSupplyCasing = Boolean(
-    (taxTotals?.selectedCasing &&
-      (Number(taxTotals.selectedCasing.rate) > 0 ||
-        Number(taxTotals.selectedCasing.total) > 0)) ||
-    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) ||
-    (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
+    (taxTotals?.selectedCasing && (Number(taxTotals.selectedCasing.rate) > 0 || Number(taxTotals.selectedCasing.total) > 0)) ||
+    (taxTotals?.casingTot && Number(taxTotals.casingTot) > 0) || (taxTotals?.casingRate && Number(taxTotals.casingRate) > 0) ||
     (taxTotals?.casingId && taxTotals.casingId !== "none")
   )
   const isLooseSupplyJC = Boolean(
@@ -217,41 +212,35 @@ export function useInvoiceCalculations({
   )
 
   const pricing = calculateInvoicePricingRollup({
-    hasWindows,
-    hasSealedUnits,
-    hasDoors,
-    hasAnyAttached,
-    isWindowHost,
-    isDoorHost,
-    isSUHost,
-    isAttachedSUService,
-    quoteResult,
-    basePrice,
-    surcharge,
-    taxLabourCents,
-    taxMiscCents,
-    taxJCCents,
+    hasWindows, hasSealedUnits, hasDoors, hasAnyAttached,
+    isWindowHost, isDoorHost, isSUHost, isAttachedSUService,
+    quoteResult, basePrice, surcharge,
+    taxLabourCents, taxMiscCents, taxJCCents,
     taxDiscount: taxTotals?.discount || 0,
-    activePromo,
-    attachedWindowQuote,
-    effectiveSUTotals,
-    effectiveDoorTotals,
-    hstRate,
-    afterDiscount,
+    activePromo, attachedWindowQuote, effectiveSUTotals, effectiveDoorTotals,
+    hstRate, afterDiscount, taxTotals, isSupplyOnly,
+  })
+
+  const labourBreakdownItems = getInvoiceLabourItems({
+    isSupplyOnly,
+    hasWindows,
+    winLabourCents: taxLabourCents,
+    effectiveWindows,
     taxTotals,
+    hasDoors,
+    effectiveDoors,
+    effectiveDoorTotals,
+    hasSealedUnits,
+    effectiveSUTotals,
+    isAttachedSUService,
   })
 
   const suSummarySentence = isAttachedSUService
-    ? getSealedUnitServiceSummaryLabel(
-        effectiveSealedUnits,
-        effectiveSUTotals.totalSqft
-      )
+    ? getSealedUnitServiceSummaryLabel(effectiveSealedUnits, effectiveSUTotals.totalSqft)
     : formatSealedUnitSummarySentence(effectiveSealedUnits)
 
   const doorSummarySentence = formatDoorSummarySentence(effectiveDoors)
-  const doorUpgradeItems = effectiveDoors.filter(
-    (d: any) => d.upgradeOption?.enabled
-  )
+  const doorUpgradeItems = effectiveDoors.filter((d: any) => d.upgradeOption?.enabled)
 
   // Proportional Font Scaling System
   const baseFs = fontSize
@@ -267,84 +256,42 @@ export function useInvoiceCalculations({
   const sectionMb = Math.max(6, Math.round(10 * spacing))
 
   const { windowSummarySentence, totalWindowBaseCents } = getWindowBreakdown(
-    effectiveWindows,
-    pricing.winMaterialsCents
+    effectiveWindows, pricing.winMaterialsCents
   )
 
   const invoiceSubtitle = getInvoiceSubtitle({
-    hasWindows,
-    hasDoors,
-    hasSealedUnits,
-    isSupplyOnly,
-    isAttachedSUService,
+    hasWindows, hasDoors, hasSealedUnits, isSupplyOnly, isAttachedSUService,
   })
 
   const isSingleLineMergedItem = Boolean(
-    !hasDoors &&
-    !hasSealedUnits &&
-    effectiveWindows.length === 1 &&
-    pricing.winMaterialsCents > 0
+    !hasDoors && !hasSealedUnits && effectiveWindows.length === 1 && pricing.winMaterialsCents > 0
   )
 
   return {
-    currentDate,
-    invoiceSubtitle,
-    hasWindows,
-    hasSealedUnits,
-    hasDoors,
-    isWindowHost,
-    isDoorHost,
-    isSUHost,
-    isSupplyOnly,
-    isLooseSupplyJC,
-    effectiveWindows,
-    effectiveSealedUnits,
-    effectiveDoors,
-    effectiveSUTotals,
-    effectiveDoorTotals,
-    attachedWindowQuote,
-    attachedSealedUnit,
-    attachedDoorQuote,
-    isAttachedSUService,
-    travelItems,
-    jcItems,
-    detailedExtrasList,
-    doorUpgradeItems,
+    currentDate, invoiceSubtitle, hasWindows, hasSealedUnits, hasDoors,
+    isWindowHost, isDoorHost, isSUHost, isSupplyOnly, isLooseSupplyJC,
+    effectiveWindows, effectiveSealedUnits, effectiveDoors,
+    effectiveSUTotals, effectiveDoorTotals,
+    attachedWindowQuote, attachedSealedUnit, attachedDoorQuote,
+    isAttachedSUService, labourBreakdownItems, travelItems, jcItems, detailedExtrasList, doorUpgradeItems,
     finalTotalCents: pricing.finalTotalCents,
     finalFirstPayment: pricing.finalFirstPayment,
     finalSecondPayment: pricing.finalSecondPayment,
-    baseFs,
-    titleFs,
-    h2Fs,
-    thFs,
-    bodyFs,
-    smallFs,
-    microFs,
-    rowPy,
-    cardGap,
-    sectionMb,
-    taxTotals,
-    quoteResult,
-    winMaterialsCents: pricing.winMaterialsCents,
-    totalWindowBaseCents,
-    windowSummarySentence,
-    suGlassCents: pricing.suGlassCents,
-    suSummarySentence,
-    doorNetMaterialsCents: pricing.doorNetMaterialsCents,
-    doorSummarySentence,
+    baseFs, titleFs, h2Fs, thFs, bodyFs, smallFs, microFs, rowPy, cardGap, sectionMb,
+    taxTotals, quoteResult,
+    winMaterialsCents: pricing.winMaterialsCents, totalWindowBaseCents, windowSummarySentence,
+    suGlassCents: pricing.suGlassCents, suSummarySentence,
+    doorNetMaterialsCents: pricing.doorNetMaterialsCents, doorSummarySentence,
     promoDiscountCents: pricing.promoDiscountCents,
     monthlyDiscountCents: pricing.monthlyDiscountCents,
-    activePromo,
-    finalSubtotalCents: pricing.finalSubtotalCents,
+    activePromo, finalSubtotalCents: pricing.finalSubtotalCents,
     finalHstAmountCents: pricing.finalHstAmountCents,
     finalHstBaseCents: pricing.finalHstBaseCents,
     finalMaterialExemptionCents: pricing.finalMaterialExemptionCents,
-    hstRate,
-    finalHstLabel: pricing.finalHstLabel,
+    hstRate, finalHstLabel: pricing.finalHstLabel,
     effectiveLabourTotalCents: pricing.effectiveLabourTotalCents,
     effectiveMiscTotalCents: pricing.effectiveMiscTotalCents,
     effectiveSurchargeTotalCents: pricing.effectiveSurchargeTotalCents,
-    surchargeRate: 0.08,
-    isSingleLineMergedItem,
+    surchargeRate: 0.08, isSingleLineMergedItem,
   }
 }

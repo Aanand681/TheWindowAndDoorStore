@@ -35,6 +35,7 @@ export interface UseCombinedQuoteDataParams {
   effectiveLabourCents: number
   effectiveJCCents: number
   hstRate: number
+  isSupplyOnly?: boolean
 }
 
 /**
@@ -49,16 +50,24 @@ export function useCombinedQuoteData({
   effectiveLabourCents,
   effectiveJCCents,
   hstRate,
+  isSupplyOnly = false,
 }: UseCombinedQuoteDataParams): CombinedQuoteData | null {
   return useMemo(() => {
     if (!attachedSealedUnit && !attachedDoorQuote) return null
 
+    const isSupply = Boolean(isSupplyOnly)
     const hasSU = Boolean(attachedSealedUnit)
     const suTotals = attachedSealedUnit?.totals || {}
     const isAttachedSUService =
       attachedSealedUnit?.sealedUnitMode === "service_only" ||
       attachedSealedUnit?.data?.sealedUnitMode === "service_only" ||
       Boolean(suTotals.isServiceOnly)
+    const suIsSupply =
+      isSupply ||
+      attachedSealedUnit?.sealedUnitMode === "supply_only" ||
+      Boolean(attachedSealedUnit?.isSupplyOnly) ||
+      Boolean(suTotals.isSupplyOnly)
+
     const suGlassCents =
       hasSU && !isAttachedSUService
         ? Math.round((suTotals.glassBefore8PercentTotal || 0) * 100)
@@ -67,16 +76,29 @@ export function useCombinedQuoteData({
       hasSU && !isAttachedSUService
         ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100)
         : 0
-    const suLabourCents = hasSU
-      ? Math.round(
-          (suTotals.serviceLabourTotal ?? suTotals.unitLabourSum ?? 0) * 100
-        )
-      : 0
-    const suMiscCents = hasSU ? Math.round((suTotals.miscTotal || 0) * 100) : 0
+    const rawPureSULab =
+      suTotals.serviceLabourTotal ??
+      suTotals.unitLabourSum ??
+      Math.max(
+        0,
+        (suTotals.combinedLabourTotal || 0) -
+          (suTotals.baseSetupFee || 0) -
+          (suTotals.totalTravelAndSetup || 0)
+      )
+    const suLabourCents =
+      hasSU && !suIsSupply ? Math.round(Number(rawPureSULab) * 100) : 0
+    const suMiscCents =
+      hasSU && !suIsSupply ? Math.round((suTotals.miscTotal || 0) * 100) : 0
 
     const hasDoor = Boolean(attachedDoorQuote)
     const doorTotals =
       attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
+    const doorIsSupply =
+      isSupply ||
+      attachedDoorQuote?.mode === "supply_only" ||
+      Boolean(attachedDoorQuote?.isSupplyOnly) ||
+      Boolean(doorTotals.isSupplyOnly)
+
     const doorRawBaseCents = hasDoor
       ? Math.round(
           ((doorTotals.rawDoorBaseTotal ??
@@ -102,29 +124,42 @@ export function useCombinedQuoteData({
             100
         )
       : 0
-    const doorLabourCents = hasDoor
-      ? Math.round(
-          ((doorTotals.unitLabourTotal !== undefined ||
-          doorTotals.upchargesTotal !== undefined)
-            ? (doorTotals.unitLabourTotal || 0) +
-              (doorTotals.upchargesTotal || 0)
-            : (doorTotals.combinedLabourTotal ??
-              doorTotals.combinedLabour ??
-              0)) *
-            100
-        )
-      : 0
-    const doorMiscCents = hasDoor
-      ? Math.round((doorTotals.miscTotal ?? doorTotals.misc ?? 0) * 100)
-      : 0
+
+    const rawPureDoorLabour =
+      doorTotals.doorPureLabourTotal !== undefined
+        ? Number(doorTotals.doorPureLabourTotal)
+        : doorTotals.unitLabourTotal !== undefined ||
+            doorTotals.upchargesTotal !== undefined
+          ? Number(doorTotals.unitLabourTotal || 0) +
+            Number(doorTotals.upchargesTotal || 0)
+          : Math.max(
+              0,
+              Number(
+                doorTotals.combinedLabourTotal ??
+                  doorTotals.combinedLabour ??
+                  0
+              ) -
+                Number(doorTotals.baseSetupFee || 0) -
+                Number(doorTotals.totalTravelAndSetup || 0)
+            )
+
+    const doorLabourCents =
+      hasDoor && !doorIsSupply ? Math.round(rawPureDoorLabour * 100) : 0
+    const doorMiscCents =
+      hasDoor && !doorIsSupply
+        ? Math.round(Number(doorTotals.miscTotal ?? doorTotals.misc ?? 0) * 100)
+        : 0
 
     const windowBaseCents = quoteResult?.base || 0
     const windowSurchargeCents = quoteResult?.surcharge || 0
     const windowDiscountCents = quoteResult?.promoDiscount || 0
 
-    const combinedMiscCents = effectiveMiscCents + suMiscCents + doorMiscCents
-    const combinedLabourCents =
-      effectiveLabourCents + suLabourCents + doorLabourCents
+    const combinedMiscCents = isSupply
+      ? 0
+      : effectiveMiscCents + suMiscCents + doorMiscCents
+    const combinedLabourCents = isSupply
+      ? 0
+      : effectiveLabourCents + suLabourCents + doorLabourCents
     const combinedSurchargeCents =
       windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 
@@ -221,5 +256,6 @@ export function useCombinedQuoteData({
     effectiveLabourCents,
     effectiveJCCents,
     hstRate,
+    isSupplyOnly,
   ])
 }

@@ -26,6 +26,7 @@ export function InvoiceBreakdownTables({
   customOptions = null,
 }: InvoiceBreakdownTablesProps) {
   const {
+    labourBreakdownItems,
     travelItems,
     jcItems,
     detailedExtrasList,
@@ -37,6 +38,35 @@ export function InvoiceBreakdownTables({
 
   return (
     <div className="space-y-2">
+      {/* Installation & Labour Breakdown */}
+      {!isSupplyOnly && labourBreakdownItems && labourBreakdownItems.length > 0 && (
+        <div>
+          <div
+            style={{ fontSize: `${smallFs}px` }}
+            className="mb-0.5 border-b border-[#cbd5e1] pb-0.5 font-bold tracking-wider text-[#0f172a] uppercase"
+          >
+            Installation &amp; Labour Details
+          </div>
+          <table
+            className="w-full border-collapse"
+            style={{ fontSize: `${smallFs}px` }}
+          >
+            <tbody>
+              {labourBreakdownItems.map((item, idx) => (
+                <tr key={idx} className="border-b border-[#e2e8f0]">
+                  <td className="py-0.5 font-medium text-[#1e293b]">
+                    {item.label}
+                  </td>
+                  <td className="py-0.5 text-right font-mono font-bold text-[#0f172a]">
+                    {formatMoney(item.amount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Travel & Set-up Breakdown */}
       {!isSupplyOnly && travelItems.length > 0 && (
         <div>

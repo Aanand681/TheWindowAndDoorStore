@@ -77,6 +77,7 @@ export interface InvoiceCalculationsResult {
   attachedSealedUnit?: AttachedQuoteData | null
   attachedDoorQuote?: AttachedQuoteData | null
   isAttachedSUService: boolean
+  labourBreakdownItems: { label: string; amount: number }[]
   travelItems: { label: string; amount: number }[]
   jcItems: { label: string; amount: number }[]
   detailedExtrasList: {

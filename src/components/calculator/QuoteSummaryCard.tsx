@@ -281,6 +281,7 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     effectiveLabourCents,
     effectiveJCCents,
     hstRate,
+    isSupplyOnly: isSupply,
   })
 
   const hasActiveQuoteData = Boolean(
