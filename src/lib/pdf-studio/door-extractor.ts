@@ -1,10 +1,6 @@
 import * as pdfjsLib from "pdfjs-dist"
 import { ensurePdfWorker } from "./pdf-init"
-import {
-  StudioDoorItem,
-  StudioDoorQuoteData,
-  StudioDoorSpecItem,
-} from "./door-types"
+import { StudioDoorItem, StudioDoorQuoteData, StudioDoorSpecItem } from "./door-types"
 import {
   DEFAULT_TRIM_LEFT,
   DEFAULT_TRIM_BOTTOM,
@@ -17,17 +13,15 @@ import {
 
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a)
 
-function toSixteenths(t: string): number | null {
-  const m = String(t)
-    .trim()
-    .match(/^(\d+)(?:\s+(\d+)\/(\d+))?$/)
+export function toSixteenths(t: string): number | null {
+  const m = String(t).trim().match(/^(\d+)(?:\s+(\d+)\/(\d+))?$/)
   if (!m) return null
   const f = m[2] ? (+m[2] / +m[3]) * 16 : 0
   if (!Number.isInteger(f)) return null
   return +m[1] * 16 + f
 }
 
-function fromSixteenths(n: number): string {
+export function fromSixteenths(n: number): string {
   const w = Math.floor(n / 16)
   const r = n % 16
   if (!r) return String(w)
@@ -41,11 +35,8 @@ function itemsToLines(items: any[]): string[] {
 
   for (const it of items) {
     if (typeof it.str !== "string" || !it.str.trim()) continue
-    const x = it.transform[4]
-    const y = it.transform[5]
-    const w = it.width || 0
+    const x = it.transform[4], y = it.transform[5], w = it.width || 0
     const s = it.str.replace(/\u00a0/g, " ").trim()
-
     if (cur && Math.abs(cur.y - y) < 1.6 && x >= cur.end - 1) {
       cur.text += (x - cur.end > 1.2 ? " " : "") + s
       cur.end = x + w
@@ -59,15 +50,13 @@ function itemsToLines(items: any[]): string[] {
 
 function lastValue(text: string, label: string): string | null {
   const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const re = new RegExp(`${esc}\\s*=\\s*([^,\\n]+)`, "gi")
-  const m = [...text.matchAll(re)]
+  const m = [...text.matchAll(new RegExp(`${esc}\\s*=\\s*([^,\\n]+)`, "gi"))]
   return m.length ? m[m.length - 1][1].trim() : null
 }
 
-const BOLD_SECTIONS =
-  /^(panel|unit type|jambs?|brickmould details|wrapping - overall dimensions)$/i
+const BOLD_SECTIONS = /^(panel|unit type|jambs?|brickmould details|wrapping - overall dimensions)$/i
 
-function parseDoorPage(lines: string[]): {
+export function parseDoorPage(lines: string[]): {
   number: string
   name: string
   glass: string
@@ -85,31 +74,21 @@ function parseDoorPage(lines: string[]): {
     if (!raw) continue
 
     if (number === "unknown") {
-      const lm =
-        raw.match(/Line\s*(?:\|[^\n]*)?\s*(\d\s?\d\s?\d)/i) ||
-        raw.match(/Product Description\s+(\d\s?\d\s?\d)\b/i)
+      const lm = raw.match(/Line\s*(?:\|[^\n]*)?\s*(\d\s?\d\s?\d)/i) || raw.match(/Product Description\s+(\d\s?\d\s?\d)\b/i)
       if (lm) number = lm[1].replace(/\s/g, "")
     }
 
     if (/^order notes\s*:/i.test(raw)) {
       const rest = raw.replace(/^order notes\s*:\s*/i, "").trim()
       if (rest) orderNotes = rest
-      else if (
-        i + 1 < lines.length &&
-        !/^(exterior view|glass style|pages|line|\d{3}|print date)/i.test(
-          lines[i + 1].trim()
-        )
-      ) {
+      else if (i + 1 < lines.length && !/^(exterior view|glass style|pages|line|\d{3}|print date)/i.test(lines[i + 1].trim())) {
         orderNotes = lines[i + 1].trim()
       }
       currentSection = null
       continue
     }
 
-    if (
-      !doorType &&
-      /^(?:Steel|Fiberglass|Exterior|Patio|Garden)\s+Doors?/i.test(raw)
-    ) {
+    if (!doorType && /^(?:Steel|Fiberglass|Exterior|Patio|Garden)\s+Doors?/i.test(raw)) {
       doorType = raw
       continue
     }
@@ -122,21 +101,12 @@ function parseDoorPage(lines: string[]): {
       continue
     }
 
-    if (
-      /^(line\s*\|?\s*qty|print date\s*:|pages\s*:|exterior view\b|glass style\s*:|frame size\s*:|\d+\s+of\s+\d+\b)/i.test(
-        raw
-      )
-    ) {
+    if (/^(line\s*\|?\s*qty|print date\s*:|pages\s*:|exterior view\b|glass style\s*:|frame size\s*:|\d+\s+of\s+\d+\b)/i.test(raw)) {
       currentSection = null
       continue
     }
 
-    if (
-      /^\d+$/.test(raw) ||
-      /^\d{4}-\d{2}-\d{2}$/.test(raw) ||
-      /\bof\s+Print Date\b/i.test(raw)
-    )
-      continue
+    if (/^\d+$/.test(raw) || /^\d{4}-\d{2}-\d{2}$/.test(raw) || /\bof\s+Print Date\b/i.test(raw)) continue
 
     if (currentSection && sections.has(currentSection)) {
       const secLines = sections.get(currentSection)!
@@ -158,7 +128,8 @@ function parseDoorPage(lines: string[]): {
       const cd = lastValue(wrappingText, "Cut Down")
       const fw16 = fw === null ? null : toSixteenths(fw)
       const fh16 = fh === null ? null : toSixteenths(fh)
-      const rw = fw16 === null ? null : fromSixteenths(fw16 + 12)
+      // Rough opening: +1" (16/16) to width, +3/4" (12/16) to height
+      const rw = fw16 === null ? null : fromSixteenths(fw16 + 16)
       const rh = fh16 === null ? null : fromSixteenths(fh16 + 12)
       roWarn = fw16 === null || fh16 === null
 
