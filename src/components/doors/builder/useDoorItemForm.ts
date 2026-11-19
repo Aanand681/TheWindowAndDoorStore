@@ -21,6 +21,7 @@ interface UseDoorItemFormOptions {
   formula: DoorFormulaSettings
   editingItem?: DoorLineItem | null
   mode?: DoorQuotingMode
+  hasOtherDoorsInQuote?: boolean
   onSaveItem: (item: DoorLineItem) => void
   onResetQuote?: () => void
 }
@@ -30,6 +31,7 @@ export function useDoorItemForm({
   formula,
   editingItem,
   mode,
+  hasOtherDoorsInQuote = false,
   onSaveItem,
   onResetQuote,
 }: UseDoorItemFormOptions) {
@@ -69,15 +71,9 @@ export function useDoorItemForm({
   )
 
   // Hardware
-  const [hardwareType, setHardwareType] = useState<DoorHardwareType>(
-    mode === "supply_only" ? "none" : "standard"
-  )
+  const [hardwareType, setHardwareType] = useState<DoorHardwareType>("standard")
   const [customHardwareName, setCustomHardwareName] = useState<string>("")
   const [customHardwarePrice, setCustomHardwarePrice] = useState<string>("")
-
-  useEffect(() => {
-    if (mode === "supply_only") setHardwareType("none")
-  }, [mode])
 
   // Upgrade Option
   const [hasUpgradeOption, setHasUpgradeOption] = useState<boolean>(false)
@@ -88,13 +84,30 @@ export function useDoorItemForm({
   // Handle changing Door Type (Dropdown 1)
   const handleDoorTypeChange = (newType: DoorCategory) => {
     setDoorType(newType)
-    const firstForType = presets.find((p) => p.category === newType)
-    if (firstForType) {
-      setSelectedPresetId(firstForType.id)
-      setLabourInput(String(firstForType.labour))
-      setMiscInput(String(firstForType.misc))
+    if (newType === "storm" || newType === "patio") {
+      setHardwareType("none")
+    } else if (hardwareType === "none") {
+      setHardwareType("standard")
+    }
+
+    let targetPreset: DoorPreset | undefined
+    if (newType === "storm") {
+      targetPreset =
+        presets.find((p) =>
+          hasOtherDoorsInQuote
+            ? p.id === "storm_same_time"
+            : p.id === "storm_only"
+        ) || presets.find((p) => p.category === "storm")
+    } else {
+      targetPreset = presets.find((p) => p.category === newType)
+    }
+
+    if (targetPreset) {
+      setSelectedPresetId(targetPreset.id)
+      setLabourInput(String(targetPreset.labour))
+      setMiscInput(String(targetPreset.misc))
       setCustomDescription(
-        firstForType.description?.trim() || firstForType.label
+        targetPreset.description?.trim() || targetPreset.label
       )
     }
   }
@@ -112,34 +125,24 @@ export function useDoorItemForm({
 
   // Populate from editingItem
   useEffect(() => {
-    if (editingItem) {
-      setDoorType(editingItem.category)
-      setSelectedPresetId(editingItem.presetId)
-      setCustomDescription(
-        editingItem.customDescription || editingItem.presetLabel
-      )
-      setQuantity(String(editingItem.quantity || 1))
-      setInksterBasePrice(String(editingItem.inksterBasePrice))
-      setLabourInput(String(editingItem.unitLabour))
-      setMiscInput(String(editingItem.unitMisc))
-      setHardwareType(
-        editingItem.hardwareType === "customer_supplied"
-          ? "none"
-          : editingItem.hardwareType
-      )
-      if (editingItem.customHardwareName)
-        setCustomHardwareName(editingItem.customHardwareName)
-      if (editingItem.customHardwarePrice !== undefined) {
-        setCustomHardwarePrice(String(editingItem.customHardwarePrice))
-      }
-      setNotes(editingItem.notes || "")
-      if (editingItem.upgradeOption?.enabled) {
-        setHasUpgradeOption(true)
-        setUpgradeTitle(editingItem.upgradeOption.title)
-        setUpgradeInksterPrice(String(editingItem.upgradeOption.inksterPrice))
-      } else {
-        setHasUpgradeOption(false)
-      }
+    if (!editingItem) return
+    setDoorType(editingItem.category)
+    setSelectedPresetId(editingItem.presetId)
+    setCustomDescription(editingItem.customDescription || editingItem.presetLabel)
+    setQuantity(String(editingItem.quantity || 1))
+    setInksterBasePrice(String(editingItem.inksterBasePrice))
+    setLabourInput(String(editingItem.unitLabour))
+    setMiscInput(String(editingItem.unitMisc))
+    setHardwareType(editingItem.hardwareType === "customer_supplied" ? "none" : editingItem.hardwareType)
+    if (editingItem.customHardwareName) setCustomHardwareName(editingItem.customHardwareName)
+    if (editingItem.customHardwarePrice !== undefined) setCustomHardwarePrice(String(editingItem.customHardwarePrice))
+    setNotes(editingItem.notes || "")
+    if (editingItem.upgradeOption?.enabled) {
+      setHasUpgradeOption(true)
+      setUpgradeTitle(editingItem.upgradeOption.title)
+      setUpgradeInksterPrice(String(editingItem.upgradeOption.inksterPrice))
+    } else {
+      setHasUpgradeOption(false)
     }
   }, [editingItem])
 
@@ -198,30 +201,20 @@ export function useDoorItemForm({
       unitLabour: isNaN(labP) ? currentPreset.labour : labP,
       unitMisc: isNaN(miscP) ? currentPreset.misc : miscP,
       hardwareType,
-      supplyHardwareType:
-        mode === "supply_only"
-          ? hardwareType
-          : editingItem?.supplyHardwareType,
+      supplyHardwareType: hardwareType,
       supplyHardwarePrice:
-        mode === "supply_only"
-          ? hardwareType === "custom"
-            ? customHwP
-            : hardwareType === "standard"
-              ? Number(formula.locksetDeadboltPrice) || 158.0
-              : 0
-          : editingItem?.supplyHardwarePrice,
-      installHardwareType:
-        mode === "installation"
-          ? hardwareType
-          : editingItem?.installHardwareType,
+        hardwareType === "custom"
+          ? customHwP
+          : hardwareType === "standard"
+            ? Number(formula.locksetDeadboltPrice) || 158.0
+            : 0,
+      installHardwareType: hardwareType,
       installHardwarePrice:
-        mode === "installation"
-          ? hardwareType === "custom"
-            ? customHwP
-            : hardwareType === "standard"
-              ? Number(formula.locksetDeadboltPrice) || 158.0
-              : 0
-          : editingItem?.installHardwarePrice,
+        hardwareType === "custom"
+          ? customHwP
+          : hardwareType === "standard"
+            ? Number(formula.locksetDeadboltPrice) || 158.0
+            : 0,
       customHardwareName:
         hardwareType === "custom" ? customHardwareName : undefined,
       customHardwarePrice: customHwP,
@@ -282,38 +275,13 @@ export function useDoorItemForm({
   }
 
   return {
-    doorType,
-    handleDoorTypeChange,
-    typeOptions,
-    selectedPresetId,
-    handleOptionChange,
-    customDescription,
-    setCustomDescription,
-    quantity,
-    setQuantity,
-    inksterBasePrice,
-    setInksterBasePrice,
-    labourInput,
-    setLabourInput,
-    miscInput,
-    setMiscInput,
-    hardwareType,
-    setHardwareType,
-    customHardwareName,
-    setCustomHardwareName,
-    customHardwarePrice,
-    setCustomHardwarePrice,
-    hasUpgradeOption,
-    setHasUpgradeOption,
-    upgradeTitle,
-    setUpgradeTitle,
-    upgradeInksterPrice,
-    setUpgradeInksterPrice,
-    upgradeDiff,
-    parsedQuantity,
-    previewItem,
-    handleSubmit,
-    handleResetClick,
-    currentPreset,
+    doorType, handleDoorTypeChange, typeOptions, selectedPresetId, handleOptionChange,
+    customDescription, setCustomDescription, quantity, setQuantity,
+    inksterBasePrice, setInksterBasePrice, labourInput, setLabourInput,
+    miscInput, setMiscInput, hardwareType, setHardwareType,
+    customHardwareName, setCustomHardwareName, customHardwarePrice, setCustomHardwarePrice,
+    hasUpgradeOption, setHasUpgradeOption, upgradeTitle, setUpgradeTitle,
+    upgradeInksterPrice, setUpgradeInksterPrice, upgradeDiff, parsedQuantity,
+    previewItem, handleSubmit, handleResetClick, currentPreset,
   }
 }

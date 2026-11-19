@@ -247,51 +247,6 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
   const handleModeChange = (newMode: any) => {
     if (newMode === mode) return
     setMode(newMode)
-
-    if (newMode === "supply_only") {
-      setLineItems((prev) =>
-        prev.map((item) => {
-          if (item.category === "storm") return item
-          const q = item.quantity || 1
-          const supplyHwType = item.supplyHardwareType || "none"
-          const supplyHwPrice =
-            supplyHwType === "none" ? 0 : item.supplyHardwarePrice || 0
-          return {
-            ...item,
-            installHardwareType: item.hardwareType,
-            installHardwarePrice: item.hardwarePrice,
-            hardwareType: supplyHwType,
-            hardwarePrice: supplyHwPrice,
-            lineHardwareTotal: Math.round(supplyHwPrice * q * 100) / 100,
-          }
-        })
-      )
-    } else if (newMode === "installation") {
-      const savedConfig = readSessionDoorHardwareConfig()
-      if (savedConfig) {
-        handleApplyDoorHardware(savedConfig)
-      } else {
-        setLineItems((prev) =>
-          prev.map((item) => {
-            if (item.category === "storm") return item
-            const q = item.quantity || 1
-            const instHwType = item.installHardwareType || "standard"
-            const instHwPrice =
-              instHwType === "none"
-                ? 0
-                : instHwType === "custom"
-                  ? item.installHardwarePrice || 220.0
-                  : Number(formula.locksetDeadboltPrice) || 158.0
-            return {
-              ...item,
-              hardwareType: instHwType,
-              hardwarePrice: instHwPrice,
-              lineHardwareTotal: Math.round(instHwPrice * q * 100) / 100,
-            }
-          })
-        )
-      }
-    }
   }
 
   return (
@@ -326,6 +281,7 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
               quoteNumber={quoteNumber}
               setQuoteNumber={setQuoteNumber}
               mode={mode}
+              lineItems={lineItems}
               presets={presets}
               formula={formula}
               editingItem={editingItem}

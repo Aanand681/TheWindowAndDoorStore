@@ -29,6 +29,7 @@ interface DoorPresetSpecsSectionProps {
   customDescription: string
   setCustomDescription: (desc: string) => void
   currentPreset?: DoorPreset
+  onOpenStormModal?: () => void
 }
 
 export function DoorPresetSpecsSection({
@@ -50,9 +51,26 @@ export function DoorPresetSpecsSection({
   customDescription,
   setCustomDescription,
   currentPreset,
+  onOpenStormModal,
 }: DoorPresetSpecsSectionProps) {
   return (
     <div className="space-y-2.5">
+      {/* Quick Catalog action for Storm Doors */}
+      {doorType === "storm" && onOpenStormModal && (
+        <div className="flex items-center justify-between rounded-lg border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs">
+          <span className="font-semibold text-primary">
+            York Aluminum Storm Door Catalog
+          </span>
+          <button
+            type="button"
+            onClick={onOpenStormModal}
+            className="rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
+          >
+            Select Model &amp; Fixed Price
+          </button>
+        </div>
+      )}
+
       {/* Row 1: Single Row Grid with Door Type, Option, Qty, Price, Labour, Misc, Hardware */}
       <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-4 lg:grid-cols-[2fr_3fr_1fr_1.5fr_1.5fr_1.5fr_1.5fr]">
         {/* Dropdown 1: Door Type (Clean, no discount shown) */}
@@ -112,9 +130,20 @@ export function DoorPresetSpecsSection({
 
         {/* Price ($) - 1.5 Col */}
         <div className="col-span-1 space-y-1 sm:col-span-1 lg:col-span-1">
-          <Label className="text-[11px] font-semibold tracking-wider text-primary uppercase">
-            Price ($)
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] font-semibold tracking-wider text-primary uppercase">
+              Price ($)
+            </Label>
+            {doorType === "storm" && onOpenStormModal && (
+              <button
+                type="button"
+                onClick={onOpenStormModal}
+                className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+              >
+                Catalog
+              </button>
+            )}
+          </div>
           <div className="relative">
             <span className="absolute top-1/2 left-2 -translate-y-1/2 text-xs text-muted-foreground">
               $
@@ -167,22 +196,28 @@ export function DoorPresetSpecsSection({
           />
         </div>
 
-        {/* Hardware Dropdown - 1.5 Col */}
+        {/* Hardware Dropdown - 1.5 Col (Only for Entry, Garden & Custom) */}
         <div className="col-span-2 space-y-1 sm:col-span-2 lg:col-span-1">
           <Label className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
             Hardware
           </Label>
-          <select
-            value={hardwareType === "customer_supplied" ? "none" : hardwareType}
-            onChange={(e) =>
-              setHardwareType(e.target.value as DoorHardwareType)
-            }
-            className="h-8.5 w-full rounded-lg border border-input bg-background px-1.5 text-xs font-medium shadow-xs focus:ring-1 focus:ring-ring"
-          >
-            <option value="standard">Standard Set</option>
-            <option value="custom">Custom Set</option>
-            <option value="none">None / Reinstall</option>
-          </select>
+          {doorType === "patio" || doorType === "storm" ? (
+            <div className="flex h-8.5 w-full items-center justify-center rounded-lg border border-border/60 bg-muted/40 px-2 text-[11px] font-semibold text-muted-foreground">
+              {doorType === "patio" ? "Mortise (Factory)" : "Included / Latch"}
+            </div>
+          ) : (
+            <select
+              value={hardwareType === "customer_supplied" ? "none" : hardwareType}
+              onChange={(e) =>
+                setHardwareType(e.target.value as DoorHardwareType)
+              }
+              className="h-8.5 w-full rounded-lg border border-input bg-background px-1.5 text-xs font-medium shadow-xs focus:ring-1 focus:ring-ring"
+            >
+              <option value="standard">Standard Set</option>
+              <option value="custom">Custom Set</option>
+              <option value="none">None / Reinstall</option>
+            </select>
+          )}
         </div>
       </div>
 

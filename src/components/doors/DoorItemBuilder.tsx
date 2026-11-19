@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
   DoorFormulaSettings,
   DoorLineItem,
   DoorQuotingMode,
+  DoorCategory,
 } from "@/lib/doors/types"
 import { Plus, DoorClosed, CheckCircle2, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -25,6 +26,7 @@ import {
   DoorPresetSpecsSection,
   useDoorItemForm,
 } from "./builder"
+import { StormDoorSelectorModal } from "./modals/StormDoorSelectorModal"
 
 interface DoorItemBuilderProps {
   customerName?: string
@@ -34,6 +36,7 @@ interface DoorItemBuilderProps {
   mode?: DoorQuotingMode
   presets: DoorPreset[]
   formula: DoorFormulaSettings
+  lineItems?: DoorLineItem[]
   editingItem?: DoorLineItem | null
   onSaveItem: (item: DoorLineItem) => void
   onCancelEdit?: () => void
@@ -50,6 +53,7 @@ export function DoorItemBuilder({
   mode = "installation",
   presets,
   formula,
+  lineItems = [],
   editingItem,
   onSaveItem,
   onCancelEdit,
@@ -57,14 +61,27 @@ export function DoorItemBuilder({
   isReadOnly = false,
   className,
 }: DoorItemBuilderProps) {
+  const [isStormModalOpen, setIsStormModalOpen] = useState(false)
+  const hasOtherDoorsInQuote = lineItems.some(
+    (it) => it.id !== editingItem?.id && it.category !== "storm"
+  )
+
   const form = useDoorItemForm({
     presets,
     formula,
     editingItem,
     mode,
+    hasOtherDoorsInQuote,
     onSaveItem,
     onResetQuote,
   })
+
+  const handleDoorTypeChangeWithModal = (newType: DoorCategory) => {
+    form.handleDoorTypeChange(newType)
+    if (newType === "storm" && !editingItem) {
+      setIsStormModalOpen(true)
+    }
+  }
 
   return (
     <Card
@@ -150,7 +167,7 @@ export function DoorItemBuilder({
           <fieldset disabled={isReadOnly} className="space-y-2.5 border-0 p-0 m-0">
           <DoorPresetSpecsSection
             doorType={form.doorType}
-            onDoorTypeChange={form.handleDoorTypeChange}
+            onDoorTypeChange={handleDoorTypeChangeWithModal}
             typeOptions={form.typeOptions}
             selectedPresetId={form.selectedPresetId}
             onOptionChange={form.handleOptionChange}
@@ -167,6 +184,7 @@ export function DoorItemBuilder({
             customDescription={form.customDescription}
             setCustomDescription={form.setCustomDescription}
             currentPreset={form.currentPreset}
+            onOpenStormModal={() => setIsStormModalOpen(true)}
           />
 
           <DoorHardwareSection
@@ -226,6 +244,15 @@ export function DoorItemBuilder({
           )}
         </form>
       </CardContent>
+
+      <StormDoorSelectorModal
+        isOpen={isStormModalOpen}
+        onClose={() => setIsStormModalOpen(false)}
+        onSelect={(res) => {
+          form.setInksterBasePrice(String(res.basePrice))
+          form.setCustomDescription(res.description)
+        }}
+      />
     </Card>
   )
 }
