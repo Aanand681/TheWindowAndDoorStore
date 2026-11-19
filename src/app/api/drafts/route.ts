@@ -37,17 +37,38 @@ export async function GET(request: Request) {
 
     await dbConnect()
 
-    // 1. Identify quote numbers that have already been submitted (non-DRAFT status)
+    // 1. Identify quote numbers that have already been submitted (non-DRAFT status),
+    // including any attached child quotes that were absorbed into submitted quotes
     const submittedQuoteDocs = await SavedQuote.find({
       preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
       status: { $ne: "DRAFT" },
     })
-      .select("quoteNumber")
+      .select(
+        "quoteNumber attachedDoorQuote.quoteNumber attachedWindowQuote.quoteNumber attachedSealedUnit.quoteNumber"
+      )
       .lean()
 
-    const submittedQuoteNumbers = submittedQuoteDocs
-      .map((q: any) => (q.quoteNumber || "").trim().toLowerCase())
-      .filter((n: string) => n && n !== "untitled")
+    const submittedQuoteNumbersSet = new Set<string>()
+    for (const q of submittedQuoteDocs as any[]) {
+      if (q.quoteNumber) {
+        const n = String(q.quoteNumber).trim().toLowerCase()
+        if (n && n !== "untitled") submittedQuoteNumbersSet.add(n)
+      }
+      if (q.attachedDoorQuote?.quoteNumber) {
+        const n = String(q.attachedDoorQuote.quoteNumber).trim().toLowerCase()
+        if (n && n !== "untitled") submittedQuoteNumbersSet.add(n)
+      }
+      if (q.attachedWindowQuote?.quoteNumber) {
+        const n = String(q.attachedWindowQuote.quoteNumber).trim().toLowerCase()
+        if (n && n !== "untitled") submittedQuoteNumbersSet.add(n)
+      }
+      if (q.attachedSealedUnit?.quoteNumber) {
+        const n = String(q.attachedSealedUnit.quoteNumber).trim().toLowerCase()
+        if (n && n !== "untitled") submittedQuoteNumbersSet.add(n)
+      }
+    }
+
+    const submittedQuoteNumbers = Array.from(submittedQuoteNumbersSet)
 
     // 2. Automatically purge any orphaned DRAFT records in MongoDB whose quote has been submitted
     if (submittedQuoteNumbers.length > 0) {

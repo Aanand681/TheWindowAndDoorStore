@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
+import { restoreAttachedQuoteDraft } from "@/lib/quote-drafts-storage"
 
 export interface AttachedQuotesPillsProps {
   attachedWindowQuote?: any | null
@@ -59,9 +60,12 @@ export function AttachedQuotesPills({
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    restoreAttachedQuoteDraft("window", attachedWindowQuote)
+                  } catch {}
                   if (onDetachWindow) onDetachWindow()
                   else if (onDetach) onDetach()
-                  toast.info("Detached Window Quote")
+                  toast.info("Detached Window Quote & restored to Saved Quotes")
                 }}
                 className="cursor-pointer rounded p-0.5 text-destructive hover:bg-destructive/10"
                 title="Detach Window Quote"
@@ -89,9 +93,14 @@ export function AttachedQuotesPills({
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    restoreAttachedQuoteDraft("sealed_unit", attachedSealedUnit)
+                  } catch {}
                   if (onDetachSealedUnit) onDetachSealedUnit()
                   else if (onDetach) onDetach()
-                  toast.info("Detached Sealed Unit Quote")
+                  toast.info(
+                    "Detached Sealed Unit Quote & restored to Saved Quotes"
+                  )
                 }}
                 className="cursor-pointer rounded p-0.5 text-destructive hover:bg-destructive/10"
                 title="Detach Sealed Unit"
@@ -119,9 +128,12 @@ export function AttachedQuotesPills({
               <button
                 type="button"
                 onClick={() => {
+                  try {
+                    restoreAttachedQuoteDraft("door", attachedDoorQuote)
+                  } catch {}
                   if (onDetachDoor) onDetachDoor()
                   else if (onDetach) onDetach()
-                  toast.info("Detached Door Quote")
+                  toast.info("Detached Door Quote & restored to Saved Quotes")
                 }}
                 className="cursor-pointer rounded p-0.5 text-destructive hover:bg-destructive/10"
                 title="Detach Door Quote"

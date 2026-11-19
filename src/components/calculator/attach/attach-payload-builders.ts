@@ -138,6 +138,8 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
   const grandTotal = Math.round((subtotalPreTax + tax) * 100) / 100
 
   return {
+    draftId: draft.id,
+    rawDraft: draft,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,
@@ -214,6 +216,8 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     : formatSealedUnitSummarySentence(lineItems)
 
   return {
+    draftId: draft.id,
+    rawDraft: draft,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,
@@ -260,6 +264,8 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
   const finalSentence = windowSentence !== "0 Windows" ? windowSentence : draft.summaryLabel || "Windows & Glazing"
 
   return {
+    draftId: draft.id,
+    rawDraft: draft,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,

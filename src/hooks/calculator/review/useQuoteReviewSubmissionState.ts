@@ -11,6 +11,7 @@ import {
   deleteQuoteDraft,
   getSavedDrafts,
   syncRemoteDrafts,
+  purgeSubmittedDrafts,
   DRAFT_CHANGE_EVENT,
 } from "@/lib/quote-drafts-storage"
 import { clearActiveAutoSave } from "@/lib/quote-drafts/autosave-drafts"
@@ -183,22 +184,13 @@ export function useQuoteReviewSubmissionState({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit quote")
 
-      // 1. Always purge drafts for this submitted quote so it does not linger in Saved Quotes
-      try {
-        const drafts = getSavedDrafts()
-        const matching = drafts.find(
-          (d) =>
-            d.quoteNumber?.trim().toLowerCase() ===
-            quoteNumber.trim().toLowerCase()
-        )
-        if (matching) {
-          deleteQuoteDraft(matching.id)
-        }
-        fetch(
-          `/api/drafts?quoteNumber=${encodeURIComponent(quoteNumber.trim())}&type=window`,
-          { method: "DELETE" }
-        ).catch(() => {})
-      } catch {}
+      // 1. Always purge drafts for this submitted quote AND any absorbed child quotes
+      purgeSubmittedDrafts({
+        mainQuoteNumber: quoteNumber,
+        mainType: "window",
+        attachedDoorQuote,
+        attachedSealedUnit,
+      })
 
       clearActiveAutoSave("window")
       clearAllQuoteSessionState()

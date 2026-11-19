@@ -7,10 +7,9 @@ import {
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import {
-  deleteQuoteDraft,
-  getSavedDrafts,
   clearActiveAutoSave,
   syncRemoteDrafts,
+  purgeSubmittedDrafts,
 } from "@/lib/quote-drafts-storage"
 
 interface UseDoorReviewSubmitProps {
@@ -228,22 +227,13 @@ export function useDoorReviewSubmit({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to submit quote")
 
-      // Purge drafts for this submitted quote so it does not linger in Saved Quotes
-      try {
-        const drafts = getSavedDrafts()
-        const matching = drafts.find(
-          (d) =>
-            d.quoteNumber?.trim().toLowerCase() ===
-            quoteNumber.trim().toLowerCase()
-        )
-        if (matching) {
-          deleteQuoteDraft(matching.id)
-        }
-        fetch(
-          `/api/drafts?quoteNumber=${encodeURIComponent(quoteNumber.trim())}&type=door`,
-          { method: "DELETE" }
-        ).catch(() => {})
-      } catch {}
+      // Purge drafts for this submitted quote AND any absorbed child quotes
+      purgeSubmittedDrafts({
+        mainQuoteNumber: quoteNumber,
+        mainType: "door",
+        attachedWindowQuote,
+        attachedSealedUnit,
+      })
 
       clearActiveAutoSave("door")
       syncRemoteDrafts().catch(() => {})

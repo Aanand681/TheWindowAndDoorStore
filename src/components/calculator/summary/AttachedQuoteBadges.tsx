@@ -1,7 +1,11 @@
 import React from "react"
-import { Paperclip, Sparkles, Scale } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Sparkles, Scale } from "lucide-react"
+import { toast } from "sonner"
 import { formatMoney } from "@/lib/promo-logic"
 import { CachedAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { AttachedQuoteItemBadge } from "@/components/shared/AttachedQuoteItemBadge"
+import { restoreAttachedQuoteDraft } from "@/lib/quote-drafts-storage"
 
 export interface AttachedQuoteBadgesProps {
   attachedSealedUnit?: any | null
@@ -30,6 +34,8 @@ export function AttachedQuoteBadges({
   isSupply,
   hasSupplyJC,
 }: AttachedQuoteBadgesProps) {
+  const router = useRouter()
+
   if (
     !attachedSealedUnit &&
     !attachedDoorQuote &&
@@ -115,43 +121,54 @@ export function AttachedQuoteBadges({
 
       {/* Attached Sealed Unit Badge */}
       {attachedSealedUnit && (
-        <div className="mb-2 flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs text-emerald-800 dark:text-emerald-300">
-          <span className="flex items-center gap-1.5 font-semibold">
-            <Paperclip className="h-3.5 w-3.5 text-emerald-600" />
-            <span>
-              Combined Quote: Attached #{attachedSealedUnit.quoteNumber}
-            </span>
-          </span>
-          {onRemoveAttachedSealedUnit && (
-            <button
-              type="button"
-              onClick={onRemoveAttachedSealedUnit}
-              className="cursor-pointer text-[11px] font-bold text-destructive hover:underline"
-            >
-              Detach
-            </button>
-          )}
+        <div className="mb-2">
+          <AttachedQuoteItemBadge
+            type="sealed_unit"
+            quoteNumber={attachedSealedUnit.quoteNumber}
+            total={
+              attachedSealedUnit.totals?.grandTotal ||
+              attachedSealedUnit.taxTotals?.grandTotal
+            }
+            onEdit={() => {
+              const draft = restoreAttachedQuoteDraft(
+                "sealed_unit",
+                attachedSealedUnit
+              )
+              router.push(`/sealed-units?loadDraftId=${draft.id}`)
+            }}
+            onDetach={() => {
+              restoreAttachedQuoteDraft("sealed_unit", attachedSealedUnit)
+              if (onRemoveAttachedSealedUnit) onRemoveAttachedSealedUnit()
+              toast.info(
+                `Detached Sealed Unit #${attachedSealedUnit.quoteNumber}. Restored to Saved Quotes.`
+              )
+            }}
+          />
         </div>
       )}
 
       {/* Attached Door Quote Badge */}
       {attachedDoorQuote && (
-        <div className="mb-2 flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-800 dark:text-amber-300">
-          <span className="flex items-center gap-1.5 font-semibold">
-            <Paperclip className="h-3.5 w-3.5 text-amber-600" />
-            <span>
-              Combined Quote: Attached Door #{attachedDoorQuote.quoteNumber}
-            </span>
-          </span>
-          {onRemoveAttachedDoorQuote && (
-            <button
-              type="button"
-              onClick={onRemoveAttachedDoorQuote}
-              className="cursor-pointer text-[11px] font-bold text-destructive hover:underline"
-            >
-              Detach
-            </button>
-          )}
+        <div className="mb-2">
+          <AttachedQuoteItemBadge
+            type="door"
+            quoteNumber={attachedDoorQuote.quoteNumber}
+            total={
+              attachedDoorQuote.totals?.grandTotal ||
+              attachedDoorQuote.taxTotals?.grandTotal
+            }
+            onEdit={() => {
+              const draft = restoreAttachedQuoteDraft("door", attachedDoorQuote)
+              router.push(`/doors?loadDraftId=${draft.id}`)
+            }}
+            onDetach={() => {
+              restoreAttachedQuoteDraft("door", attachedDoorQuote)
+              if (onRemoveAttachedDoorQuote) onRemoveAttachedDoorQuote()
+              toast.info(
+                `Detached Door Quote #${attachedDoorQuote.quoteNumber}. Restored to Saved Quotes.`
+              )
+            }}
+          />
         </div>
       )}
     </>

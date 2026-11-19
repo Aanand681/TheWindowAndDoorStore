@@ -307,11 +307,27 @@ export async function createQuoteService(
     newQuote = await SavedQuote.create(quotePayload)
   }
 
-  // Purge any remaining DRAFT records for this quoteNumber so it never lingers under Saved Quotes
+  // Purge any remaining DRAFT records for this quoteNumber AND any attached quotes
+  // so they are absorbed and never linger as unsubmitted drafts under Saved Quotes
   try {
+    const quoteNumbersToPurge = [cleanQuoteNumber]
+    if (attachedDoorQuote?.quoteNumber) {
+      quoteNumbersToPurge.push(String(attachedDoorQuote.quoteNumber).trim())
+    }
+    if (attachedWindowQuote?.quoteNumber) {
+      quoteNumbersToPurge.push(String(attachedWindowQuote.quoteNumber).trim())
+    }
+    if (attachedSealedUnit?.quoteNumber) {
+      quoteNumbersToPurge.push(String(attachedSealedUnit.quoteNumber).trim())
+    }
+
     await SavedQuote.deleteMany({
       preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
-      quoteNumber: cleanQuoteNumber,
+      quoteNumber: {
+        $in: quoteNumbersToPurge.map(
+          (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+        ),
+      },
       status: "DRAFT",
       _id: { $ne: newQuote._id },
     })

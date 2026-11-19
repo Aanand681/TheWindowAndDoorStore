@@ -7,7 +7,6 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import NotificationBell from "@/components/shared/NotificationBell"
-import QuotesBinPill from "@/components/quotes/QuotesBinPill"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 import {
   ProfileHeaderBanner,
@@ -136,7 +135,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
 
-      <div className="relative z-10 mx-auto max-w-4xl space-y-6 px-4 py-8">
+      <div className="relative z-10 mx-auto w-full max-w-[1650px] space-y-6 px-4 pt-5 pb-12 sm:px-6 sm:pt-6 lg:px-8">
         {/* Navigation Bar */}
         <header className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex flex-wrap items-center gap-3">
@@ -160,7 +159,6 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <QuotesBinPill />
             <NotificationBell />
             <ThemeToggle />
           </div>
@@ -178,40 +176,48 @@ export default function ProfilePage() {
 
         {/* Settings Form */}
         <form onSubmit={handleUpdateProfile} className="space-y-6">
-          <PersonalInfoCard
-            name={name}
-            setName={setName}
-            username={username}
-            setUsername={setUsername}
-            email={email}
-            setEmail={setEmail}
-          />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Left Column: Personal Identity & Quoting Defaults */}
+            <div className="space-y-6">
+              <PersonalInfoCard
+                name={name}
+                setName={setName}
+                username={username}
+                setUsername={setUsername}
+                email={email}
+                setEmail={setEmail}
+              />
 
-          <QuotingDefaultsCard
-            defaultQuotingMode={defaultQuotingMode}
-            setDefaultQuotingMode={setDefaultQuotingMode}
-            favoriteTemplate={favoriteTemplate}
-            setFavoriteTemplate={setFavoriteTemplate}
-            landingPage={landingPage}
-            setLandingPage={setLandingPage}
-            role={role}
-          />
+              <QuotingDefaultsCard
+                defaultQuotingMode={defaultQuotingMode}
+                setDefaultQuotingMode={setDefaultQuotingMode}
+                favoriteTemplate={favoriteTemplate}
+                setFavoriteTemplate={setFavoriteTemplate}
+                landingPage={landingPage}
+                setLandingPage={setLandingPage}
+                role={role}
+              />
+            </div>
 
-          <NotificationPrefsCard
-            receiveQuoteEmails={receiveQuoteEmails}
-            setReceiveQuoteEmails={setReceiveQuoteEmails}
-            muteNotifications={muteNotifications}
-            setMuteNotifications={setMuteNotifications}
-          />
+            {/* Right Column: Notification Alerts & Password Change */}
+            <div className="space-y-6">
+              <NotificationPrefsCard
+                receiveQuoteEmails={receiveQuoteEmails}
+                setReceiveQuoteEmails={setReceiveQuoteEmails}
+                muteNotifications={muteNotifications}
+                setMuteNotifications={setMuteNotifications}
+              />
 
-          <PasswordChangeCard
-            currentPassword={currentPassword}
-            setCurrentPassword={setCurrentPassword}
-            newPassword={newPassword}
-            setNewPassword={setNewPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
-          />
+              <PasswordChangeCard
+                currentPassword={currentPassword}
+                setCurrentPassword={setCurrentPassword}
+                newPassword={newPassword}
+                setNewPassword={setNewPassword}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+              />
+            </div>
+          </div>
 
           {message.text && (
             <div
