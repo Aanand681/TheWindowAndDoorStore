@@ -348,5 +348,63 @@ describe("Quote Lifecycle & Security Gate Tests", () => {
         "You cannot assign or forward a quote for review to yourself"
       )
     })
+
+    it("clears reviewChanges when a preparer edits a RETURNED quote (recalled or need revision)", async () => {
+      const res = await buildQuoteUpdatePayload({
+        id: "64b1f28b7e21123456789abc",
+        body: { customJC: "500" },
+        existingQuote: {
+          status: "RETURNED",
+          customJC: "200",
+          initialSnapshot: { customJC: "200" },
+          reviewChanges: ["Jambs changed to 2.5 from none"],
+        },
+        reviewerUsername: "preparer_john",
+        userRole: "EMPLOYEE",
+      })
+
+      expect(res.updateData).toBeDefined()
+      expect(res.updateData?.reviewChanges).toEqual([])
+    })
+
+    it("resets reviewChanges and updates initialSnapshot when resubmitting a RETURNED quote", async () => {
+      const res = await buildQuoteUpdatePayload({
+        id: "64b1f28b7e21123456789abc",
+        body: { status: "PENDING_REVIEW", customJC: "500" },
+        existingQuote: {
+          status: "RETURNED",
+          customJC: "200",
+          initialSnapshot: { customJC: "200" },
+          reviewerNotes: "Please adjust jambs",
+          reviewChanges: ["Jambs changed to 2.5 from none"],
+        },
+        reviewerUsername: "preparer_john",
+        userRole: "EMPLOYEE",
+      })
+
+      expect(res.updateData).toBeDefined()
+      expect(res.updateData?.reviewChanges).toEqual([])
+      expect(res.updateData?.reviewerNotes).toBe("")
+      expect(res.updateData?.initialSnapshot).toBeDefined()
+      expect(res.updateData?.initialSnapshot?.customJC).toBe("500")
+    })
+
+    it("clears reviewChanges when edits are reverted back to match initial baseline", async () => {
+      const res = await buildQuoteUpdatePayload({
+        id: "64b1f28b7e21123456789abc",
+        body: { customJC: "200" },
+        existingQuote: {
+          status: "PENDING_REVIEW",
+          customJC: "500",
+          initialSnapshot: { customJC: "200" },
+          reviewChanges: ["Jambs changed to 2.5 from none"],
+        },
+        reviewerUsername: "reviewer_jane",
+        userRole: "ADMIN",
+      })
+
+      expect(res.updateData).toBeDefined()
+      expect(res.updateData?.reviewChanges).toEqual([])
+    })
   })
 })

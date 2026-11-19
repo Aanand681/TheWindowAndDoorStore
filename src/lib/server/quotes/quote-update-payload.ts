@@ -1,6 +1,7 @@
 import SavedQuote from "@/models/SavedQuote"
 import { detectQuoteChanges } from "@/lib/quote-diff"
 import { formatReviewerName } from "@/lib/format-reviewer"
+import { validateQuoteUpdateFields } from "./quote-update-validation"
 
 export interface BuildQuoteUpdatePayloadResult {
   error?: string
@@ -19,87 +20,8 @@ export async function buildQuoteUpdatePayload(p: {
 }): Promise<BuildQuoteUpdatePayloadResult> {
   const { id, body, existingQuote, reviewerUsername, userRole } = p
 
-  if (body.customerName !== undefined) {
-    if (typeof body.customerName !== "string" || !body.customerName.trim()) {
-      return { error: "Customer Name cannot be empty", statusCode: 400 }
-    }
-    if (body.customerName.length > 200) {
-      return {
-        error: "Customer Name cannot exceed 200 characters",
-        statusCode: 400,
-      }
-    }
-  }
-
-  if (body.quoteNumber !== undefined) {
-    if (typeof body.quoteNumber !== "string" || !body.quoteNumber.trim()) {
-      return { error: "Quote Number cannot be empty", statusCode: 400 }
-    }
-    if (body.quoteNumber.length > 60) {
-      return {
-        error: "Quote Number cannot exceed 60 characters",
-        statusCode: 400,
-      }
-    }
-  }
-
-  if (
-    body.quoteNotes !== undefined &&
-    typeof body.quoteNotes === "string" &&
-    body.quoteNotes.length > 10000
-  ) {
-    return {
-      error: "Quote Notes cannot exceed 10,000 characters",
-      statusCode: 400,
-    }
-  }
-
-  if (
-    body.reviewerNotes !== undefined &&
-    typeof body.reviewerNotes === "string" &&
-    body.reviewerNotes.length > 10000
-  ) {
-    return {
-      error: "Reviewer Notes cannot exceed 10,000 characters",
-      statusCode: 400,
-    }
-  }
-
-  if (
-    body.preparerNotes !== undefined &&
-    typeof body.preparerNotes === "string" &&
-    body.preparerNotes.length > 10000
-  ) {
-    return {
-      error: "Preparer Notes cannot exceed 10,000 characters",
-      statusCode: 400,
-    }
-  }
-
-  if (
-    body.windows !== undefined &&
-    Array.isArray(body.windows) &&
-    body.windows.length > 200
-  ) {
-    return {
-      error: "A quote cannot contain more than 200 window items",
-      statusCode: 400,
-    }
-  }
-
-  if (body.assignedTo !== undefined) {
-    if (
-      body.assignedTo &&
-      reviewerUsername &&
-      body.assignedTo.trim().toLowerCase() ===
-        reviewerUsername.trim().toLowerCase()
-    ) {
-      return {
-        error: "You cannot assign or forward a quote for review to yourself.",
-        statusCode: 400,
-      }
-    }
-  }
+  const validationError = validateQuoteUpdateFields(body, reviewerUsername)
+  if (validationError) return validationError
 
   const updateData: any = {}
 
@@ -280,32 +202,45 @@ export async function buildQuoteUpdatePayload(p: {
   updateData.lastEditedAt = new Date()
   updateData.updatedAt = new Date()
 
-  // 3. Automatically detect all changes against baseline
-  const autoDetectedChanges = detectQuoteChanges(baseline, targetState)
-  const clientChanges = Array.isArray(body.reviewChanges)
-    ? body.reviewChanges
-    : []
-  const mergedChanges = Array.from(
-    new Set([...autoDetectedChanges, ...clientChanges])
-  )
+  // 3. Automatically detect changes against baseline with role-aware lifecycle
+  const newStatus = updateData.status || body.status
+  const isPreparerRevision =
+    existingQuote.status === "RETURNED" && newStatus !== "PENDING_REVIEW"
+  const isResubmission =
+    newStatus === "PENDING_REVIEW" && existingQuote.status === "RETURNED"
 
-  if (mergedChanges.length > 0) {
-    updateData.reviewChanges = mergedChanges
-    updateData.reviewedBy = effectiveEditor
-    updateData.reviewedAt = new Date()
-    updateData.reviewedByRole = userRole || "ADMIN"
-    if (
-      body.status === "APPROVED" ||
-      body.status === "MODIFIED" ||
-      updateData.status === "APPROVED"
-    ) {
-      updateData.status = "MODIFIED"
+  if (isPreparerRevision) {
+    // Preparer actively revising returned quote - working edits are not reviewer modifications
+    updateData.reviewChanges = []
+  } else if (isResubmission) {
+    // Quote resubmitted for review - start fresh with new snapshot and clean reviewChanges
+    updateData.reviewChanges = []
+    updateData.initialSnapshot = targetState
+    updateData.reviewerNotes = ""
+  } else {
+    // Reviewer audit diff against baseline
+    const autoDetectedChanges = detectQuoteChanges(baseline, targetState)
+    updateData.reviewChanges = autoDetectedChanges
+
+    if (autoDetectedChanges.length > 0) {
+      updateData.reviewedBy = effectiveEditor
+      updateData.reviewedAt = new Date()
+      updateData.reviewedByRole = userRole || "ADMIN"
+      if (
+        body.status === "APPROVED" ||
+        body.status === "MODIFIED" ||
+        updateData.status === "APPROVED"
+      ) {
+        updateData.status = "MODIFIED"
+      }
+    } else {
+      // Reverted to match baseline - clear diff and revert MODIFIED back to APPROVED
+      if (updateData.status === "MODIFIED" || body.status === "MODIFIED") {
+        updateData.status = "APPROVED"
+      }
     }
-  } else if (Array.isArray(body.reviewChanges)) {
-    updateData.reviewChanges = body.reviewChanges
   }
 
-  const newStatus = updateData.status || body.status
   const isApproval =
     (newStatus === "APPROVED" || newStatus === "MODIFIED") &&
     existingQuote.status === "PENDING_REVIEW"

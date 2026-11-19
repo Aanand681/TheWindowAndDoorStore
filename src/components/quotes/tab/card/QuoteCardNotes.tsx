@@ -29,12 +29,15 @@ export function QuoteCardNotes({
 
   if (isClerk || activeTab === "odoo") return null
 
+  const isReturned = quote.status === "RETURNED"
   const hasReviewChanges =
-    Array.isArray(quote.reviewChanges) && quote.reviewChanges.length > 0
+    !isReturned &&
+    Array.isArray(quote.reviewChanges) &&
+    quote.reviewChanges.length > 0
   const shouldRender =
-    (quote.status === "RETURNED" && quote.reviewerNotes) ||
-    (quote.preparerNotes && quote.status !== "RETURNED") ||
-    isModified ||
+    (isReturned && quote.reviewerNotes) ||
+    (quote.preparerNotes && !isReturned) ||
+    (!isReturned && isModified) ||
     hasReviewChanges
 
   if (!shouldRender) return null
@@ -101,7 +104,7 @@ export function QuoteCardNotes({
         </div>
       )}
 
-      {(isModified || hasReviewChanges) && (
+      {!isReturned && (isModified || hasReviewChanges) && (
         <div className="animate-in fade-in duration-150">
           {!isExpanded ? (
             /* COMPACT 1-LINE SLIM STRIP (Default) */

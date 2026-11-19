@@ -5,7 +5,11 @@ import { createPortal } from "react-dom"
 import { DoorPreviewModalProps } from "./preview/types"
 import { DoorPrintToolbar } from "./preview/DoorPrintToolbar"
 import { DoorPrintInvoice } from "./preview/DoorPrintInvoice"
-import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+  CUSTOM_OPTIONS_CHANGE_EVENT,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export { type DoorPreviewModalProps } from "./preview/types"
 
@@ -30,6 +34,19 @@ export function DoorPreviewModal({
   const [showNotesEditor, setShowNotesEditor] = useState(false)
   const [isDualOption, setIsDualOption] = useState<boolean>(false)
   const [quoteDate, setQuoteDate] = useState<string>("")
+  const [liveCustomOptions, setLiveCustomOptions] = useState<any[]>(() =>
+    readSessionCustomOptions()
+  )
+
+  useEffect(() => {
+    if (isOpen) {
+      setLiveCustomOptions(readSessionCustomOptions())
+      const sync = () => setLiveCustomOptions(readSessionCustomOptions())
+      window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, sync)
+      return () => window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, sync)
+    }
+    return undefined
+  }, [isOpen])
 
   const hasAttachedWindow = Boolean(attachedWindowQuote)
   const hasAttachedSU = Boolean(attachedSealedUnit)
@@ -201,6 +218,7 @@ export function DoorPreviewModal({
           finalGrandTotal={finalGrandTotal}
           firstPayment={firstPayment}
           secondPayment={secondPayment}
+          customOptions={liveCustomOptions}
         />
       </div>
     </div>

@@ -43,6 +43,7 @@ export interface DoorPrintInvoiceProps {
   finalGrandTotal: number
   firstPayment: number
   secondPayment: number
+  customOptions?: any[]
 }
 
 export function DoorPrintInvoice({
@@ -75,6 +76,7 @@ export function DoorPrintInvoice({
   finalGrandTotal,
   firstPayment,
   secondPayment,
+  customOptions,
 }: DoorPrintInvoiceProps) {
   const [sessionAttachedAmount, setSessionAttachedAmount] = useState<
     number | null
@@ -255,6 +257,7 @@ export function DoorPrintInvoice({
             finalGrandTotal={finalGrandTotal}
             firstPayment={firstPayment}
             secondPayment={secondPayment}
+            customOptions={customOptions}
           />
         </div>
       </div>

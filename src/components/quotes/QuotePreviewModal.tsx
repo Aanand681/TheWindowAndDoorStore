@@ -9,7 +9,11 @@ import QuoteInvoice, {
 import QuoteNotesEditor from "./QuoteNotesEditor"
 import { QuotePreviewToolbar } from "./preview/QuotePreviewToolbar"
 import { toast } from "sonner"
-import { readSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+  CUSTOM_OPTIONS_CHANGE_EVENT,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface QuotePreviewModalProps extends QuoteInvoiceProps {
   isOpen: boolean
@@ -48,6 +52,19 @@ export default function QuotePreviewModal({
   )
   const [defaultTemplate, setDefaultTemplate] =
     useState<QuoteTemplateType | null>(null)
+  const [liveCustomOptions, setLiveCustomOptions] = useState<any[]>(() =>
+    readSessionCustomOptions()
+  )
+
+  useEffect(() => {
+    if (isOpen) {
+      setLiveCustomOptions(readSessionCustomOptions())
+      const sync = () => setLiveCustomOptions(readSessionCustomOptions())
+      window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, sync)
+      return () => window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, sync)
+    }
+    return undefined
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -190,6 +207,11 @@ export default function QuotePreviewModal({
         >
           <QuoteInvoice
             {...invoiceProps}
+            customOptions={
+              liveCustomOptions.length > 0
+                ? liveCustomOptions
+                : invoiceProps.customOptions
+            }
             isInteractivePreview={true}
             template={template}
             fontSize={fontSize}

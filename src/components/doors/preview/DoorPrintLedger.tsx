@@ -25,6 +25,7 @@ export interface DoorPrintLedgerProps {
   finalGrandTotal: number
   firstPayment: number
   secondPayment: number
+  customOptions?: any[]
 }
 
 export function DoorPrintLedger({
@@ -48,6 +49,7 @@ export function DoorPrintLedger({
   finalGrandTotal,
   firstPayment,
   secondPayment,
+  customOptions,
 }: DoorPrintLedgerProps) {
   return (
     <div className="space-y-1.5 rounded border border-slate-300 bg-slate-50 p-3 text-[8pt]">
@@ -164,6 +166,17 @@ export function DoorPrintLedger({
           </span>
         </div>
       )}
+
+      {customOptions &&
+        customOptions.length > 0 &&
+        customOptions.map((opt: any) => (
+          <div key={opt.id} className="flex justify-between text-[7.5pt]">
+            <span className="text-slate-600">{opt.title || "Custom Option"}:</span>
+            <span className="font-mono font-semibold">
+              +${((opt.amountPreTaxCents || 0) / 100).toFixed(2)}
+            </span>
+          </div>
+        ))}
 
       <div className="flex justify-between border-t border-slate-300 pt-1 text-[8.5pt] font-bold">
         <span>Subtotal:</span>
