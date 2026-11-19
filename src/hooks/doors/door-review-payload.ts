@@ -103,7 +103,7 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
       grandTotal: totals.grandTotal,
       depositAmount: totals.depositAmount,
     },
-    quoteSummaryTotal: totals.grandTotal,
+    quoteSummaryTotal: Math.round(totals.grandTotal * 100),
     globalUpcharges,
     selectedRegionId,
     travelFeeType,

@@ -58,6 +58,16 @@ export async function createQuoteService(
     directApprove,
   } = body
 
+  const rawSummaryTotal = Number(body.quoteSummaryTotal ?? 0)
+  const normalizedSummaryTotal =
+    rawSummaryTotal > 0 &&
+    rawSummaryTotal < 100000 &&
+    ((body.taxTotals?.grandTotal &&
+      Math.abs(rawSummaryTotal - Number(body.taxTotals.grandTotal)) < 0.01) ||
+      rawSummaryTotal < 10000)
+      ? Math.round(rawSummaryTotal * 100)
+      : Math.round(rawSummaryTotal)
+
   if (!quoteNumber || typeof quoteNumber !== "string" || !quoteNumber.trim()) {
     return NextResponse.json(
       { error: "Quote Number is required" },
@@ -244,7 +254,7 @@ export async function createQuoteService(
     wantsUpgrade,
     isSupplyOnly,
     isServiceOnly,
-    quoteSummaryTotal,
+    quoteSummaryTotal: normalizedSummaryTotal,
     isStarred: false,
     initialSnapshot: {
       windows,
@@ -282,7 +292,7 @@ export async function createQuoteService(
       wantsUpgrade,
       isSupplyOnly,
       isServiceOnly,
-      quoteSummaryTotal,
+      quoteSummaryTotal: normalizedSummaryTotal,
     },
   }
 

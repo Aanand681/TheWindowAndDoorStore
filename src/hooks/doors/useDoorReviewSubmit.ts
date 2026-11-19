@@ -187,7 +187,7 @@ export function useDoorReviewSubmit({
           travelKm,
           crewHours,
           crewSize,
-          quoteSummaryTotal: totals.grandTotal,
+          quoteSummaryTotal: Math.round(totals.grandTotal * 100),
           windows: lineItems.map((item) => ({
             id: item.id,
             combinationName: item.customDescription || item.presetLabel,

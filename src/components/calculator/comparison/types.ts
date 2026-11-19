@@ -25,6 +25,8 @@ export interface StagedOptionBData {
   supplyCasingRate?: string
   customerName?: string
   quoteNumber?: string
+  customMaterials?: any[]
+  customMaterialsTotalCents?: number
 }
 
 export interface ComparisonOverridesPayload {
@@ -33,6 +35,8 @@ export interface ComparisonOverridesPayload {
   casingId?: string
   casingRate?: string
   extraLabour?: string
+  customMaterials?: any[]
+  customMaterialsTotalCents?: number
 }
 
 export interface QuoteComparisonModalProps {
@@ -61,6 +65,8 @@ export interface QuoteComparisonModalProps {
   totalA: number
   firstPaymentA: number
   secondPaymentA: number
+  customMaterialsA?: any[]
+  customMaterialsTotalCentsA?: number
   // Two-way Option Swapping & Full Workspace Staging (Optional)
   appliedOption?: "A" | "B"
   isComparisonStaging?: boolean
@@ -88,6 +94,8 @@ export interface OptionBFinancials {
   surcharge: number
   promoDiscount: number
   jc: number
+  customMaterials?: any[]
+  customMaterialsTotalCents?: number
   linearFeet: number
   labour: number
   misc: number

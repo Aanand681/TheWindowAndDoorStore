@@ -185,7 +185,7 @@ export function useSealedUnitsReviewSubmit({
             total: totals.grandTotal,
             isSealedUnit: true,
           },
-          quoteSummaryTotal: totals.grandTotal,
+          quoteSummaryTotal: Math.round(totals.grandTotal * 100),
         }),
       })
 

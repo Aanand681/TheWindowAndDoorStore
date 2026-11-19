@@ -431,6 +431,16 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
         jcAmount={isSupply ? supplyJCAmount : installJCAmount}
         supplyJCAmount={supplyJCAmount}
         installJCAmount={installJCAmount}
+        materialsAmount={
+          taxTotals?.customMaterialsTotalCents
+            ? taxTotals.customMaterialsTotalCents / 100
+            : (taxTotals?.customMaterialsTotal || 0)
+        }
+        materialsLabel={
+          Array.isArray(taxTotals?.customMaterials) && taxTotals.customMaterials.length === 1 && taxTotals.customMaterials[0]?.label
+            ? taxTotals.customMaterials[0].label
+            : "Additional Materials"
+        }
         labourAmount={compareLabourAmount}
         miscAmount={compareMiscAmount}
         surchargeAmount={(quoteResult?.surcharge || 0) / 100}

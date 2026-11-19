@@ -227,5 +227,21 @@ describe("Quote Diff Engine - detectQuoteChanges", () => {
         "Quote Total updated from $1,000.00 to $1,200.00 (+$200.00)"
       )
     })
+
+    it("should normalize legacy dollar snapshot (2449 vs 244900 cents) without generating a false ghost diff", () => {
+      const orig = { quoteSummaryTotal: 2449 }
+      const cur = { quoteSummaryTotal: 244900 }
+      const changes = detectQuoteChanges(orig, cur)
+      expect(changes).toEqual([])
+    })
+
+    it("should accurately detect price updates when orig was legacy dollars (2449 vs 254900 cents)", () => {
+      const orig = { quoteSummaryTotal: 2449 }
+      const cur = { quoteSummaryTotal: 254900 }
+      const changes = detectQuoteChanges(orig, cur)
+      expect(changes[0]).toContain(
+        "Quote Total updated from $2,449.00 to $2,549.00 (+$100.00)"
+      )
+    })
   })
 })

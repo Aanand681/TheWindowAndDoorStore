@@ -1,10 +1,12 @@
 "use client"
 
+import React from "react"
 import { toast } from "sonner"
 import { generateId } from "@/hooks/useCalculatorWindows"
 import { useCalculatorComparison } from "@/hooks/calculator/useCalculatorComparison"
 import { useCalculatorReviewActions } from "@/hooks/useCalculatorReviewActions"
 import { clearAllQuoteSessionState } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 
 export function useCalculatorWorkflows(p: {
   base: any
@@ -96,6 +98,34 @@ export function useCalculatorWorkflows(p: {
     toast.success("Window quote reset. Workspace is fresh and ready.")
   }
 
+  const effectiveTotalCents = React.useMemo(() => {
+    if (!base.attachedDoorQuote && !base.attachedSealedUnit) {
+      return pricing.total
+    }
+    const combined = computeCombinedQuoteFinancials({
+      quoteResult: pricing.quoteResult,
+      total: pricing.total,
+      afterDiscount: pricing.afterDiscount,
+      attachedSealedUnit: base.attachedSealedUnit,
+      attachedDoorQuote: base.attachedDoorQuote,
+      effectiveJC: pricing.effectiveJCCents,
+      effectiveMisc: pricing.effectiveMiscCents,
+      effectiveLabour: pricing.effectiveLabourCents,
+      hstRate: pricing.hstRate,
+    })
+    return combined.combinedTotalCents
+  }, [
+    base.attachedDoorQuote,
+    base.attachedSealedUnit,
+    pricing.total,
+    pricing.afterDiscount,
+    pricing.quoteResult,
+    pricing.effectiveJCCents,
+    pricing.effectiveMiscCents,
+    pricing.effectiveLabourCents,
+    pricing.hstRate,
+  ])
+
   const review = useCalculatorReviewActions({
     user: base.user,
     quoteNumber: base.quoteNumber,
@@ -126,7 +156,7 @@ export function useCalculatorWorkflows(p: {
     setIncludeMiscInPromo: pricing.setIncludeMiscInPromo,
     includeLabourInPromo: pricing.includeLabourInPromo,
     setIncludeLabourInPromo: pricing.setIncludeLabourInPromo,
-    total: pricing.total,
+    total: effectiveTotalCents,
     attachedUpgrade: base.attachedUpgrade,
     setAttachedUpgrade: base.setAttachedUpgrade,
     attachedDoorQuote: base.attachedDoorQuote,

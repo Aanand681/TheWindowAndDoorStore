@@ -115,9 +115,9 @@ export function computeCombinedQuoteFinancials(
   let doorMiscCents = 0
 
   if (hasAttachedDoor) {
-    const doorTotals = attachedDoorQuote?.totals || {}
+    const doorTotals = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
     const doorRawBaseCents = Math.round(
-      ((doorTotals.rawDoorBaseTotal || 0) +
+      ((doorTotals.rawDoorBaseTotal ?? doorTotals.totalPrice ?? 0) +
         (doorTotals.stormDoorTotal || 0) +
         (doorTotals.hardwareTotal || 0)) *
         100
@@ -131,7 +131,8 @@ export function computeCombinedQuoteFinancials(
     doorLabourCents = Math.round(
       (hasExplicitUnitLabour
         ? (doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)
-        : doorTotals.combinedLabourTotal || 0) * 100
+        : (doorTotals.combinedLabourTotal ?? doorTotals.combinedLabour ?? 0)) *
+        100
     )
     doorMiscCents = Math.round((doorTotals.miscTotal || 0) * 100)
   }

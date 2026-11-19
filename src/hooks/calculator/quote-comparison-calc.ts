@@ -27,6 +27,8 @@ interface CalculateOptionBParams {
   availablePromos: DBPromo[]
   activePromoId: string
   hstRate: number
+  customMaterials?: any[]
+  customMaterialsTotalCents?: number
 }
 
 export function calculateOptionBFinancials(
@@ -48,7 +50,21 @@ export function calculateOptionBFinancials(
     availablePromos,
     activePromoId,
     hstRate,
+    customMaterials,
+    customMaterialsTotalCents,
   } = params
+
+  const effectiveMatCents =
+    customMaterialsTotalCents !== undefined
+      ? customMaterialsTotalCents
+      : Array.isArray(customMaterials)
+        ? Math.round(
+            customMaterials.reduce(
+              (acc: number, m: any) => acc + (Number(m.amount) || 0),
+              0
+            ) * 100
+          )
+        : 0
 
   if (isComparisonStaging && stagedOptionB) {
     const validWindows = (stagedOptionB.windows || []).map((w) => ({
@@ -63,13 +79,18 @@ export function calculateOptionBFinancials(
       color: w.color || "White",
     }))
 
+    const stagedMatCents =
+      stagedOptionB.customMaterialsTotalCents !== undefined
+        ? stagedOptionB.customMaterialsTotalCents
+        : effectiveMatCents
+
     const base = Number(stagedOptionB.quoteResult?.base) || 0
     const surcharge = Number(stagedOptionB.quoteResult?.surcharge) || 0
     const promoDiscount = Number(stagedOptionB.quoteResult?.promoDiscount) || 0
     const jc = Number(stagedOptionB.effectiveJC) || 0
     const misc = Number(stagedOptionB.effectiveMisc) || 0
     const labour = Number(stagedOptionB.effectiveLabour) || 0
-    const beforeTaxDiscount = base + surcharge + jc + misc + labour
+    const beforeTaxDiscount = base + surcharge + jc + stagedMatCents + misc + labour
     const afterDiscount =
       stagedOptionB.afterDiscount !== undefined
         ? stagedOptionB.afterDiscount
@@ -92,6 +113,8 @@ export function calculateOptionBFinancials(
       surcharge,
       promoDiscount,
       jc,
+      customMaterials: stagedOptionB.customMaterials || customMaterials || [],
+      customMaterialsTotalCents: stagedMatCents,
       linearFeet: 0,
       labour,
       misc,
@@ -159,6 +182,7 @@ export function calculateOptionBFinancials(
     promoResult.base +
     promoResult.surcharge +
     jcTotalCents +
+    effectiveMatCents +
     effectiveMisc +
     effectiveLabour
 
@@ -170,7 +194,10 @@ export function calculateOptionBFinancials(
     hst = Math.round(afterDiscount * 0.13)
   } else if (hstRate === 8) {
     // Surcharge is excluded from materials (treated as handling/service).
-    const material = Math.max(0, promoResult.base - promoDiscount + jcTotalCents)
+    const material = Math.max(
+      0,
+      promoResult.base - promoDiscount + jcTotalCents + effectiveMatCents
+    )
     const hstBase = Math.round(afterDiscount * 0.13)
     const materialExemption = Math.round(material * 0.08)
     hst = Math.max(0, hstBase - materialExemption)
@@ -186,6 +213,8 @@ export function calculateOptionBFinancials(
     surcharge: promoResult.surcharge,
     promoDiscount,
     jc: jcTotalCents,
+    customMaterials: customMaterials || [],
+    customMaterialsTotalCents: effectiveMatCents,
     linearFeet,
     labour: effectiveLabour,
     misc: effectiveMisc,

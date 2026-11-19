@@ -83,6 +83,12 @@ export function CalculatorComparisonModal({
               ),
           customerName,
           quoteNumber,
+          customMaterials: isSupplyOnly
+            ? undefined
+            : taxTotals?.customMaterials,
+          customMaterialsTotalCents: isSupplyOnly
+            ? undefined
+            : taxTotals?.customMaterialsCents,
         }
       : undefined
 
@@ -182,6 +188,16 @@ export function CalculatorComparisonModal({
         baseSnapshotA ? baseSnapshotA.secondPayment : secondPayment
       }
       appliedOption={appliedOption}
+      customMaterialsA={
+        baseSnapshotA
+          ? baseSnapshotA.taxTotals?.customMaterials
+          : taxTotals?.customMaterials || []
+      }
+      customMaterialsTotalCentsA={
+        baseSnapshotA
+          ? (baseSnapshotA.taxTotals?.customMaterialsCents ?? 0)
+          : (taxTotals?.customMaterialsCents ?? (Math.round((taxTotals?.customMaterialsTotal || 0) * 100)))
+      }
       isComparisonStaging={isComparisonStaging}
       stagedOptionB={stagedOptionB}
       onApplyOption={handleApplyOption}

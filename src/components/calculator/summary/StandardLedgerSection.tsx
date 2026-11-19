@@ -127,7 +127,7 @@ export function StandardLedgerSection({
                 className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
               >
                 <span className="font-medium text-foreground">
-                  {mat.label ? `Material: ${mat.label}` : "Additional Material"}
+                  {mat.label ? `${mat.label}` : "Additional Material"}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +{formatMoney(Math.round(amt * 100))}

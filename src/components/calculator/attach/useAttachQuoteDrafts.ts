@@ -112,8 +112,15 @@ export function useAttachQuoteDrafts({
     const rawData = (draft.data as any) || {}
 
     if (draft.type === "door") {
-      const lineItems = rawData.lineItems || []
+      const lineItems = rawData.lineItems || (draft as any).windows || []
       const doorSentence = formatDoorSummarySentence(lineItems)
+      const srcTotals =
+        rawData.totals ||
+        rawData.taxTotals ||
+        (draft as any).taxTotals ||
+        (draft as any).data?.totals ||
+        (draft as any).data?.taxTotals ||
+        {}
       const payload = {
         quoteNumber: draft.quoteNumber,
         customerName: draft.customerName,
@@ -122,23 +129,26 @@ export function useAttachQuoteDrafts({
         lineItems,
         summaryLabel: doorSentence,
         summarySentence: doorSentence,
-        totals: rawData.totals || {
-          grandTotal: draft.grandTotal,
-          subtotalPreTax: draft.subtotal,
-          rawDoorBaseTotal: draft.subtotal,
-          stormDoorTotal: 0,
-          hardwareTotal: 0,
-          materialsTotal: draft.subtotal,
-          combinedLabourTotal: 0,
-          miscTotal: 0,
-          surchargeTotal: 0,
-          discountTotal: 0,
-          hstAmount: draft.grandTotal - draft.subtotal,
-          depositAmount: Math.round(draft.grandTotal * 0.5 * 100) / 100,
+        totals: {
+          grandTotal: srcTotals.grandTotal ?? draft.grandTotal,
+          subtotalPreTax: srcTotals.subtotalPreTax ?? srcTotals.subtotal ?? draft.subtotal,
+          rawDoorBaseTotal: srcTotals.rawDoorBaseTotal ?? srcTotals.totalPrice ?? draft.subtotal,
+          stormDoorTotal: srcTotals.stormDoorTotal ?? 0,
+          hardwareTotal: srcTotals.hardwareTotal ?? 0,
+          materialsTotal: srcTotals.materialsTotal ?? srcTotals.totalPrice ?? draft.subtotal,
+          combinedLabourTotal: srcTotals.combinedLabourTotal ?? srcTotals.combinedLabour ?? 0,
+          miscTotal: srcTotals.miscTotal ?? 0,
+          surchargeTotal: srcTotals.surchargeTotal ?? 0,
+          discountTotal: srcTotals.discountTotal ?? 0,
+          hstAmount: srcTotals.hstAmount ?? (draft.grandTotal - draft.subtotal),
+          depositAmount: srcTotals.depositAmount ?? (Math.round(draft.grandTotal * 0.5 * 100) / 100),
+          unitLabourTotal: srcTotals.unitLabourTotal,
+          upchargesTotal: srcTotals.upchargesTotal,
         },
-        isInstallation: rawData.mode === "installation",
+        taxTotals: srcTotals,
+        isInstallation: rawData.mode === "installation" || rawData.isInstallation === true,
         globalUpcharges: rawData.globalUpcharges || [],
-        hstRate: rawData.isFirstNation ? 8 : 13,
+        hstRate: rawData.isFirstNation ? 8 : (srcTotals.hstRate ?? 13),
       }
 
       if (onAttachDoor) onAttachDoor(payload)

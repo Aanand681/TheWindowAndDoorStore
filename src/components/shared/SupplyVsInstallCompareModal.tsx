@@ -33,6 +33,8 @@ export interface SupplyVsInstallCompareProps {
   installJCAmount?: number
   attachedLabel?: string
   attachedAmount?: number
+  materialsAmount?: number
+  materialsLabel?: string
   labourAmount: number
   miscAmount: number
   surchargeAmount?: number
@@ -74,6 +76,8 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     installJCAmount,
     attachedLabel,
     attachedAmount,
+    materialsAmount = 0,
+    materialsLabel,
     labourAmount,
     miscAmount,
     surchargeAmount = 0,
@@ -250,6 +254,8 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
               jcAmount={opt1JCAmount}
               attachedLabel={attachedLabel}
               attachedAmount={attachedAmount}
+              materialsAmount={materialsAmount}
+              materialsLabel={materialsLabel}
               labourAmount={0}
               miscAmount={0}
               surchargeAmount={surchargeAmount}
@@ -275,6 +281,8 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
               jcAmount={opt2JCAmount}
               attachedLabel={attachedLabel}
               attachedAmount={attachedAmount}
+              materialsAmount={materialsAmount}
+              materialsLabel={materialsLabel}
               labourAmount={labourAmount}
               miscAmount={miscAmount}
               surchargeAmount={surchargeAmount}

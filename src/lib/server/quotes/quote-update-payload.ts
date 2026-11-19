@@ -149,7 +149,21 @@ export async function buildQuoteUpdatePayload(p: {
   ]
 
   for (const field of scalarFields) {
-    if (body[field] !== undefined) updateData[field] = body[field]
+    if (body[field] !== undefined) {
+      if (field === "quoteSummaryTotal") {
+        const raw = Number(body.quoteSummaryTotal ?? 0)
+        updateData.quoteSummaryTotal =
+          raw > 0 &&
+          raw < 100000 &&
+          ((body.taxTotals?.grandTotal &&
+            Math.abs(raw - Number(body.taxTotals.grandTotal)) < 0.01) ||
+            raw < 10000)
+            ? Math.round(raw * 100)
+            : Math.round(raw)
+      } else {
+        updateData[field] = body[field]
+      }
+    }
   }
 
   if (Array.isArray(body.reviewChanges))

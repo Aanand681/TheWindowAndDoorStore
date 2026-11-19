@@ -70,6 +70,8 @@ export function parseDiffItem(raw: string): ParsedDiffItem {
   }
 }
 
+import { normalizeDiffTotalCents } from "./quote-diff-helpers"
+
 /**
  * Computes net financial impact string (e.g. "+$220.00" or "-$150.00")
  * between initial quote snapshot and current quote total.
@@ -78,7 +80,8 @@ export function calculateNetDiffDelta(quote: any): string | null {
   if (!quote) return null
 
   const curTotal = Number(quote.quoteSummaryTotal ?? 0)
-  const origTotal = Number(quote.initialSnapshot?.quoteSummaryTotal ?? 0)
+  let origTotal = Number(quote.initialSnapshot?.quoteSummaryTotal ?? 0)
+  origTotal = normalizeDiffTotalCents(origTotal, curTotal)
 
   if (curTotal > 0 && origTotal > 0 && Math.abs(curTotal - origTotal) >= 1) {
     const diff = (curTotal - origTotal) / 100

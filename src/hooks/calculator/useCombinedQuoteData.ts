@@ -75,10 +75,10 @@ export function useCombinedQuoteData({
     const suMiscCents = hasSU ? Math.round((suTotals.miscTotal || 0) * 100) : 0
 
     const hasDoor = Boolean(attachedDoorQuote)
-    const doorTotals = attachedDoorQuote?.totals || {}
+    const doorTotals = attachedDoorQuote?.totals || attachedDoorQuote?.taxTotals || {}
     const doorRawBaseCents = hasDoor
       ? Math.round(
-          ((doorTotals.rawDoorBaseTotal || 0) +
+          ((doorTotals.rawDoorBaseTotal ?? doorTotals.totalPrice ?? 0) +
             (doorTotals.stormDoorTotal || 0) +
             (doorTotals.hardwareTotal || 0)) *
             100
@@ -93,8 +93,9 @@ export function useCombinedQuoteData({
       : 0
     const doorLabourCents = hasDoor
       ? Math.round(
-          ((doorTotals.unitLabourTotal || 0) +
-            (doorTotals.upchargesTotal || 0)) *
+          ((doorTotals.unitLabourTotal !== undefined || doorTotals.upchargesTotal !== undefined)
+            ? (doorTotals.unitLabourTotal || 0) + (doorTotals.upchargesTotal || 0)
+            : (doorTotals.combinedLabourTotal ?? doorTotals.combinedLabour ?? 0)) *
             100
         )
       : 0

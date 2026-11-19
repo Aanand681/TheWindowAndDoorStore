@@ -85,7 +85,7 @@ export function buildSealedUnitsUpdatePayload(
       effectiveMiscRate: totals.effectiveMiscRate,
       isSealedUnitQuote: true,
     },
-    quoteSummaryTotal: totals.grandTotal,
+    quoteSummaryTotal: Math.round(totals.grandTotal * 100),
     serviceSqftInput,
     serviceLabourRateInput,
     serviceMiscRateInput,

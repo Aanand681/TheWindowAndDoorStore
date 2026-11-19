@@ -37,6 +37,11 @@ interface ComparisonOptionBCardProps {
   optionBFinancials: OptionBFinancials | null
   surchargeRate: number
   hstRate?: number
+  overrideMaterialsMode?: "inherit" | "custom" | "none"
+  setOverrideMaterialsMode?: (mode: "inherit" | "custom" | "none") => void
+  optionAMaterials?: any[]
+  optionBMaterials?: any[]
+  setOptionBMaterials?: (materials: any[]) => void
 }
 
 export function ComparisonOptionBCard({
@@ -67,6 +72,11 @@ export function ComparisonOptionBCard({
   selectedOverrideCasingDisplay,
   optionBFinancials,
   surchargeRate,
+  overrideMaterialsMode,
+  setOverrideMaterialsMode,
+  optionAMaterials,
+  optionBMaterials,
+  setOptionBMaterials,
 }: ComparisonOptionBCardProps) {
   return (
     <div className="flex flex-col justify-between space-y-4 rounded-2xl border border-border/80 bg-muted/20 p-4 sm:p-5">
@@ -191,6 +201,11 @@ export function ComparisonOptionBCard({
               resolvedOptionACasingLabel={resolvedOptionACasingLabel}
               selectedOverrideJambDisplay={selectedOverrideJambDisplay}
               selectedOverrideCasingDisplay={selectedOverrideCasingDisplay}
+              overrideMaterialsMode={overrideMaterialsMode}
+              setOverrideMaterialsMode={setOverrideMaterialsMode}
+              optionAMaterials={optionAMaterials}
+              optionBMaterials={optionBMaterials}
+              setOptionBMaterials={setOptionBMaterials}
             />
 
             {/* Financial breakdown for Option B */}
@@ -213,6 +228,16 @@ export function ComparisonOptionBCard({
                     <span>Supply Jambs &amp; Casing:</span>
                     <span className="font-semibold text-foreground">
                       {formatMoney(optionBFinancials.jc)}
+                    </span>
+                  </div>
+                )}
+                {(optionBFinancials.customMaterialsTotalCents || 0) > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Additional Materials:</span>
+                    <span className="font-semibold text-foreground">
+                      {formatMoney(
+                        optionBFinancials.customMaterialsTotalCents || 0
+                      )}
                     </span>
                   </div>
                 )}

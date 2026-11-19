@@ -58,6 +58,33 @@ describe("Drafts & Combined Quotes Architecture", () => {
     expect(fin.suGlassCents).toBeGreaterThan(0)
     expect(fin.subtotalDollars).toBeGreaterThan(0)
     expect(fin.grandTotalDollars).toBeGreaterThan(fin.subtotalDollars)
+    expect(fin.combinedSurchargeCents).toBe(16000 + 12000 + 4800)
+    expect(fin.combinedLabourCents).toBe(50000 + 50000 + 20000)
+    expect(fin.combinedMiscCents).toBe(10000 + 8000 + 5000)
+  })
+
+  it("correctly rolls up Door quote when totals are stored in taxTotals instead of totals", () => {
+    const fin = computeCombinedQuoteFinancials({
+      quoteResult: { base: 100000, surcharge: 8000, promoDiscount: 10000 },
+      total: 120000,
+      afterDiscount: 98000,
+      attachedDoorQuote: {
+        taxTotals: {
+          rawDoorBaseTotal: 2000,
+          surchargeTotal: 160,
+          combinedLabour: 600,
+          miscTotal: 100,
+          discountTotal: 200,
+        },
+      },
+      effectiveJC: 0,
+      effectiveMisc: 5000,
+      effectiveLabour: 20000,
+      hstRate: 13,
+    })
+    expect(fin.combinedSurchargeCents).toBe(8000 + 16000)
+    expect(fin.combinedLabourCents).toBe(20000 + 60000)
+    expect(fin.combinedMiscCents).toBe(5000 + 10000)
   })
 
   it("detects changes when jamb or casing is modified during review", () => {

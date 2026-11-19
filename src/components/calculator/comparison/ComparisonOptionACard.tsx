@@ -16,6 +16,7 @@ interface ComparisonOptionACardProps {
   totalA?: number
   firstPaymentA?: number
   secondPaymentA?: number
+  customMaterialsTotalCentsA?: number
   appliedOption: "A" | "B"
 }
 
@@ -26,6 +27,7 @@ export function ComparisonOptionACard({
   surchargeRate,
   effectiveJC,
   effectiveLabour,
+  customMaterialsTotalCentsA,
   quoteResultA,
   afterDiscountA,
   appliedOption,
@@ -77,6 +79,14 @@ export function ComparisonOptionACard({
               <span>Supply Jambs &amp; Casing:</span>
               <span className="font-semibold text-foreground">
                 {formatMoney(effectiveJC)}
+              </span>
+            </div>
+          )}
+          {(customMaterialsTotalCentsA || 0) > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Additional Materials:</span>
+              <span className="font-semibold text-foreground">
+                {formatMoney(customMaterialsTotalCentsA || 0)}
               </span>
             </div>
           )}

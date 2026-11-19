@@ -175,27 +175,12 @@ export function CombinedLedgerSection({
         {/* Misc (Window + Attached) - Hidden on Supply Only */}
         {!isSupplyOnly &&
           (() => {
-            const attachedMiscCents =
-              combinedData.combinedMiscCents -
-              (customMisc !== "" ? toCents(customMisc) : taxMisc)
-            const defaultCombinedMiscCents = taxMisc + attachedMiscCents
+            const attMisc = combinedData.combinedMiscCents - (customMisc !== "" ? toCents(customMisc) : taxMisc)
             return renderEditableRow(
-              "misc",
-              "Miscellaneous",
-              combinedData.combinedMiscCents,
-              customMisc,
-              defaultCombinedMiscCents,
+              "misc", "Miscellaneous", combinedData.combinedMiscCents, customMisc, taxMisc + attMisc,
               (val) => {
-                if (!val) {
-                  setCustomMisc("")
-                  return
-                }
-                const totalDesiredCents = toCents(val)
-                const windowCents = Math.max(
-                  0,
-                  totalDesiredCents - attachedMiscCents
-                )
-                setCustomMisc((windowCents / 100).toFixed(2))
+                if (!val) { setCustomMisc(""); return }
+                setCustomMisc((Math.max(0, toCents(val) - attMisc) / 100).toFixed(2))
               },
               "(window + attached)"
             )
@@ -204,27 +189,12 @@ export function CombinedLedgerSection({
         {/* Labour (Window + Attached) - Hidden on Supply Only (placed after Misc) */}
         {!isSupplyOnly &&
           (() => {
-            const attachedLabourCents =
-              combinedData.combinedLabourCents -
-              (customLabour !== "" ? toCents(customLabour) : taxLabour)
-            const defaultCombinedLabourCents = taxLabour + attachedLabourCents
+            const attLab = combinedData.combinedLabourCents - (customLabour !== "" ? toCents(customLabour) : taxLabour)
             return renderEditableRow(
-              "labour",
-              "Labour",
-              combinedData.combinedLabourCents,
-              customLabour,
-              defaultCombinedLabourCents,
+              "labour", "Labour", combinedData.combinedLabourCents, customLabour, taxLabour + attLab,
               (val) => {
-                if (!val) {
-                  setCustomLabour("")
-                  return
-                }
-                const totalDesiredCents = toCents(val)
-                const windowCents = Math.max(
-                  0,
-                  totalDesiredCents - attachedLabourCents
-                )
-                setCustomLabour((windowCents / 100).toFixed(2))
+                if (!val) { setCustomLabour(""); return }
+                setCustomLabour((Math.max(0, toCents(val) - attLab) / 100).toFixed(2))
               },
               "(window + attached)"
             )
@@ -258,13 +228,13 @@ export function CombinedLedgerSection({
           </div>
         )}
 
-        {/* 10% Door Discount (Separated) */}
+        {/* Door Discount (Separated on its own line) */}
         {combinedData.doorDiscountCents > 0 && (
           <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
             <span>
-              10% Door Discount{" "}
+              {attachedDoorQuote?.discountLabel || "Door Discount"}{" "}
               <span className="text-[10px] text-muted-foreground/70">
-                (non-storm doors)
+                (attached door)
               </span>
             </span>
             <span className="shrink-0 font-mono whitespace-nowrap">

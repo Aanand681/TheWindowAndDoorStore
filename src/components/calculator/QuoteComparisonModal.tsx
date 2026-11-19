@@ -94,6 +94,7 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
               surchargeRate={surchargeRate}
               effectiveJC={effectiveJC}
               effectiveLabour={effectiveLabour}
+              customMaterialsTotalCentsA={props.customMaterialsTotalCentsA}
               hstRate={hstRate}
               quoteResultA={quoteResultA}
               afterDiscountA={afterDiscountA}
@@ -123,6 +124,11 @@ export function QuoteComparisonModal(props: QuoteComparisonModalProps) {
               setOverrideJambId={comparison.setOverrideJambId}
               overrideCasingId={comparison.overrideCasingId}
               setOverrideCasingId={comparison.setOverrideCasingId}
+              overrideMaterialsMode={comparison.overrideMaterialsMode}
+              setOverrideMaterialsMode={comparison.setOverrideMaterialsMode}
+              optionAMaterials={props.customMaterialsA}
+              optionBMaterials={comparison.optionBMaterials}
+              setOptionBMaterials={comparison.setOptionBMaterials}
               dbJambs={comparison.dbJambs}
               dbCasings={comparison.dbCasings}
               resolvedOptionAJambLabel={comparison.resolvedOptionAJambLabel}

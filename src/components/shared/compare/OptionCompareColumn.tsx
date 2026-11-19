@@ -18,6 +18,8 @@ export interface OptionCompareColumnProps {
   jcAmount?: number
   attachedLabel?: string
   attachedAmount?: number
+  materialsAmount?: number
+  materialsLabel?: string
   labourAmount: number
   miscAmount: number
   surchargeAmount?: number
@@ -45,6 +47,8 @@ export function OptionCompareColumn({
   jcAmount = 0,
   attachedLabel = "Attached Quote Items",
   attachedAmount = 0,
+  materialsAmount = 0,
+  materialsLabel = "Additional Materials",
   labourAmount,
   miscAmount,
   surchargeAmount = 0,
@@ -103,6 +107,16 @@ export function OptionCompareColumn({
               <span className="max-w-[190px] truncate">{jcLabel}:</span>
               <span className="font-semibold text-foreground">
                 +${jcAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          {/* Additional Materials (if present) */}
+          {materialsAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="max-w-[190px] truncate">{materialsLabel}:</span>
+              <span className="font-semibold text-foreground">
+                +${materialsAmount.toFixed(2)}
               </span>
             </div>
           )}
