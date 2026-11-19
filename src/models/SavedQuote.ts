@@ -35,6 +35,7 @@ export interface ISavedQuote extends Document {
   quoteType?: "window" | "door" | "sealed_unit"
   status: "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "MODIFIED" | "RETURNED"
   preparedBy: string
+  preparedByName?: string
   preparedByEmail?: string
   assignedTo: string
   assignedToEmail?: string
@@ -143,6 +144,11 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       required: true,
       trim: true,
       index: true,
+    },
+    preparedByName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
     },
     preparedByEmail: {
       type: String,
@@ -383,7 +389,8 @@ SavedQuoteSchema.index(
 if (
   mongoose.models.SavedQuote &&
   (!mongoose.models.SavedQuote.schema.path("quoteNumber") ||
-    !mongoose.models.SavedQuote.schema.path("odooStatus"))
+    !mongoose.models.SavedQuote.schema.path("odooStatus") ||
+    !mongoose.models.SavedQuote.schema.path("preparedByName"))
 ) {
   delete (mongoose.models as Record<string, unknown>).SavedQuote
 }

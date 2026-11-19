@@ -11,6 +11,8 @@ declare module "next-auth" {
     muteNotifications?: boolean
     canAccessAdmin?: boolean
     username?: string
+    defaultQuotingMode?: "installation" | "supply_only"
+    favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
   }
 
   interface Session {
@@ -22,6 +24,8 @@ declare module "next-auth" {
       muteNotifications?: boolean
       canAccessAdmin?: boolean
       username?: string
+      defaultQuotingMode?: "installation" | "supply_only"
+      favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
     } & DefaultSession["user"]
   }
 }
@@ -29,12 +33,15 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string
+    name?: string
     role?: UserRole
     department?: string
     landingPage?: string
     muteNotifications?: boolean
     canAccessAdmin?: boolean
     username?: string
+    defaultQuotingMode?: "installation" | "supply_only"
+    favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
     authTime?: number
   }
 }

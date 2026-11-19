@@ -89,7 +89,12 @@ export function buildPrintInvoiceProps(ctx: WorkflowInvoiceContext) {
     fontSize: base.quoteFontSize,
     spacing: base.quoteSpacing,
     quoteNotes: base.quoteNotes,
-    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || "",
+    preparedBy:
+      (review.reviewQuote as any)?.preparedByName ||
+      review.reviewQuote?.preparedBy ||
+      base.user?.name ||
+      base.user?.username ||
+      "",
     attachedUpgrade: base.attachedUpgrade,
     attachedSealedUnit: base.attachedSealedUnit,
     attachedDoorQuote: base.attachedDoorQuote,

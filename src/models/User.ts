@@ -12,6 +12,7 @@ export interface IUserCustomPermissions {
 }
 
 export interface IUser extends Document {
+  name?: string
   username?: string
   email?: string
   password?: string
@@ -20,7 +21,15 @@ export interface IUser extends Document {
   resetOtp?: string | null
   resetOtpExpiry?: Date | null
   resetOtpAttempts?: number
-  landingPage?: "calculator" | "quotes" | "admin"
+  landingPage?:
+    | "calculator"
+    | "quotes"
+    | "admin"
+    | "doors"
+    | "sealed_units"
+    | "quote_studio"
+  defaultQuotingMode?: "installation" | "supply_only"
+  lastLoginAt?: Date | null
   muteNotifications?: boolean
   receiveQuoteEmails?: boolean
   favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
@@ -32,6 +41,11 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
+    name: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     username: {
       type: String,
       unique: true,
@@ -72,8 +86,24 @@ const UserSchema = new Schema<IUser>(
     },
     landingPage: {
       type: String,
-      enum: ["calculator", "quotes", "admin"],
+      enum: [
+        "calculator",
+        "quotes",
+        "admin",
+        "doors",
+        "sealed_units",
+        "quote_studio",
+      ],
       default: "calculator",
+    },
+    defaultQuotingMode: {
+      type: String,
+      enum: ["installation", "supply_only"],
+      default: "installation",
+    },
+    lastLoginAt: {
+      type: Date,
+      default: null,
     },
     muteNotifications: {
       type: Boolean,
@@ -106,7 +136,10 @@ const UserSchema = new Schema<IUser>(
 
 if (
   mongoose.models.User &&
-  (!mongoose.models.User.schema.path("landingPage") ||
+  (!mongoose.models.User.schema.path("name") ||
+    !mongoose.models.User.schema.path("landingPage") ||
+    !mongoose.models.User.schema.path("defaultQuotingMode") ||
+    !mongoose.models.User.schema.path("lastLoginAt") ||
     !mongoose.models.User.schema.path("department") ||
     !mongoose.models.User.schema.path("muteNotifications") ||
     !mongoose.models.User.schema.path("receiveQuoteEmails") ||

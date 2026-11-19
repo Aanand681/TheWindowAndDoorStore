@@ -118,7 +118,7 @@ export function QuotePreviewModalWrapper({
       fontSize={previewFontSize}
       spacing={previewSpacing}
       quoteNotes={previewNotes}
-      preparedBy={previewQuote.preparedBy}
+      preparedBy={previewQuote.preparedByName || previewQuote.preparedBy}
       onTemplateChange={setPreviewTemplate}
       onFontSizeChange={setPreviewFontSize}
       onSpacingChange={setPreviewSpacing}

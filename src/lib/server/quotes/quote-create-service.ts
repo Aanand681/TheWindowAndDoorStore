@@ -207,6 +207,8 @@ export async function createQuoteService(
     approvedBy: isDirectApprove ? currentUsername : undefined,
     approvedAt: isDirectApprove ? new Date() : undefined,
     preparedBy: currentUsername,
+    preparedByName:
+      preparerUser?.name || preparerUser?.username || currentUsername,
     preparedByEmail: preparerUser?.email || session.user.email || "",
     assignedTo: isDirectApprove
       ? currentUsername

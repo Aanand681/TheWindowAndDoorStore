@@ -109,6 +109,12 @@ export const authOptions: NextAuthOptions = {
         // Login successful: reset rate limit tracking for both user and IP
         resetLoginAttempts(rateTarget)
 
+        // Record last login timestamp asynchronously
+        User.updateOne(
+          { _id: user._id },
+          { $set: { lastLoginAt: new Date() } }
+        ).catch(() => {})
+
         const isSuper = user.role === "SUPERADMIN"
         let canAccessAdmin = isSuper || user.role === "ADMIN"
         if (!canAccessAdmin) {
@@ -124,13 +130,16 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user._id.toString(),
-          name: user.username || user.email,
+          name: user.name || user.username || user.email,
+          username: user.username,
           email: user.email,
           role: user.role,
           department:
             user.department ||
             (["SUPERADMIN", "ADMIN"].includes(user.role) ? "MANAGER" : "SALES"),
           landingPage: user.landingPage || "calculator",
+          defaultQuotingMode: user.defaultQuotingMode || "installation",
+          favoriteTemplate: user.favoriteTemplate || "cards",
           muteNotifications: user.muteNotifications || false,
           canAccessAdmin,
         }
@@ -152,8 +161,11 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.department = user.department
         token.id = user.id
-        token.username = user.username || user.name || ""
+        token.name = user.name || ""
+        token.username = user.username || ""
         token.landingPage = user.landingPage || "calculator"
+        token.defaultQuotingMode = user.defaultQuotingMode || "installation"
+        token.favoriteTemplate = user.favoriteTemplate || "cards"
         token.muteNotifications = user.muteNotifications || false
         token.canAccessAdmin = Boolean(user.canAccessAdmin)
         token.authTime = Date.now()
@@ -176,8 +188,12 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role || "EMPLOYEE"
         session.user.department = token.department
         session.user.id = token.id || ""
-        session.user.username = token.username || session.user.name || ""
+        session.user.name = token.name || session.user.name || ""
+        session.user.username = token.username || ""
         session.user.landingPage = token.landingPage || "calculator"
+        session.user.defaultQuotingMode =
+          token.defaultQuotingMode || "installation"
+        session.user.favoriteTemplate = token.favoriteTemplate || "cards"
         session.user.muteNotifications = token.muteNotifications || false
         session.user.canAccessAdmin = Boolean(token.canAccessAdmin)
       }

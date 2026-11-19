@@ -104,6 +104,12 @@ export async function PUT(request: Request) {
       ).catch(() => {})
     }
 
+    // Handle Name Change
+    if (body.name !== undefined) {
+      user.name =
+        typeof body.name === "string" ? body.name.trim().slice(0, 100) : ""
+    }
+
     // Handle Username / Email Change
     if (username && username !== user.username) {
       const existingUser = await User.findOne({ username })
@@ -121,9 +127,23 @@ export async function PUT(request: Request) {
 
     if (
       body.landingPage &&
-      ["calculator", "quotes", "admin"].includes(body.landingPage)
+      [
+        "calculator",
+        "quotes",
+        "admin",
+        "doors",
+        "sealed_units",
+        "quote_studio",
+      ].includes(body.landingPage)
     ) {
       user.landingPage = body.landingPage
+    }
+
+    if (
+      body.defaultQuotingMode &&
+      ["installation", "supply_only"].includes(body.defaultQuotingMode)
+    ) {
+      user.defaultQuotingMode = body.defaultQuotingMode
     }
 
     if (body.muteNotifications !== undefined) {
@@ -147,7 +167,11 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({
       message: "Profile updated successfully",
+      name: user.name,
+      username: user.username,
+      email: user.email,
       landingPage: user.landingPage,
+      defaultQuotingMode: user.defaultQuotingMode,
       favoriteTemplate: user.favoriteTemplate,
       receiveQuoteEmails: user.receiveQuoteEmails,
       muteNotifications: user.muteNotifications,

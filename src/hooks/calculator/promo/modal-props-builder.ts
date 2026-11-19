@@ -25,7 +25,12 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     quoteNotes: base.quoteNotes,
     setQuoteNotes: base.setQuoteNotes,
     isReadOnly: review.isReadOnly,
-    preparedBy: review.reviewQuote?.preparedBy || base.user?.username || "",
+    preparedBy:
+      (review.reviewQuote as any)?.preparedByName ||
+      review.reviewQuote?.preparedBy ||
+      base.user?.name ||
+      base.user?.username ||
+      "",
     customerName: base.customerName,
     quoteNumber: base.quoteNumber,
     windows: windowsContext.windows,

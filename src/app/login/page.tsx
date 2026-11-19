@@ -39,7 +39,22 @@ export default function LoginPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
-          router.replace("/")
+          let dest = "/"
+          if (
+            data.landingPage === "admin" &&
+            (data.role === "ADMIN" || data.role === "SUPERADMIN")
+          ) {
+            dest = "/admin"
+          } else if (data.landingPage === "quotes") {
+            dest = "/quotes"
+          } else if (data.landingPage === "doors") {
+            dest = "/doors"
+          } else if (data.landingPage === "sealed_units") {
+            dest = "/sealed-units"
+          } else if (data.landingPage === "quote_studio") {
+            dest = "/quote-studio"
+          }
+          router.replace(dest)
         }
       })
       .catch(() => {})
@@ -89,6 +104,12 @@ export default function LoginPage() {
             targetUrl = "/admin"
           } else if (prof.landingPage === "quotes") {
             targetUrl = "/quotes"
+          } else if (prof.landingPage === "doors") {
+            targetUrl = "/doors"
+          } else if (prof.landingPage === "sealed_units") {
+            targetUrl = "/sealed-units"
+          } else if (prof.landingPage === "quote_studio") {
+            targetUrl = "/quote-studio"
           }
         }
       } catch (err) {
