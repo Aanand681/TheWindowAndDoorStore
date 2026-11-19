@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useMemo } from "react"
+import { createPortal } from "react-dom"
 import { X, Check, ShieldCheck, DoorClosed } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +45,7 @@ export function StormDoorSelectorModal({
   onClose,
   onSelect,
 }: StormDoorSelectorModalProps) {
+  const [mounted, setMounted] = useState(false)
   const [style, setStyle] = useState<StormDoorStyle>("self_storing")
   const [profile, setProfile] = useState<StormDoorProfile>('2"')
   const [ventType, setVentType] = useState<StormDoorVentType>("hidden_vent")
@@ -51,6 +53,10 @@ export function StormDoorSelectorModal({
   const [color, setColor] = useState<string>("White")
   const [isCustomPaint, setIsCustomPaint] = useState<boolean>(false)
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const currentItem = useMemo(() => {
     if (style === "project_self_storing") {
@@ -87,7 +93,7 @@ export function StormDoorSelectorModal({
     })
   }, [currentItem, ventType, swing, color, isCustomPaint, selectedAddons])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
   const handleApply = () => {
     onSelect({ basePrice: calculation.totalPrice, description: fullDesc })
@@ -100,8 +106,13 @@ export function StormDoorSelectorModal({
     )
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-3 sm:p-6 backdrop-blur-md animate-in fade-in duration-150">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div className="flex h-[88vh] max-h-[820px] w-full max-w-4xl flex-col rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden">
         {/* Header with Title on Left, Live Price & Close on Right */}
         <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-5 py-3">
@@ -240,4 +251,9 @@ export function StormDoorSelectorModal({
       </div>
     </div>
   )
+
+  if (typeof document !== "undefined") {
+    return createPortal(modalContent, document.body)
+  }
+  return null
 }
