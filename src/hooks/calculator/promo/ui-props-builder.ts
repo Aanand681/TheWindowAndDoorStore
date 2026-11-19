@@ -3,6 +3,7 @@
 import React from "react"
 import { toast } from "sonner"
 import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
+import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import { clearAllQuoteSessionState } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CalculatorPropsContext {
@@ -64,17 +65,35 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
     handlePdfImportClick: review.handlePdfImportClick,
     isReadOnly: review.isReadOnly,
     onResetQuote: () => {
+      let grandTotalDollars = (pricing.total || 0) / 100
+      if (base.attachedDoorQuote || base.attachedSealedUnit) {
+        const combined = computeCombinedQuoteFinancials({
+          quoteResult: pricing.quoteResult,
+          afterDiscount: pricing.afterDiscount,
+          total: pricing.total,
+          attachedSealedUnit: base.attachedSealedUnit,
+          attachedDoorQuote: base.attachedDoorQuote,
+          effectiveJC: pricing.effectiveJCCents,
+          effectiveMisc: pricing.effectiveMiscCents,
+          effectiveLabour: pricing.effectiveLabourCents,
+          hstRate: pricing.hstRate,
+          isSupplyOnly: supply.isSupplyOnly,
+        })
+        grandTotalDollars = combined.grandTotalDollars
+      }
+
       const isDirty = isWorkspaceDirtyOrUnsaved("window", {
         id: drafts.loadedDraftId || undefined,
         quoteNumber: base.quoteNumber,
         customerName: base.customerName,
         itemCount: windowsContext.windows?.length || 0,
-        grandTotal: (pricing.total || 0) / 100,
+        grandTotal: grandTotalDollars,
         data: {
           windows: windowsContext.windows,
           attachedSealedUnit: base.attachedSealedUnit,
           attachedDoorQuote: base.attachedDoorQuote,
           attachedUpgrade: base.attachedUpgrade,
+          isSupplyOnly: supply.isSupplyOnly,
         },
       })
       if (isDirty) {

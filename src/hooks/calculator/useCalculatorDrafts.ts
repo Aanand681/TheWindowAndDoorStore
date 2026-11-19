@@ -16,6 +16,7 @@ import {
 } from "@/lib/quote-drafts-storage"
 import { applyDraftDataToWorkspace } from "./drafts/workspace-draft-applier"
 import { executeSaveDraft } from "./drafts/draft-saver"
+import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import {
   UseCalculatorDraftsWorkspace,
   UseCalculatorDraftsFinancials,
@@ -81,6 +82,9 @@ export function useCalculatorDrafts({
     (recovered: any) => {
       const d = recovered?.data
       if (!d) return
+      if (recovered.id || d.id) {
+        setLoadedDraftId(recovered.id || d.id)
+      }
       applyDraftDataToWorkspace(
         workspaceRef.current,
         d,
@@ -114,17 +118,35 @@ export function useCalculatorDrafts({
       }
 
       const ws = workspaceRef.current
+      let grandTotalDollars = (financials.total || 0) / 100
+      if (ws.attachedDoorQuote || ws.attachedSealedUnit) {
+        const combined = computeCombinedQuoteFinancials({
+          quoteResult: financials.quoteResult,
+          afterDiscount: financials.afterDiscount,
+          total: financials.total,
+          attachedSealedUnit: ws.attachedSealedUnit,
+          attachedDoorQuote: ws.attachedDoorQuote,
+          effectiveJC: financials.effectiveJC,
+          effectiveMisc: financials.effectiveMisc,
+          effectiveLabour: financials.effectiveLabour,
+          hstRate: ws.hstRate,
+          isSupplyOnly: ws.isSupplyOnly,
+        })
+        grandTotalDollars = combined.grandTotalDollars
+      }
+
       const isDirty = isWorkspaceDirtyOrUnsaved("window", {
         id: loadedDraftId || undefined,
         quoteNumber: ws.quoteNumber,
         customerName: ws.customerName,
         itemCount: ws.windows.length,
-        grandTotal: financials.total,
+        grandTotal: grandTotalDollars,
         data: {
           windows: ws.windows,
           attachedSealedUnit: ws.attachedSealedUnit,
           attachedDoorQuote: ws.attachedDoorQuote,
           attachedUpgrade: ws.attachedUpgrade,
+          isSupplyOnly: ws.isSupplyOnly,
         },
       })
 
@@ -141,7 +163,7 @@ export function useCalculatorDrafts({
     [
       router,
       clearAutoSaveTimer,
-      financials.total,
+      financials,
       loadedDraftId,
       loadDraftDirectly,
     ]
