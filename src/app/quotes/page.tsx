@@ -21,8 +21,11 @@ function QuotesPageContent() {
     isEdit?: boolean,
     originSubTab?: QuotesSubTabType
   ) => {
-    const subParam = originSubTab ? `&sub=${originSubTab}` : ""
-    router.push(`/review/${quoteId}?${isEdit ? "edit=true" : ""}${subParam}`)
+    const params = new URLSearchParams()
+    if (isEdit) params.set("edit", "true")
+    if (originSubTab) params.set("sub", originSubTab)
+    const qs = params.toString() ? `?${params.toString()}` : ""
+    router.push(`/review/${quoteId}${qs}`)
   }
 
   return (

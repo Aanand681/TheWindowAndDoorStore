@@ -36,6 +36,7 @@ import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
 export interface SealedUnitsCalculatorProps {
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function SealedUnitsCalculator(
@@ -44,8 +45,10 @@ export function SealedUnitsCalculator(
   const searchParams = useSearchParams()
   const queryQuoteId = searchParams?.get("reviewQuoteId") || undefined
   const queryEdit = searchParams?.get("edit") === "true"
+  const querySub = searchParams?.get("sub") || undefined
   const effectiveQuoteId = props.initialReviewQuoteId || queryQuoteId
   const effectiveEdit = props.initialIsEditMode ?? queryEdit
+  const effectiveSub = props.originSubTab || querySub
 
   const { data: session } = useSession()
   const user = session?.user as any
@@ -141,6 +144,7 @@ export function SealedUnitsCalculator(
     onConfirmReset: drafts.handleResetWorkspace,
     initialReviewQuoteId: effectiveQuoteId,
     initialIsEditMode: effectiveEdit,
+    originSubTab: effectiveSub,
   })
 
   const reviewActions = useSealedUnitsReviewActions({

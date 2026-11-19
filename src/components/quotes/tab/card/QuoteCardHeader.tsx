@@ -10,6 +10,9 @@ import {
   ClipboardCheck,
   Star,
   Calendar,
+  DoorClosed,
+  Layers,
+  AppWindow,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/promo-logic"
@@ -37,6 +40,37 @@ export function QuoteCardHeader({
   const isModified = quote.status === "MODIFIED"
   const isReturned = quote.status === "RETURNED"
 
+  const isDoor =
+    quote.quoteType === "door" ||
+    (Array.isArray(quote.windows) &&
+      quote.windows.some((w: any) => Boolean(w.doorPresetId || w.systemType)))
+
+  const isSealedUnit =
+    quote.quoteType === "sealed_unit" ||
+    Boolean(quote.taxTotals?.isSealedUnitQuote) ||
+    Boolean(quote.sealedUnitMode) ||
+    (Array.isArray(quote.windows) &&
+      quote.windows.some((w: any) =>
+        Boolean(w.glassType || w.overallThickness || w.spacerType)
+      ))
+
+  const itemsList = Array.isArray(quote.windows)
+    ? quote.windows
+    : Array.isArray(quote.lineItems)
+      ? quote.lineItems
+      : []
+
+  const totalItemQty = itemsList.reduce(
+    (sum: number, item: any) => sum + (Number(item.quantity || item.qty) || 1),
+    0
+  )
+
+  const itemNoun = isDoor
+    ? totalItemQty === 1 ? "Door" : "Doors"
+    : isSealedUnit
+      ? totalItemQty === 1 ? "Sealed Unit" : "Sealed Units"
+      : totalItemQty === 1 ? "Window" : "Windows"
+
   const createdDate = new Date(quote.createdAt).toLocaleDateString("en-CA", {
     year: "numeric",
     month: "short",
@@ -62,6 +96,25 @@ export function QuoteCardHeader({
           >
             #{quote.quoteNumber}
           </span>
+
+          {/* Domain Type Badge (Window: Green, Door: Orange, Sealed Unit: Blue) */}
+          {isDoor ? (
+            <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+              <DoorClosed className="h-3 w-3" />
+              <span>Door</span>
+            </span>
+          ) : isSealedUnit ? (
+            <span className="flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+              <Layers className="h-3 w-3" />
+              <span>Sealed Unit</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              <AppWindow className="h-3 w-3" />
+              <span>Window</span>
+            </span>
+          )}
+
           <span
             className={cn(
               "max-w-[220px] truncate font-semibold text-foreground sm:max-w-md",
@@ -162,7 +215,33 @@ export function QuoteCardHeader({
             </>
           )}
           <span>&bull;</span>
-          <span>{quote.windows?.length || 0} Windows</span>
+          <span className="font-semibold text-foreground">
+            {totalItemQty} {itemNoun}
+          </span>
+          {quote.attachedDoorQuote && (
+            <>
+              <span>&bull;</span>
+              <span className="font-medium text-amber-600 dark:text-amber-400">
+                + Door Attached
+              </span>
+            </>
+          )}
+          {quote.attachedSealedUnit && (
+            <>
+              <span>&bull;</span>
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                + Sealed Unit Attached
+              </span>
+            </>
+          )}
+          {quote.attachedWindowQuote && (
+            <>
+              <span>&bull;</span>
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                + Window Attached
+              </span>
+            </>
+          )}
         </div>
       </div>
 

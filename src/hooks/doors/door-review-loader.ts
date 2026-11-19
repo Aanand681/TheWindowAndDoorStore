@@ -119,35 +119,17 @@ export interface UseDoorReviewLoaderParams {
   onConfirmReset: () => void
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
   const {
-    user,
-    presets,
-    formula,
-    setCustomerName,
-    setQuoteNumber,
-    setQuoteNotes,
-    setMode,
-    setLineItems,
-    setGlobalUpcharges,
-    setSelectedRegionId,
-    setTravelFeeType,
-    setCustomTravelFee,
-    setShowOutTownTravel,
-    setTravelKm,
-    setCrewHours,
-    setCrewSize,
-    setIsFirstNation,
-    setHstRate,
-    setCustomLabour,
-    setCustomMisc,
-    setAttachedWindowQuote,
-    setAttachedSealedUnit,
-    onConfirmReset,
-    initialReviewQuoteId,
-    initialIsEditMode = false,
+    user, presets, formula, setCustomerName, setQuoteNumber, setQuoteNotes,
+    setMode, setLineItems, setGlobalUpcharges, setSelectedRegionId,
+    setTravelFeeType, setCustomTravelFee, setShowOutTownTravel, setTravelKm,
+    setCrewHours, setCrewSize, setIsFirstNation, setHstRate, setCustomLabour,
+    setCustomMisc, setAttachedWindowQuote, setAttachedSealedUnit, onConfirmReset,
+    initialReviewQuoteId, initialIsEditMode = false, originSubTab,
   } = p
 
   const [reviewQuoteId, setReviewQuoteId] = useState<string | null>(
@@ -273,9 +255,14 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
     setOriginalSnapshot(null)
     onConfirmReset()
     if (typeof window !== "undefined") {
-      window.history.pushState({}, "", "/doors")
+      const sub = p.originSubTab || new URLSearchParams(window.location.search).get("sub")
+      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+        window.history.back()
+        return
+      }
+      window.location.href = sub ? `/quotes?sub=${sub}` : "/quotes"
     }
-  }, [onConfirmReset])
+  }, [onConfirmReset, p.originSubTab])
 
   return {
     reviewQuoteId,

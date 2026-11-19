@@ -17,6 +17,7 @@ function ReviewPageContent() {
   const quoteId = (params?.id as string) || ""
   const isEdit = searchParams?.get("edit") === "true"
   const typeParam = searchParams?.get("type") as DeterminedQuoteType | null
+  const subParam = searchParams?.get("sub") || undefined
 
   const [quoteType, setQuoteType] = useState<DeterminedQuoteType | null>(
     typeParam === "door" || typeParam === "sealed_unit" || typeParam === "window"
@@ -107,7 +108,13 @@ function ReviewPageContent() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push("/quotes")}
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              window.history.back()
+              return
+            }
+            router.push(subParam ? `/quotes?sub=${subParam}` : "/quotes")
+          }}
           className="gap-2 text-xs"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -122,6 +129,7 @@ function ReviewPageContent() {
       <DoorCalculator
         initialReviewQuoteId={quoteId}
         initialIsEditMode={isEdit}
+        originSubTab={subParam}
       />
     )
   }
@@ -131,6 +139,7 @@ function ReviewPageContent() {
       <SealedUnitsCalculator
         initialReviewQuoteId={quoteId}
         initialIsEditMode={isEdit}
+        originSubTab={subParam}
       />
     )
   }

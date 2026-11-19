@@ -17,6 +17,7 @@ import { useDoorReviewActions } from "./door-review-actions"
 export interface UseDoorCalculatorPageOptions {
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function useDoorCalculatorPage(
@@ -263,6 +264,7 @@ export function useDoorCalculatorPage(
     onConfirmReset: handleConfirmReset,
     initialReviewQuoteId: options.initialReviewQuoteId,
     initialIsEditMode: options.initialIsEditMode,
+    originSubTab: options.originSubTab,
   })
 
   const reviewActions = useDoorReviewActions({

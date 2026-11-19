@@ -20,6 +20,7 @@ export interface UseSealedUnitsReviewLoaderParams {
   onConfirmReset: () => void
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function useSealedUnitsReviewLoader(
@@ -147,9 +148,14 @@ export function useSealedUnitsReviewLoader(
     setOriginalSnapshot(null)
     onConfirmReset()
     if (typeof window !== "undefined") {
-      window.history.pushState({}, "", "/sealed-units")
+      const sub = p.originSubTab || new URLSearchParams(window.location.search).get("sub")
+      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+        window.history.back()
+        return
+      }
+      window.location.href = sub ? `/quotes?sub=${sub}` : "/quotes"
     }
-  }, [onConfirmReset])
+  }, [onConfirmReset, p.originSubTab])
 
   return {
     reviewQuoteId,

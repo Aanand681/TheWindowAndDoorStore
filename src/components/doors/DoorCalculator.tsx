@@ -31,14 +31,17 @@ import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
 export interface DoorCalculatorProps {
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
+  originSubTab?: string
 }
 
 export function DoorCalculator(props: DoorCalculatorProps = {}) {
   const searchParams = useSearchParams()
   const queryQuoteId = searchParams?.get("reviewQuoteId") || undefined
   const queryEdit = searchParams?.get("edit") === "true"
+  const querySub = searchParams?.get("sub") || undefined
   const effectiveQuoteId = props.initialReviewQuoteId || queryQuoteId
   const effectiveEdit = props.initialIsEditMode ?? queryEdit
+  const effectiveSub = props.originSubTab || querySub
 
   const {
     user,
@@ -136,6 +139,7 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
   } = useDoorCalculatorPage({
     initialReviewQuoteId: effectiveQuoteId,
     initialIsEditMode: effectiveEdit,
+    originSubTab: effectiveSub,
   })
 
   const handleStartNewQuote = () => {

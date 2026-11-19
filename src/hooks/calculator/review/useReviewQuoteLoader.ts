@@ -43,6 +43,7 @@ export interface UseReviewQuoteLoaderParams {
   setSupplyJambRate?: (val: string) => void
   setSupplyCasingId?: (val: string) => void
   setSupplyCasingRate?: (val: string) => void
+  originSubTab?: string
 }
 
 export function useReviewQuoteLoader({
@@ -79,6 +80,7 @@ export function useReviewQuoteLoader({
   setSupplyCasingId,
   setSupplyCasingRate,
   setTaxTotals,
+  originSubTab,
 }: UseReviewQuoteLoaderParams) {
   const [reviewQuoteId, setReviewQuoteId] = useState<string | null>(null)
   const [reviewQuote, setReviewQuote] = useState<any>(null)
@@ -249,30 +251,21 @@ export function useReviewQuoteLoader({
     setOriginalSnapshot(null)
     resetCalculatorDefaults()
 
+    const urlSub = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("sub") : null
     let defaultTab: string = "my"
     if (canReview) defaultTab = "review"
     else if (isOdooClerk) defaultTab = "odoo"
 
-    const targetSubTab = (quotesSubTab || defaultTab) as QuotesSubTabType
+    const targetSubTab = (originSubTab || urlSub || quotesSubTab || defaultTab) as QuotesSubTabType
     setQuotesSubTab(targetSubTab)
     setActiveTab("quotes")
     if (typeof window !== "undefined") {
-      window.history.pushState(
-        { tab: "quotes", sub: targetSubTab },
-        "",
-        `/?tab=quotes&sub=${targetSubTab}`
-      )
+      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
+        window.history.back()
+        return
+      }
+      window.location.href = `/quotes?sub=${targetSubTab}`
     }
-    const TAB_NAMES: Record<string, string> = {
-      review: "Pending Review queue",
-      odoo: "Odoo Entry queue",
-      odoo_completed: "Completed in Odoo",
-      all: "All Quotes",
-      all_assigned: "Total Assigned",
-      returned: "Needs Revision",
-    }
-    const tabName = TAB_NAMES[targetSubTab] || "your Quote History"
-    toast.info(`Exited review mode. Returned to ${tabName}.`)
   }
 
   return {

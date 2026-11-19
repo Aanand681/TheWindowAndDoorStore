@@ -74,18 +74,16 @@ export function useQuotesTabState({
     onQuotesCountChangeRef.current = onQuotesCountChange
   })
 
+  const VALID_SUB_TABS: QuotesSubTabType[] = [
+    "review", "assigned", "odoo", "my", "all", "odoo_completed", "all_assigned", "returned"
+  ]
+
   useEffect(() => {
-    if (initialSubTab) {
+    if (initialSubTab && VALID_SUB_TABS.includes(initialSubTab)) {
       setActiveTab(initialSubTab)
     } else if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search)
-      const sub = params.get("sub") as QuotesSubTabType
-      if (
-        sub &&
-        ["review", "odoo", "my", "all", "odoo_completed", "all_assigned", "returned"].includes(sub)
-      ) {
-        setActiveTab(sub)
-      }
+      const sub = new URLSearchParams(window.location.search).get("sub") as QuotesSubTabType
+      if (sub && VALID_SUB_TABS.includes(sub)) setActiveTab(sub)
     }
   }, [initialSubTab])
 
@@ -119,46 +117,18 @@ export function useQuotesTabState({
 
         let totalActionable = 0
         if (isSuperAdmin) {
-          const pendingReview = list.filter(
-            (q: any) => q.status === "PENDING_REVIEW"
-          ).length
-          const pendingOdoo = list.filter(
-            (q: any) =>
-              q.odooStatus === "PENDING_ENTRY" ||
-              (!q.odooStatus && Boolean(q.odooAssignedTo))
-          ).length
-          totalActionable = pendingReview + pendingOdoo
+          const rev = list.filter((q: any) => q.status === "PENDING_REVIEW").length
+          const odoo = list.filter((q: any) => q.odooStatus === "PENDING_ENTRY" || (!q.odooStatus && Boolean(q.odooAssignedTo))).length
+          totalActionable = rev + odoo
         } else if (canReview) {
-          const pendingReview = list.filter((q: any) => {
-            if (q.status !== "PENDING_REVIEW") return false
-            const assigned = q.assignedTo?.toLowerCase()?.trim()
-            if (assigned) return assigned === myUsername
-            return myUsername === "admin"
-          }).length
-          const pendingOdoo = list.filter(
-            (q: any) =>
-              (q.odooStatus === "PENDING_ENTRY" ||
-                (!q.odooStatus && Boolean(q.odooAssignedTo))) &&
-              q.odooAssignedTo?.toLowerCase() === myUsername
-          ).length
-          totalActionable = pendingReview + pendingOdoo
+          const rev = list.filter((q: any) => q.status === "PENDING_REVIEW" && ((q.assignedTo?.toLowerCase()?.trim() || "admin") === (myUsername || "admin"))).length
+          const odoo = list.filter((q: any) => (q.odooStatus === "PENDING_ENTRY" || (!q.odooStatus && Boolean(q.odooAssignedTo))) && q.odooAssignedTo?.toLowerCase() === myUsername).length
+          totalActionable = rev + odoo
         } else if (isClerk) {
-          totalActionable = list.filter(
-            (q: any) =>
-              q.odooAssignedTo?.toLowerCase() === myUsername &&
-              q.odooStatus !== "COMPLETED"
-          ).length
+          totalActionable = list.filter((q: any) => q.odooAssignedTo?.toLowerCase() === myUsername && q.odooStatus !== "COMPLETED").length
         } else {
-          const assigned = list.filter(
-            (q: any) =>
-              q.status === "PENDING_REVIEW" &&
-              q.assignedTo?.toLowerCase()?.trim() === myUsername
-          ).length
-          const returned = list.filter(
-            (q: any) =>
-              q.status === "RETURNED" &&
-              q.preparedBy?.toLowerCase()?.trim() === myUsername
-          ).length
+          const assigned = list.filter((q: any) => q.status === "PENDING_REVIEW" && q.assignedTo?.toLowerCase()?.trim() === myUsername).length
+          const returned = list.filter((q: any) => q.status === "RETURNED" && q.preparedBy?.toLowerCase()?.trim() === myUsername).length
           totalActionable = assigned + returned
         }
 
@@ -177,27 +147,30 @@ export function useQuotesTabState({
   }, [fetchQuotes])
 
   useEffect(() => {
-    const handleCountUpdate = () => {
-      fetchQuotes()
-    }
+    const handleCountUpdate = () => fetchQuotes()
     const handleQuoteDeleted = (e: any) => {
       const deletedId = e.detail?.quoteId
-      if (deletedId) {
-        setQuotes((prev) => prev.filter((q) => q._id !== deletedId))
-      }
+      if (deletedId) setQuotes((prev) => prev.filter((q) => q._id !== deletedId))
       fetchQuotes()
     }
-    const handleFocus = () => {
+    const handlePopState = () => {
+      const sub = new URLSearchParams(window.location.search).get("sub") as QuotesSubTabType
+      if (sub && VALID_SUB_TABS.includes(sub)) setActiveTab(sub)
       fetchQuotes()
     }
+    const handleFocus = () => fetchQuotes()
 
     window.addEventListener("quote-count-updated", handleCountUpdate)
     window.addEventListener("quote-deleted", handleQuoteDeleted)
     window.addEventListener("focus", handleFocus)
+    window.addEventListener("pageshow", handleFocus)
+    window.addEventListener("popstate", handlePopState)
     return () => {
       window.removeEventListener("quote-count-updated", handleCountUpdate)
       window.removeEventListener("quote-deleted", handleQuoteDeleted)
       window.removeEventListener("focus", handleFocus)
+      window.removeEventListener("pageshow", handleFocus)
+      window.removeEventListener("popstate", handlePopState)
     }
   }, [fetchQuotes])
 
@@ -245,6 +218,11 @@ export function useQuotesTabState({
   const handleTabChange = (newTab: QuotesSubTabType) => {
     setActiveTab(newTab)
     setStatusFilter("all")
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href)
+      url.searchParams.set("sub", newTab)
+      window.history.pushState({ sub: newTab }, "", url.toString())
+    }
   }
 
   const counts = computeQuotesTabCounts({
