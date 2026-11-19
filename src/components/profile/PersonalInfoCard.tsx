@@ -63,6 +63,7 @@ export function PersonalInfoCard({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              autoComplete="off"
               className="bg-background"
             />
           </div>
@@ -76,6 +77,7 @@ export function PersonalInfoCard({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                autoComplete="off"
                 className="bg-background pl-9"
               />
             </div>

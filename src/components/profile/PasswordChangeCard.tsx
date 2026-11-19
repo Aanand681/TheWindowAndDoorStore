@@ -23,7 +23,6 @@ export function PasswordChangeCard({
   confirmPassword,
   setConfirmPassword,
 }: PasswordChangeCardProps) {
-  const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
 
   return (
@@ -38,26 +37,22 @@ export function PasswordChangeCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
+        {/* Current Password - Strictly masked without reveal toggle to prevent shoulder-surfing */}
         <div className="space-y-2">
           <Label htmlFor="currentPassword">Current Password</Label>
-          <div className="relative">
-            <Input
-              id="currentPassword"
-              type={showCurrent ? "text" : "password"}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="bg-background pr-10"
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute top-2.5 right-3 text-muted-foreground hover:text-foreground"
-              aria-label={showCurrent ? "Hide password" : "Show password"}
-            >
-              {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="bg-background"
+            autoComplete="new-password"
+            placeholder="Enter your current password to authorize changes"
+          />
+          <p className="text-xs text-muted-foreground">
+            Required only when changing your password. Must be typed manually.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
