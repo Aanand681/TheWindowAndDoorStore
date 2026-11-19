@@ -37,6 +37,10 @@ export async function GET() {
       ? settings.toObject({ flattenMaps: true })
       : settings
 
+    if (!plain.stormDoors || plain.stormDoors.length === 0) {
+      plain.stormDoors = DEFAULT_DOOR_SETTINGS_DATA.stormDoors
+    }
+
     // Cache in Redis for fast warm queries
     cacheSet(cacheKey, plain, 300).catch(() => {})
     return NextResponse.json(plain, { headers })
@@ -81,6 +85,9 @@ export async function PUT(request: Request) {
     }
     if (body.logistics) {
       settings.logistics = { ...settings.logistics, ...body.logistics }
+    }
+    if (Array.isArray(body.stormDoors)) {
+      settings.stormDoors = body.stormDoors
     }
 
     await settings.save()

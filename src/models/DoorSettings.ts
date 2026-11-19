@@ -5,6 +5,7 @@ import {
   DoorFormulaSettings,
   DoorLogisticsSettings,
 } from "@/lib/doors/types"
+import { StormDoorCatalogItem } from "@/lib/doors/storm-door-types"
 import {
   DEFAULT_DOOR_FORMULA,
   DEFAULT_DOOR_LOGISTICS,
@@ -15,6 +16,7 @@ export interface IDoorSettings extends Document {
   upcharges: DoorUpchargeConfig[]
   formula: DoorFormulaSettings
   logistics: DoorLogisticsSettings
+  stormDoors?: StormDoorCatalogItem[]
 }
 
 const DoorSettingsSchema = new Schema<IDoorSettings>(
@@ -87,6 +89,20 @@ const DoorSettingsSchema = new Schema<IDoorSettings>(
         default: DEFAULT_DOOR_LOGISTICS.crewHourly3Men,
       },
     },
+    stormDoors: [
+      {
+        id: { type: String, required: true },
+        style: { type: String, required: true },
+        name: { type: String, required: true },
+        profile: { type: String, required: true },
+        standardPrice: { type: Number, required: true, default: 0 },
+        hiddenVentPrice: { type: Number },
+        screenOnlyPrice: { type: Number },
+        inswingPrice: { type: Number },
+        description: { type: String, default: "" },
+        availableColors: [{ type: String }],
+      },
+    ],
   },
   { timestamps: true }
 )

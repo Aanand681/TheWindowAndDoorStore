@@ -6,6 +6,8 @@ import {
   IDoorSettingsData,
 } from "./types"
 
+import { YORK_STORM_DOORS } from "./storm-door-catalog"
+
 export const DEFAULT_DOOR_PRESETS: DoorPreset[] = [
   {
     id: "single_regular",
@@ -197,4 +199,5 @@ export const DEFAULT_DOOR_SETTINGS_DATA: IDoorSettingsData = {
   upcharges: DEFAULT_DOOR_UPCHARGES,
   formula: DEFAULT_DOOR_FORMULA,
   logistics: DEFAULT_DOOR_LOGISTICS,
+  stormDoors: YORK_STORM_DOORS,
 }

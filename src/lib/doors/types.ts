@@ -1,3 +1,5 @@
+import type { StormDoorCatalogItem } from "./storm-door-types"
+
 export type DoorCategory = "entry" | "patio" | "garden" | "storm" | "custom"
 
 export type DoorHardwareType =
@@ -102,6 +104,7 @@ export interface IDoorSettingsData {
   upcharges: DoorUpchargeConfig[]
   formula: DoorFormulaSettings
   logistics: DoorLogisticsSettings
+  stormDoors?: StormDoorCatalogItem[]
 }
 
 export interface DoorCalculationParams {

@@ -8,6 +8,8 @@ import {
   DEFAULT_DOOR_FORMULA,
   DEFAULT_DOOR_LOGISTICS,
 } from "@/lib/doors/constants"
+import { YORK_STORM_DOORS } from "@/lib/doors/storm-door-catalog"
+import { StormDoorCatalogItem } from "@/lib/doors/storm-door-types"
 import {
   DoorPreset,
   DoorUpchargeConfig,
@@ -25,11 +27,13 @@ export function useAdminDoors() {
   const [logistics, setLogistics] = useState<DoorLogisticsSettings>(
     DEFAULT_DOOR_LOGISTICS
   )
+  const [stormDoors, setStormDoors] =
+    useState<StormDoorCatalogItem[]>(YORK_STORM_DOORS)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<
-    "presets" | "upcharges" | "formula" | "logistics"
+    "presets" | "upcharges" | "formula" | "logistics" | "stormDoors"
   >("presets")
 
   const fetchDoorSettings = async () => {
@@ -45,6 +49,8 @@ export function useAdminDoors() {
         setUpcharges(data.upcharges)
       if (data.formula) setFormula(data.formula)
       if (data.logistics) setLogistics(data.logistics)
+      if (Array.isArray(data.stormDoors) && data.stormDoors.length > 0)
+        setStormDoors(data.stormDoors)
     } catch (err) {
       console.error("Failed to load door settings:", err)
       toast.error("Failed to load door settings from database")
@@ -63,7 +69,7 @@ export function useAdminDoors() {
       const res = await fetch("/api/doors/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ presets, upcharges, formula, logistics }),
+        body: JSON.stringify({ presets, upcharges, formula, logistics, stormDoors }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to save settings")
@@ -75,6 +81,8 @@ export function useAdminDoors() {
           setUpcharges(data.settings.upcharges)
         if (data.settings.formula) setFormula(data.settings.formula)
         if (data.settings.logistics) setLogistics(data.settings.logistics)
+        if (Array.isArray(data.settings.stormDoors))
+          setStormDoors(data.settings.stormDoors)
       }
 
       if (typeof window !== "undefined") {
@@ -175,6 +183,18 @@ export function useAdminDoors() {
     setUpcharges((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleUpdateStormDoor = (
+    index: number,
+    field: keyof StormDoorCatalogItem,
+    value: any
+  ) => {
+    setStormDoors((prev) => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }
+
   return {
     presets,
     setPresets,
@@ -184,6 +204,9 @@ export function useAdminDoors() {
     setFormula,
     logistics,
     setLogistics,
+    stormDoors,
+    setStormDoors,
+    handleUpdateStormDoor,
     loading,
     saving,
     activeTab,

@@ -158,36 +158,43 @@ export function StormDoorGraphic({
 
       {style === "tri_lite" && (
         <g>
-          {/* Pane 1 */}
+          {/* Left Vertical Pane */}
           <rect
             x="10"
             y="10"
-            width="44"
-            height="28"
+            width="10"
+            height="82"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Pane 2 */}
+          {/* Center Vertical Section (Wider, divided into top & bottom horizontal panes) */}
           <rect
-            x="10"
-            y="40"
-            width="44"
-            height="28"
+            x="22"
+            y="10"
+            width="20"
+            height="40"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Pane 3 */}
           <rect
-            x="10"
-            y="70"
-            width="44"
-            height="28"
+            x="22"
+            y="52"
+            width="20"
+            height="40"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Small Kick Plate */}
+          {/* Right Vertical Pane */}
+          <rect
+            x="44"
+            y="10"
+            width="10"
+            height="82"
+            className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
+          />
+          {/* Bottom Kick Plate */}
           <rect
             x="10"
-            y="100"
+            y="94"
             width="44"
-            height="10"
+            height="16"
             className="fill-muted stroke-border"
           />
         </g>

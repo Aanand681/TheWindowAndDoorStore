@@ -120,13 +120,25 @@ export const YORK_STORM_DOORS: StormDoorCatalogItem[] = [
     availableColors: COLORS_2_INCH,
   },
 
-  // 9. Project Push Button 1-1/4"
+  // 9. 1-1/4" Self-Storing (Push Button)
   {
-    id: "project_self_storing_1_1_4", style: "project_self_storing", name: "1-1/4\" Self-Storing (Push Button)", profile: '1-1/4"',
+    id: "project_self_storing_1_1_4", style: "project_self_storing", name: "1 1/4\" Self Storing", profile: '1-1/4"',
     standardPrice: 589.0, description: "Economical push button self-storing door for project work.",
     availableColors: COLORS_PROJECT,
   },
 ]
+
+export const STYLE_STARTING_PRICES: Record<StormDoorStyle, number> = {
+  one_lite: 620.0,
+  full_view: 721.0,
+  self_storing: 665.0,
+  hi_view: 686.0,
+  extended_view: 756.0,
+  tri_lite: 737.0,
+  true_view_half: 894.0,
+  true_view_three_quarter: 894.0,
+  project_self_storing: 559.0,
+}
 
 export const YORK_STORM_ADDONS: StormDoorAddonOption[] = [
   {
