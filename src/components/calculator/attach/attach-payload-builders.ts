@@ -200,6 +200,7 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
       crewHours: "",
       crewSize: "2",
       hstRate: rawData.hstRate ?? 13,
+      globalUpcharges: rawData.globalUpcharges || [],
     })
 
   if (isSUSupply) {
@@ -231,6 +232,7 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     isInstallation: !isSUSupply && Boolean(rawData.isInstallation),
     sealedUnitMode: rawData.sealedUnitMode,
     hstRate: rawData.hstRate ?? 13,
+    globalUpcharges: rawData.globalUpcharges || calculatedTotals.globalUpcharges || [],
   }
 }
 

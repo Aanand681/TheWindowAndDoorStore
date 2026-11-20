@@ -122,13 +122,16 @@ function getSealedUnitLabourItems(
 ): { label: string; amount: number }[] {
   if (!hasSealedUnits || !effectiveSUTotals) return []
   const items: { label: string; amount: number }[] = []
-  const suLab = Math.round(
-    Number(
-      effectiveSUTotals.serviceLabourTotal ??
-        effectiveSUTotals.unitLabourSum ??
-        0
-    ) * 100
-  )
+  const rawSuLab = isAttachedSUService
+    ? Number(effectiveSUTotals.serviceLabourTotal || 0)
+    : Number(
+        effectiveSUTotals.unitLabourSum ||
+          effectiveSUTotals.doorPureLabourTotal ||
+          effectiveSUTotals.pureLabourTotal ||
+          effectiveSUTotals.combinedLabourTotal ||
+          0
+      )
+  const suLab = Math.round(rawSuLab * 100)
   if (suLab > 0) {
     const label = isAttachedSUService
       ? "Sealed unit service labour"

@@ -140,7 +140,7 @@ export function AttachedQuoteBadges({
               restoreAttachedQuoteDraft("sealed_unit", attachedSealedUnit)
               if (onRemoveAttachedSealedUnit) onRemoveAttachedSealedUnit()
               toast.info(
-                `Detached Sealed Unit #${attachedSealedUnit.quoteNumber}. Restored to Saved Quotes.`
+                `Detached SU #${attachedSealedUnit.quoteNumber}. Restored to Saved Quotes.`
               )
             }}
           />

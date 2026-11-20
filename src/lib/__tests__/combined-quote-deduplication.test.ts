@@ -278,7 +278,8 @@ describe("Combined Quote Travel & Setup Deduplication and Supply/Install Modes",
       hasDoors: true, effectiveDoors: [{}],
       effectiveDoorTotals: { unitLabourTotal: 180 },
       doorUpcharges: [{ label: "Cut brickmould", total: 45 }],
-      hasSealedUnits: true, effectiveSUTotals: { unitLabourSum: 150 },
+      hasSealedUnits: true,
+      effectiveSUTotals: { serviceLabourTotal: 0, unitLabourSum: 150 },
       suUpcharges: [{ label: "Extra high lift", total: 60 }],
     })
     expect(items).toEqual([

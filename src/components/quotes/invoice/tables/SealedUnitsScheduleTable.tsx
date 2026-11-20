@@ -97,9 +97,7 @@ export function SealedUnitsScheduleTable({
           >
             {isService
               ? suSummarySentence
-              : isInstallation
-                ? "Sealed Units & Installation"
-                : "Supply Only Sealed Units"}
+              : "Sealed Unit Specifications"}
           </span>
           {!isSUHost && attachedSealedUnit?.quoteNumber && (
             <span
@@ -171,102 +169,6 @@ export function SealedUnitsScheduleTable({
           ))}
         </tbody>
       </table>
-
-      {/* Sealed Unit Jobsite Labour & Add-ons */}
-      {(() => {
-        const suUpcharges = (
-          Array.isArray(effectiveSUTotals?.globalUpcharges) &&
-          effectiveSUTotals.globalUpcharges.length > 0
-            ? effectiveSUTotals.globalUpcharges
-            : Array.isArray(attachedSealedUnit?.globalUpcharges)
-              ? attachedSealedUnit.globalUpcharges
-              : []
-        ).filter(
-          (u: any) =>
-            Math.max(
-              0,
-              parseFloat(String(u.price || u.rate || u.total || 0)) || 0
-            ) > 0
-        )
-
-        if (suUpcharges.length === 0) return null
-
-        return (
-          <div className="mt-2 overflow-hidden rounded border border-[#cbd5e1]">
-            <div
-              className="flex items-center justify-between bg-[#f1f5f9] px-2 py-1 font-bold tracking-wider text-[#0f172a] uppercase"
-              style={{ fontSize: `${microFs}px` }}
-            >
-              <span>Sealed Unit Jobsite Labour &amp; Add-ons</span>
-              <span className="font-normal text-[#64748b]">
-                {suUpcharges.length} item
-                {suUpcharges.length > 1 ? "s" : ""}
-              </span>
-            </div>
-            <table
-              className="w-full border-collapse"
-              style={{ fontSize: `${bodyFs}px` }}
-            >
-              <thead>
-                <tr
-                  className="border-b border-[#cbd5e1] bg-[#f8fafc] text-[#0f172a]"
-                  style={{ fontSize: `${thFs}px` }}
-                >
-                  <th className="w-8 px-1.5 py-1 text-left font-bold">#</th>
-                  <th className="px-1.5 py-1 text-left font-bold">
-                    Service Description
-                  </th>
-                  <th className="w-24 px-1.5 py-1 text-right font-mono font-bold">
-                    Amount
-                  </th>
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: `${bodyFs}px` }}>
-                {suUpcharges.map((u: any, uIdx: number) => {
-                  const amt = Math.max(
-                    0,
-                    parseFloat(String(u.price || u.rate || u.total || 0)) || 0
-                  )
-                  return (
-                    <tr
-                      key={u.id || u.upchargeId || uIdx}
-                      className="border-b border-[#cbd5e1] bg-white"
-                    >
-                      <td
-                        style={{
-                          paddingTop: `${rowPy}px`,
-                          paddingBottom: `${rowPy}px`,
-                        }}
-                        className="px-1.5 font-semibold text-[#334155]"
-                      >
-                        {uIdx + 1}
-                      </td>
-                      <td
-                        style={{
-                          paddingTop: `${rowPy}px`,
-                          paddingBottom: `${rowPy}px`,
-                        }}
-                        className="px-1.5 font-bold text-[#0f172a]"
-                      >
-                        {u.label || "Add-on Labour"}
-                      </td>
-                      <td
-                        style={{
-                          paddingTop: `${rowPy}px`,
-                          paddingBottom: `${rowPy}px`,
-                        }}
-                        className="px-1.5 text-right font-mono font-bold text-[#0f172a]"
-                      >
-                        ${amt.toFixed(2)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )
-      })()}
     </div>
   )
 }

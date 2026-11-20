@@ -80,7 +80,7 @@ export function AttachedQuotesPills({
           <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-card/80 px-2.5 py-1 shadow-xs">
             <Layers className="h-3.5 w-3.5 text-blue-500" />
             <span className="font-bold text-emerald-700 dark:text-emerald-400">
-              Sealed Unit #{attachedSealedUnit.quoteNumber}
+              SU #{attachedSealedUnit.quoteNumber}
             </span>
             <span className="text-[11px] text-muted-foreground">
               ( $

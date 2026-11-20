@@ -29,8 +29,8 @@ const TYPE_CONFIG = {
       "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
   },
   sealed_unit: {
-    label: "Sealed Unit",
-    editLabel: "Edit in Sealed Units",
+    label: "SU",
+    editLabel: "Edit SU",
     icon: Layers,
     badgeClasses:
       "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",

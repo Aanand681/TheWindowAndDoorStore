@@ -159,5 +159,7 @@ export interface CalculateSealedUnitTotalsParams {
   crewHours?: string | number
   crewSize?: "2" | "3"
   hstRate?: number
+  extraLabour?: string | number
+  globalUpcharges?: any[]
   labourSettings?: Partial<SealedUnitLabourSettings>
 }

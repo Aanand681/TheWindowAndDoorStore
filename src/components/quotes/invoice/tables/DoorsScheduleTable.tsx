@@ -11,7 +11,7 @@ export interface DoorsScheduleTableProps {
 export function DoorsScheduleTable({
   theme,
   calc,
-  globalUpcharges = [],
+  globalUpcharges: _globalUpcharges = [],
 }: DoorsScheduleTableProps) {
   const {
     hasDoors,
@@ -21,14 +21,8 @@ export function DoorsScheduleTable({
     h2Fs,
     microFs,
     bodyFs,
-    thFs,
     rowPy,
   } = calc
-
-  const effectiveDoorUpcharges =
-    globalUpcharges && globalUpcharges.length > 0
-      ? globalUpcharges
-      : attachedDoorQuote?.globalUpcharges || []
 
   if (!hasDoors || effectiveDoors.length === 0) return null
 
@@ -187,116 +181,6 @@ export function DoorsScheduleTable({
           })}
         </tbody>
       </table>
-
-      {/* Itemized Jobsite Labour & Special Site Services (if selected for doors) */}
-      {effectiveDoorUpcharges.length > 0 && (
-        <div className="mt-2 border-t border-[#cbd5e1] pt-2">
-          <div className="mb-1 flex items-center justify-between text-xs">
-            <span
-              style={{ fontSize: `${h2Fs}px` }}
-              className="font-bold tracking-wider text-[#0f172a] uppercase"
-            >
-              Jobsite Labour &amp; Special Site Services
-            </span>
-            <span
-              style={{ fontSize: `${microFs}px` }}
-              className="font-medium text-[#64748b]"
-            >
-              {effectiveDoorUpcharges.length} service
-              {effectiveDoorUpcharges.length > 1 ? "s" : ""}
-            </span>
-          </div>
-          <table
-            className="w-full border-collapse"
-            style={{ fontSize: `${bodyFs}px` }}
-          >
-            <thead>
-              <tr
-                className={
-                  isModern
-                    ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                    : isExecutive
-                      ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                      : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"
-                }
-              >
-                <th className="w-[5%] px-1.5 py-1 text-left font-bold">#</th>
-                <th className="w-[55%] px-1.5 py-1 text-left font-bold">
-                  Service Description
-                </th>
-                <th className="w-[12%] px-1.5 py-1 text-center font-bold">
-                  Qty
-                </th>
-                <th className="w-[13%] px-1.5 py-1 text-right font-mono font-bold">
-                  Rate
-                </th>
-                <th className="w-[15%] px-1.5 py-1 text-right font-mono font-bold">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody style={{ fontSize: `${bodyFs}px` }}>
-              {effectiveDoorUpcharges.map((u: any, uIdx: number) => {
-                const qty = Number(u.qty) || 1
-                const rate = Number(u.rate) || 0
-                const total = Number(u.total ?? rate * qty)
-                return (
-                  <tr
-                    key={u.upchargeId || u.id || uIdx}
-                    className="border-b border-[#cbd5e1] bg-white"
-                  >
-                    <td
-                      style={{
-                        paddingTop: `${rowPy}px`,
-                        paddingBottom: `${rowPy}px`,
-                      }}
-                      className="px-1.5 font-semibold text-[#334155]"
-                    >
-                      {uIdx + 1}
-                    </td>
-                    <td
-                      style={{
-                        paddingTop: `${rowPy}px`,
-                        paddingBottom: `${rowPy}px`,
-                      }}
-                      className="px-1.5 font-bold text-[#0f172a]"
-                    >
-                      {u.label}
-                    </td>
-                    <td
-                      style={{
-                        paddingTop: `${rowPy}px`,
-                        paddingBottom: `${rowPy}px`,
-                      }}
-                      className="px-1.5 text-center font-bold text-[#0f172a]"
-                    >
-                      {qty}
-                    </td>
-                    <td
-                      style={{
-                        paddingTop: `${rowPy}px`,
-                        paddingBottom: `${rowPy}px`,
-                      }}
-                      className="px-1.5 text-right font-mono text-[#334155]"
-                    >
-                      {formatMoney(Math.round(rate * 100))}
-                    </td>
-                    <td
-                      style={{
-                        paddingTop: `${rowPy}px`,
-                        paddingBottom: `${rowPy}px`,
-                      }}
-                      className="px-1.5 text-right font-mono font-bold text-[#0f172a]"
-                    >
-                      {formatMoney(Math.round(total * 100))}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   )
 }
