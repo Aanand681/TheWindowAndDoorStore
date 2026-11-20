@@ -1,10 +1,6 @@
 "use client"
 
-import { useAttachedQuotesAutoSync } from "./useAttachedQuotesAutoSync"
-import {
-  buildDoorAttachPayload,
-  buildSealedUnitAttachPayload,
-} from "@/components/calculator/attach/attach-payload-builders"
+import { useUniversalAttachedSync } from "@/hooks/quotes/useUniversalAttachedSync"
 
 export interface UseWindowAttachedSyncProps {
   attachedDoorQuote: any | null
@@ -14,10 +10,6 @@ export interface UseWindowAttachedSyncProps {
   enabled?: boolean
 }
 
-/**
- * Automatically syncs child Door and Sealed Unit attached quotes in the
- * Window Calculator whenever those drafts are updated in another tab/calculator.
- */
 export function useWindowAttachedSync({
   attachedDoorQuote,
   setAttachedDoorQuote,
@@ -25,23 +17,12 @@ export function useWindowAttachedSync({
   setAttachedSealedUnit,
   enabled = true,
 }: UseWindowAttachedSyncProps) {
-  useAttachedQuotesAutoSync(
-    [
-      {
-        type: "door",
-        attachedQuote: attachedDoorQuote,
-        setAttachedQuote: setAttachedDoorQuote,
-        typeLabel: "Door",
-        buildPayload: buildDoorAttachPayload,
-      },
-      {
-        type: "sealed_unit",
-        attachedQuote: attachedSealedUnit,
-        setAttachedQuote: setAttachedSealedUnit,
-        typeLabel: "Sealed Unit",
-        buildPayload: buildSealedUnitAttachPayload,
-      },
-    ],
-    { enabled }
-  )
+  useUniversalAttachedSync({
+    hostType: "window",
+    attachedDoorQuote,
+    setAttachedDoorQuote,
+    attachedSealedUnit,
+    setAttachedSealedUnit,
+    enabled,
+  })
 }
