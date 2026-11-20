@@ -2,10 +2,9 @@
 
 import React from "react"
 import { Wrench, DollarSign, ChevronDown, ChevronUp } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 import { SealedUnitLabourSettings } from "@/lib/sealed-units-logic"
 import { SealedUnitTravelCalculator } from "./SealedUnitTravelCalculator"
+import { SealedUnitAddOnsSection, SealedUnitUpchargeItem } from "./SealedUnitAddOnsSection"
 import { SharedRegionOption } from "@/hooks/shared/useSharedRegions"
 
 export type SealedUnitMode = "installation" | "supply_only" | "service_only"
@@ -20,9 +19,7 @@ export interface SealedUnitLabourTravelCardProps {
   selectedRegionId?: string
   onSelectRegion?: (regionId: string) => void
   travelFeeType: "none" | "local_std" | "far_std" | "far_small" | "custom"
-  setTravelFeeType: (
-    val: "none" | "local_std" | "far_std" | "far_small" | "custom"
-  ) => void
+  setTravelFeeType: (val: "none" | "local_std" | "far_std" | "far_small" | "custom") => void
   customTravelFee: string
   setCustomTravelFee: (val: string) => void
   showOutTownTravel: boolean
@@ -35,6 +32,8 @@ export interface SealedUnitLabourTravelCardProps {
   setCrewSize: (val: "2" | "3") => void
   extraLabour?: string
   setExtraLabour?: (val: string) => void
+  globalUpcharges?: SealedUnitUpchargeItem[]
+  setGlobalUpcharges?: (items: SealedUnitUpchargeItem[]) => void
   serviceSqftInput?: string
   setServiceSqftInput?: (val: string) => void
   serviceLabourRateInput?: string
@@ -66,14 +65,8 @@ export interface SealedUnitLabourTravelCardProps {
 }
 
 export function SealedUnitLabourTravelCard({
-  mode = "installation",
-  setMode,
-  isInstallation,
-  setIsInstallation: _setIsInstallation,
-  labour,
-  regions = [],
-  selectedRegionId = "",
-  onSelectRegion = () => {},
+  mode = "installation", setMode, isInstallation, setIsInstallation: _setIsInstallation,
+  labour, regions = [], selectedRegionId = "", onSelectRegion = () => {},
   travelFeeType,
   setTravelFeeType,
   customTravelFee,
@@ -86,8 +79,10 @@ export function SealedUnitLabourTravelCard({
   setCrewHours,
   crewSize,
   setCrewSize,
-  extraLabour = "",
-  setExtraLabour,
+  extraLabour: _extraLabour = "",
+  setExtraLabour: _setExtraLabour,
+  globalUpcharges = [],
+  setGlobalUpcharges,
   totals,
   isReadOnly = false,
 }: SealedUnitLabourTravelCardProps) {
@@ -130,56 +125,12 @@ export function SealedUnitLabourTravelCard({
         <fieldset disabled={isReadOnly} className="space-y-3 border-0 p-0 m-0">
         {currentMode === "installation" ? (
           <>
-            {/* Installation Labour Info Bar */}
-            <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/20 p-2.5">
-              <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-foreground">
-                  Installation Labour &amp; Travel
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Base unit labour (${totals.unitLabourSum.toFixed(2)}) + travel
-                  setup (${totals.totalTravelAndSetup.toFixed(2)})
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="font-mono text-xs font-bold text-foreground">
-                  ${totals.combinedLabourTotal.toFixed(2)}
-                </span>
-                <span className="block text-[10px] text-muted-foreground">
-                  Total Labour
-                </span>
-              </div>
-            </div>
-
             {/* Add-ons / Extra Labour */}
-            <div className="flex flex-col justify-between gap-2 rounded-xl border border-border/70 bg-card/40 p-3 sm:flex-row sm:items-center">
-              <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-foreground">
-                  Add-ons / Extra Labour
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Additional labor for high ladder, scaffolding, specialty stops, or custom work.
-                </p>
-              </div>
-              <div className="w-full sm:w-36 shrink-0">
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
-                    $
-                  </span>
-                  <Input
-                    type="text"
-                    value={extraLabour}
-                    disabled={isReadOnly}
-                    onKeyDown={blockNegativeKey}
-                    onChange={(e) =>
-                      setExtraLabour?.(sanitizeNonNegativeNumber(e.target.value))
-                    }
-                    placeholder="0.00"
-                    className="h-8 pl-6 text-right font-mono text-xs font-bold"
-                  />
-                </div>
-              </div>
-            </div>
+            <SealedUnitAddOnsSection
+              upcharges={globalUpcharges}
+              onUpdateUpcharges={setGlobalUpcharges || (() => {})}
+              isReadOnly={isReadOnly}
+            />
 
             {/* Travel & Out-of-Town Calculator */}
             <SealedUnitTravelCalculator
@@ -293,34 +244,11 @@ export function SealedUnitLabourTravelCard({
         ) : currentMode === "service_only" ? (
           <div className="space-y-3">
             {/* Add-ons / Extra Labour (Service) */}
-            <div className="flex flex-col justify-between gap-2 rounded-xl border border-border/70 bg-card/40 p-3 sm:flex-row sm:items-center">
-              <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-foreground">
-                  Add-ons / Extra Labour
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Additional labor for high ladder, scaffolding, specialty stops, or custom work.
-                </p>
-              </div>
-              <div className="w-full sm:w-36 shrink-0">
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
-                    $
-                  </span>
-                  <Input
-                    type="text"
-                    value={extraLabour}
-                    disabled={isReadOnly}
-                    onKeyDown={blockNegativeKey}
-                    onChange={(e) =>
-                      setExtraLabour?.(sanitizeNonNegativeNumber(e.target.value))
-                    }
-                    placeholder="0.00"
-                    className="h-8 pl-6 text-right font-mono text-xs font-bold"
-                  />
-                </div>
-              </div>
-            </div>
+            <SealedUnitAddOnsSection
+              upcharges={globalUpcharges}
+              onUpdateUpcharges={setGlobalUpcharges || (() => {})}
+              isReadOnly={isReadOnly}
+            />
 
             {/* Travel Calculator for Service Work */}
             <SealedUnitTravelCalculator

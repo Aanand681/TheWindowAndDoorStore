@@ -46,6 +46,7 @@ export interface SealedUnitFormInputs {
   crewHours: string
   crewSize: "2" | "3"
   extraLabour?: string
+  globalUpcharges?: any[]
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -68,6 +69,7 @@ export interface SealedUnitFormSetters {
   setCrewHours: (val: string) => void
   setCrewSize: (val: "2" | "3") => void
   setExtraLabour?: (val: string) => void
+  setGlobalUpcharges?: (val: any[]) => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
 }
@@ -161,6 +163,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       crewHours,
       crewSize,
       extraLabour: extraLabour || "",
+      globalUpcharges: (formInputs as any)?.globalUpcharges || [],
       hstRate,
       selectedRegionId: selectedRegionId || "",
       regionName: regionName || "",

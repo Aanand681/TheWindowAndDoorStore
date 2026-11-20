@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useSharedRegions } from "@/hooks/shared/useSharedRegions"
+import { SealedUnitUpcharge } from "@/components/sealed-units/invoice/types"
 
 export function useSealedUnitsTravel() {
   const {
@@ -30,7 +31,14 @@ export function useSealedUnitsTravel() {
   const [crewHours, setCrewHours] = useState<string>("")
   const [crewSize, setCrewSize] = useState<"2" | "3">("3")
   const [extraLabour, setExtraLabour] = useState<string>("")
+  const [globalUpcharges, setGlobalUpchargesState] = useState<SealedUnitUpcharge[]>([])
   const [hstRate, setHstRate] = useState<number>(13)
+
+  const setGlobalUpcharges = useCallback((items: SealedUnitUpcharge[]) => {
+    setGlobalUpchargesState(items)
+    const sum = items.reduce((acc, item) => acc + (Math.max(0, parseFloat(String(item.price)) || 0)), 0)
+    setExtraLabour(sum > 0 ? sum.toFixed(2) : "")
+  }, [])
 
   const handleSetSealedUnitMode = (
     newMode: "installation" | "supply_only" | "service_only"
@@ -59,6 +67,7 @@ export function useSealedUnitsTravel() {
     crewHours,
     crewSize,
     extraLabour,
+    globalUpcharges,
     hstRate,
     selectedRegionId,
   }
@@ -76,6 +85,7 @@ export function useSealedUnitsTravel() {
     setCrewHours,
     setCrewSize,
     setExtraLabour,
+    setGlobalUpcharges,
     setHstRate,
     setSelectedRegionId,
   }

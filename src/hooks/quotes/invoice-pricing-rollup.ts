@@ -112,18 +112,26 @@ export function calculateInvoicePricingRollup({
   const suMiscCents = hasSealedUnits && !suIsSupply
     ? Math.round((effectiveSUTotals.miscTotal || 0) * 100)
     : 0
+  const suExtraLabour = Number(
+    effectiveSUTotals.extraLabour ??
+      (Array.isArray(effectiveSUTotals.globalUpcharges)
+        ? effectiveSUTotals.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
+        : 0)
+  )
   const suLabourCents = hasSealedUnits && !suIsSupply
     ? isSUHost
       ? Math.round((effectiveSUTotals.combinedLabourTotal || 0) * 100)
       : Math.round(
-          (effectiveSUTotals.serviceLabourTotal ??
-            effectiveSUTotals.unitLabourSum ??
-            Math.max(
-              0,
-              (effectiveSUTotals.combinedLabourTotal || 0) -
-                (effectiveSUTotals.baseSetupFee || 0) -
-                (effectiveSUTotals.totalTravelAndSetup || 0)
-            )) * 100
+          (effectiveSUTotals.serviceLabourTotal !== undefined
+            ? Number(effectiveSUTotals.serviceLabourTotal) + suExtraLabour
+            : effectiveSUTotals.unitLabourSum !== undefined
+              ? Number(effectiveSUTotals.unitLabourSum) + suExtraLabour
+              : Math.max(
+                  0,
+                  (effectiveSUTotals.combinedLabourTotal || 0) -
+                    (effectiveSUTotals.baseSetupFee || 0) -
+                    (effectiveSUTotals.totalTravelAndSetup || 0)
+                )) * 100
         )
     : 0
 

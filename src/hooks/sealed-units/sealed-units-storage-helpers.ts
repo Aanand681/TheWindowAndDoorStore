@@ -1,5 +1,5 @@
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
-import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import { SealedUnitTotals, SealedUnitUpcharge } from "@/components/sealed-units/invoice/types"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
@@ -23,6 +23,7 @@ export interface SealedUnitSnapshotParams {
   crewHours: string
   crewSize: "2" | "3"
   extraLabour?: string
+  globalUpcharges?: SealedUnitUpcharge[]
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -49,6 +50,7 @@ export function serializeSealedUnitSnapshot(
     crewHours: params.crewHours,
     crewSize: params.crewSize,
     extraLabour: params.extraLabour || "",
+    globalUpcharges: params.globalUpcharges || [],
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",
@@ -78,6 +80,7 @@ export interface WorkspaceSetters {
   setCrewHours: (val: string) => void
   setCrewSize: (val: "2" | "3") => void
   setExtraLabour?: (val: string) => void
+  setGlobalUpcharges?: (val: SealedUnitUpcharge[]) => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
   regions?: any[]
@@ -110,8 +113,16 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
   if (d.travelKm !== undefined) setters.setTravelKm(d.travelKm)
   if (d.crewHours !== undefined) setters.setCrewHours(d.crewHours)
   if (d.crewSize !== undefined) setters.setCrewSize(d.crewSize)
-  if (d.extraLabour !== undefined && setters.setExtraLabour)
+  if (Array.isArray(d.globalUpcharges) && setters.setGlobalUpcharges) {
+    setters.setGlobalUpcharges(d.globalUpcharges)
+  } else if (d.extraLabour !== undefined && setters.setExtraLabour) {
     setters.setExtraLabour(String(d.extraLabour))
+    if (d.extraLabour && setters.setGlobalUpcharges) {
+      setters.setGlobalUpcharges([
+        { id: "addon_legacy", label: "Extra Labour", price: String(d.extraLabour) }
+      ])
+    }
+  }
   if (d.hstRate !== undefined) setters.setHstRate(d.hstRate)
   if (setters.setSelectedRegionId) {
     if (d.selectedRegionId) {
@@ -160,6 +171,7 @@ export function createDraftSavePayload(
     crewHours: params.crewHours,
     crewSize: params.crewSize,
     extraLabour: params.extraLabour || "",
+    globalUpcharges: params.globalUpcharges || [],
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",

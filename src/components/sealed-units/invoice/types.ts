@@ -5,6 +5,12 @@ import {
 
 export type SealedUnitTemplateType = "window_style" | "standard" | "production"
 
+export interface SealedUnitUpcharge {
+  id: string
+  label: string
+  price: string | number
+}
+
 export interface SealedUnitTotals {
   totalUnits: number
   totalSqft: number
@@ -30,6 +36,7 @@ export interface SealedUnitTotals {
   isInstallation?: boolean
   isServiceOnly?: boolean
   extraLabour?: number
+  globalUpcharges?: SealedUnitUpcharge[]
 }
 
 export interface SealedUnitPrintInvoiceProps {
@@ -49,5 +56,6 @@ export interface SealedUnitPrintInvoiceProps {
   isInteractivePreview?: boolean
   attachedWindowQuote?: any | null
   attachedDoorQuote?: any | null
+  globalUpcharges?: SealedUnitUpcharge[]
   totals: SealedUnitTotals
 }

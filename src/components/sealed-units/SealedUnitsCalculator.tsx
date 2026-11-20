@@ -79,6 +79,7 @@ export function SealedUnitsCalculator(
       ...calc,
       isInstallation: travel.isInstallation,
       isServiceOnly: travel.isServiceOnly,
+      globalUpcharges: travel.globalUpcharges,
     }
   }, [
     lineItems,
@@ -130,6 +131,7 @@ export function SealedUnitsCalculator(
       setCrewHours: travel.setCrewHours,
       setCrewSize: travel.setCrewSize,
       setExtraLabour: travel.setExtraLabour,
+      setGlobalUpcharges: travel.setGlobalUpcharges,
       setHstRate: travel.setHstRate,
       setSelectedRegionId: travel.setSelectedRegionId,
       regions: travel.regions,
@@ -185,6 +187,7 @@ export function SealedUnitsCalculator(
     crewHours: travel.crewHours,
     crewSize: travel.crewSize,
     extraLabour: travel.extraLabour,
+    globalUpcharges: travel.globalUpcharges,
     hstRate: travel.hstRate,
     attachedWindowQuote: drafts.attachedWindowQuote,
     attachedDoorQuote: drafts.attachedDoorQuote,
@@ -215,6 +218,7 @@ export function SealedUnitsCalculator(
     crewHours: travel.crewHours,
     crewSize: travel.crewSize,
     extraLabour: travel.extraLabour,
+    globalUpcharges: travel.globalUpcharges,
   })
 
   const reviewWorkflowProps = {
@@ -395,6 +399,8 @@ export function SealedUnitsCalculator(
                 setCrewSize={travel.setCrewSize}
                 extraLabour={travel.extraLabour}
                 setExtraLabour={travel.setExtraLabour}
+                globalUpcharges={travel.globalUpcharges}
+                setGlobalUpcharges={travel.setGlobalUpcharges}
                 serviceSqftInput={travel.serviceSqftInput}
                 setServiceSqftInput={travel.setServiceSqftInput}
                 serviceLabourRateInput={travel.serviceLabourRateInput}

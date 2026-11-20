@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { MapPin, Fuel } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import {
@@ -14,6 +14,7 @@ import {
 import { SealedUnitLabourSettings } from "@/lib/sealed-units-logic"
 import { SharedRegionOption } from "@/hooks/shared/useSharedRegions"
 import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
+import { SealedUnitMileageSection } from "./SealedUnitMileageSection"
 
 export interface SealedUnitTravelCalculatorProps {
   labour: SealedUnitLabourSettings
@@ -69,13 +70,13 @@ export function SealedUnitTravelCalculator({
       selectedRegion?.name.toLowerCase().includes("sioux")
   )
 
-  // Reactive auto-sync: Automatically enforce remote standard setup fee ($727.50) on initial render/quote load
+  // Reactive auto-sync: Automatically default to remote small setup fee ($363.50) for Sioux / Dryden on initial render/quote load
   React.useEffect(() => {
     if (
       isDrydenOrRemote &&
       (!travelFeeType || travelFeeType === "none" || (travelFeeType as string) === "local_std")
     ) {
-      setTravelFeeType("far_std")
+      setTravelFeeType("far_small")
     }
   }, [isDrydenOrRemote, travelFeeType, setTravelFeeType])
 
@@ -115,20 +116,12 @@ export function SealedUnitTravelCalculator({
       reg.name.toLowerCase().includes("dryden") ||
       reg.name.toLowerCase().includes("sioux")
     ) {
-      setTravelFeeType("far_std")
+      setTravelFeeType("far_small")
     } else {
       setTravelFeeType("local_std")
       setCustomTravelFee("")
     }
   }
-
-  const kmVal = parseFloat(travelKm) || 0
-  const hrsVal = parseFloat(crewHours) || 0
-  const vehicleRate = labour.vehicleRatePerKm || 0.98
-  const crewHourlyRate =
-    crewSize === "2"
-      ? labour.crewHourly2Men || 150
-      : labour.crewHourly3Men || 200
 
   const feeTypeLabel =
     travelFeeType === "far_std"
@@ -260,98 +253,17 @@ export function SealedUnitTravelCalculator({
       </div>
 
       {/* 2. Out-of-Town Mileage & Crew Transit Hours */}
-      <div className="space-y-3 rounded-xl border border-border/70 bg-card/40 p-3.5">
-        <div className="flex items-center justify-between border-b border-border/50 pb-2">
-          <div className="flex items-center gap-2">
-            <Fuel className="h-4 w-4 text-primary" />
-            <Label className="text-xs font-bold text-foreground">
-              Out-of-Town Mileage &amp; Transit Hours
-            </Label>
-          </div>
-          {(showOutTownTravel || kmVal > 0 || hrsVal > 0) && (
-            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-              Active
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-muted-foreground">
-              Roundtrip (KM)
-            </Label>
-            <Input
-              type="number"
-              step="any"
-              min="0"
-              value={travelKm}
-              onKeyDown={blockNegativeKey}
-              onChange={(e) => handleKmChange(e.target.value)}
-              placeholder="0"
-              className="h-9 bg-background font-mono text-xs"
-            />
-            <span className="block text-[10px] text-muted-foreground">
-              @ ${vehicleRate.toFixed(2)}/km = $
-              {(kmVal * vehicleRate).toFixed(2)}
-            </span>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-muted-foreground">
-              Transit Hours
-            </Label>
-            <Input
-              type="number"
-              step="0.5"
-              min="0"
-              value={crewHours}
-              onKeyDown={blockNegativeKey}
-              onChange={(e) => handleHoursChange(e.target.value)}
-              placeholder="0.0"
-              className="h-9 bg-background font-mono text-xs"
-            />
-            <span className="block text-[10px] text-muted-foreground">
-              @ ${crewHourlyRate}/hr = ${(hrsVal * crewHourlyRate).toFixed(2)}
-            </span>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold text-muted-foreground">
-              Crew Configuration
-            </Label>
-            <Select
-              value={crewSize}
-              onValueChange={(val: any) => {
-                if (val) setCrewSize(val)
-              }}
-            >
-              <SelectTrigger className="h-9 w-full bg-background text-xs font-medium">
-                <SelectValue placeholder="Crew Size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3">
-                  3-Man Crew (${labour.crewHourly3Men || 200}/hr) [Standard]
-                </SelectItem>
-                <SelectItem value="2">
-                  2-Man Crew (${labour.crewHourly2Men || 150}/hr)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <span className="block text-[10px] text-muted-foreground">
-              Hourly transit billing per crew size
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-xs">
-          <span className="font-semibold text-muted-foreground">
-            Total Travel &amp; Setup:
-          </span>
-          <span className="font-mono text-sm font-bold text-foreground">
-            ${totalTravelAndSetup.toFixed(2)}
-          </span>
-        </div>
-      </div>
+      <SealedUnitMileageSection
+        showOutTownTravel={showOutTownTravel}
+        travelKm={travelKm}
+        crewHours={crewHours}
+        crewSize={crewSize}
+        labour={labour}
+        totalTravelAndSetup={totalTravelAndSetup}
+        onKmChange={handleKmChange}
+        onHoursChange={handleHoursChange}
+        onCrewSizeChange={(val) => setCrewSize(val)}
+      />
     </div>
   )
 }

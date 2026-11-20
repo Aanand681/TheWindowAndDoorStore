@@ -17,6 +17,7 @@ export interface SealedUnitCalculationParams {
   crewSize: "2" | "3"
   hstRate: number
   extraLabour?: string | number
+  globalUpcharges?: any[]
   labour: SealedUnitLabourSettings
 }
 
@@ -47,6 +48,7 @@ export interface SealedUnitTotalsResult {
   hstAmount: number
   grandTotal: number
   extraLabour: number
+  globalUpcharges?: any[]
   isInstallation: boolean
   isServiceOnly: boolean
 }
@@ -64,10 +66,12 @@ export function calculateSealedUnitTotals(
     travelKm, crewHours, crewSize, hstRate, extraLabour = "0", labour,
   } = params
 
-  const extraLabourAmount = Math.max(
-    0,
-    parseFloat(String(extraLabour || "0")) || 0
-  )
+  const upchargesSum = Array.isArray(params.globalUpcharges)
+    ? params.globalUpcharges.reduce((acc, u) => acc + Math.max(0, parseFloat(String(u.price || u.rate || u.total || 0)) || 0), 0)
+    : 0
+  const extraLabourAmount = upchargesSum > 0
+    ? upchargesSum
+    : Math.max(0, parseFloat(String(extraLabour || "0")) || 0)
 
   const isInstallation = sealedUnitMode === "installation"
   const isServiceOnly = sealedUnitMode === "service_only"
@@ -285,6 +289,7 @@ export function calculateSealedUnitTotals(
     hstAmount,
     grandTotal,
     extraLabour: extraLabourAmount,
+    globalUpcharges: params.globalUpcharges,
     isInstallation: Boolean(isInstallation),
     isServiceOnly: Boolean(isServiceOnly),
   }

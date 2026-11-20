@@ -95,6 +95,7 @@ export function useSealedUnitsReviewLoader(
           crewHours: q.crewHours,
           crewSize: q.crewSize,
           extraLabour: q.extraLabour || q.data?.extraLabour || "",
+          globalUpcharges: q.globalUpcharges || q.data?.globalUpcharges || [],
           hstRate: q.hstRate ?? q.taxTotals?.hstRate ?? 13,
           selectedRegionId: q.selectedRegionId,
           regionName: q.regionName,

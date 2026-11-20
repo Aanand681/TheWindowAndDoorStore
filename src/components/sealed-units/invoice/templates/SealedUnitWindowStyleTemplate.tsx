@@ -9,6 +9,7 @@ import { SealedUnitSummaryLedger } from "../SealedUnitSummaryLedger"
 import { SealedUnitPrintOfficeCard } from "../SealedUnitPrintOfficeCard"
 import { renderRichNotes } from "../SealedUnitRichNotes"
 import { SealedUnitInvoiceTable } from "../tables/SealedUnitInvoiceTable"
+import { SealedUnitInvoiceUpchargesTable } from "../tables/SealedUnitInvoiceUpchargesTable"
 
 interface SealedUnitWindowStyleTemplateProps {
   lineItems: SealedUnitLineItem[]
@@ -118,6 +119,11 @@ export function SealedUnitWindowStyleTemplate({
         isInstallation={isInstallation}
         labour={labour}
         variant="window_style"
+      />
+
+      {/* Jobsite Labour & Special Services Upcharges */}
+      <SealedUnitInvoiceUpchargesTable
+        globalUpcharges={totals.globalUpcharges}
       />
 
       {/* FULL-WIDTH QUOTATION SUMMARY CARD */}

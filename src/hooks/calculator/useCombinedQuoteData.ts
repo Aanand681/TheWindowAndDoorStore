@@ -76,15 +76,23 @@ export function useCombinedQuoteData({
       hasSU && !isAttachedSUService
         ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100)
         : 0
+    const suExtraLabour = Number(
+      suTotals.extraLabour ??
+        (Array.isArray(attachedSealedUnit?.globalUpcharges)
+          ? attachedSealedUnit.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
+          : 0)
+    )
     const rawPureSULab =
-      suTotals.serviceLabourTotal ??
-      suTotals.unitLabourSum ??
-      Math.max(
-        0,
-        (suTotals.combinedLabourTotal || 0) -
-          (suTotals.baseSetupFee || 0) -
-          (suTotals.totalTravelAndSetup || 0)
-      )
+      suTotals.serviceLabourTotal !== undefined
+        ? Number(suTotals.serviceLabourTotal) + suExtraLabour
+        : suTotals.unitLabourSum !== undefined
+          ? Number(suTotals.unitLabourSum) + suExtraLabour
+          : Math.max(
+              0,
+              (suTotals.combinedLabourTotal || 0) -
+                (suTotals.baseSetupFee || 0) -
+                (suTotals.totalTravelAndSetup || 0)
+            )
     const suLabourCents =
       hasSU && !suIsSupply ? Math.round(Number(rawPureSULab) * 100) : 0
     const suMiscCents =

@@ -27,6 +27,7 @@ export interface BuildSealedUnitsUpdatePayloadParams {
   crewHours: string
   crewSize: "2" | "3"
   extraLabour?: string
+  globalUpcharges?: any[]
   hstRate: number
   attachedWindowQuote: any
   attachedDoorQuote: any
@@ -57,6 +58,7 @@ export function buildSealedUnitsUpdatePayload(
     crewHours,
     crewSize,
     extraLabour,
+    globalUpcharges,
     hstRate,
     attachedWindowQuote,
     attachedDoorQuote,
@@ -99,6 +101,7 @@ export function buildSealedUnitsUpdatePayload(
     crewHours,
     crewSize,
     extraLabour,
+    globalUpcharges,
     hstRate,
     attachedWindowQuote,
     attachedDoorQuote,

@@ -210,17 +210,26 @@ export function SealedUnitSummaryLedger({
             </div>
           )}
 
-          {/* Add-ons / Extra Labour (itemized on PDF) */}
-          {Boolean((totals.extraLabour || 0) > 0) && (
+          {/* Add-ons / Extra Labour (itemized with labels on PDF) */}
+          {Array.isArray(totals.globalUpcharges) && totals.globalUpcharges.length > 0 ? (
+            totals.globalUpcharges
+              .filter((u) => Math.max(0, parseFloat(String(u.price || 0)) || 0) > 0)
+              .map((u, i) => (
+                <div key={u.id || i} className="flex items-baseline justify-between py-0.5">
+                  <span className="max-w-[200px] truncate font-sans">
+                    {u.label ? `Add-on: ${u.label}` : "Add-on Labour"}
+                  </span>
+                  <span className="font-semibold">
+                    +${(Math.max(0, parseFloat(String(u.price || 0)) || 0)).toFixed(2)}
+                  </span>
+                </div>
+              ))
+          ) : Boolean((totals.extraLabour || 0) > 0) ? (
             <div className="flex items-baseline justify-between py-0.5">
-              <span className="font-sans">
-                Add-ons / Extra Labour
-              </span>
-              <span className="font-semibold">
-                +${(totals.extraLabour || 0).toFixed(2)}
-              </span>
+              <span className="font-sans">Add-ons / Extra Labour</span>
+              <span className="font-semibold">+${(totals.extraLabour || 0).toFixed(2)}</span>
             </div>
-          )}
+          ) : null}
 
           {/* 3. Miscellaneous */}
           {(isInstallation || hasAnyAttached) && (
@@ -276,6 +285,25 @@ export function SealedUnitSummaryLedger({
             <span className="font-sans">Miscellaneous (Supplies)</span>
             <span className="font-semibold">+${combinedMisc.toFixed(2)}</span>
           </div>
+          {Array.isArray(totals.globalUpcharges) && totals.globalUpcharges.length > 0 ? (
+            totals.globalUpcharges
+              .filter((u) => Math.max(0, parseFloat(String(u.price || 0)) || 0) > 0)
+              .map((u, i) => (
+                <div key={u.id || i} className="flex items-baseline justify-between py-0.5">
+                  <span className="max-w-[200px] truncate font-sans">
+                    {u.label ? `Add-on: ${u.label}` : "Add-on Labour"}
+                  </span>
+                  <span className="font-semibold">
+                    +${(Math.max(0, parseFloat(String(u.price || 0)) || 0)).toFixed(2)}
+                  </span>
+                </div>
+              ))
+          ) : Boolean((totals.extraLabour || 0) > 0) ? (
+            <div className="flex items-baseline justify-between py-0.5">
+              <span className="font-sans">Add-ons / Extra Labour</span>
+              <span className="font-semibold">+${(totals.extraLabour || 0).toFixed(2)}</span>
+            </div>
+          ) : null}
         </>
       )}
 

@@ -347,6 +347,19 @@ describe("Sealed Units Calculation Engine", () => {
       expect(withExtra.subtotalPreTax).toBe(
         Math.round((withoutExtra.subtotalPreTax + 150) * 100) / 100
       )
+
+      const withUpcharges = calculateSealedUnitTotals({
+        ...baseParams,
+        globalUpcharges: [
+          { id: "u1", label: "High ladder work", price: "120.00" },
+          { id: "u2", label: "Specialty stops", price: "80.00" },
+        ],
+      })
+      expect(withUpcharges.extraLabour).toBe(200)
+      expect(withUpcharges.combinedLabourTotal).toBe(
+        Math.round((withoutExtra.combinedLabourTotal + 200) * 100) / 100
+      )
+      expect(withUpcharges.globalUpcharges).toHaveLength(2)
     })
   })
 
