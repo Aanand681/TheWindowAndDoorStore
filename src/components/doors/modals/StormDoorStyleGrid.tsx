@@ -7,6 +7,7 @@ import { StormDoorGraphic } from "../storm/StormDoorGraphics"
 
 export interface StormDoorStyleGridProps {
   style: StormDoorStyle
+  color?: string
   onSelectStyle: (st: StormDoorStyle) => void
 }
 
@@ -24,6 +25,7 @@ const STYLES_LIST: { id: StormDoorStyle; label: string }[] = [
 
 export function StormDoorStyleGrid({
   style,
+  color = "White",
   onSelectStyle,
 }: StormDoorStyleGridProps) {
   return (
@@ -47,7 +49,7 @@ export function StormDoorStyleGrid({
               }`}
             >
               <div className="h-16 w-10 py-1">
-                <StormDoorGraphic style={st.id} />
+                <StormDoorGraphic style={st.id} color={color} />
               </div>
               <span className="mt-1 text-[11px] font-bold line-clamp-1">
                 {st.label}

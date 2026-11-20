@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { StormDoorAddonOption } from "@/lib/doors/storm-door-types"
+import { AdminStormStylePicker } from "./AdminStormStylePicker"
 
 export interface AdminAddAddonModalProps {
   isOpen: boolean
@@ -20,7 +21,7 @@ export function AdminAddAddonModal({
 }: AdminAddAddonModalProps) {
   const [label, setLabel] = useState("")
   const [price, setPrice] = useState("")
-  const [applicableStyles, setApplicableStyles] = useState("")
+  const [applicableStyles, setApplicableStyles] = useState<string[] | undefined>(undefined)
   const [description, setDescription] = useState("")
 
   if (!isOpen) return null
@@ -30,15 +31,11 @@ export function AdminAddAddonModal({
     if (!label.trim()) return
 
     const id = `addon_${label.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${Date.now()}`
-    const styles = applicableStyles
-      ? applicableStyles.split(",").map((s) => s.trim()).filter(Boolean)
-      : undefined
-
     const addon: StormDoorAddonOption = {
       id,
       label: label.trim(),
       price: parseFloat(price) || 0,
-      applicableStyles: styles,
+      applicableStyles,
       description: description.trim(),
       active: true,
       sortOrder: 99,
@@ -50,7 +47,7 @@ export function AdminAddAddonModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="flex max-h-[90vh] w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between border-b border-border/50 p-4">
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-primary/10 p-1.5 text-primary">
@@ -87,11 +84,10 @@ export function AdminAddAddonModal({
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Applicable Styles (comma separated)</Label>
-            <Input
-              placeholder="e.g. one_lite, full_view (leave empty for all doors)"
-              value={applicableStyles}
-              onChange={(e) => setApplicableStyles(e.target.value)}
+            <Label className="text-xs">Applicable Door Models</Label>
+            <AdminStormStylePicker
+              selectedStyles={applicableStyles}
+              onChange={(styles) => setApplicableStyles(styles)}
             />
           </div>
 

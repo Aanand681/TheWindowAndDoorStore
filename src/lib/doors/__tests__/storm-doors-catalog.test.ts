@@ -4,6 +4,8 @@ import {
   YORK_STORM_ADDONS,
   computeStormDoorPrice,
   buildStormDoorDescription,
+  buildStormDoorOptionLabel,
+  buildStormDoorAddonOptionLabel,
   CUSTOM_PAINT_PRICE,
   CUSTOM_PAINT_DOUBLE_PRICE,
 } from "../storm-door-catalog"
@@ -42,7 +44,33 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       color: "White",
       selectedAddonIds: [],
     })
-    expect(desc).toBe('York Aluminum 2" Self-Storing - w/ Hidden Vent - White')
+    expect(desc).toBe("Self-Storing Storm Door with Hidden Vent - White")
+  })
+
+  it("formats option labels with Add at the end and no York Aluminum prefix", () => {
+    const item = YORK_STORM_DOORS.find(
+      (d) => d.style === "full_view" && d.profile === '2"'
+    )!
+    const optWithoutScreen = buildStormDoorOptionLabel(
+      item,
+      { ventType: "standard", swing: "outswing", selectedAddonIds: [] },
+      772.0
+    )
+    expect(optWithoutScreen).toBe("Full-View Storm Door Add: $772.00")
+
+    const optWithScreen = buildStormDoorOptionLabel(
+      item,
+      {
+        ventType: "standard",
+        swing: "outswing",
+        selectedAddonIds: ["screen_interchangeable"],
+      },
+      845.0
+    )
+    expect(optWithScreen).toBe("Full-View Storm Door with Interchangeable Screen Add: $845.00")
+
+    const addonOpt = buildStormDoorAddonOptionLabel("Interchangeable Screen Insert", 73.0)
+    expect(addonOpt).toBe("Interchangeable Screen Insert Add: $73.00")
   })
 
   it("calculates exact fixed price for Self-Storing 2-1/4\" with Hidden Vent ($844.00)", () => {
@@ -58,6 +86,14 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       selectedAddonIds: [],
     })
     expect(result.totalPrice).toBe(844.0)
+
+    const desc = buildStormDoorDescription(item, {
+      ventType: "hidden_vent",
+      swing: "outswing",
+      color: "Chocolate Brown",
+      selectedAddonIds: [],
+    })
+    expect(desc).toBe('2-1/4" Self-Storing Storm Door with Hidden Vent - Chocolate Brown')
   })
 
   it("calculates exact fixed price for Inswing Full-View ($1,056.64)", () => {
@@ -84,7 +120,6 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       isCustomPaint: true,
       selectedAddonIds: [],
     })
-    // 686 (base) + 1113 (paint) = 1799.00
     expect(singleRes.totalPrice).toBe(1799.0)
     expect(singleRes.addonsTotal).toBe(CUSTOM_PAINT_PRICE)
 
@@ -96,7 +131,6 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       isDoubleDoorCustomPaint: true,
       selectedAddonIds: [],
     })
-    // 686 (base) + 2184 (double paint) = 2870.00
     expect(doubleRes.totalPrice).toBe(2870.0)
     expect(doubleRes.addonsTotal).toBe(CUSTOM_PAINT_DOUBLE_PRICE)
   })
@@ -134,7 +168,6 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       color: "Black",
       selectedAddonIds: ["screen_interchangeable"],
     })
-    // 772 (base) + 73 (screen) = 845.00
     expect(res.totalPrice).toBe(845.0)
     expect(res.addonsTotal).toBe(73.0)
 
@@ -144,6 +177,6 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       color: "Black",
       selectedAddonIds: ["screen_interchangeable"],
     })
-    expect(desc).toContain("[Interchangeable Screen Insert]")
+    expect(desc).toBe("Full-View Storm Door with Interchangeable Screen - Black")
   })
 })

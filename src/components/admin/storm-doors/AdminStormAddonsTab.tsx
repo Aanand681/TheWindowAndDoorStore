@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Trash2, Sparkles, Plus } from "lucide-react"
 import { StormDoorAddonOption } from "@/lib/doors/storm-door-types"
+import { AdminStormStylePicker } from "./AdminStormStylePicker"
 
 export interface AdminStormAddonsTabProps {
   addons: StormDoorAddonOption[]
@@ -61,10 +62,10 @@ export function AdminStormAddonsTab({
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30 text-xs tracking-wider text-muted-foreground uppercase">
-                <th className="px-3 py-2.5">Add-on Label</th>
-                <th className="w-32 px-3 py-2.5">Price ($)</th>
-                <th className="px-3 py-2.5">Applicable Styles (comma separated)</th>
-                <th className="px-3 py-2.5">Description</th>
+                <th className="w-64 px-3 py-2.5">Add-on Label</th>
+                <th className="w-28 px-3 py-2.5">Price ($)</th>
+                <th className="px-3 py-2.5">Applicable Models (Click Badges to Toggle)</th>
+                <th className="w-48 px-3 py-2.5">Description</th>
                 <th className="w-16 px-3 py-2.5 text-center">Action</th>
               </tr>
             </thead>
@@ -91,18 +92,9 @@ export function AdminStormAddonsTab({
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <Input
-                      type="text"
-                      placeholder="e.g. one_lite, full_view (or leave empty for all)"
-                      value={(addon.applicableStyles || []).join(", ")}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        const styles = raw
-                          ? raw.split(",").map((s) => s.trim()).filter(Boolean)
-                          : undefined
-                        onUpdateAddon(idx, "applicableStyles", styles)
-                      }}
-                      className="h-8 font-mono text-xs text-muted-foreground"
+                    <AdminStormStylePicker
+                      selectedStyles={addon.applicableStyles}
+                      onChange={(styles) => onUpdateAddon(idx, "applicableStyles", styles)}
                     />
                   </td>
                   <td className="px-3 py-2">

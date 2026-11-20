@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Palette, Percent, ShieldCheck } from "lucide-react"
+import { Palette, ShieldCheck, Info } from "lucide-react"
 import { StormDoorGlobalRules } from "@/lib/doors/storm-door-types"
+import { AdminColorTagManager } from "./AdminColorTagManager"
 
 export interface AdminStormRulesTabProps {
   rules: StormDoorGlobalRules
@@ -24,15 +25,15 @@ export function AdminStormRulesTab({
 }: AdminStormRulesTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Custom Paint & Surcharges */}
+      {/* Custom Paint Rates */}
       <Card className="border-border/80 bg-card/60 backdrop-blur-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Palette className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Custom Paint &amp; Factory Rates</CardTitle>
+            <CardTitle className="text-base">Custom Paint Rates</CardTitle>
           </div>
           <CardDescription>
-            Manufacturer standard rates from York Aluminum price sheet.
+            Fixed manufacturer custom paint rates from York Aluminum price sheet.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -73,99 +74,58 @@ export function AdminStormRulesTab({
                 className="pl-7 font-mono text-sm font-bold"
               />
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              York price sheet standard for double door pairs ($2,184.00).
+            </p>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">
-              York Factory Material Surcharge (%)
-            </Label>
-            <div className="relative">
-              <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-              <Input
-                type="number"
-                step="0.5"
-                value={rules.surchargeRate ?? 8}
-                onChange={(e) =>
-                  onUpdateRule("surchargeRate", parseFloat(e.target.value) || 0)
-                }
-                className="pl-7 font-mono text-sm font-bold"
-              />
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
+              <Info className="h-4 w-4 text-primary" />
+              <span>Quote Surcharge Application</span>
             </div>
+            <p>
+              Storm door list prices are entered as clean manufacturer base prices. The standard 8% materials surcharge is automatically applied once at the quote-level ledger, preventing double-counting.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Finishes & Color Palettes */}
+      {/* Finishes & Color Palettes (Tag Manager - No Comma Bugs) */}
       <Card className="border-border/80 bg-card/60 backdrop-blur-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Colors &amp; Hardware Finishes</CardTitle>
+            <CardTitle className="text-base">Color Finishes &amp; Hardware</CardTitle>
           </div>
           <CardDescription>
-            Comma separated list of factory standard colors available per profile.
+            Manage factory colors for each door profile. Click &quot;×&quot; to remove or type to add.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">2&quot; Profile Colors</Label>
-            <Input
-              type="text"
-              value={(rules.colors2Inch || []).join(", ")}
-              onChange={(e) =>
-                onUpdateRule(
-                  "colors2Inch",
-                  e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                )
-              }
-              className="text-xs"
-            />
-          </div>
+          <AdminColorTagManager
+            label='2" Profile Available Colors'
+            colors={rules.colors2Inch || []}
+            onChange={(colors) => onUpdateRule("colors2Inch", colors)}
+          />
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">2-1/4&quot; Profile Colors</Label>
-            <Input
-              type="text"
-              value={(rules.colors2QuarterInch || []).join(", ")}
-              onChange={(e) =>
-                onUpdateRule(
-                  "colors2QuarterInch",
-                  e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                )
-              }
-              className="text-xs"
-            />
-          </div>
+          <AdminColorTagManager
+            label='2-1/4" Profile Available Colors'
+            colors={rules.colors2QuarterInch || []}
+            onChange={(colors) => onUpdateRule("colors2QuarterInch", colors)}
+          />
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">1-1/4&quot; Project Colors</Label>
-            <Input
-              type="text"
-              value={(rules.colorsProject || []).join(", ")}
-              onChange={(e) =>
-                onUpdateRule(
-                  "colorsProject",
-                  e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                )
-              }
-              className="text-xs"
-            />
-          </div>
+          <AdminColorTagManager
+            label='1-1/4" Project Available Colors'
+            colors={rules.colorsProject || []}
+            onChange={(colors) => onUpdateRule("colorsProject", colors)}
+          />
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Papaiz Inswing Finishes</Label>
-            <Input
-              type="text"
-              value={(rules.papaizFinishes || []).join(", ")}
-              onChange={(e) =>
-                onUpdateRule(
-                  "papaizFinishes",
-                  e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
-                )
-              }
-              className="text-xs"
-            />
-          </div>
+          <AdminColorTagManager
+            label="Inswing Papaiz Lever Finishes"
+            colors={rules.papaizFinishes || []}
+            onChange={(finishes) => onUpdateRule("papaizFinishes", finishes)}
+          />
         </CardContent>
       </Card>
     </div>

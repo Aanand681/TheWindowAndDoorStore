@@ -11,6 +11,7 @@ import {
   StormDoorAddonOption,
   PapaizFinish,
 } from "@/lib/doors/storm-door-types"
+import { StormDoorGraphic } from "../storm/StormDoorGraphics"
 import { StormDoorAddonRow } from "./StormDoorAddonRow"
 
 export interface StormDoorOptionsPaneProps {
@@ -39,55 +40,44 @@ export interface StormDoorOptionsPaneProps {
 }
 
 export function StormDoorOptionsPane({
-  style,
-  currentItem,
-  profile,
-  setProfile,
-  ventType,
-  setVentType,
-  swing,
-  setSwing,
-  color,
-  setColor,
-  colorList,
-  isCustomPaint,
-  setIsCustomPaint,
-  isDoubleDoorCustomPaint = false,
-  setIsDoubleDoorCustomPaint,
-  papaizFinish = "Satin Chrome",
-  setPapaizFinish,
-  selectedAddons,
-  toggleAddon,
-  addonModes = {},
-  setAddonMode,
-  availableAddons = [],
+  style, currentItem, profile, setProfile, ventType, setVentType,
+  swing, setSwing, color, setColor, colorList, isCustomPaint,
+  setIsCustomPaint, isDoubleDoorCustomPaint = false, setIsDoubleDoorCustomPaint,
+  papaizFinish = "Satin Chrome", setPapaizFinish, selectedAddons, toggleAddon,
+  addonModes = {}, setAddonMode, availableAddons = [],
 }: StormDoorOptionsPaneProps) {
   const filteredAddons = availableAddons.filter((addon) => {
-    if (addon.applicableStyles && addon.applicableStyles.length > 0) {
-      if (!addon.applicableStyles.includes(style)) return false
-    }
-    if (addon.applicableSwings && addon.applicableSwings.length > 0) {
-      if (!addon.applicableSwings.includes(swing)) return false
-    }
+    if (addon.applicableStyles && addon.applicableStyles.length > 0 && !addon.applicableStyles.includes(style)) return false
+    if (addon.applicableSwings && addon.applicableSwings.length > 0 && !addon.applicableSwings.includes(swing)) return false
     return true
   })
 
   return (
     <div className="p-4 md:col-span-7 space-y-3 overflow-y-auto">
+      {/* Live Graphic Preview */}
+      <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-2.5">
+        <div className="h-16 w-10 shrink-0">
+          <StormDoorGraphic style={style} color={isCustomPaint ? "Mill Finish" : color} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-bold text-foreground truncate">
+            {currentItem.name} ({profile === '2"' ? '2" Standard Frame' : `${profile} Frame`})
+          </div>
+          <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 mt-0.5">
+            <span>Color Finish:</span>
+            <span className="font-semibold text-foreground">{isCustomPaint ? "Custom Paint" : color}</span>
+          </div>
+        </div>
+      </div>
+
       {style !== "project_self_storing" && (
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-            Profile Thickness
-          </label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase">Profile Thickness</label>
           <div className="flex gap-2">
             {(['2"', '2-1/4"'] as StormDoorProfile[]).map((p) => (
               <Button
-                key={p}
-                type="button"
-                variant={profile === p ? "default" : "outline"}
-                size="sm"
-                onClick={() => setProfile(p)}
-                className="h-8 flex-1 text-xs font-semibold"
+                key={p} type="button" variant={profile === p ? "default" : "outline"} size="sm"
+                onClick={() => setProfile(p)} className="h-8 flex-1 text-xs font-semibold"
               >
                 {p} Frame
               </Button>
@@ -99,29 +89,21 @@ export function StormDoorOptionsPane({
       {/* Vent Type & Swing */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-            Vent Type
-          </label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase">Vent Type</label>
           <div className="flex flex-col gap-1.5">
             <button
-              type="button"
-              onClick={() => setVentType("standard")}
+              type="button" onClick={() => setVentType("standard")}
               className={`px-2.5 py-1.5 text-xs text-left rounded-lg border font-medium ${
-                ventType === "standard"
-                  ? "border-primary bg-primary/10 font-bold text-primary"
-                  : "border-input bg-background"
+                ventType === "standard" ? "border-primary bg-primary/10 font-bold text-primary" : "border-input bg-background"
               }`}
             >
               Standard
             </button>
             {currentItem.hiddenVentPrice && (
               <button
-                type="button"
-                onClick={() => setVentType("hidden_vent")}
+                type="button" onClick={() => setVentType("hidden_vent")}
                 className={`px-2.5 py-1.5 text-xs text-left rounded-lg border font-medium ${
-                  ventType === "hidden_vent"
-                    ? "border-primary bg-primary/10 font-bold text-primary"
-                    : "border-input bg-background"
+                  ventType === "hidden_vent" ? "border-primary bg-primary/10 font-bold text-primary" : "border-input bg-background"
                 }`}
               >
                 Hidden Vent (+Roll Screen)
@@ -129,12 +111,9 @@ export function StormDoorOptionsPane({
             )}
             {currentItem.screenOnlyPrice && (
               <button
-                type="button"
-                onClick={() => setVentType("screen_only")}
+                type="button" onClick={() => setVentType("screen_only")}
                 className={`px-2.5 py-1.5 text-xs text-left rounded-lg border font-medium ${
-                  ventType === "screen_only"
-                    ? "border-primary bg-primary/10 font-bold text-primary"
-                    : "border-input bg-background"
+                  ventType === "screen_only" ? "border-primary bg-primary/10 font-bold text-primary" : "border-input bg-background"
                 }`}
               >
                 Screen Only
@@ -144,29 +123,21 @@ export function StormDoorOptionsPane({
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-            Swing
-          </label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase">Swing</label>
           <div className="flex flex-col gap-1.5">
             <button
-              type="button"
-              onClick={() => setSwing("outswing")}
+              type="button" onClick={() => setSwing("outswing")}
               className={`px-2.5 py-1.5 text-xs text-left rounded-lg border font-medium ${
-                swing === "outswing"
-                  ? "border-primary bg-primary/10 font-bold text-primary"
-                  : "border-input bg-background"
+                swing === "outswing" ? "border-primary bg-primary/10 font-bold text-primary" : "border-input bg-background"
               }`}
             >
               Standard Outswing
             </button>
             {currentItem.inswingPrice && (
               <button
-                type="button"
-                onClick={() => setSwing("inswing")}
+                type="button" onClick={() => setSwing("inswing")}
                 className={`px-2.5 py-1.5 text-xs text-left rounded-lg border font-medium ${
-                  swing === "inswing"
-                    ? "border-primary bg-primary/10 font-bold text-primary"
-                    : "border-input bg-background"
+                  swing === "inswing" ? "border-primary bg-primary/10 font-bold text-primary" : "border-input bg-background"
                 }`}
               >
                 Inswing (Papaiz Lever &amp; Sill)
@@ -179,19 +150,13 @@ export function StormDoorOptionsPane({
       {/* Papaiz Lever Finish on Inswing */}
       {swing === "inswing" && setPapaizFinish && (
         <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-          <label className="text-[11px] font-semibold text-primary uppercase">
-            Papaiz Lever Finish
-          </label>
+          <label className="text-[11px] font-semibold text-primary uppercase">Papaiz Lever Finish</label>
           <div className="flex gap-2">
             {(["Satin Chrome", "Brass", "Black"] as PapaizFinish[]).map((fin) => (
               <button
-                key={fin}
-                type="button"
-                onClick={() => setPapaizFinish(fin)}
+                key={fin} type="button" onClick={() => setPapaizFinish(fin)}
                 className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold border ${
-                  papaizFinish === fin
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background border-border text-foreground hover:bg-muted"
+                  papaizFinish === fin ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-foreground hover:bg-muted"
                 }`}
               >
                 {fin}
@@ -204,15 +169,10 @@ export function StormDoorOptionsPane({
       {/* Colors & Custom Paint */}
       <div className="space-y-1">
         <div className="flex justify-between items-center">
-          <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-            Color / Finish
-          </label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase">Color Finish</label>
           <button
-            type="button"
-            onClick={() => setIsCustomPaint(!isCustomPaint)}
-            className={`text-[11px] font-bold underline ${
-              isCustomPaint ? "text-amber-500" : "text-muted-foreground"
-            }`}
+            type="button" onClick={() => setIsCustomPaint(!isCustomPaint)}
+            className={`text-[11px] font-bold underline ${isCustomPaint ? "text-amber-500" : "text-muted-foreground"}`}
           >
             {isCustomPaint ? "Custom Paint Active" : "Custom Paint?"}
           </button>
@@ -221,23 +181,17 @@ export function StormDoorOptionsPane({
         {isCustomPaint && setIsDoubleDoorCustomPaint && (
           <div className="flex gap-2 pb-1">
             <button
-              type="button"
-              onClick={() => setIsDoubleDoorCustomPaint(false)}
+              type="button" onClick={() => setIsDoubleDoorCustomPaint(false)}
               className={`flex-1 rounded-md px-2 py-1 text-xs border font-medium ${
-                !isDoubleDoorCustomPaint
-                  ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold"
-                  : "bg-muted/40 border-border"
+                !isDoubleDoorCustomPaint ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold" : "bg-muted/40 border-border"
               }`}
             >
               Single Door (+$1,113)
             </button>
             <button
-              type="button"
-              onClick={() => setIsDoubleDoorCustomPaint(true)}
+              type="button" onClick={() => setIsDoubleDoorCustomPaint(true)}
               className={`flex-1 rounded-md px-2 py-1 text-xs border font-medium ${
-                isDoubleDoorCustomPaint
-                  ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold"
-                  : "bg-muted/40 border-border"
+                isDoubleDoorCustomPaint ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold" : "bg-muted/40 border-border"
               }`}
             >
               Double French (+$2,184)
@@ -248,9 +202,7 @@ export function StormDoorOptionsPane({
         <div className="flex flex-wrap gap-1.5">
           {colorList.map((c) => (
             <button
-              key={c}
-              type="button"
-              onClick={() => setColor(c)}
+              key={c} type="button" onClick={() => setColor(c)}
               className={`px-2 py-1 text-xs rounded-md border font-medium ${
                 color === c && !isCustomPaint
                   ? "border-primary bg-primary text-primary-foreground font-bold"
@@ -265,15 +217,11 @@ export function StormDoorOptionsPane({
 
       {/* Add-ons & Option Upgrade Selection */}
       <div className="space-y-1.5 pt-1">
-        <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-          Available Add-ons &amp; Upgrades
-        </label>
+        <label className="text-[11px] font-semibold text-muted-foreground uppercase">Available Add-ons &amp; Upgrades</label>
         <div className="space-y-1.5">
           {filteredAddons.map((addon) => (
             <StormDoorAddonRow
-              key={addon.id}
-              addon={addon}
-              isSelected={selectedAddons.includes(addon.id)}
+              key={addon.id} addon={addon} isSelected={selectedAddons.includes(addon.id)}
               currentMode={addonModes[addon.id] || "included"}
               onToggle={() => toggleAddon(addon.id)}
               onSetMode={setAddonMode ? (mode) => setAddonMode(addon.id, mode) : undefined}

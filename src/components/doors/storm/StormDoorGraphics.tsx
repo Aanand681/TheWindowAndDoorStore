@@ -2,9 +2,11 @@
 
 import React from "react"
 import { StormDoorStyle } from "@/lib/doors/storm-door-types"
+import { getStormDoorColorStyles } from "./storm-door-colors"
 
 interface StormDoorGraphicProps {
   style: StormDoorStyle
+  color?: string
   className?: string
   width?: number
   height?: number
@@ -12,10 +14,13 @@ interface StormDoorGraphicProps {
 
 export function StormDoorGraphic({
   style,
+  color = "White",
   className = "w-full h-full",
   width = 64,
   height = 120,
 }: StormDoorGraphicProps) {
+  const c = getStormDoorColorStyles(color)
+
   return (
     <svg
       viewBox="0 0 64 120"
@@ -32,7 +37,8 @@ export function StormDoorGraphic({
         width="60"
         height="116"
         rx="2"
-        className="stroke-border fill-muted/30"
+        fill={c.outerFill}
+        stroke={c.outerStroke}
         strokeWidth="2.5"
       />
       {/* Inner Frame */}
@@ -42,8 +48,9 @@ export function StormDoorGraphic({
         width="52"
         height="108"
         rx="1"
-        className="stroke-muted-foreground/40 fill-background"
-        strokeWidth="1.5"
+        fill={c.innerFill}
+        stroke={c.outerStroke}
+        strokeWidth="1.2"
       />
 
       {/* Style-specific panels */}
@@ -78,7 +85,6 @@ export function StormDoorGraphic({
 
       {style === "self_storing" && (
         <g>
-          {/* Top Glass / Screen */}
           <rect
             x="10"
             y="10"
@@ -86,7 +92,6 @@ export function StormDoorGraphic({
             height="34"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Middle Glass */}
           <rect
             x="10"
             y="46"
@@ -94,21 +99,20 @@ export function StormDoorGraphic({
             height="34"
             className="fill-sky-100/40 dark:fill-sky-950/30 stroke-sky-400/40"
           />
-          {/* Bottom Kick Plate */}
           <rect
             x="10"
             y="82"
             width="44"
             height="28"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
-          <line x1="14" y1="96" x2="50" y2="96" className="stroke-border" />
+          <line x1="14" y1="96" x2="50" y2="96" stroke={c.kickStroke} />
         </g>
       )}
 
       {style === "hi_view" && (
         <g>
-          {/* Upper Glass / Screen */}
           <rect
             x="10"
             y="10"
@@ -116,20 +120,21 @@ export function StormDoorGraphic({
             height="50"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* High Kick Plate */}
           <rect
             x="10"
             y="62"
             width="44"
             height="48"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
           <rect
             x="14"
             y="68"
             width="36"
             height="36"
-            className="stroke-border/70 fill-muted/60"
+            stroke={c.kickStroke}
+            fill={c.innerFill}
             strokeWidth="0.8"
           />
         </g>
@@ -137,65 +142,54 @@ export function StormDoorGraphic({
 
       {style === "extended_view" && (
         <g>
-          {/* Tall Glass */}
           <rect
             x="10"
             y="10"
             width="44"
-            height="82"
+            height="86"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Low Kick Plate */}
           <rect
             x="10"
-            y="94"
+            y="98"
             width="44"
-            height="16"
-            className="fill-muted stroke-border"
+            height="12"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
         </g>
       )}
 
       {style === "tri_lite" && (
         <g>
-          {/* Left Vertical Pane */}
           <rect
             x="10"
             y="10"
-            width="10"
-            height="82"
-            className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
-          />
-          {/* Center Vertical Section (Wider, divided into top & bottom horizontal panes) */}
-          <rect
-            x="22"
-            y="10"
-            width="20"
-            height="40"
+            width="44"
+            height="26"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
           <rect
-            x="22"
-            y="52"
-            width="20"
-            height="40"
+            x="10"
+            y="38"
+            width="44"
+            height="26"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Right Vertical Pane */}
           <rect
-            x="44"
-            y="10"
-            width="10"
-            height="82"
+            x="10"
+            y="66"
+            width="44"
+            height="26"
             className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40"
           />
-          {/* Bottom Kick Plate */}
           <rect
             x="10"
             y="94"
             width="44"
             height="16"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
         </g>
       )}
@@ -214,14 +208,15 @@ export function StormDoorGraphic({
             y="58"
             width="44"
             height="52"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
           <line
             x1="10"
             y1="56"
             x2="54"
             y2="56"
-            className="stroke-primary"
+            stroke={c.outerStroke}
             strokeWidth="1.5"
           />
         </g>
@@ -241,14 +236,15 @@ export function StormDoorGraphic({
             y="84"
             width="44"
             height="26"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
           <line
             x1="10"
             y1="82"
             x2="54"
             y2="82"
-            className="stroke-primary"
+            stroke={c.outerStroke}
             strokeWidth="1.5"
           />
         </g>
@@ -275,19 +271,20 @@ export function StormDoorGraphic({
             y="94"
             width="44"
             height="16"
-            className="fill-muted stroke-border"
+            fill={c.kickFill}
+            stroke={c.kickStroke}
           />
         </g>
       )}
 
       {/* Latch Handle */}
-      <circle cx="53" cy="62" r="2" className="fill-muted-foreground" />
+      <circle cx="53" cy="62" r="2" fill={c.handleColor} />
       <line
         x1="53"
         y1="62"
         x2="48"
         y2="62"
-        className="stroke-muted-foreground"
+        stroke={c.handleColor}
         strokeWidth="1.5"
         strokeLinecap="round"
       />
