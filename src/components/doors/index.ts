@@ -4,6 +4,4 @@ export * from "./DoorLineItemsTable"
 export * from "./DoorLabourTravelCard"
 export * from "./DoorQuoteSummaryCard"
 export * from "./DoorOfficePricingCard"
-export * from "./DoorPreviewModal"
 export * from "./DoorCalculator"
-

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useSharedRegions } from "@/hooks/shared/useSharedRegions"
-import { SealedUnitUpcharge } from "@/components/sealed-units/invoice/types"
+import { SealedUnitUpcharge } from "@/components/sealed-units/types"
 
 export function useSealedUnitsTravel() {
   const {

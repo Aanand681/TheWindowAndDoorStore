@@ -1,5 +1,5 @@
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
-import { SealedUnitTotals, SealedUnitUpcharge } from "@/components/sealed-units/invoice/types"
+import { SealedUnitTotals, SealedUnitUpcharge } from "@/components/sealed-units/types"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,

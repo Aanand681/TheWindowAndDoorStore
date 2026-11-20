@@ -1,8 +1,3 @@
-import {
-  SealedUnitLineItem,
-  SealedUnitLabourSettings,
-} from "@/lib/sealed-units-logic"
-
 export type SealedUnitTemplateType = "window_style" | "standard" | "production"
 
 export interface SealedUnitUpcharge {
@@ -37,25 +32,4 @@ export interface SealedUnitTotals {
   isServiceOnly?: boolean
   extraLabour?: number
   globalUpcharges?: SealedUnitUpcharge[]
-}
-
-export interface SealedUnitPrintInvoiceProps {
-  lineItems: SealedUnitLineItem[]
-  mode?: "installation" | "supply_only" | "service_only"
-  isInstallation: boolean
-  labour: SealedUnitLabourSettings
-  hstRate: number
-  customerName: string
-  quoteNumber: string
-  quoteNotes?: string
-  preparedBy?: string
-  template?: SealedUnitTemplateType
-  fontSize?: number // pt, default 8.5
-  spacing?: number // multiplier, default 1.0
-  orientation?: "portrait" | "landscape"
-  isInteractivePreview?: boolean
-  attachedWindowQuote?: any | null
-  attachedDoorQuote?: any | null
-  globalUpcharges?: SealedUnitUpcharge[]
-  totals: SealedUnitTotals
 }

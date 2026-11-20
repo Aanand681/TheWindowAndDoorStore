@@ -14,7 +14,7 @@ import {
   SealedUnitLineItem,
   getSealedUnitServiceSummaryLabel,
 } from "@/lib/sealed-units-logic"
-import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import { SealedUnitTotals } from "@/components/sealed-units/types"
 import {
   serializeSealedUnitSnapshot,
   applyDraftDataToWorkspace,

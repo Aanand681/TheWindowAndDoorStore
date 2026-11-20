@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
-import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import { SealedUnitTotals } from "@/components/sealed-units/types"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,

@@ -5,7 +5,7 @@ import {
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
-import { SealedUnitTotals } from "@/components/sealed-units/invoice/types"
+import { SealedUnitTotals } from "@/components/sealed-units/types"
 
 export interface BuildSealedUnitsUpdatePayloadParams {
   customerName: string
