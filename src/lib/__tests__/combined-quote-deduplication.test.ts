@@ -264,16 +264,28 @@ describe("Combined Quote Travel & Setup Deduplication and Supply/Install Modes",
 
   it("returns an empty labour breakdown in Supply Only mode for PDF", () => {
     const items = getInvoiceLabourItems({
-      isSupplyOnly: true,
-      hasWindows: true,
-      winLabourCents: 30000,
-      taxTotals: { labourWindows: 300 },
-      hasDoors: true,
+      isSupplyOnly: true, hasWindows: true, winLabourCents: 30000,
+      taxTotals: { labourWindows: 300 }, hasDoors: true,
       effectiveDoorTotals: { unitLabourTotal: 180 },
-      hasSealedUnits: true,
-      effectiveSUTotals: { unitLabourSum: 150 },
+      hasSealedUnits: true, effectiveSUTotals: { unitLabourSum: 150 },
     })
-
     expect(items).toEqual([])
+  })
+
+  it("includes door and sealed unit upcharges in labour breakdown items", () => {
+    const items = getInvoiceLabourItems({
+      isSupplyOnly: false, hasWindows: false, winLabourCents: 0,
+      hasDoors: true, effectiveDoors: [{}],
+      effectiveDoorTotals: { unitLabourTotal: 180 },
+      doorUpcharges: [{ label: "Cut brickmould", total: 45 }],
+      hasSealedUnits: true, effectiveSUTotals: { unitLabourSum: 150 },
+      suUpcharges: [{ label: "Extra high lift", total: 60 }],
+    })
+    expect(items).toEqual([
+      { label: "Door installation labour (1 unit)", amount: 18000 },
+      { label: "Door Cut brickmould", amount: 4500 },
+      { label: "Sealed unit installation labour", amount: 15000 },
+      { label: "Sealed unit Extra high lift", amount: 6000 },
+    ])
   })
 })

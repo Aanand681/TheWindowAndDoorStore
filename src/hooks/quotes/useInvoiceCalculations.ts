@@ -72,9 +72,7 @@ export function useInvoiceCalculations({
     doors && doors.length > 0 ? doors : attachedDoorQuote?.lineItems || []
   const effectiveDoorTotals = doorTotals || attachedDoorQuote?.totals || {}
   const effectiveDoorUpcharges =
-    globalUpcharges && globalUpcharges.length > 0
-      ? globalUpcharges
-      : attachedDoorQuote?.globalUpcharges || []
+    globalUpcharges?.length ? globalUpcharges : attachedDoorQuote?.globalUpcharges || []
   const hasDoors =
     effectiveDoors.length > 0 || Boolean(effectiveDoorTotals?.grandTotal)
 
@@ -83,6 +81,10 @@ export function useInvoiceCalculations({
       ? sealedUnits
       : attachedSealedUnit?.lineItems || []
   const effectiveSUTotals = sealedUnitTotals || attachedSealedUnit?.totals || {}
+  const effectiveSUUpcharges =
+    Array.isArray(effectiveSUTotals?.globalUpcharges) && effectiveSUTotals.globalUpcharges.length > 0
+      ? effectiveSUTotals.globalUpcharges
+      : attachedSealedUnit?.globalUpcharges || (Array.isArray(globalUpcharges) && (!doors || doors.length === 0) ? globalUpcharges : [])
   const isAttachedSUService =
     attachedSealedUnit?.sealedUnitMode === "service_only" ||
     attachedSealedUnit?.data?.sealedUnitMode === "service_only" ||
@@ -222,16 +224,10 @@ export function useInvoiceCalculations({
   })
 
   const labourBreakdownItems = getInvoiceLabourItems({
-    isSupplyOnly,
-    hasWindows,
-    winLabourCents: taxLabourCents,
-    effectiveWindows,
-    taxTotals,
-    hasDoors,
-    effectiveDoors,
-    effectiveDoorTotals,
-    hasSealedUnits,
-    effectiveSUTotals,
+    isSupplyOnly, hasWindows, winLabourCents: taxLabourCents,
+    effectiveWindows, taxTotals, hasDoors, effectiveDoors,
+    effectiveDoorTotals, doorUpcharges: effectiveDoorUpcharges,
+    hasSealedUnits, effectiveSUTotals, suUpcharges: effectiveSUUpcharges,
     isAttachedSUService,
   })
 

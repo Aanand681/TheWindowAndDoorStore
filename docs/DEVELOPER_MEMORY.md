@@ -160,9 +160,31 @@
    - Verified end-to-end review lifecycle for Sealed Units: preparer submission, reviewer queue, polymorphic router `/review/[id]`, reviewer actions (Approve $\rightarrow$ Odoo clerk, Return $\rightarrow$ Preparer revision, Reassign), and preparer recall. Zero blockers or data loss.
 6. **PDF Invoice Scope Sequence & Pure Base Labour Isolation**:
    - Fixed calculation presentation bug in `invoice-labour.ts` where add-on labour ($30) was inadvertently inflating base window installation labour ($602 $\rightarrow$ $632). Now strictly isolates pure base unit labour (`taxTotals.wLab` = $602) from add-on labour (`taxTotals.aLab` = $30).
-   - Standardized invoice left-column scope sequence in `InvoiceBreakdownTables.tsx`: (1) Installation Labour, (2) Extras & Add-ons, (3) Jamb & Casing Specifications, (4) Travel & Set-up Details, (5) Special Instructions & Notes, (6) Unified Options.
 7. **Cross-Route Draft Loading Harmonization**:
    - Investigated and harmonized draft navigation between `/sealed-units` and `/doors?loadDraftId=...` to ensure instant page transitions by eliminating conflicting mount loops between auto-save restoration and draft ID loading.
+
+---
+
+## 🎯 8. Architectural Initiative: Consolidated "Labour & Extra Add-ons" Invoice Card & Unified Domain Sequence (COMPLETED)
+
+### What Was Built:
+1. **Consolidated Single Card for Labour & Extra Add-ons**:
+   - Replaced the two split cards (`Installation Labour` and `Extras & Add-ons`) in `InvoiceBreakdownTables.tsx` with one unified card titled **`Labour & Extra Add-ons`**.
+   - Modularized with subcomponents `LabourAndAddOnsSection` and `SectionTable` to ensure all functions remain $\le 50$ lines and the file is only 185 lines ($\le 300$).
+   - Table lists pure base installation labour first (e.g. `Window installation labour (4 units): $602.00`), followed immediately by extra add-on rows (e.g. `Drip Edge — Labour: $30.00`, `Drip Edge — Materials / Misc: $6.00`, `Cut brickmould: $45.00`).
+2. **Harmonized Door & Sealed Unit Add-on Labour**:
+   - Refactored `invoice-labour.ts` into modular helpers (`getWindowLabourItems`, `getDoorLabourItems`, `getSealedUnitLabourItems`) under 45 lines each.
+   - Wired `doorUpcharges` and `suUpcharges` (from `globalUpcharges`) into `getInvoiceLabourItems` via `useInvoiceCalculations.ts`, ensuring Sealed Unit and Door jobsite add-ons render seamlessly alongside base unit installation labour.
+3. **Harmonized Scope Sequence Across All Invoices**:
+   - All quotes (Windows, Doors, Sealed Units, and Combined Quotes) strictly follow the unified sequence:
+     1. **Labour & Extra Add-ons**
+     2. **Jamb & Casing Specifications**
+     3. **Travel & Set-up Details**
+     4. **Special Instructions & Notes**
+     5. **Options** (Unified options section)
+4. **Automated Test Coverage**:
+   - Verified with 229 passing vitest tests in `combined-quote-deduplication.test.ts` ensuring base labour isolation and multi-domain upcharge rollups.
+
 
 
 
