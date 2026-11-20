@@ -1,3 +1,5 @@
+import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
+
 export interface InvoicePricingRollupParams {
   hasWindows: boolean
   hasSealedUnits: boolean
@@ -28,7 +30,6 @@ export function calculateInvoicePricingRollup({
   hasWindows,
   hasSealedUnits,
   hasDoors,
-  hasAnyAttached,
   isWindowHost,
   isDoorHost,
   isSUHost,
@@ -45,7 +46,6 @@ export function calculateInvoicePricingRollup({
   effectiveSUTotals,
   effectiveDoorTotals,
   hstRate,
-  afterDiscount,
   taxTotals,
   isSupplyOnly = false,
 }: InvoicePricingRollupParams) {
@@ -59,225 +59,71 @@ export function calculateInvoicePricingRollup({
       0
   const monthlyDiscountCents = Math.round((taxDiscount || 0) * 100)
 
-  const winMaterialsCents = hasWindows
-    ? quoteResult?.base ||
-    basePrice ||
-    (attachedWindowQuote?.totals?.base
-      ? Math.round(attachedWindowQuote.totals.base * 100)
-      : 0)
-    : 0
-  const rawWinSurchargeCents = hasWindows
-    ? surcharge ||
-    (attachedWindowQuote?.totals?.surcharge
-      ? Math.round(attachedWindowQuote.totals.surcharge * 100)
-      : 0)
-    : 0
-  const winSurchargeCents =
-    !isWindowHost &&
-      rawWinSurchargeCents > winMaterialsCents &&
-      winMaterialsCents > 0
-      ? Math.round(winMaterialsCents * 0.08)
-      : rawWinSurchargeCents
-  const winLabourCents = hasWindows && !isSupply
-    ? isWindowHost
-      ? taxLabourCents
-      : attachedWindowQuote?.totals?.labour
-        ? Math.round(attachedWindowQuote.totals.labour * 100)
-        : 0
-    : 0
-  const winMiscCents = hasWindows && !isSupply
-    ? isWindowHost
-      ? taxMiscCents
-      : attachedWindowQuote?.totals?.misc
-        ? Math.round(attachedWindowQuote.totals.misc * 100)
-        : 0
-    : 0
-  const winJCCents = hasWindows
-    ? isWindowHost
-      ? taxJCCents
-      : attachedWindowQuote?.totals?.jc
-        ? Math.round(attachedWindowQuote.totals.jc * 100)
-        : 0
-    : 0
+  const rawBaseDollars = quoteResult?.base
+    ? quoteResult.base / 100
+    : basePrice > 1000
+      ? basePrice / 100
+      : basePrice
+  const rawSurchargeDollars = surcharge > 1000 ? surcharge / 100 : surcharge
 
-  const suIsSupply = isSupply || effectiveSUTotals?.sealedUnitMode === "supply_only" || Boolean(effectiveSUTotals?.isSupplyOnly)
-  const suGlassCents =
-    hasSealedUnits && !isAttachedSUService
-      ? Math.round((effectiveSUTotals.glassBefore8PercentTotal || 0) * 100)
-      : 0
-  const suSurchargeCents =
-    hasSealedUnits && !isAttachedSUService
-      ? Math.round((effectiveSUTotals.glass8PercentSurchargeTotal || 0) * 100)
-      : 0
-  const suMiscCents = hasSealedUnits && !suIsSupply
-    ? Math.round((effectiveSUTotals.miscTotal || 0) * 100)
-    : 0
-  const suExtraLabour = Number(
-    effectiveSUTotals.extraLabour ??
-    (Array.isArray(effectiveSUTotals.globalUpcharges)
-      ? effectiveSUTotals.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
-      : 0)
-  )
-  const rawSuUnitLabour = isAttachedSUService
-    ? Number(effectiveSUTotals.serviceLabourTotal || 0)
-    : Number(
-      effectiveSUTotals.unitLabourSum ??
-      effectiveSUTotals.doorPureLabourTotal ??
-      effectiveSUTotals.pureLabourTotal ??
-      Math.max(
-        0,
-        (effectiveSUTotals.combinedLabourTotal || 0) -
-        (effectiveSUTotals.baseSetupFee || 0) -
-        (effectiveSUTotals.totalTravelAndSetup || 0)
-      )
-    )
-
-  const suLabourCents = hasSealedUnits && !suIsSupply
-    ? isSUHost
-      ? Math.round((effectiveSUTotals.combinedLabourTotal || 0) * 100)
-      : Math.round((rawSuUnitLabour + suExtraLabour) * 100)
-    : 0
-
-  const doorIsSupply = isSupply || effectiveDoorTotals?.mode === "supply_only" || Boolean(effectiveDoorTotals?.isSupplyOnly)
-  const doorRawBaseCents = hasDoors
-    ? Math.round(
-      ((effectiveDoorTotals.rawDoorBaseTotal || 0) +
-        (effectiveDoorTotals.stormDoorTotal || 0) +
-        (effectiveDoorTotals.hardwareTotal || 0)) *
-      100
-    )
-    : 0
-  const doorDiscountCents = hasDoors
-    ? Math.round((effectiveDoorTotals.discountTotal || 0) * 100)
-    : 0
-  const doorNetMaterialsCents = Math.max(
-    0,
-    doorRawBaseCents - doorDiscountCents
-  )
-  const doorSurchargeCents = hasDoors
-    ? Math.round((effectiveDoorTotals.surchargeTotal || 0) * 100)
-    : 0
-  const doorMiscCents = hasDoors && !doorIsSupply
-    ? Math.round((effectiveDoorTotals.miscTotal || 0) * 100)
-    : 0
-
-  const rawPureDoorLabour =
-    effectiveDoorTotals.doorPureLabourTotal !== undefined
-      ? Number(effectiveDoorTotals.doorPureLabourTotal)
-      : (effectiveDoorTotals.unitLabourTotal !== undefined ||
-        effectiveDoorTotals.upchargesTotal !== undefined)
-        ? (effectiveDoorTotals.unitLabourTotal || 0) +
-        (effectiveDoorTotals.upchargesTotal || 0)
-        : Math.max(
-          0,
-          (effectiveDoorTotals.combinedLabourTotal || 0) -
-          (effectiveDoorTotals.baseSetupFee || 0) -
-          (effectiveDoorTotals.totalTravelAndSetup || 0)
-        )
-
-  const doorLabourCents = hasDoors && !doorIsSupply
-    ? isDoorHost
-      ? Math.round((effectiveDoorTotals.combinedLabourTotal || 0) * 100)
-      : Math.round(rawPureDoorLabour * 100)
-    : 0
-
-  const effectiveMiscTotalCents = isSupply
-    ? 0
-    : (hasWindows ? winMiscCents : 0) +
-    (hasSealedUnits ? suMiscCents : 0) +
-    (hasDoors ? doorMiscCents : 0)
-
-  const suTravel = hasSealedUnits && !suIsSupply ? Number(effectiveSUTotals?.totalTravelAndSetup || effectiveSUTotals?.travelAndSetupFee || 0) : 0
-  const winTravel = hasWindows && !isSupply ? Number(taxTotals?.extras ?? taxTotals?.totalTravelAndSetup ?? attachedWindowQuote?.totals?.travelAndSetupFee ?? attachedWindowQuote?.taxTotals?.extras ?? 0) : 0
-  const doorTravel = hasDoors && !doorIsSupply ? Number(effectiveDoorTotals?.totalTravelAndSetup ?? effectiveDoorTotals?.travelAndSetupFee ?? 0) : 0
-  const maxTravel = Math.max(suTravel, winTravel, doorTravel)
-  const hostTravel = isWindowHost ? winTravel : isDoorHost ? doorTravel : suTravel
-  const travelDelta = (hostTravel > 0 && maxTravel > hostTravel) ? maxTravel - hostTravel : 0
-
-  const rawLabourSum = isSupply
-    ? 0
-    : (hasWindows ? winLabourCents : 0) +
-    (hasSealedUnits ? suLabourCents : 0) +
-    (hasDoors ? doorLabourCents : 0)
-  const effectiveLabourTotalCents = isSupply ? 0 : rawLabourSum + Math.round(travelDelta * 100)
-  const effectiveSurchargeTotalCents =
-    (hasWindows ? winSurchargeCents : 0) +
-    (hasSealedUnits ? suSurchargeCents : 0) +
-    (hasDoors ? doorSurchargeCents : 0)
-  const totalDiscountCents = promoDiscountCents + monthlyDiscountCents
-
-  const combinedSubtotalCalculatedCents = Math.max(
-    0,
-    (hasWindows ? winMaterialsCents - totalDiscountCents + winJCCents : 0) +
-    suGlassCents +
-    doorNetMaterialsCents +
-    effectiveMiscTotalCents +
-    effectiveLabourTotalCents +
-    effectiveSurchargeTotalCents
-  )
-
-  const finalSubtotalCents =
-    hasAnyAttached || isDoorHost || isSUHost
-      ? combinedSubtotalCalculatedCents
-      : afterDiscount > 0 &&
-        Math.abs(afterDiscount - combinedSubtotalCalculatedCents) <= 10
-        ? afterDiscount
-        : combinedSubtotalCalculatedCents
-
-  let finalHstAmountCents = 0
-  let finalHstLabel = `HST (${hstRate}%)`
-  let finalHstBaseCents = 0
-  let finalMaterialExemptionCents = 0
-
-  if (hstRate === 13) {
-    finalHstAmountCents = Math.round(finalSubtotalCents * 0.13)
-    finalHstBaseCents = finalHstAmountCents
-    finalHstLabel = "13% HST"
-  } else if (hstRate === 8) {
-    // Factory surcharges are EXCLUDED from materials base (treated as handling/service).
-    const customMatCents = Math.round(
-      ((taxTotals as any)?.customMaterialsTotal || 0) * 100
-    )
-    const matCents = Math.max(
-      0,
-      (hasWindows
-        ? winMaterialsCents - totalDiscountCents + winJCCents + customMatCents
-        : 0) +
-      (hasSealedUnits ? suGlassCents : 0) +
-      (hasDoors ? doorNetMaterialsCents : 0)
-    )
-    const hstBase = Math.round(finalSubtotalCents * 0.13)
-    const matExemption = Math.round(matCents * 0.08)
-    finalHstAmountCents = Math.max(0, hstBase - matExemption)
-    finalHstBaseCents = hstBase
-    finalMaterialExemptionCents = matExemption
-    finalHstLabel = "8% Material Exemption"
-  } else {
-    finalHstAmountCents = 0
-    finalHstBaseCents = 0
-    finalHstLabel = "0% No Tax (Exempt)"
-  }
-
-  const finalTotalCents = finalSubtotalCents + finalHstAmountCents
-  const finalFirstPayment = Math.round(finalTotalCents / 2)
-  const finalSecondPayment = finalTotalCents - finalFirstPayment
+  const universal = calculateUniversalPricing({
+    windowQuote: hasWindows
+      ? isWindowHost
+        ? {
+            data: {
+              effectiveBase: rawBaseDollars,
+              quoteResult,
+              taxTotals: {
+                ...taxTotals,
+                extras: taxTotals?.extras ?? taxTotals?.totalTravelAndSetup ?? 0,
+                finalLabour: taxLabourCents / 100,
+                finalMisc: taxMiscCents / 100,
+                finalJC: taxJCCents / 100,
+              },
+              effectiveSurcharge: rawSurchargeDollars,
+              surchargeRate: 8,
+              isSupplyOnly: isSupply,
+            },
+          }
+        : attachedWindowQuote
+      : undefined,
+    doorQuote: hasDoors
+      ? isDoorHost
+        ? { data: { totals: effectiveDoorTotals, mode: isSupply ? "supply_only" : "installation" } }
+        : { totals: effectiveDoorTotals }
+      : undefined,
+    sealedUnitQuote: hasSealedUnits
+      ? isSUHost
+        ? {
+            data: {
+              totals: effectiveSUTotals,
+              sealedUnitMode: isAttachedSUService ? "service_only" : isSupply ? "supply_only" : "installation",
+            },
+          }
+        : { totals: effectiveSUTotals }
+      : undefined,
+    hostType: isWindowHost ? "window" : isDoorHost ? "door" : "sealed_unit",
+    isSupplyOnly: isSupply,
+    hstRate,
+    isFirstNation: hstRate === 8,
+  })
 
   return {
     promoDiscountCents,
     monthlyDiscountCents,
-    winMaterialsCents,
-    suGlassCents,
-    doorNetMaterialsCents,
-    effectiveMiscTotalCents,
-    effectiveLabourTotalCents,
-    effectiveSurchargeTotalCents,
-    finalSubtotalCents,
-    finalHstAmountCents,
-    finalHstBaseCents,
-    finalMaterialExemptionCents,
-    finalHstLabel,
-    finalTotalCents,
-    finalFirstPayment,
-    finalSecondPayment,
+    winMaterialsCents: universal.winNorm ? Math.round(universal.winNorm.materials * 100) : 0,
+    suGlassCents: universal.suNorm ? Math.round(universal.suNorm.materials * 100) : 0,
+    doorNetMaterialsCents: universal.doorNorm ? Math.round(universal.doorNorm.materials * 100) : 0,
+    effectiveMiscTotalCents: universal.miscCents,
+    effectiveLabourTotalCents: universal.labourCents,
+    effectiveSurchargeTotalCents: universal.surchargesCents,
+    finalSubtotalCents: universal.subtotalCents,
+    finalHstAmountCents: universal.taxCents,
+    finalHstBaseCents: Math.round(universal.hstBase * 100),
+    finalMaterialExemptionCents: Math.round(universal.materialExemption * 100),
+    finalHstLabel: universal.taxLabel,
+    finalTotalCents: universal.totalCents,
+    finalFirstPayment: Math.round(universal.firstPayment * 100),
+    finalSecondPayment: Math.round(universal.secondPayment * 100),
   }
 }

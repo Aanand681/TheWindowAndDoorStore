@@ -100,7 +100,12 @@ export function normalizeDoorQuote(
   overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
-  const totals = data.totals || quote?.totals || quote?.taxTotals || {}
+  const totals = {
+    ...(quote?.taxTotals || {}),
+    ...(data.taxTotals || {}),
+    ...(quote?.totals || {}),
+    ...(data.totals || {}),
+  }
   const lineItems = data.doors || data.lineItems || quote?.doors || quote?.lineItems || []
   const itemCount = lineItems.reduce((acc: number, item: any) => acc + (Math.max(1, Number(item.qty || item.quantity) || 1)), 0)
   const isSupply = Boolean(data.mode === "supply_only" || totals?.isSupplyOnly)
@@ -117,7 +122,16 @@ export function normalizeDoorQuote(
     ? 0
     : quote?.totals?.doorPureLabourTotal !== undefined
       ? Number(quote.totals.doorPureLabourTotal)
-      : Number(totals.doorPureLabourTotal !== undefined ? totals.doorPureLabourTotal : ((totals.unitLabourTotal || 0) + (totals.upchargesTotal || 0)))
+      : totals.doorPureLabourTotal !== undefined
+        ? Number(totals.doorPureLabourTotal)
+        : totals.unitLabourTotal !== undefined || totals.upchargesTotal !== undefined
+          ? Number(totals.unitLabourTotal || 0) + Number(totals.upchargesTotal || 0)
+          : Math.max(
+              0,
+              Number(totals.combinedLabourTotal ?? totals.combinedLabour ?? 0) -
+                Number(totals.baseSetupFee || 0) -
+                Number(totals.totalTravelAndSetup || 0)
+            )
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(totals.miscTotal ?? totals.misc ?? 0))
@@ -139,7 +153,12 @@ export function normalizeSealedUnitQuote(
   overrides?: { customLabour?: string; customMisc?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
-  const totals = data.totals || quote?.totals || {}
+  const totals = {
+    ...(quote?.taxTotals || {}),
+    ...(data.taxTotals || {}),
+    ...(quote?.totals || {}),
+    ...(data.totals || {}),
+  }
   const lineItems = data.sealedUnits || data.lineItems || quote?.sealedUnits || quote?.lineItems || []
   const itemCount = lineItems.reduce((acc: number, item: any) => acc + (Math.max(1, Number(item.qty || item.quantity) || 1)), 0)
   const isService = Boolean(data.sealedUnitMode === "service_only" || totals?.isServiceOnly)
@@ -154,9 +173,16 @@ export function normalizeSealedUnitQuote(
     ? 0
     : quote?.totals?.pureLabourTotal !== undefined
       ? Number(quote.totals.pureLabourTotal)
-      : (isService
-          ? Number(totals.serviceLabourTotal || 0) + Number(totals.extraLabour || 0)
-          : Number(totals.unitLabourSum || totals.pureLabourTotal || 0) + Number(totals.extraLabour || 0))
+      : isService
+        ? Number(totals.serviceLabourTotal || 0) + Number(totals.extraLabour || 0)
+        : totals.unitLabourSum !== undefined
+          ? Number(totals.unitLabourSum) + Number(totals.extraLabour || 0)
+          : Math.max(
+              0,
+              Number(totals.combinedLabourTotal || 0) -
+                Number(totals.baseSetupFee || 0) -
+                Number(totals.totalTravelAndSetup || 0)
+            ) + Number(totals.extraLabour || 0)
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(totals.miscTotal || 0))
