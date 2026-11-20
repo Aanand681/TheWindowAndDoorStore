@@ -75,7 +75,7 @@ describe("Attached Quotes Lifecycle - Restore & Purge Engine", () => {
     expect(restored).toBeDefined()
     expect(restored.quoteNumber).toBe("SU-555")
     expect(restored.type).toBe("sealed_unit")
-    expect(restored.data.globalUpcharges).toEqual([{ label: "Extra Lift", price: 60 }])
+    expect((restored.data as any).globalUpcharges).toEqual([{ label: "Extra Lift", price: 60 }])
   })
 
   it("purges both parent and attached child drafts from saved drafts upon submit", () => {

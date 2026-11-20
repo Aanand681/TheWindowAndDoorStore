@@ -133,9 +133,9 @@ export function DoorQuoteSummaryCard({
     ? attachedWindowQuote.totals?.labour || 0
     : 0
   const suLabour = hasAttachedSU
-    ? (attachedSealedUnit.totals?.serviceLabourTotal ??
-      attachedSealedUnit.totals?.unitLabourSum ??
-      0)
+    ? (attachedSealedUnit.sealedUnitMode === "service_only"
+      ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0)
+      : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0))
     : 0
   const winMisc = hasAttachedWindow ? attachedWindowQuote.totals?.misc || 0 : 0
   const suMisc = hasAttachedSU ? attachedSealedUnit.totals?.miscTotal || 0 : 0

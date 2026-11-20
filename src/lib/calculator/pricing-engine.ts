@@ -109,15 +109,18 @@ export function computeCombinedQuoteFinancials(
     suSurchargeCents = !isAttachedSUService
       ? Math.round((suTotals.glass8PercentSurchargeTotal || 0) * 100)
       : 0
-    const rawPureSULab =
-      suTotals.serviceLabourTotal ??
-      suTotals.unitLabourSum ??
-      Math.max(
-        0,
-        (suTotals.combinedLabourTotal || 0) -
-          (suTotals.baseSetupFee || 0) -
-          (suTotals.totalTravelAndSetup || 0)
-      )
+    const rawPureSULab = isAttachedSUService
+      ? Number(suTotals.serviceLabourTotal || 0)
+      : Number(
+          suTotals.unitLabourSum ??
+            suTotals.pureLabourTotal ??
+            Math.max(
+              0,
+              (suTotals.combinedLabourTotal || 0) -
+                (suTotals.baseSetupFee || 0) -
+                (suTotals.totalTravelAndSetup || 0)
+            )
+        )
     suLabourCents = isSUSupply ? 0 : Math.round(rawPureSULab * 100)
     suMiscCents = isSUSupply ? 0 : Math.round((suTotals.miscTotal || 0) * 100)
   }

@@ -118,21 +118,24 @@ export function calculateInvoicePricingRollup({
         ? effectiveSUTotals.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
         : 0)
   )
+  const rawSuUnitLabour = isAttachedSUService
+    ? Number(effectiveSUTotals.serviceLabourTotal || 0)
+    : Number(
+        effectiveSUTotals.unitLabourSum ??
+          effectiveSUTotals.doorPureLabourTotal ??
+          effectiveSUTotals.pureLabourTotal ??
+          Math.max(
+            0,
+            (effectiveSUTotals.combinedLabourTotal || 0) -
+              (effectiveSUTotals.baseSetupFee || 0) -
+              (effectiveSUTotals.totalTravelAndSetup || 0)
+          )
+      )
+
   const suLabourCents = hasSealedUnits && !suIsSupply
     ? isSUHost
       ? Math.round((effectiveSUTotals.combinedLabourTotal || 0) * 100)
-      : Math.round(
-          (effectiveSUTotals.serviceLabourTotal !== undefined
-            ? Number(effectiveSUTotals.serviceLabourTotal) + suExtraLabour
-            : effectiveSUTotals.unitLabourSum !== undefined
-              ? Number(effectiveSUTotals.unitLabourSum) + suExtraLabour
-              : Math.max(
-                  0,
-                  (effectiveSUTotals.combinedLabourTotal || 0) -
-                    (effectiveSUTotals.baseSetupFee || 0) -
-                    (effectiveSUTotals.totalTravelAndSetup || 0)
-                )) * 100
-        )
+      : Math.round((rawSuUnitLabour + suExtraLabour) * 100)
     : 0
 
   const doorIsSupply = isSupply || effectiveDoorTotals?.mode === "supply_only" || Boolean(effectiveDoorTotals?.isSupplyOnly)
