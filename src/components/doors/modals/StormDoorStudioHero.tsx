@@ -22,7 +22,7 @@ export function StormDoorStudioHero({
   ventType,
 }: StormDoorStudioHeroProps) {
   return (
-    <div className="md:col-span-5 p-6 flex flex-col items-center justify-between bg-muted/10 overflow-y-auto">
+    <div className="md:col-span-5 p-4 sm:p-6 flex flex-col items-center justify-between bg-muted/10 overflow-y-auto">
       <div className="w-full flex justify-between items-center text-xs text-muted-foreground">
         <span className="font-semibold uppercase tracking-wider">Live Model Preview</span>
         <span className="font-mono text-[11px] bg-background/80 px-2 py-0.5 rounded border border-border/60">
@@ -30,13 +30,13 @@ export function StormDoorStudioHero({
         </span>
       </div>
 
-      <div className="my-auto py-4 flex flex-col items-center justify-center">
-        <div className="h-72 w-44 drop-shadow-xl transition-all duration-300">
-          <StormDoorGraphic style={style} color={color} width={176} height={288} />
+      <div className="my-auto py-3 flex flex-col items-center justify-center">
+        <div className="h-[420px] w-60 drop-shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+          <StormDoorGraphic style={style} color={color} width={240} height={420} />
         </div>
       </div>
 
-      <div className="w-full p-2.5 rounded-xl border border-border/70 bg-card/80 text-center space-y-1">
+      <div className="w-full p-2.5 rounded-xl border border-border/70 bg-card/80 text-center space-y-1 shadow-xs">
         <div className="text-xs font-bold text-foreground">
           Color: {color} {isCustomPaint && "(Custom Paint)"}
         </div>

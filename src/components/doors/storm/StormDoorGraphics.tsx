@@ -30,6 +30,14 @@ export function StormDoorGraphic({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
+      <defs>
+        {/* Realistic fine charcoal screen mesh pattern */}
+        <pattern id="storm-screen-mesh" width="3" height="3" patternUnits="userSpaceOnUse">
+          <rect width="3" height="3" fill="#2d3748" fillOpacity="0.4" />
+          <path d="M 0 1.5 L 3 1.5 M 1.5 0 L 1.5 3" stroke="#1a202c" strokeWidth="0.5" strokeOpacity="0.5" />
+        </pattern>
+      </defs>
+
       {/* Outer Door Frame */}
       <rect x="2" y="2" width="60" height="116" rx="2" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="2.5" />
       {/* Inner Sash Bevel */}
@@ -65,57 +73,88 @@ export function StormDoorGraphic({
         </g>
       )}
 
-      {/* 4. HI-VIEW (~55% upper glass, ~45% HIGH kick plate with raised panel) */}
+      {/* 4. HI-VIEW (~55% upper glass, ~45% SCREEN on bottom) */}
       {style === "hi_view" && (
         <g>
-          <rect x="9" y="9" width="46" height="52" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
+          {/* Upper Glass (~55%) */}
+          <rect x="8" y="8" width="48" height="55" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
           <path d="M12 18 L52 18" className="stroke-sky-300/40" strokeWidth="0.8" strokeDasharray="3 3" />
-          <rect x="9" y="62" width="46" height="50" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
-          <rect x="14" y="68" width="36" height="38" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="1.2" rx="1" />
-          <line x1="17" y1="87" x2="47" y2="87" stroke={c.kickStroke} strokeWidth="0.8" />
+          {/* Painted Divider Rail */}
+          <rect x="8" y="63" width="48" height="4.5" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* Bottom Screen (~45%) */}
+          <rect x="8" y="67.5" width="48" height="41.5" fill="url(#storm-screen-mesh)" stroke={c.outerStroke} strokeWidth="1" />
+          {/* Bottom Wood Rail */}
+          <rect x="8" y="109" width="48" height="4.5" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="0.8" />
         </g>
       )}
 
-      {/* 5. EXTENDED-VIEW (~80% tall extended glass, ~20% low kick plate) */}
+      {/* 5. EXTENDED-VIEW (75% whole glass, painted divider, 20% screen, 5% wood kick rail at bottom) */}
       {style === "extended_view" && (
         <g>
-          <rect x="9" y="9" width="46" height="84" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
+          {/* Upper Whole Glass (~75%) */}
+          <rect x="8" y="8" width="48" height="72" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
           <path d="M12 18 L52 18 M12 22 L38 22" className="stroke-sky-300/40" strokeWidth="0.8" strokeDasharray="3 3" />
-          <rect x="9" y="94" width="46" height="18" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
-          <line x1="14" y1="103" x2="50" y2="103" stroke={c.kickStroke} strokeWidth="0.8" />
+          {/* Painted Horizontal Divider Rail */}
+          <rect x="8" y="80" width="48" height="4" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* 20% Screen */}
+          <rect x="8" y="84" width="48" height="21" fill="url(#storm-screen-mesh)" stroke={c.outerStroke} strokeWidth="1" />
+          {/* 5% Wood Rail at Bottom */}
+          <rect x="8" y="106" width="48" height="6.5" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
         </g>
       )}
 
-      {/* 6. TRI-LITE (3 vertical lites on top ~60%, 3 matching vertical kick panels on bottom ~40%) */}
+      {/* 6. TRI-LITE (Bottom 5-7% wood rail, 3 vertical columns with wider middle divided into top glass & bottom screen) */}
       {style === "tri_lite" && (
         <g>
-          <rect x="9" y="9" width="13" height="58" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
-          <rect x="23" y="9" width="18" height="58" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
-          <rect x="42" y="9" width="13" height="58" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
-          <rect x="9" y="68" width="46" height="44" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
-          <rect x="11" y="71" width="11" height="38" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="0.8" />
-          <rect x="24" y="71" width="16" height="38" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="0.8" />
-          <rect x="42" y="71" width="11" height="38" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="0.8" />
+          {/* Left Column: Slim full-height glass */}
+          <rect x="8" y="8" width="11" height="97" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
+          {/* Left Vertical Painted Mullion */}
+          <rect x="19" y="8" width="3.5" height="97" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+
+          {/* Middle Column (Extra weight / width 17): Top glass + Bottom screen */}
+          <rect x="22.5" y="8" width="17" height="46" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
+          {/* Center Painted Horizontal Wood Rail */}
+          <rect x="22.5" y="54" width="17" height="4.5" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* Middle Bottom Screen / Sash */}
+          <rect x="22.5" y="58.5" width="17" height="46.5" fill="url(#storm-screen-mesh)" stroke={c.outerStroke} strokeWidth="0.8" />
+
+          {/* Right Vertical Painted Mullion */}
+          <rect x="39.5" y="8" width="3.5" height="97" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* Right Column: Slim full-height glass */}
+          <rect x="43" y="8" width="11" height="97" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="0.8" />
+
+          {/* Bottom Wood Rail (5-7%) */}
+          <rect x="8" y="106" width="48" height="7" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
         </g>
       )}
 
-      {/* 7. TRUE-VIEW 1/2 LITE (Exactly 50% glass, 50% lower panel with hidden vent) */}
+      {/* 7. TRUE-VIEW 1/2 LITE (Upper 50% glass, painted center divider, Lower 50% screen) */}
       {style === "true_view_half" && (
         <g>
-          <rect x="9" y="9" width="46" height="48" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
-          <line x1="9" y1="12" x2="55" y2="12" stroke={c.outerStroke} strokeWidth="1.5" />
-          <rect x="9" y="58" width="46" height="54" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
-          <rect x="14" y="64" width="36" height="42" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="1" rx="1" />
+          {/* Upper Glass 50% */}
+          <rect x="8" y="8" width="48" height="49" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
+          <line x1="8" y1="12" x2="56" y2="12" stroke={c.outerStroke} strokeWidth="1.2" />
+          {/* Center Painted Divider Rail */}
+          <rect x="8" y="57" width="48" height="4.5" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* Bottom Screen 50% */}
+          <rect x="8" y="61.5" width="48" height="46" fill="url(#storm-screen-mesh)" stroke={c.outerStroke} strokeWidth="1" />
+          {/* Bottom Rail */}
+          <rect x="8" y="108" width="48" height="4.5" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="0.8" />
         </g>
       )}
 
-      {/* 8. TRUE-VIEW 3/4 LITE (~72% glass, ~28% lower panel with hidden vent) */}
+      {/* 8. TRUE-VIEW 3/4 LITE (Upper 75% 3/4 Lite glass, painted divider, Lower 25% 1/4 Lite screen) */}
       {style === "true_view_three_quarter" && (
         <g>
-          <rect x="9" y="9" width="46" height="74" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
-          <line x1="9" y1="12" x2="55" y2="12" stroke={c.outerStroke} strokeWidth="1.5" />
-          <rect x="9" y="84" width="46" height="28" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="1" />
-          <rect x="14" y="88" width="36" height="20" fill={c.innerFill} stroke={c.kickStroke} strokeWidth="0.8" rx="1" />
+          {/* Upper Glass 75% */}
+          <rect x="8" y="8" width="48" height="74" className="fill-sky-100/60 dark:fill-sky-950/40 stroke-sky-400/40" strokeWidth="1" />
+          <line x1="8" y1="12" x2="56" y2="12" stroke={c.outerStroke} strokeWidth="1.2" />
+          {/* Painted Divider Rail */}
+          <rect x="8" y="82" width="48" height="4" fill={c.outerFill} stroke={c.outerStroke} strokeWidth="0.8" />
+          {/* Bottom Screen 25% */}
+          <rect x="8" y="86" width="48" height="21.5" fill="url(#storm-screen-mesh)" stroke={c.outerStroke} strokeWidth="1" />
+          {/* Bottom Rail */}
+          <rect x="8" y="108" width="48" height="4.5" fill={c.kickFill} stroke={c.kickStroke} strokeWidth="0.8" />
         </g>
       )}
 
