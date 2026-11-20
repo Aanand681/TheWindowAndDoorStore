@@ -51,7 +51,7 @@ export function calculateInvoicePricingRollup({
 }: InvoicePricingRollupParams) {
   const isSupply = Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
   const promoDiscountCents = isWindowHost
-    ? activePromo?.discount || 0
+    ? quoteResult?.promoDiscount || activePromo?.discount || 0
     : attachedWindowQuote?.totals?.promoDiscount
       ? Math.round(attachedWindowQuote.totals.promoDiscount * 100)
       : attachedWindowQuote?.quoteResult?.promoDiscount ||
