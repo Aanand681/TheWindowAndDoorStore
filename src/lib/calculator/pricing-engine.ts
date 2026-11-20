@@ -175,12 +175,19 @@ export function computeCombinedQuoteFinancials(
   const windowSurchargeCents = Math.max(0, quoteResult?.surcharge || 0)
   const windowDiscountCents = Math.max(0, quoteResult?.promoDiscount || 0)
 
+  const suTravel = hasAttachedSU ? Number(attachedSealedUnit?.totals?.totalTravelAndSetup || attachedSealedUnit?.totals?.travelAndSetupFee || 0) : 0
+  const doorTravel = hasAttachedDoor ? Number(attachedDoorQuote?.totals?.totalTravelAndSetup || attachedDoorQuote?.totals?.travelAndSetupFee || 0) : 0
+  const qTaxTotals = (quoteResult as any)?.taxTotals || (params as any)?.taxTotals || {}
+  const winTravel = Number(qTaxTotals?.extras ?? qTaxTotals?.totalTravelAndSetup ?? 0)
+  const travelDelta = (winTravel > 0 && Math.max(suTravel, doorTravel) > winTravel) ? Math.max(suTravel, doorTravel) - winTravel : 0
+  const travelDeltaCents = Math.round(travelDelta * 100)
+
   const combinedMiscCents = isSupply
     ? 0
     : Math.max(0, effectiveMisc) + suMiscCents + doorMiscCents
   const combinedLabourCents = isSupply
     ? 0
-    : Math.max(0, effectiveLabour) + suLabourCents + doorLabourCents
+    : Math.max(0, effectiveLabour) + suLabourCents + doorLabourCents + travelDeltaCents
   const combinedSurchargeCents =
     windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 

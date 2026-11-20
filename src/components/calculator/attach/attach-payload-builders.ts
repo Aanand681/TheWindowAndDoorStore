@@ -71,7 +71,14 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
       ? calculatedTotals.serviceLabourTotal || 0
       : calculatedTotals.unitLabourSum || 0
   )
-  const pureLabourTotal = isSUSupply ? 0 : pureUnitLabour + suExtraLabour
+  const suTravel = isSUSupply ? 0 : Number(srcTotals.totalTravelAndSetup || calculatedTotals.totalTravelAndSetup || 0)
+  calculatedTotals.travelAndSetupFee = suTravel
+
+  let pureLabourTotal = isSUSupply ? 0 : pureUnitLabour + suExtraLabour
+  if (!isSUSupply && rawData.customLabour !== undefined && String(rawData.customLabour).trim() !== "") {
+    const rawVal = parseFloat(String(rawData.customLabour)) || 0
+    pureLabourTotal = suTravel > 0 && rawVal >= suTravel ? Math.round((rawVal - suTravel) * 100) / 100 : rawVal
+  }
   calculatedTotals.pureLabourTotal = pureLabourTotal
 
   return {
@@ -130,17 +137,20 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     surchargeDollars = Math.round(baseDollars * decimalRate * 100) / 100
   }
 
+  const windowExtras = Number(rawData.taxTotals?.extras ?? rawData.taxTotals?.totalTravelAndSetup ?? 0)
+
   // Deduplicate setup/travel fees: pure window labour is labourWindows (or finalLabour minus extras)
   const pureWindowLabour = Number(
     rawData.taxTotals?.labourWindows ??
       (rawData.taxTotals?.finalLabour !== undefined
-        ? Math.max(0, Number(rawData.taxTotals.finalLabour) - Number(rawData.taxTotals?.extras || 0))
+        ? Math.max(0, Number(rawData.taxTotals.finalLabour) - windowExtras)
         : undefined)
   )
 
   let labourDollars = 0
   if (rawData.customLabour !== undefined && String(rawData.customLabour).trim() !== "") {
-    labourDollars = parseFloat(String(rawData.customLabour)) || 0
+    const rawVal = parseFloat(String(rawData.customLabour)) || 0
+    labourDollars = windowExtras > 0 && rawVal >= windowExtras ? Math.round((rawVal - windowExtras) * 100) / 100 : rawVal
   } else if (pureWindowLabour !== undefined && !isNaN(pureWindowLabour)) {
     labourDollars = pureWindowLabour
   } else if (rawData.taxTotals?.finalLabour !== undefined) {
@@ -220,6 +230,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
       base: baseDollars,
       surcharge: surchargeDollars,
       labour: labourDollars,
+      travelAndSetupFee: windowExtras,
       fullLabour: Number(rawData.taxTotals?.finalLabour || labourDollars),
       misc: miscDollars,
       jc: jcDollars,

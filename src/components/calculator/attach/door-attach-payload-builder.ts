@@ -98,6 +98,8 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
     Math.round((rawDoorBase + stormDoorTotal) * 0.08 * 100) / 100
   const discountTotal = srcTotals.discountTotal ?? srcTotals.discount ?? 0
 
+  const doorTravel = isDoorSupply ? 0 : Number(srcTotals.totalTravelAndSetup || 0)
+
   // Deduplicate setup and travel: attached door labour is strictly unitLabour + upcharges (0 in supply mode)
   const rawPureLabour =
     srcTotals.doorPureLabourTotal !== undefined
@@ -110,7 +112,12 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
               Number(srcTotals.baseSetupFee || 0) -
               Number(srcTotals.totalTravelAndSetup || 0)
           )
-  const pureLabourTotal = isDoorSupply ? 0 : rawPureLabour
+
+  let pureLabourTotal = isDoorSupply ? 0 : rawPureLabour
+  if (!isDoorSupply && rawData.customLabour !== undefined && String(rawData.customLabour).trim() !== "") {
+    const rawVal = parseFloat(String(rawData.customLabour)) || 0
+    pureLabourTotal = doorTravel > 0 && rawVal >= doorTravel ? Math.round((rawVal - doorTravel) * 100) / 100 : rawVal
+  }
   const unitLabourTotal = isDoorSupply ? 0 : Number(srcTotals.unitLabourTotal || 0)
   const upchargesTotal = isDoorSupply ? 0 : Number(srcTotals.upchargesTotal || 0)
   const miscTotal = isDoorSupply ? 0 : Number(srcTotals.miscTotal ?? srcTotals.misc ?? 0)
@@ -168,6 +175,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       upchargesTotal,
       baseSetupFee: 0,
       totalTravelAndSetup: 0,
+      travelAndSetupFee: doorTravel,
     },
     taxTotals: {
       ...srcTotals,
@@ -176,6 +184,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       combinedLabourTotal: pureLabourTotal,
       baseSetupFee: 0,
       totalTravelAndSetup: 0,
+      travelAndSetupFee: doorTravel,
     },
     isInstallation: !isDoorSupply,
     globalUpcharges: rawData.globalUpcharges || [],

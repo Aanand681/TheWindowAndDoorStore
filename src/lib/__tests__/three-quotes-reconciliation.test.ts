@@ -183,4 +183,50 @@ describe("Three Quotes Database Reconciliation (404043, 437657, 83917)", () => {
     expect(effective.combinedTax).toBe(2197.05)
     expect(effective.grandTotal).toBe(19097.46)
   })
+
+  it("selects max travel fee ($867.50) when hosted from Sealed Unit with Window & Door attached", () => {
+    const winPayload = buildWindowAttachPayload(windowDraft as any)
+    const doorPayload = buildDoorAttachPayload(doorDraft as any)
+
+    const effective = computeEffectiveDoorGrandTotal({
+      totals: doorDraft.data.taxTotals as any,
+      mode: "installation",
+      customLabour: "",
+      customMisc: "",
+      customDiscount: "",
+      isFirstNation: false,
+      attachedWindowQuote: winPayload,
+      attachedSealedUnit: buildSealedUnitAttachPayload(sealedUnitDraft as any),
+    })
+
+    expect(effective.combinedSubtotal).toBe(16900.41)
+    expect(effective.grandTotal).toBe(19097.46)
+  })
+
+  it("increasing window labour by 1 cent increases combined total by exactly 1 cent", () => {
+    const winDraftWith1CentIncrease = {
+      ...windowDraft,
+      data: {
+        ...windowDraft.data,
+        customLabour: "1499.78", // default was 1499.77 (+0.01)
+      },
+    }
+    const winPayload = buildWindowAttachPayload(winDraftWith1CentIncrease as any)
+    // Pure labour should be 1499.78 - 867.50 = 632.28
+    expect(winPayload.totals.labour).toBe(632.28)
+
+    const effective = computeEffectiveDoorGrandTotal({
+      totals: doorDraft.data.taxTotals as any,
+      mode: "installation",
+      customLabour: "",
+      customMisc: "",
+      customDiscount: "",
+      isFirstNation: false,
+      attachedWindowQuote: winPayload,
+      attachedSealedUnit: buildSealedUnitAttachPayload(sealedUnitDraft as any),
+    })
+
+    expect(effective.combinedSubtotal).toBe(16900.42) // exactly +0.01
+    expect(effective.grandTotal).toBe(19097.47) // exactly +0.01
+  })
 })

@@ -186,11 +186,20 @@ export function calculateInvoicePricingRollup({
     : (hasWindows ? winMiscCents : 0) +
     (hasSealedUnits ? suMiscCents : 0) +
     (hasDoors ? doorMiscCents : 0)
-  const effectiveLabourTotalCents = isSupply
+
+  const suTravel = hasSealedUnits && !suIsSupply ? Number(effectiveSUTotals?.totalTravelAndSetup || effectiveSUTotals?.travelAndSetupFee || 0) : 0
+  const winTravel = hasWindows && !isSupply ? Number(taxTotals?.extras ?? taxTotals?.totalTravelAndSetup ?? attachedWindowQuote?.totals?.travelAndSetupFee ?? attachedWindowQuote?.taxTotals?.extras ?? 0) : 0
+  const doorTravel = hasDoors && !doorIsSupply ? Number(effectiveDoorTotals?.totalTravelAndSetup ?? effectiveDoorTotals?.travelAndSetupFee ?? 0) : 0
+  const maxTravel = Math.max(suTravel, winTravel, doorTravel)
+  const hostTravel = isWindowHost ? winTravel : isDoorHost ? doorTravel : suTravel
+  const travelDelta = (hostTravel > 0 && maxTravel > hostTravel) ? maxTravel - hostTravel : 0
+
+  const rawLabourSum = isSupply
     ? 0
     : (hasWindows ? winLabourCents : 0) +
     (hasSealedUnits ? suLabourCents : 0) +
     (hasDoors ? doorLabourCents : 0)
+  const effectiveLabourTotalCents = isSupply ? 0 : rawLabourSum + Math.round(travelDelta * 100)
   const effectiveSurchargeTotalCents =
     (hasWindows ? winSurchargeCents : 0) +
     (hasSealedUnits ? suSurchargeCents : 0) +

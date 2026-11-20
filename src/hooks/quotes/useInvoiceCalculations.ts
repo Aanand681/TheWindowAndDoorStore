@@ -123,6 +123,8 @@ export function useInvoiceCalculations({
     isSUHost,
     effectiveSUTotals,
     isSupplyOnly,
+    attachedWindowQuote,
+    attachedDoorQuote,
   })
 
   const hasSupplyJamb = Boolean(

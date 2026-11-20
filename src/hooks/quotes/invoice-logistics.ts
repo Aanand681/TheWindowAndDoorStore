@@ -7,6 +7,8 @@ export function getInvoiceTravelItems({
   isSUHost,
   effectiveSUTotals,
   isSupplyOnly = false,
+  attachedWindowQuote,
+  attachedDoorQuote,
 }: {
   isWindowHost: boolean
   taxTotals: any
@@ -16,6 +18,8 @@ export function getInvoiceTravelItems({
   isSUHost: boolean
   effectiveSUTotals: any
   isSupplyOnly?: boolean
+  attachedWindowQuote?: any
+  attachedDoorQuote?: any
 }): { label: string; amount: number }[] {
   if (isSupplyOnly) {
     return []
@@ -23,23 +27,36 @@ export function getInvoiceTravelItems({
 
   const travelItems: { label: string; amount: number }[] = []
 
-  if (isWindowHost && taxTotals) {
-    if (taxTotals.km > 0) {
+  const winTravel = Number(taxTotals?.extras ?? taxTotals?.totalTravelAndSetup ?? attachedWindowQuote?.totals?.travelAndSetupFee ?? attachedWindowQuote?.taxTotals?.extras ?? 0)
+  const doorTravel = Number(effectiveDoorTotals?.totalTravelAndSetup ?? attachedDoorQuote?.totals?.travelAndSetupFee ?? 0)
+  const suTravel = Number(effectiveSUTotals?.totalTravelAndSetup ?? 0)
+
+  const useWindowTravel = (isWindowHost && taxTotals) || (winTravel >= Math.max(doorTravel, suTravel) && attachedWindowQuote?.taxTotals)
+  const useDoorTravel = !useWindowTravel && ((isDoorHost && effectiveDoorTotals) || (doorTravel >= suTravel && attachedDoorQuote?.totals))
+
+  const activeTotals = useWindowTravel
+    ? (isWindowHost ? taxTotals : attachedWindowQuote.taxTotals)
+    : useDoorTravel
+      ? (isDoorHost ? effectiveDoorTotals : attachedDoorQuote.totals)
+      : effectiveSUTotals
+
+  if (useWindowTravel && activeTotals) {
+    if (activeTotals.km > 0) {
       travelItems.push({
-        label: `Vehicle travel (${taxTotals.km} km @ $${taxTotals.vehicleRate?.toFixed(2) || "0.98"}/km)`,
-        amount: (taxTotals.vehicle || 0) * 100,
+        label: `Vehicle travel (${activeTotals.km} km @ $${activeTotals.vehicleRate?.toFixed(2) || "0.98"}/km)`,
+        amount: (activeTotals.vehicle || 0) * 100,
       })
     }
-    if (taxTotals.hrs > 0 && taxTotals.crew && taxTotals.crew !== "none") {
+    if (activeTotals.hrs > 0 && activeTotals.crew && activeTotals.crew !== "none") {
       travelItems.push({
-        label: `Crew travel (${taxTotals.crew} crew × ${taxTotals.hrs}h @ $${taxTotals.crewRate || 0}/h)`,
-        amount: (taxTotals.crewTravel || 0) * 100,
+        label: `Crew travel (${activeTotals.crew} crew × ${activeTotals.hrs}h @ $${activeTotals.crewRate || 0}/h)`,
+        amount: (activeTotals.crewTravel || 0) * 100,
       })
     }
     const effectiveFixedSetup =
-      taxTotals.fixedSetupFee !== undefined
-        ? Number(taxTotals.fixedSetupFee)
-        : !taxTotals.isSupplyOnly
+      activeTotals.fixedSetupFee !== undefined
+        ? Number(activeTotals.fixedSetupFee)
+        : !activeTotals.isSupplyOnly
           ? 140
           : 0
 
@@ -50,7 +67,7 @@ export function getInvoiceTravelItems({
       })
     }
 
-    if (taxTotals.setup > 0) {
+    if (activeTotals.setup > 0) {
       const regLower = regionName ? regionName.toLowerCase() : ""
       const remoteLabel =
         regLower.includes("dryden")
@@ -63,16 +80,16 @@ export function getInvoiceTravelItems({
 
       travelItems.push({
         label: remoteLabel,
-        amount: Math.round((taxTotals.setup || 0) * 100),
+        amount: Math.round((activeTotals.setup || 0) * 100),
       })
     }
-    if (taxTotals.baseTravelFee > 0) {
+    if (activeTotals.baseTravelFee > 0) {
       travelItems.push({
         label: "Base travel fee",
-        amount: (taxTotals.baseTravelFee || 0) * 100,
+        amount: (activeTotals.baseTravelFee || 0) * 100,
       })
     }
-  } else if (isDoorHost && effectiveDoorTotals) {
+  } else if (useDoorTravel && activeTotals) {
     if ((effectiveDoorTotals.baseSetupFee || 0) > 0) {
       travelItems.push({
         label: "Job set-up fee( standard)",

@@ -163,12 +163,20 @@ export function useCombinedQuoteData({
     const windowSurchargeCents = quoteResult?.surcharge || 0
     const windowDiscountCents = quoteResult?.promoDiscount || 0
 
+    const suTravel = hasSU && !suIsSupply ? Number(suTotals.totalTravelAndSetup || attachedSealedUnit?.totals?.travelAndSetupFee || 0) : 0
+    const doorTravel = hasDoor && !doorIsSupply ? Number(doorTotals.totalTravelAndSetup || attachedDoorQuote?.totals?.travelAndSetupFee || 0) : 0
+    const qTaxTotals = (quoteResult as any)?.taxTotals || {}
+    const winTravel = Number(qTaxTotals?.extras ?? qTaxTotals?.totalTravelAndSetup ?? (quoteResult as any)?.extras ?? 0)
+    const travelDeltaCents = (winTravel > 0 && Math.max(suTravel, doorTravel) > winTravel)
+      ? Math.round((Math.max(suTravel, doorTravel) - winTravel) * 100)
+      : 0
+
     const combinedMiscCents = isSupply
       ? 0
       : effectiveMiscCents + suMiscCents + doorMiscCents
     const combinedLabourCents = isSupply
       ? 0
-      : effectiveLabourCents + suLabourCents + doorLabourCents
+      : effectiveLabourCents + suLabourCents + doorLabourCents + travelDeltaCents
     const combinedSurchargeCents =
       windowSurchargeCents + suSurchargeCents + doorSurchargeCents
 

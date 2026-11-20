@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { DoorLineItem, DoorQuoteTotals, DoorQuotingMode } from "@/lib/doors/types"
 import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
+import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
 import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { formatSealedUnitSummarySentence } from "@/lib/sealed-units-logic"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
@@ -67,52 +68,40 @@ export function DoorQuoteSummaryCard({
   const hasAttachedSU = Boolean(attachedSealedUnit)
   const hasAnyAttached = hasAttachedWindow || hasAttachedSU
 
-  const winBase = hasAttachedWindow
-    ? Number(attachedWindowQuote.totals?.base ?? attachedWindowQuote.totals?.subtotal ?? 0)
-    : 0
-  const winJC = hasAttachedWindow
-    ? Number(attachedWindowQuote.totals?.jc ?? attachedWindowQuote.jcDollars ?? 0)
-    : 0
+  const universal = calculateUniversalPricing({
+    doorQuote: { data: { totals, mode } },
+    windowQuote: attachedWindowQuote,
+    sealedUnitQuote: attachedSealedUnit,
+    hostType: "door",
+    isSupplyOnly: !isInstallation,
+    isFirstNation,
+    overrides: {
+      customLabour,
+      customMisc,
+      customDiscount,
+    },
+  })
+
+  const winBase = universal.winNorm?.rawBase || 0
+  const winJC = universal.winNorm?.jambsAndCasing || 0
   const winJCDescription = attachedWindowQuote?.jcLabel || "Jambs & Casing"
   const winCustomMaterialsList = hasAttachedWindow
     ? (attachedWindowQuote.totals?.customMaterialsList || attachedWindowQuote.taxTotals?.customMaterials || [])
     : []
-  const winCustomMaterials = hasAttachedWindow
-    ? Number(attachedWindowQuote.totals?.customMaterials ||
-        (Array.isArray(winCustomMaterialsList)
-          ? winCustomMaterialsList.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0)
-          : 0))
-    : 0
+  const winCustomMaterials = universal.winNorm?.customMaterials || 0
+  const winDiscount = universal.winNorm?.discount || 0
+  const suGlass = universal.suNorm?.materials || 0
+  const winLabour = universal.winNorm?.pureLabour || 0
+  const suLabour = universal.suNorm?.pureLabour || 0
+  const winMisc = universal.winNorm?.misc || 0
+  const suMisc = universal.suNorm?.misc || 0
+  const winSurcharge = universal.winNorm?.surcharge || 0
+  const suSurcharge = universal.suNorm?.surcharge || 0
 
-  const winDiscount = hasAttachedWindow
-    ? (attachedWindowQuote.totals?.promoDiscount ||
-        attachedWindowQuote.quoteResult?.promoDiscount ||
-        attachedWindowQuote.data?.promoDiscount || 0) / (attachedWindowQuote.quoteResult?.promoDiscount ? 100 : 1)
-    : 0
-  const suGlass = hasAttachedSU ? Number(attachedSealedUnit.totals?.glassBefore8PercentTotal || 0) : 0
-  const winLabour = hasAttachedWindow ? Number(attachedWindowQuote.totals?.labour || 0) : 0
-  const suExtraLabour = hasAttachedSU ? Number(attachedSealedUnit.totals?.extraLabour || 0) : 0
-  const suLabour = hasAttachedSU
-    ? Number(
-        attachedSealedUnit.totals?.pureLabourTotal ??
-        (attachedSealedUnit.sealedUnitMode === "service_only"
-          ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0) + suExtraLabour
-          : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0) + suExtraLabour)
-      )
-    : 0
-  const winMisc = hasAttachedWindow ? Number(attachedWindowQuote.totals?.misc || 0) : 0
-  const suMisc = hasAttachedSU ? Number(attachedSealedUnit.totals?.miscTotal || 0) : 0
-  const rawWinSurcharge = hasAttachedWindow ? Number(attachedWindowQuote.totals?.surcharge || 0) : 0
-  const winSurcharge = rawWinSurcharge > winBase && winBase > 0 ? Math.round(winBase * 0.08 * 100) / 100 : rawWinSurcharge
-  const suSurcharge = hasAttachedSU ? Number(attachedSealedUnit.totals?.glass8PercentSurchargeTotal || 0) : 0
-
-  const defaultDoorLabour = isInstallation ? totals.combinedLabourTotal : 0
-  const effectiveDoorLabour = customLabour !== "" ? parseFloat(customLabour) || 0 : defaultDoorLabour
-  const combinedLabour = effectiveDoorLabour + winLabour + suLabour
-
-  const defaultDoorMisc = isInstallation ? totals.miscTotal : 0
-  const effectiveDoorMisc = customMisc !== "" ? parseFloat(customMisc) || 0 : defaultDoorMisc
-  const combinedMisc = effectiveDoorMisc + winMisc + suMisc
+  const defaultDoorLabour = isInstallation ? (universal.doorNorm?.pureLabour || 0) + universal.travelAndSetup : 0
+  const combinedLabour = universal.combinedLabour
+  const defaultDoorMisc = isInstallation ? (universal.doorNorm?.misc || 0) : 0
+  const combinedMisc = universal.misc
 
   const compareDoorLabour = customLabour !== "" ? parseFloat(customLabour) || 0 : (totals.fullInstallLabour ?? totals.combinedLabourTotal)
   const compareLabour = compareDoorLabour + winLabour + suLabour
@@ -123,12 +112,12 @@ export function DoorQuoteSummaryCard({
     mode, quoteNumber, lineItems, totals, compareLabour, compareMisc,
   })
 
-  const combinedSurcharge = totals.surchargeTotal + winSurcharge + suSurcharge
-  const { combinedSubtotal, combinedTax, grandTotal: displayGrandTotal } = computeEffectiveDoorGrandTotal({
-    totals, mode, customLabour, customMisc, customDiscount, isFirstNation, attachedWindowQuote, attachedSealedUnit,
-  })
-  const firstPayment = Math.floor((displayGrandTotal / 2) * 100) / 100
-  const secondPayment = Math.round((displayGrandTotal - firstPayment) * 100) / 100
+  const combinedSurcharge = universal.surcharges
+  const combinedSubtotal = universal.subtotal
+  const combinedTax = universal.hstAmount
+  const displayGrandTotal = universal.total
+  const firstPayment = universal.firstPayment
+  const secondPayment = universal.secondPayment
 
   const attSUSentence = hasAttachedSU
     ? attachedSealedUnit.lineItems && attachedSealedUnit.lineItems.length > 0

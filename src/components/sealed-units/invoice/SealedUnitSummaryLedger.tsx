@@ -6,6 +6,7 @@ import {
 } from "@/lib/sealed-units-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { SealedUnitTotals } from "./types"
+import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
 
 interface SealedUnitSummaryLedgerProps {
   lineItems: SealedUnitLineItem[]
@@ -68,46 +69,32 @@ export function SealedUnitSummaryLedger({
       doorDiscount
     : 0
 
-  const winLabour = hasAttachedWindow ? Number(attachedWindowQuote.totals?.labour || 0) : 0
-  const doorLabour = hasAttachedDoor
-    ? Number(
-        attachedDoorQuote.totals?.pureLabourTotal ??
-        attachedDoorQuote.totals?.doorPureLabourTotal ??
-        attachedDoorQuote.totals?.combinedLabourTotal ??
-        ((attachedDoorQuote.totals?.unitLabourTotal || 0) + (attachedDoorQuote.totals?.upchargesTotal || 0))
-      )
-    : 0
-  const winMisc = hasAttachedWindow ? Number(attachedWindowQuote.totals?.misc || 0) : 0
-  const doorMisc = hasAttachedDoor ? Number(attachedDoorQuote.totals?.miscTotal || 0) : 0
-  const rawWinSurcharge = hasAttachedWindow ? Number(attachedWindowQuote.totals?.surcharge || 0) : 0
-  const winSurcharge = rawWinSurcharge > winBase && winBase > 0 ? Math.round(winBase * 0.08 * 100) / 100 : rawWinSurcharge
-  const doorSurcharge = hasAttachedDoor ? Number(attachedDoorQuote.totals?.surchargeTotal || 0) : 0
+  const universal = calculateUniversalPricing({
+    sealedUnitQuote: { data: { totals, sealedUnitMode: isService ? "service_only" : isInstallation ? "installation" : "supply_only" } },
+    windowQuote: attachedWindowQuote,
+    doorQuote: attachedDoorQuote,
+    hostType: "sealed_unit",
+    isSupplyOnly: !isInstallation && !isService,
+    hstRate,
+    isFirstNation: hstRate === 8,
+  })
 
-  const suMaterials = isService ? 0 : totals.glassBefore8PercentTotal
-  const combinedLabour = totals.combinedLabourTotal + winLabour + doorLabour
-  const combinedMisc = (totals.miscTotal || 0) + winMisc + doorMisc
-  const combinedSurcharge = totals.glass8PercentSurchargeTotal + winSurcharge + doorSurcharge
+  const winLabour = universal.winNorm?.pureLabour || 0
+  const doorLabour = universal.doorNorm?.pureLabour || 0
+  const winMisc = universal.winNorm?.misc || 0
+  const doorMisc = universal.doorNorm?.misc || 0
+  const winSurcharge = universal.winNorm?.surcharge || 0
+  const doorSurcharge = universal.doorNorm?.surcharge || 0
 
-  const combinedSubtotal = hasAnyAttached
-    ? Math.round((suMaterials + (winBase - winDiscount) + winJC + winCustomMaterials + doorMat + combinedLabour + combinedMisc + combinedSurcharge) * 100) / 100
-    : totals.subtotalPreTax
-
-  let combinedTax = totals.hstAmount
-  if (hasAnyAttached) {
-    if (hstRate === 8) {
-      const mat = totals.glassBefore8PercentTotal + (winBase - winDiscount + winJC + winCustomMaterials) + doorMat
-      const combinedMaterialExemption = Math.round(mat * 0.08 * 100) / 100
-      combinedTax = Math.max(0, Math.round((Math.round(combinedSubtotal * 0.13 * 100) / 100 - combinedMaterialExemption) * 100) / 100)
-    } else if (hstRate === 13) {
-      combinedTax = Math.round(combinedSubtotal * 0.13 * 100) / 100
-    } else {
-      combinedTax = 0
-    }
-  }
-
-  const grandTotal = hasAnyAttached ? Math.round((combinedSubtotal + combinedTax) * 100) / 100 : totals.grandTotal
-  const fp = Math.floor((grandTotal / 2) * 100) / 100
-  const sp = Math.round((grandTotal - fp) * 100) / 100
+  const suMaterials = universal.suNorm?.materials || 0
+  const combinedLabour = universal.combinedLabour
+  const combinedMisc = universal.misc
+  const combinedSurcharge = universal.surcharges
+  const combinedSubtotal = universal.subtotal
+  const combinedTax = universal.hstAmount
+  const grandTotal = universal.total
+  const fp = universal.firstPayment
+  const sp = universal.secondPayment
 
   return (
     <div className={`space-y-1 font-mono text-[7.5pt] ${textColor}`}>
