@@ -87,6 +87,7 @@ export function restoreAttachedQuoteDraft(
           mode: attachedQuote.mode || (attachedQuote.isSupplyOnly ? "supply_only" : "installation"),
           customerName: targetCustomerName,
           quoteNumber: targetQuoteNumber,
+          globalUpcharges: attachedQuote.globalUpcharges || [],
         }
       : type === "sealed_unit"
         ? {
@@ -95,6 +96,8 @@ export function restoreAttachedQuoteDraft(
             taxTotals: attachedQuote.taxTotals || {},
             customerName: targetCustomerName,
             quoteNumber: targetQuoteNumber,
+            globalUpcharges: attachedQuote.globalUpcharges || [],
+            extraLabour: attachedQuote.extraLabour || "",
           }
         : {
             windows: lineItems,

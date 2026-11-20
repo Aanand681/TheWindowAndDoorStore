@@ -60,6 +60,24 @@ describe("Attached Quotes Lifecycle - Restore & Purge Engine", () => {
     expect(allDrafts.some((d) => d.quoteNumber === "D-909" && d.type === "door")).toBe(true)
   })
 
+  it("restores an attached sealed unit with globalUpcharges preserved", () => {
+    const attachedSU = {
+      quoteNumber: "SU-555",
+      customerName: "Bob Ross",
+      itemCount: 1,
+      type: "sealed_unit",
+      lineItems: [{ id: "su_1", quantity: 1 }],
+      totals: { subtotalPreTax: 400, grandTotal: 452 },
+      globalUpcharges: [{ label: "Extra Lift", price: 60 }],
+    }
+
+    const restored = restoreAttachedQuoteDraft("sealed_unit", attachedSU)
+    expect(restored).toBeDefined()
+    expect(restored.quoteNumber).toBe("SU-555")
+    expect(restored.type).toBe("sealed_unit")
+    expect(restored.data.globalUpcharges).toEqual([{ label: "Extra Lift", price: 60 }])
+  })
+
   it("purges both parent and attached child drafts from saved drafts upon submit", () => {
     // 1. Pre-populate window and door drafts
     saveQuoteDraft({
