@@ -1,6 +1,6 @@
 "use client"
 
-import { QuoteDraftItem } from "@/lib/quote-drafts-storage"
+import { QuoteDraftItem, clearActiveAutoSave } from "@/lib/quote-drafts-storage"
 import {
   writeSessionAttachedInstallOption,
   writeSessionCustomOptions,
@@ -72,5 +72,42 @@ export function applyDoorDraftToWorkspace(
   writeSessionCustomOptions(
     Array.isArray(d.customOptions) ? d.customOptions : []
   )
+}
+
+export interface DoorResetWorkspaceParams {
+  setters: DoorWorkspaceSetters
+  setEditingItem: (item: any) => void
+  setLastSavedAt: (time: string | null) => void
+  setShowResetModal: (show: boolean) => void
+}
+
+export function resetDoorWorkspace({
+  setters,
+  setEditingItem,
+  setLastSavedAt,
+  setShowResetModal,
+}: DoorResetWorkspaceParams) {
+  setters.setLineItems([])
+  setEditingItem(null)
+  setters.setGlobalUpcharges([])
+  setters.setTravelFeeType("local_std")
+  setters.setCustomTravelFee("")
+  setters.setShowOutTownTravel(false)
+  setters.setTravelKm("")
+  setters.setCrewHours("")
+  setters.setCrewSize("3")
+  setters.setQuoteNotes("")
+  setters.setIsFirstNation(false)
+  setters.setCustomLabour("")
+  setters.setCustomMisc("")
+  setters.setCustomerName("")
+  setters.setQuoteNumber("")
+  setters.setAttachedWindowQuote(null)
+  setters.setAttachedSealedUnit(null)
+  writeSessionAttachedInstallOption(null)
+  writeSessionCustomOptions([])
+  clearActiveAutoSave("door")
+  setLastSavedAt(null)
+  setShowResetModal(false)
 }
 

@@ -98,8 +98,20 @@ export function useDoorAutoSave({
   const initialLoadDone = useRef(false)
   const currentPayloadRef = useRef<any>(null)
 
-  // Load Active Auto-save Draft on Mount
+  // Load Active Auto-save Draft on Mount (Skipped if a specific draft is requested via URL)
   useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
+
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search)
+      const draftId = urlParams.get("loadDraftId")
+      if (draftId) {
+        // A specific draft is being loaded by useDoorDrafts; avoid restoring stale auto-save
+        return
+      }
+    }
+
     const autoSave = getActiveAutoSave("door")
     if (autoSave && autoSave.data) {
       const d = autoSave.data as any
@@ -135,7 +147,6 @@ export function useDoorAutoSave({
         )
       }
     }
-    initialLoadDone.current = true
   }, [])
 
   const doorFingerprint = JSON.stringify({

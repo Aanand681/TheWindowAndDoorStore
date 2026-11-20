@@ -366,29 +366,37 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
       </div>
 
       {/* Dedicated Printable Quote Invoice (Active during window.print) */}
-      {!showPreviewModal && (
-        <QuoteInvoice
-          customerName={customerName}
-          quoteNumber={quoteNumber}
-          preparedBy={user?.name || user?.username || "The Window & Door Store"}
-          primaryQuoteType="door"
-          doors={lineItems}
-          doorTotals={totals}
-          quoteNotes={quoteNotes}
-          template={quoteTemplate}
-          fontSize={quoteFontSize}
-          spacing={quoteSpacing}
-          hstRate={isFirstNation ? 8 : 13}
-          isSupplyOnly={mode === "supply_only"}
-          regionName={mode === "supply_only" ? undefined : selectedRegion?.name}
-          globalUpcharges={globalUpcharges}
-          attachedWindowQuote={attachedWindowQuote}
-          attachedSealedUnit={attachedSealedUnit}
-          isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-          attachedInstallOption={readSessionAttachedInstallOption()}
-          customOptions={readSessionCustomOptions()}
-        />
-      )}
+      {!showPreviewModal &&
+        (lineItems.length > 0 ||
+          totals.grandTotal > 0 ||
+          attachedWindowQuote ||
+          attachedSealedUnit) && (
+          <QuoteInvoice
+            customerName={customerName}
+            quoteNumber={quoteNumber}
+            preparedBy={
+              user?.name || user?.username || "The Window & Door Store"
+            }
+            primaryQuoteType="door"
+            doors={lineItems}
+            doorTotals={totals}
+            quoteNotes={quoteNotes}
+            template={quoteTemplate}
+            fontSize={quoteFontSize}
+            spacing={quoteSpacing}
+            hstRate={isFirstNation ? 8 : 13}
+            isSupplyOnly={mode === "supply_only"}
+            regionName={
+              mode === "supply_only" ? undefined : selectedRegion?.name
+            }
+            globalUpcharges={globalUpcharges}
+            attachedWindowQuote={attachedWindowQuote}
+            attachedSealedUnit={attachedSealedUnit}
+            isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
+            attachedInstallOption={readSessionAttachedInstallOption()}
+            customOptions={readSessionCustomOptions()}
+          />
+        )}
 
       {/* Universal Interactive Print Preview & Workflow Modals */}
       <DoorModalsGroup
