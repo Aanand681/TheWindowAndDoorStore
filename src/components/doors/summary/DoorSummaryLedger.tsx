@@ -18,6 +18,7 @@ export interface DoorSummaryLedgerProps {
   winBase: number
   winJC: number
   winJCDescription: string
+  winCustomMaterialsList?: any[]
   suGlass: number
   combinedLabour: number
   customLabour: string
@@ -56,7 +57,7 @@ export interface DoorSummaryLedgerProps {
 export function DoorSummaryLedger({
   lineItems, totals, isInstallation, hasAttachedWindow, hasAttachedSU,
   attachedWindowQuote, attachedWinSentence, attachedSUSentence, winBase,
-  winJC, winJCDescription, suGlass, combinedLabour, customLabour,
+  winJC, winJCDescription, winCustomMaterialsList, suGlass, combinedLabour, customLabour,
   defaultDoorLabour, winLabour, suLabour, setCustomLabour, combinedMisc,
   customMisc, defaultDoorMisc, winMisc, suMisc, setCustomMisc,
   customDiscount = "", setCustomDiscount, defaultDoorDiscount = 0,
@@ -128,6 +129,21 @@ export function DoorSummaryLedger({
           <span className="font-mono font-semibold text-foreground">+${winJC.toFixed(2)}</span>
         </div>
       )}
+
+      {hasAttachedWindow && winCustomMaterialsList && winCustomMaterialsList.length > 0 &&
+        winCustomMaterialsList.map((mat: any, idx: number) => {
+          const amt = Number(mat.amount) || 0
+          if (amt <= 0 && !mat.label) return null
+          return (
+            <div key={mat.id || idx} className="flex items-center justify-between text-xs sm:text-sm">
+              <span className="truncate font-medium text-foreground">
+                {mat.label ? `Window Add-on: ${mat.label}` : "Window Additional Material"}
+              </span>
+              <span className="font-mono font-semibold text-foreground">+${amt.toFixed(2)}</span>
+            </div>
+          )
+        })
+      }
 
       {hasAttachedSU && (
         <div className="flex items-center justify-between text-xs sm:text-sm">

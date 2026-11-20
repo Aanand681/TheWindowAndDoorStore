@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { DoorPreviewModalProps } from "./preview/types"
 import { DoorPrintToolbar } from "./preview/DoorPrintToolbar"
 import { DoorPrintInvoice } from "./preview/DoorPrintInvoice"
+import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
@@ -54,14 +55,21 @@ export function DoorPreviewModal({
   const isInstallation = mode === "installation"
 
   const winBase = hasAttachedWindow
-    ? attachedWindowQuote.totals?.base ||
-      attachedWindowQuote.totals?.subtotal ||
-      0
+    ? Number(attachedWindowQuote.totals?.base ?? attachedWindowQuote.totals?.subtotal ?? 0)
     : 0
   const winJC = hasAttachedWindow
-    ? (attachedWindowQuote.totals?.jc ?? attachedWindowQuote.jcDollars ?? 0)
+    ? Number(attachedWindowQuote.totals?.jc ?? attachedWindowQuote.jcDollars ?? 0)
     : 0
   const winJCDescription = attachedWindowQuote?.jcLabel || "Jambs & Casing"
+  const winCustomMaterialsList = hasAttachedWindow
+    ? (attachedWindowQuote.totals?.customMaterialsList || attachedWindowQuote.taxTotals?.customMaterials || [])
+    : []
+  const winCustomMaterials = hasAttachedWindow
+    ? Number(attachedWindowQuote.totals?.customMaterials ||
+        (Array.isArray(winCustomMaterialsList)
+          ? winCustomMaterialsList.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0)
+          : 0))
+    : 0
   const winDiscount = hasAttachedWindow
     ? (attachedWindowQuote.totals?.promoDiscount ||
         attachedWindowQuote.quoteResult?.promoDiscount ||
@@ -73,70 +81,50 @@ export function DoorPreviewModal({
     attachedWindowQuote?.quoteResult?.promoName ||
     "Window Promo"
   const suGlass = hasAttachedSU
-    ? attachedSealedUnit.totals?.glassBefore8PercentTotal || 0
+    ? Number(attachedSealedUnit.totals?.glassBefore8PercentTotal || 0)
     : 0
-  const winLabour = hasAttachedWindow
-    ? attachedWindowQuote.totals?.labour || 0
-    : 0
+  const winLabour = hasAttachedWindow ? Number(attachedWindowQuote.totals?.labour || 0) : 0
+  const suExtraLabour = hasAttachedSU ? Number(attachedSealedUnit.totals?.extraLabour || 0) : 0
   const suLabour = hasAttachedSU
-    ? (attachedSealedUnit.sealedUnitMode === "service_only"
-      ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0)
-      : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0))
+    ? Number(
+        attachedSealedUnit.totals?.pureLabourTotal ??
+        (attachedSealedUnit.sealedUnitMode === "service_only"
+          ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0) + suExtraLabour
+          : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0) + suExtraLabour)
+      )
     : 0
-  const winMisc = hasAttachedWindow ? attachedWindowQuote.totals?.misc || 0 : 0
-  const suMisc = hasAttachedSU ? attachedSealedUnit.totals?.miscTotal || 0 : 0
+  const winMisc = hasAttachedWindow ? Number(attachedWindowQuote.totals?.misc || 0) : 0
+  const suMisc = hasAttachedSU ? Number(attachedSealedUnit.totals?.miscTotal || 0) : 0
   const rawWinSurcharge = hasAttachedWindow
-    ? attachedWindowQuote.totals?.surcharge || 0
+    ? Number(attachedWindowQuote.totals?.surcharge || 0)
     : 0
   const winSurcharge =
     rawWinSurcharge > winBase && winBase > 0
       ? Math.round(winBase * 0.08 * 100) / 100
       : rawWinSurcharge
   const suSurcharge = hasAttachedSU
-    ? attachedSealedUnit.totals?.glass8PercentSurchargeTotal || 0
+    ? Number(attachedSealedUnit.totals?.glass8PercentSurchargeTotal || 0)
     : 0
 
-  const netDoorMaterials =
-    totals.rawDoorBaseTotal +
-    totals.stormDoorTotal +
-    totals.hardwareTotal -
-    totals.discountTotal
-  const combinedLabour =
-    (isInstallation ? totals.combinedLabourTotal : 0) + winLabour + suLabour
-  const combinedMisc =
-    (isInstallation ? totals.miscTotal : 0) + winMisc + suMisc
+  const defaultDoorLabour = isInstallation ? totals.combinedLabourTotal : 0
+  const combinedLabour = defaultDoorLabour + winLabour + suLabour
+
+  const defaultDoorMisc = isInstallation ? totals.miscTotal : 0
+  const combinedMisc = defaultDoorMisc + winMisc + suMisc
+
   const combinedSurcharge = totals.surchargeTotal + winSurcharge + suSurcharge
-  const combinedSubtotal = hasAnyAttached
-    ? Math.round(
-        (netDoorMaterials +
-          (winBase - winDiscount) +
-          winJC +
-          suGlass +
-          combinedLabour +
-          combinedMisc +
-          combinedSurcharge) *
-          100
-      ) / 100
-    : totals.subtotalPreTax
+  const {
+    combinedSubtotal,
+    combinedTax,
+    grandTotal: finalGrandTotal,
+  } = computeEffectiveDoorGrandTotal({
+    totals,
+    mode,
+    isFirstNation,
+    attachedWindowQuote,
+    attachedSealedUnit,
+  })
 
-  let combinedTax = totals.hstAmount
-  if (hasAnyAttached) {
-    if (isFirstNation) {
-      const mat =
-        netDoorMaterials +
-        totals.surchargeTotal +
-        (winBase - winDiscount + winSurcharge + winJC) +
-        (suGlass + suSurcharge)
-      const srv = combinedLabour + combinedMisc
-      combinedTax = Math.round((mat * 0.05 + srv * 0.13) * 100) / 100
-    } else {
-      combinedTax = Math.round(combinedSubtotal * 0.13 * 100) / 100
-    }
-  }
-
-  const finalGrandTotal = hasAnyAttached
-    ? combinedSubtotal + combinedTax
-    : totals.grandTotal
   const firstPayment = Math.floor((finalGrandTotal / 2) * 100) / 100
   const secondPayment = Math.round((finalGrandTotal - firstPayment) * 100) / 100
 
@@ -207,6 +195,7 @@ export function DoorPreviewModal({
           winBase={winBase}
           winJC={winJC}
           winJCDescription={winJCDescription}
+          winCustomMaterialsList={winCustomMaterialsList}
           suGlass={suGlass}
           combinedLabour={combinedLabour}
           combinedMisc={combinedMisc}

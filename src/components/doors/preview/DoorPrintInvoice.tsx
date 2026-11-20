@@ -32,6 +32,7 @@ export interface DoorPrintInvoiceProps {
   winBase: number
   winJC: number
   winJCDescription: string
+  winCustomMaterialsList?: any[]
   suGlass: number
   combinedLabour: number
   combinedMisc: number
@@ -65,6 +66,7 @@ export function DoorPrintInvoice({
   winBase,
   winJC,
   winJCDescription,
+  winCustomMaterialsList,
   suGlass,
   combinedLabour,
   combinedMisc,
@@ -246,6 +248,7 @@ export function DoorPrintInvoice({
             winBase={winBase}
             winJC={winJC}
             winJCDescription={winJCDescription}
+            winCustomMaterialsList={winCustomMaterialsList}
             suGlass={suGlass}
             combinedLabour={combinedLabour}
             combinedMisc={combinedMisc}

@@ -1,15 +1,6 @@
 "use client"
 
 import React from "react"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import {
   formatSealedUnitSummarySentence,
@@ -17,6 +8,7 @@ import {
 } from "@/lib/sealed-units-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { SealedUnitSummaryDepositAndUpgrades } from "./SealedUnitSummaryDepositAndUpgrades"
+import { SealedUnitSummaryTaxSection } from "./SealedUnitSummaryTaxSection"
 
 export interface SealedUnitSummaryLedgerProps {
   isService: boolean
@@ -42,44 +34,23 @@ export interface SealedUnitSummaryLedgerProps {
   winBase: number
   winJC: number
   winJCDescription: string
+  winCustomMaterialsList?: any[]
   winDiscount: number
   doorRawBase: number
   doorDiscount: number
   isInstallation: boolean
   hstRate: number
-  setHstRate: (rate: number) => void
+  setHstRate?: (rate: number) => void
 }
 
 export function SealedUnitSummaryLedger({
-  isService,
-  lineItems,
-  lineItemsCount,
-  totals,
-  labour,
-  combinedLabour,
-  combinedMisc,
-  combinedSurcharge,
-  combinedSubtotal,
-  combinedTax,
-  displayGrandTotal,
-  firstPayment,
-  secondPayment,
-  hasAttachedWindow,
-  hasAttachedDoor,
-  hasAnyAttached,
-  attachedWindowQuote,
-  attachedDoorQuote,
-  attachedWinSentence,
-  attachedDoorSentence,
-  winBase,
-  winJC,
-  winJCDescription,
-  winDiscount,
-  doorRawBase,
-  doorDiscount,
-  isInstallation,
-  hstRate,
-  setHstRate,
+  isService, lineItems, lineItemsCount, totals, labour, combinedLabour,
+  combinedMisc, combinedSurcharge, combinedSubtotal, combinedTax,
+  displayGrandTotal, firstPayment, secondPayment, hasAttachedWindow,
+  hasAttachedDoor, hasAnyAttached, attachedWindowQuote, attachedDoorQuote,
+  attachedWinSentence, attachedDoorSentence, winBase, winJC,
+  winJCDescription, winCustomMaterialsList, winDiscount, doorRawBase,
+  doorDiscount, isInstallation, hstRate, setHstRate,
 }: SealedUnitSummaryLedgerProps) {
   return (
     <div className="space-y-3 text-xs">
@@ -88,24 +59,15 @@ export function SealedUnitSummaryLedger({
           <>
             <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
               <span className="font-medium text-muted-foreground">
-                {getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)}{" "}
-                (Labour)
+                {getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)} (Labour)
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 ${combinedLabour.toFixed(2)}
               </span>
             </div>
-
             <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
               <span className="font-medium text-muted-foreground">
-                Service Materials &amp; Misc (
-                {(totals.totalSqft || 0).toFixed(2)} sq ft @ $
-                {(
-                  totals.effectiveMiscRate ||
-                  labour.miscRatePerSqft ||
-                  2.4
-                ).toFixed(2)}
-                /sqft)
+                Service Materials &amp; Misc ({(totals.totalSqft || 0).toFixed(2)} sq ft @ ${(totals.effectiveMiscRate || labour.miscRatePerSqft || 2.4).toFixed(2)}/sqft)
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 +${combinedMisc.toFixed(2)}
@@ -127,9 +89,7 @@ export function SealedUnitSummaryLedger({
 
             {hasAttachedWindow && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                <span className="truncate font-medium text-foreground">
-                  {attachedWinSentence}
-                </span>
+                <span className="truncate font-medium text-foreground">{attachedWinSentence}</span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${winBase.toFixed(2)}
                 </span>
@@ -138,62 +98,58 @@ export function SealedUnitSummaryLedger({
 
             {hasAttachedWindow && winJC > 0 && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                <span className="truncate font-medium text-foreground">
-                  {winJCDescription}
-                </span>
+                <span className="truncate font-medium text-foreground">{winJCDescription}</span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${winJC.toFixed(2)}
                 </span>
               </div>
             )}
 
-            {hasAttachedDoor &&
-              (attachedDoorQuote?.lineItems &&
-              attachedDoorQuote.lineItems.length > 0 ? (
-                attachedDoorQuote.lineItems.map((dItem: any, dIdx: number) => (
-                  <div
-                    key={dItem.id || dIdx}
-                    className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm"
-                  >
+            {hasAttachedWindow && winCustomMaterialsList && winCustomMaterialsList.length > 0 &&
+              winCustomMaterialsList.map((mat: any, idx: number) => {
+                const amt = Number(mat.amount) || 0
+                if (amt <= 0 && !mat.label) return null
+                return (
+                  <div key={mat.id || idx} className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
                     <span className="truncate font-medium text-foreground">
-                      {formatDoorItemHeading(dItem)}
+                      {mat.label ? `Window Add-on: ${mat.label}` : "Window Additional Material"}
                     </span>
+                    <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">+${amt.toFixed(2)}</span>
+                  </div>
+                )
+              })
+            }
+
+            {hasAttachedDoor &&
+              (attachedDoorQuote?.lineItems && attachedDoorQuote.lineItems.length > 0 ? (
+                attachedDoorQuote.lineItems.map((dItem: any, dIdx: number) => (
+                  <div key={dItem.id || dIdx} className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
+                    <span className="truncate font-medium text-foreground">{formatDoorItemHeading(dItem)}</span>
                     <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                      +$
-                      {(
-                        (dItem.inksterBasePrice || 0) * (dItem.quantity || 1)
-                      ).toFixed(2)}
+                      +${((dItem.inksterBasePrice || 0) * (dItem.quantity || 1)).toFixed(2)}
                     </span>
                   </div>
                 ))
               ) : (
                 <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                  <span className="truncate font-medium text-foreground">
-                    {attachedDoorSentence}
-                  </span>
-                  <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                    +${doorRawBase.toFixed(2)}
-                  </span>
+                  <span className="truncate font-medium text-foreground">{attachedDoorSentence}</span>
+                  <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">+${doorRawBase.toFixed(2)}</span>
                 </div>
               ))}
 
-            {hasAttachedDoor &&
-              Boolean(attachedDoorQuote?.totals?.hardwareTotal > 0) && (
-                <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                  <span className="truncate font-medium text-foreground">
-                    Door Lockset &amp; Hardware
-                  </span>
-                  <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                    +$
-                    {Number(attachedDoorQuote.totals.hardwareTotal).toFixed(2)}
-                  </span>
-                </div>
-              )}
+            {hasAttachedDoor && Boolean(attachedDoorQuote?.totals?.hardwareTotal > 0) && (
+              <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
+                <span className="truncate font-medium text-foreground">Door Lockset &amp; Hardware</span>
+                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
+                  +${Number(attachedDoorQuote.totals.hardwareTotal).toFixed(2)}
+                </span>
+              </div>
+            )}
 
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Miscellaneous
+                  Miscellaneous {hasAnyAttached ? "(all quotes)" : ""}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedMisc.toFixed(2)}
@@ -204,7 +160,7 @@ export function SealedUnitSummaryLedger({
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Labour
+                  Labour {hasAnyAttached ? "(all quotes)" : ""}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedLabour.toFixed(2)}
@@ -213,9 +169,7 @@ export function SealedUnitSummaryLedger({
             )}
 
             <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
-              <span className="font-medium text-foreground">
-                Surcharge
-              </span>
+              <span className="font-medium text-foreground">Surcharge (8% on materials)</span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 +${combinedSurcharge.toFixed(2)}
               </span>
@@ -224,31 +178,22 @@ export function SealedUnitSummaryLedger({
             {winDiscount > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
                 <span>
-                  Promo Discount (
-                  {attachedWindowQuote?.promoName ||
-                    attachedWindowQuote?.quoteResult?.promoName ||
-                    "Window Promo"}
-                  )
+                  Promo Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
                 </span>
-                <span className="shrink-0 font-mono whitespace-nowrap">
-                  -${winDiscount.toFixed(2)}
-                </span>
+                <span className="shrink-0 font-mono whitespace-nowrap">-${winDiscount.toFixed(2)}</span>
               </div>
             )}
 
             {doorDiscount > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
                 <span>10% Door Discount (non-storm doors)</span>
-                <span className="shrink-0 font-mono whitespace-nowrap">
-                  -${doorDiscount.toFixed(2)}
-                </span>
+                <span className="shrink-0 font-mono whitespace-nowrap">-${doorDiscount.toFixed(2)}</span>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* Subtotal */}
       <div className="border-b border-border/50 pb-2.5 text-xs sm:text-sm">
         <div className="flex items-center justify-between font-medium">
           <span className="font-bold text-foreground">Subtotal</span>
@@ -258,86 +203,15 @@ export function SealedUnitSummaryLedger({
         </div>
       </div>
 
-      {/* Tax Section */}
-      {/* Tax Section */}
-      <div className="space-y-2 border-b border-border/50 pt-1 pb-2.5">
-        <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
-          <div className="flex items-center gap-2">
-            <Label className="text-xs font-medium whitespace-nowrap text-muted-foreground">
-              Tax Option:
-            </Label>
-            <Select
-              disabled={isService}
-              value={String(isService ? 13 : hstRate)}
-              onValueChange={(val) => setHstRate(Number(val))}
-            >
-              <SelectTrigger className="h-7 w-[190px] bg-background/50 text-xs font-medium shadow-none">
-                <SelectValue>
-                  {isService
-                    ? "13% HST (Service Rate)"
-                    : hstRate === 8
-                      ? "8% Material Exemption"
-                      : hstRate === 0
-                        ? "0% No Tax (Exempt)"
-                        : "13% HST (Standard)"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="13">
-                  {isService ? "13% HST (Service Rate)" : "13% HST (Standard)"}
-                </SelectItem>
-                {!isService && (
-                  <>
-                    <SelectItem value="8">8% Material Exemption</SelectItem>
-                    <SelectItem value="0">0% No Tax (Exempt)</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(hstRate === 13 || isService) && (
-            <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-              +${combinedTax.toFixed(2)}
-            </span>
-          )}
-          {hstRate === 0 && !isService && (
-            <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-muted-foreground">
-              $0.00
-            </span>
-          )}
-        </div>
-
-        {!isService && hstRate === 8 && (
-          <div className="space-y-1 rounded-md border border-border/50 bg-muted/40 p-2 text-xs">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>13% HST (on all):</span>
-              <span className="font-mono font-medium text-foreground">
-                +$
-                {(
-                  totals.hstBase ??
-                  combinedTax + (totals.materialExemption || 0)
-                ).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between font-medium text-emerald-500">
-              <span>8% Tax Rebate (Material Exemption):</span>
-              <span className="font-mono">
-                -${(totals.materialExemption || 0).toFixed(2)}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+      <SealedUnitSummaryTaxSection
+        isService={isService} hstRate={hstRate} setHstRate={setHstRate || (() => {})}
+        combinedTax={combinedTax} totals={totals}
+      />
 
       <SealedUnitSummaryDepositAndUpgrades
-        displayGrandTotal={displayGrandTotal}
-        firstPayment={firstPayment}
-        secondPayment={secondPayment}
-        hasAttachedDoor={hasAttachedDoor}
-        hasAttachedWindow={hasAttachedWindow}
-        attachedDoorQuote={attachedDoorQuote}
-        attachedWindowQuote={attachedWindowQuote}
+        displayGrandTotal={displayGrandTotal} firstPayment={firstPayment} secondPayment={secondPayment}
+        hasAttachedDoor={hasAttachedDoor} hasAttachedWindow={hasAttachedWindow}
+        attachedDoorQuote={attachedDoorQuote} attachedWindowQuote={attachedWindowQuote}
       />
     </div>
   )

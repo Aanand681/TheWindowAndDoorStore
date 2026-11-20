@@ -14,6 +14,7 @@ export interface DoorPrintLedgerProps {
   winBase: number
   winJC: number
   winJCDescription: string
+  winCustomMaterialsList?: any[]
   suGlass: number
   combinedLabour: number
   combinedMisc: number
@@ -38,6 +39,7 @@ export function DoorPrintLedger({
   winBase,
   winJC,
   winJCDescription,
+  winCustomMaterialsList,
   suGlass,
   combinedLabour,
   combinedMisc,
@@ -107,6 +109,21 @@ export function DoorPrintLedger({
           </span>
         </div>
       )}
+
+      {hasAttachedWindow && winCustomMaterialsList && winCustomMaterialsList.length > 0 &&
+        winCustomMaterialsList.map((mat: any, idx: number) => {
+          const amt = Number(mat.amount) || 0
+          if (amt <= 0 && !mat.label) return null
+          return (
+            <div key={mat.id || idx} className="flex justify-between text-[7.5pt]">
+              <span className="max-w-[200px] truncate text-slate-600">
+                {mat.label ? `Window Add-on: ${mat.label}:` : "Window Add-on:"}
+              </span>
+              <span className="shrink-0 font-mono font-semibold">+${amt.toFixed(2)}</span>
+            </div>
+          )
+        })
+      }
 
       {hasAttachedSU && (
         <div className="flex justify-between text-[7.5pt]">

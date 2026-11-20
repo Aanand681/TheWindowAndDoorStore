@@ -5,203 +5,40 @@ import {
   getSealedUnitServiceSummaryLabel,
 } from "@/lib/sealed-units-logic"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
-import {
-  formatDoorSummarySentence,
-  calculateDoorQuoteTotals,
-} from "@/lib/doors/calculations"
-import {
-  DEFAULT_DOOR_LOGISTICS,
-  DEFAULT_DOOR_FORMULA,
-} from "@/lib/doors/constants"
 
-export function buildDoorAttachPayload(draft: QuoteDraftItem) {
-  const rawData = (draft.data as any) || {}
-  const lineItems = rawData.lineItems || (draft as any).windows || []
-  const doorSentence = formatDoorSummarySentence(lineItems)
-  let srcTotals =
-    rawData.totals ||
-    rawData.taxTotals ||
-    (draft as any).taxTotals ||
-    (draft as any).data?.totals ||
-    (draft as any).data?.taxTotals ||
-    {}
-
-  // If door totals are missing, empty, or have 0 base price despite having line items:
-  if (
-    !srcTotals.rawDoorBaseTotal &&
-    !srcTotals.totalPrice &&
-    !srcTotals.subtotalPreTax &&
-    lineItems.length > 0
-  ) {
-    const normalizedItems = lineItems.map((item: any) => {
-      const q = Math.max(1, Number(item.quantity) || 1)
-      const basePrice = Number(
-        item.inksterBasePrice ??
-          item.finalUnitPrice ??
-          item.unitPrice ??
-          item.basePrice ??
-          (item.lineTotal ? item.lineTotal / q : 0)
-      )
-      const surcharge = Number(
-        item.surchargeAmount ?? (basePrice > 0 ? basePrice * 0.08 : 0)
-      )
-      return {
-        ...item,
-        quantity: q,
-        inksterBasePrice: basePrice,
-        surchargeAmount: surcharge,
-        discountAmount: Number(item.discountAmount ?? 0),
-        category: item.category || "entry",
-        lineHardwareTotal: Number(
-          item.lineHardwareTotal ?? item.hardwarePrice ?? 0
-        ),
-        unitLabour: Number(item.unitLabour ?? 0),
-        upchargesTotal: Number(item.upchargesTotal ?? 0),
-        lineMiscTotal: Number(item.lineMiscTotal ?? item.unitMisc ?? 0),
-      }
-    })
-
-    srcTotals = calculateDoorQuoteTotals({
-      lineItems: normalizedItems,
-      mode:
-        rawData.mode ||
-        (rawData.isSupplyOnly ? "supply_only" : "installation"),
-      travelFeeType: "none", // Deduplicated: attached quotes never duplicate setup/travel fees
-      customTravelFee: "0",
-      showOutTownTravel: false,
-      travelKm: "0",
-      crewHours: "0",
-      crewSize: "2",
-      hstRate: rawData.isFirstNation ? 8 : (rawData.hstRate ?? 13),
-      logistics: DEFAULT_DOOR_LOGISTICS,
-      formula: DEFAULT_DOOR_FORMULA,
-    })
-  }
-
-  const isDoorSupply =
-    rawData.mode === "supply_only" ||
-    Boolean(rawData.isSupplyOnly) ||
-    Boolean(srcTotals.isSupplyOnly)
-
-  const rawDoorBase =
-    srcTotals.rawDoorBaseTotal ??
-    (srcTotals.totalPrice !== undefined
-      ? srcTotals.totalPrice - (srcTotals.stormDoorTotal || 0)
-      : undefined) ??
-    srcTotals.materialsTotal ??
-    draft.subtotal ??
-    0
-  const stormDoorTotal = srcTotals.stormDoorTotal ?? 0
-  const hardwareTotal = srcTotals.hardwareTotal ?? 0
-  const surchargeTotal =
-    srcTotals.surchargeTotal ??
-    srcTotals.surcharge ??
-    Math.round((rawDoorBase + stormDoorTotal) * 0.08 * 100) / 100
-  const discountTotal = srcTotals.discountTotal ?? srcTotals.discount ?? 0
-
-  // Deduplicate setup and travel: attached door labour is strictly unitLabour + upcharges (0 in supply mode)
-  const rawPureLabour =
-    srcTotals.doorPureLabourTotal !== undefined
-      ? Number(srcTotals.doorPureLabourTotal)
-      : srcTotals.unitLabourTotal !== undefined || srcTotals.upchargesTotal !== undefined
-        ? Number(srcTotals.unitLabourTotal || 0) + Number(srcTotals.upchargesTotal || 0)
-        : Math.max(
-            0,
-            Number(srcTotals.combinedLabourTotal ?? srcTotals.combinedLabour ?? 0) -
-              Number(srcTotals.baseSetupFee || 0) -
-              Number(srcTotals.totalTravelAndSetup || 0)
-          )
-  const pureLabourTotal = isDoorSupply ? 0 : rawPureLabour
-  const unitLabourTotal = isDoorSupply ? 0 : Number(srcTotals.unitLabourTotal || 0)
-  const upchargesTotal = isDoorSupply ? 0 : Number(srcTotals.upchargesTotal || 0)
-  const miscTotal = isDoorSupply ? 0 : Number(srcTotals.miscTotal ?? srcTotals.misc ?? 0)
-
-  const subtotalPreTax = Math.round(
-    ((rawDoorBase + stormDoorTotal + hardwareTotal) +
-      surchargeTotal +
-      pureLabourTotal +
-      miscTotal -
-      discountTotal) *
-      100
-  ) / 100
-
-  const hstRate = rawData.isFirstNation ? 8 : (srcTotals.hstRate ?? 13)
-  let tax = 0
-  if (hstRate === 13) {
-    tax = Math.round(subtotalPreTax * 0.13 * 100) / 100
-  } else if (hstRate === 8) {
-    const mats = Math.max(0, (rawDoorBase + stormDoorTotal + hardwareTotal) - discountTotal)
-    const hBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
-    const ex = Math.round(mats * 0.08 * 100) / 100
-    tax = Math.max(0, Math.round((hBase - ex) * 100) / 100)
-  }
-  const grandTotal = Math.round((subtotalPreTax + tax) * 100) / 100
-
-  return {
-    draftId: draft.id,
-    rawDraft: draft,
-    updatedAt: draft.updatedAt,
-    quoteNumber: draft.quoteNumber,
-    customerName: draft.customerName,
-    itemCount: draft.itemCount,
-    type: "door",
-    lineItems,
-    summaryLabel: doorSentence,
-    summarySentence: doorSentence,
-    discountLabel:
-      rawData.discountLabel || (draft as any).discountLabel || "Door Discount",
-    totals: {
-      grandTotal,
-      subtotalPreTax,
-      rawDoorBaseTotal: rawDoorBase,
-      totalPrice: rawDoorBase + stormDoorTotal,
-      stormDoorTotal,
-      hardwareTotal,
-      materialsTotal: rawDoorBase + stormDoorTotal + hardwareTotal,
-      combinedLabourTotal: pureLabourTotal,
-      doorPureLabourTotal: pureLabourTotal,
-      miscTotal,
-      surchargeTotal,
-      discountTotal,
-      hstAmount: tax,
-      depositAmount: Math.round(grandTotal * 0.5 * 100) / 100,
-      unitLabourTotal,
-      upchargesTotal,
-      baseSetupFee: 0,
-      totalTravelAndSetup: 0,
-    },
-    taxTotals: {
-      ...srcTotals,
-      subtotalPreTax,
-      grandTotal,
-      combinedLabourTotal: pureLabourTotal,
-      baseSetupFee: 0,
-      totalTravelAndSetup: 0,
-    },
-    isInstallation: !isDoorSupply,
-    globalUpcharges: rawData.globalUpcharges || [],
-    hstRate,
-  }
-}
+export { buildDoorAttachPayload } from "./door-attach-payload-builder"
 
 export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
   const rawData = (draft.data as any) || {}
-  const lineItems = rawData.lineItems || (draft as any).lineItems || []
+  const lineItems =
+    rawData.lineItems ||
+    rawData.windows ||
+    (draft as any).lineItems ||
+    (draft as any).windows ||
+    []
   const isSUSupply = Boolean(rawData.isSupplyOnly || rawData.mode === "supply_only")
-  const calculatedTotals =
+  const srcTotals =
     rawData.totals ||
-    calculateSealedUnitTotals({
-      lineItems,
-      isInstallation: !isSUSupply && Boolean(rawData.isInstallation),
-      travelFeeType: "none", // Deduplicated: attached quotes never duplicate setup/travel fees
-      customTravelFee: "0",
-      showOutTownTravel: false,
-      travelKm: "",
-      crewHours: "",
-      crewSize: "2",
-      hstRate: rawData.hstRate ?? 13,
-      globalUpcharges: rawData.globalUpcharges || [],
-    })
+    rawData.taxTotals ||
+    (draft as any).taxTotals ||
+    (draft as any).totals ||
+    {}
+
+  const calculatedTotals =
+    srcTotals.glassBefore8PercentTotal !== undefined || srcTotals.unitLabourSum !== undefined
+      ? { ...srcTotals }
+      : calculateSealedUnitTotals({
+          lineItems,
+          isInstallation: !isSUSupply && Boolean(rawData.isInstallation),
+          travelFeeType: "none", // Deduplicated: attached quotes never duplicate setup/travel fees
+          customTravelFee: "0",
+          showOutTownTravel: false,
+          travelKm: "",
+          crewHours: "",
+          crewSize: "2",
+          hstRate: rawData.hstRate ?? 13,
+          globalUpcharges: rawData.globalUpcharges || [],
+        })
 
   if (isSUSupply) {
     calculatedTotals.unitLabourSum = 0
@@ -212,10 +49,30 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     calculatedTotals.totalTravelAndSetup = 0
   }
 
+  const suExtraLabour = Number(
+    calculatedTotals.extraLabour ??
+      (Array.isArray(rawData.globalUpcharges)
+        ? rawData.globalUpcharges.reduce(
+            (acc: number, u: any) =>
+              acc + (parseFloat(String(u.price || u.rate || u.total || 0)) || 0),
+            0
+          )
+        : 0)
+  )
+  calculatedTotals.extraLabour = suExtraLabour
+
   const isService = rawData.sealedUnitMode === "service_only"
   const summarySentence = isService
     ? getSealedUnitServiceSummaryLabel(lineItems, calculatedTotals.totalSqft)
     : formatSealedUnitSummarySentence(lineItems)
+
+  const pureUnitLabour = Number(
+    isService
+      ? calculatedTotals.serviceLabourTotal || 0
+      : calculatedTotals.unitLabourSum || 0
+  )
+  const pureLabourTotal = isSUSupply ? 0 : pureUnitLabour + suExtraLabour
+  calculatedTotals.pureLabourTotal = pureLabourTotal
 
   return {
     draftId: draft.id,
@@ -238,17 +95,34 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
 
 export function buildWindowAttachPayload(draft: QuoteDraftItem) {
   const rawData = (draft.data as any) || {}
+  const windows = rawData.windows || (draft as any).windows || []
   const rawRate = Number(rawData.surchargeRate ?? 8)
   const decimalRate = rawRate > 1 ? rawRate / 100 : rawRate
-  const baseDollars = Number(
+
+  let baseDollars = Number(
     rawData.effectiveBase ??
       (rawData.quoteResult?.base
         ? rawData.quoteResult.base / 100
         : rawData.subtotal || draft.subtotal || 0)
   )
+  if (baseDollars === 0 && windows.length > 0) {
+    baseDollars = windows.reduce((acc: number, w: any) => {
+      const q = Math.max(1, Number(w.qty || w.quantity) || 1)
+      const itemBase =
+        (parseFloat(String(w.base || 0)) || 0) +
+        (parseFloat(String(w.argon || 0)) || 0) +
+        (parseFloat(String(w.solar || 0)) || 0) +
+        (parseFloat(String(w.triple || 0)) || 0)
+      return acc + itemBase * q
+    }, 0)
+  }
 
   let surchargeDollars: number
-  if (rawData.effectiveSurcharge !== undefined && rawData.effectiveSurcharge !== null && Number(rawData.effectiveSurcharge) <= baseDollars) {
+  if (
+    rawData.effectiveSurcharge !== undefined &&
+    rawData.effectiveSurcharge !== null &&
+    Number(rawData.effectiveSurcharge) <= baseDollars
+  ) {
     surchargeDollars = Number(rawData.effectiveSurcharge)
   } else if (rawData.quoteResult?.surcharge && rawData.quoteResult.surcharge / 100 <= baseDollars) {
     surchargeDollars = rawData.quoteResult.surcharge / 100
@@ -256,15 +130,75 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     surchargeDollars = Math.round(baseDollars * decimalRate * 100) / 100
   }
 
-  const labourDollars = rawData.effectiveLabour ?? (rawData.customLabour !== undefined ? rawData.customLabour : Number(rawData.taxTotals?.finalLabour ?? rawData.taxTotals?.labourTotal ?? 0))
-  const miscDollars = rawData.effectiveMisc ?? (rawData.customMisc !== undefined ? rawData.customMisc : Number(rawData.taxTotals?.finalMisc ?? rawData.taxTotals?.miscTotal ?? 0))
-  const jcDollars = rawData.effectiveJC ?? (rawData.customJC !== undefined ? rawData.customJC : Number(rawData.taxTotals?.finalJC ?? rawData.taxTotals?.jcTotal ?? 0))
+  // Deduplicate setup/travel fees: pure window labour is labourWindows (or finalLabour minus extras)
+  const pureWindowLabour = Number(
+    rawData.taxTotals?.labourWindows ??
+      (rawData.taxTotals?.finalLabour !== undefined
+        ? Math.max(0, Number(rawData.taxTotals.finalLabour) - Number(rawData.taxTotals?.extras || 0))
+        : undefined)
+  )
+
+  let labourDollars = 0
+  if (rawData.customLabour !== undefined && String(rawData.customLabour).trim() !== "") {
+    labourDollars = parseFloat(String(rawData.customLabour)) || 0
+  } else if (pureWindowLabour !== undefined && !isNaN(pureWindowLabour)) {
+    labourDollars = pureWindowLabour
+  } else if (rawData.taxTotals?.finalLabour !== undefined) {
+    labourDollars = Number(rawData.taxTotals.finalLabour) || 0
+  } else if (rawData.taxTotals?.labourTotal !== undefined) {
+    labourDollars = Number(rawData.taxTotals.labourTotal) || 0
+  } else if (rawData.taxTotals?.standardLabourCents !== undefined) {
+    labourDollars = Number(rawData.taxTotals.standardLabourCents) / 100
+  } else if (rawData.effectiveLabour !== undefined) {
+    const eff = Number(rawData.effectiveLabour)
+    labourDollars = eff > 1000 ? eff / 100 : eff
+  }
+
+  let miscDollars = 0
+  if (rawData.customMisc !== undefined && String(rawData.customMisc).trim() !== "") {
+    miscDollars = parseFloat(String(rawData.customMisc)) || 0
+  } else if (rawData.taxTotals?.finalMisc !== undefined) {
+    miscDollars = Number(rawData.taxTotals.finalMisc) || 0
+  } else if (rawData.taxTotals?.miscTotal !== undefined) {
+    miscDollars = Number(rawData.taxTotals.miscTotal) || 0
+  } else if (rawData.taxTotals?.miscLabourCents !== undefined) {
+    miscDollars = Number(rawData.taxTotals.miscLabourCents) / 100
+  } else if (rawData.effectiveMisc !== undefined) {
+    const eff = Number(rawData.effectiveMisc)
+    miscDollars = eff > 1000 ? eff / 100 : eff
+  }
+
+  let jcDollars = 0
+  if (rawData.customJC !== undefined && String(rawData.customJC).trim() !== "") {
+    jcDollars = parseFloat(String(rawData.customJC)) || 0
+  } else if (rawData.taxTotals?.finalJC !== undefined && Number(rawData.taxTotals.finalJC) > 0) {
+    jcDollars = Number(rawData.taxTotals.finalJC) || 0
+  } else if (rawData.taxTotals?.jcTotal !== undefined && Number(rawData.taxTotals.jcTotal) > 0) {
+    jcDollars = Number(rawData.taxTotals.jcTotal) || 0
+  } else if (rawData.taxTotals?.jcLabourCents !== undefined && Number(rawData.taxTotals.jcLabourCents) > 0) {
+    jcDollars = Number(rawData.taxTotals.jcLabourCents) / 100
+  } else if (rawData.effectiveJC !== undefined && Number(rawData.effectiveJC) > 0) {
+    const eff = Number(rawData.effectiveJC)
+    jcDollars = eff > 1000 ? eff / 100 : eff
+  } else {
+    const jRate = Number(rawData.supplyJambRate || rawData.taxTotals?.selectedJamb?.total || rawData.taxTotals?.selectedJamb?.rate || 0)
+    const cRate = Number(rawData.supplyCasingRate || rawData.taxTotals?.selectedCasing?.total || rawData.taxTotals?.selectedCasing?.rate || 0)
+    jcDollars = jRate + cRate
+  }
+
+  const customMaterialsList = Array.isArray(rawData.taxTotals?.customMaterials)
+    ? rawData.taxTotals.customMaterials
+    : Array.isArray(rawData.customMaterials)
+      ? rawData.customMaterials
+      : []
+  const customMaterialsDollars = customMaterialsList.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0)
+
   const promoDiscountDollars = (rawData.quoteResult?.promoDiscount ? rawData.quoteResult.promoDiscount / 100 : 0) || rawData.promoDiscount || 0
   const promoName = rawData.quoteResult?.promoName || rawData.activePromoName || ""
   const hasJamb = Boolean(rawData.taxTotals?.selectedJamb && (Number(rawData.taxTotals.selectedJamb.total) > 0 || Number(rawData.taxTotals.selectedJamb.rate) > 0))
   const hasCasing = Boolean(rawData.taxTotals?.selectedCasing && (Number(rawData.taxTotals.selectedCasing.total) > 0 || Number(rawData.taxTotals.selectedCasing.rate) > 0))
   const jcLabel = hasJamb && hasCasing ? "Jambs & Casing" : hasJamb ? "Jambs Only" : hasCasing ? "Casing Only" : "Jambs & Casing"
-  const windowSentence = formatWindowSummarySentence(rawData.windows || [])
+  const windowSentence = formatWindowSummarySentence(windows)
   const finalSentence = windowSentence !== "0 Windows" ? windowSentence : draft.summaryLabel || "Windows & Glazing"
 
   return {
@@ -275,7 +209,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     customerName: draft.customerName,
     itemCount: draft.itemCount,
     type: "window",
-    windows: rawData.windows || [],
+    windows,
     summaryLabel: finalSentence,
     summarySentence: finalSentence,
     jcLabel: jcDollars > 0 ? jcLabel : "",
@@ -286,8 +220,11 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
       base: baseDollars,
       surcharge: surchargeDollars,
       labour: labourDollars,
+      fullLabour: Number(rawData.taxTotals?.finalLabour || labourDollars),
       misc: miscDollars,
       jc: jcDollars,
+      customMaterials: customMaterialsDollars,
+      customMaterialsList,
       promoDiscount: promoDiscountDollars,
     },
     taxTotals: rawData.taxTotals,

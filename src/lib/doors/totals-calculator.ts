@@ -159,22 +159,31 @@ export function computeEffectiveDoorGrandTotal(p: {
   const winJC = hasAttachedWindow
     ? (attachedWindowQuote.totals?.jc ?? attachedWindowQuote.jcDollars ?? 0)
     : 0
+  const winCustomMaterials = hasAttachedWindow
+    ? Number(
+        attachedWindowQuote.totals?.customMaterials ??
+          (Array.isArray(attachedWindowQuote.taxTotals?.customMaterials)
+            ? attachedWindowQuote.taxTotals.customMaterials.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0)
+            : 0)
+      )
+    : 0
   const winDiscount = hasAttachedWindow
     ? (attachedWindowQuote.totals?.promoDiscount ||
         attachedWindowQuote.quoteResult?.promoDiscount ||
         attachedWindowQuote.data?.promoDiscount || 0) / (attachedWindowQuote.quoteResult?.promoDiscount ? 100 : 1)
     : 0
   const suGlass = hasAttachedSU ? attachedSealedUnit.totals?.glassBefore8PercentTotal || 0 : 0
-  const winLabour = hasAttachedWindow ? attachedWindowQuote.totals?.labour || 0 : 0
+  const winLabour = hasAttachedWindow ? Number(attachedWindowQuote.totals?.labour || 0) : 0
+  const suExtraLabour = hasAttachedSU ? Number(attachedSealedUnit.totals?.extraLabour || 0) : 0
   const suLabour = hasAttachedSU
     ? (attachedSealedUnit.sealedUnitMode === "service_only"
-      ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0)
-      : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0))
+      ? Number(attachedSealedUnit.totals?.serviceLabourTotal || 0) + suExtraLabour
+      : Number(attachedSealedUnit.totals?.unitLabourSum || attachedSealedUnit.totals?.combinedLabourTotal || 0) + suExtraLabour)
     : 0
-  const winMisc = hasAttachedWindow ? attachedWindowQuote.totals?.misc || 0 : 0
-  const suMisc = hasAttachedSU ? attachedSealedUnit.totals?.miscTotal || 0 : 0
-  const winSurcharge = hasAttachedWindow ? attachedWindowQuote.totals?.surcharge || 0 : 0
-  const suSurcharge = hasAttachedSU ? attachedSealedUnit.totals?.glass8PercentSurchargeTotal || 0 : 0
+  const winMisc = hasAttachedWindow ? Number(attachedWindowQuote.totals?.misc || 0) : 0
+  const suMisc = hasAttachedSU ? Number(attachedSealedUnit.totals?.miscTotal || 0) : 0
+  const winSurcharge = hasAttachedWindow ? Number(attachedWindowQuote.totals?.surcharge || 0) : 0
+  const suSurcharge = hasAttachedSU ? Number(attachedSealedUnit.totals?.glass8PercentSurchargeTotal || 0) : 0
 
   const effectiveDoorDiscount = customDiscount !== ""
     ? Math.max(0, parseFloat(customDiscount) || 0)
@@ -196,7 +205,7 @@ export function computeEffectiveDoorGrandTotal(p: {
 
   const combinedSurcharge = totals.surchargeTotal + winSurcharge + suSurcharge
   const combinedSubtotal = Math.round(
-    (netDoorMaterials + (winBase - winDiscount) + winJC + suGlass + combinedLabour + combinedMisc + combinedSurcharge) * 100
+    (netDoorMaterials + (winBase - winDiscount) + winJC + winCustomMaterials + suGlass + combinedLabour + combinedMisc + combinedSurcharge) * 100
   ) / 100
 
   let combinedTax = totals.hstAmount
@@ -205,7 +214,7 @@ export function computeEffectiveDoorGrandTotal(p: {
   if (totals.hstAmount === 0 && !isFirstNation) {
     combinedTax = 0
   } else if (isFirstNation) {
-    const mat = netDoorMaterials + (winBase - winDiscount + winJC) + suGlass
+    const mat = netDoorMaterials + (winBase - winDiscount + winJC + winCustomMaterials) + suGlass
     const combinedMaterialExemption = Math.round(mat * 0.08 * 100) / 100
     combinedTax = Math.max(0, Math.round((combinedHstBase - combinedMaterialExemption) * 100) / 100)
   } else {
