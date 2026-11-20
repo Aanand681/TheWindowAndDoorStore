@@ -140,6 +140,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
   return {
     draftId: draft.id,
     rawDraft: draft,
+    updatedAt: draft.updatedAt,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,
@@ -218,6 +219,7 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
   return {
     draftId: draft.id,
     rawDraft: draft,
+    updatedAt: draft.updatedAt,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,
@@ -266,6 +268,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
   return {
     draftId: draft.id,
     rawDraft: draft,
+    updatedAt: draft.updatedAt,
     quoteNumber: draft.quoteNumber,
     customerName: draft.customerName,
     itemCount: draft.itemCount,

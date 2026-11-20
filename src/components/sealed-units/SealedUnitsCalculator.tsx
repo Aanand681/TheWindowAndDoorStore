@@ -29,6 +29,7 @@ import {
   useSealedUnitsReviewActions,
   WorkspaceSetters,
 } from "@/hooks/sealed-units"
+import { useSealedUnitsAttachedSync } from "@/hooks/sealed-units/useSealedUnitsAttachedSync"
 import { SealedUnitsHeaderBar } from "@/components/sealed-units/page/SealedUnitsHeaderBar"
 import { SealedUnitsModalsGroup } from "@/components/sealed-units/page/SealedUnitsModalsGroup"
 import { isWorkspaceDirtyOrUnsaved } from "@/lib/quote-drafts-storage"
@@ -145,6 +146,15 @@ export function SealedUnitsCalculator(
     initialReviewQuoteId: effectiveQuoteId,
     initialIsEditMode: effectiveEdit,
     originSubTab: effectiveSub,
+  })
+
+  // Auto-sync attached child quotes (windows & doors) when edited in other tabs
+  useSealedUnitsAttachedSync({
+    attachedWindowQuote: drafts.attachedWindowQuote,
+    setAttachedWindowQuote: drafts.setAttachedWindowQuote,
+    attachedDoorQuote: drafts.attachedDoorQuote,
+    setAttachedDoorQuote: drafts.setAttachedDoorQuote,
+    enabled: !reviewLoader.reviewQuote,
   })
 
   const reviewActions = useSealedUnitsReviewActions({

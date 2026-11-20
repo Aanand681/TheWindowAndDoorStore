@@ -13,6 +13,7 @@ import { useDoorAutoSave } from "./useDoorAutoSave"
 import { useDoorReviewSubmit } from "./useDoorReviewSubmit"
 import { useDoorReviewLoader } from "./door-review-loader"
 import { useDoorReviewActions } from "./door-review-actions"
+import { useDoorAttachedSync } from "./useDoorAttachedSync"
 
 export interface UseDoorCalculatorPageOptions {
   initialReviewQuoteId?: string
@@ -265,6 +266,15 @@ export function useDoorCalculatorPage(
     initialReviewQuoteId: options.initialReviewQuoteId,
     initialIsEditMode: options.initialIsEditMode,
     originSubTab: options.originSubTab,
+  })
+
+  // Auto-sync attached child quotes (windows & sealed units) when edited in other tabs
+  useDoorAttachedSync({
+    attachedWindowQuote,
+    setAttachedWindowQuote,
+    attachedSealedUnit,
+    setAttachedSealedUnit,
+    enabled: !reviewLoader.reviewQuote,
   })
 
   const reviewActions = useDoorReviewActions({
