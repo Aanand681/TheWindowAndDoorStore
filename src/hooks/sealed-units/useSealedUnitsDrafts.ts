@@ -4,26 +4,17 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-  saveQuoteDraftDirectly,
   getSavedDrafts,
   clearActiveAutoSave,
-  getActiveAutoSave,
-  isAutoSaveAlreadySaved,
-  isDraftMeaningful,
   isWorkspaceDirtyOrUnsaved,
   QuoteDraftItem,
   DRAFT_CHANGE_EVENT,
   syncRemoteDrafts,
 } from "@/lib/quote-drafts-storage"
-import {
-  SealedUnitLineItem,
-  getSealedUnitServiceSummaryLabel,
-} from "@/lib/sealed-units-logic"
+import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
 import {
-  serializeSealedUnitSnapshot,
   applyDraftDataToWorkspace,
-  createDraftSavePayload,
   WorkspaceSetters,
 } from "./sealed-units-storage-helpers"
 import {
@@ -31,6 +22,8 @@ import {
   writeSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useSealedUnitsAutoSave } from "./useSealedUnitsAutoSave"
+import { createSealedUnitsConflictHandlers } from "./sealed-units-draft-conflict"
+import { executeSaveSealedUnitDraft } from "./sealed-units-draft-saver"
 
 export interface SealedUnitFormInputs {
   sealedUnitMode: "installation" | "supply_only" | "service_only"
@@ -53,16 +46,12 @@ export interface SealedUnitFormInputs {
 }
 
 export interface SealedUnitFormSetters {
-  setSealedUnitMode: (
-    mode: "installation" | "supply_only" | "service_only"
-  ) => void
+  setSealedUnitMode: (mode: "installation" | "supply_only" | "service_only") => void
   setIsInstallation: (val: boolean) => void
   setServiceSqftInput: (val: string) => void
   setServiceLabourRateInput: (val: string) => void
   setServiceMiscRateInput: (val: string) => void
-  setTravelFeeType: (
-    val: "none" | "local_std" | "far_std" | "far_small" | "custom"
-  ) => void
+  setTravelFeeType: (val: "none" | "local_std" | "far_std" | "far_small" | "custom") => void
   setCustomTravelFee: (val: string) => void
   setShowOutTownTravel: (val: boolean) => void
   setTravelKm: (val: string) => void
@@ -84,46 +73,28 @@ interface UseSealedUnitsDraftsProps {
 }
 
 export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
-  const { lineItems, setLineItems, formInputs, formSetters, totals, regions } =
-    props
+  const { lineItems, setLineItems, formInputs, formSetters, totals, regions } = props
   const {
-    sealedUnitMode,
-    isInstallation,
-    isServiceOnly,
-    serviceSqftInput,
-    serviceLabourRateInput,
-    serviceMiscRateInput,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-    extraLabour,
-    hstRate,
-    selectedRegionId,
-    regionName,
+    sealedUnitMode, isInstallation, isServiceOnly, serviceSqftInput,
+    serviceLabourRateInput, serviceMiscRateInput, travelFeeType, customTravelFee,
+    showOutTownTravel, travelKm, crewHours, crewSize, extraLabour, hstRate,
+    selectedRegionId, regionName,
   } = formInputs
 
   const router = useRouter()
-  const generateQuoteNumber = () =>
-    Math.floor(100000 + Math.random() * 900000).toString()
+  const generateQuoteNumber = () => Math.floor(100000 + Math.random() * 900000).toString()
 
   const [quoteNumber, setQuoteNumber] = useState<string>("")
   const [customerName, setCustomerName] = useState<string>("")
   const [quoteNotes, setQuoteNotes] = useState<string>("")
-
   const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState<boolean>(false)
   const [isAttachModalOpen, setIsAttachModalOpen] = useState<boolean>(false)
-  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(
-    null
-  )
+  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null)
   const [attachedDoorQuote, setAttachedDoorQuote] = useState<any | null>(null)
   const [savedDraftsCount, setSavedDraftsCount] = useState<number>(0)
   const [showResetModal, setShowResetModal] = useState<boolean>(false)
   const [showConflictModal, setShowConflictModal] = useState<boolean>(false)
-  const [pendingDraftToLoad, setPendingDraftToLoad] =
-    useState<QuoteDraftItem | null>(null)
+  const [pendingDraftToLoad, setPendingDraftToLoad] = useState<QuoteDraftItem | null>(null)
 
   const cleanUrlLoadDraftId = () => {
     if (typeof window === "undefined") return
@@ -134,63 +105,26 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
 
   const setters: WorkspaceSetters = useMemo(
     () => ({
-      setQuoteNumber,
-      setCustomerName,
-      setQuoteNotes,
-      setLineItems,
-      setAttachedWindowQuote,
-      setAttachedDoorQuote,
-      regions,
-      ...formSetters,
+      setQuoteNumber, setCustomerName, setQuoteNotes, setLineItems,
+      setAttachedWindowQuote, setAttachedDoorQuote, regions, ...formSetters,
     }),
     [setLineItems, formSetters, regions]
   )
 
   const currentSnapshotParams = useMemo(
     () => ({
-      quoteNumber,
-      customerName,
-      lineItems,
-      sealedUnitMode,
-      isInstallation,
-      serviceSqftInput,
-      serviceLabourRateInput,
-      serviceMiscRateInput,
-      travelFeeType,
-      customTravelFee,
-      showOutTownTravel,
-      travelKm,
-      crewHours,
-      crewSize,
-      extraLabour: extraLabour || "",
-      globalUpcharges: (formInputs as any)?.globalUpcharges || [],
-      hstRate,
-      selectedRegionId: selectedRegionId || "",
-      regionName: regionName || "",
-      attachedWindowQuote,
-      attachedDoorQuote,
+      quoteNumber, customerName, lineItems, sealedUnitMode, isInstallation,
+      serviceSqftInput, serviceLabourRateInput, serviceMiscRateInput, travelFeeType,
+      customTravelFee, showOutTownTravel, travelKm, crewHours, crewSize,
+      extraLabour: extraLabour || "", globalUpcharges: (formInputs as any)?.globalUpcharges || [],
+      hstRate, selectedRegionId: selectedRegionId || "", regionName: regionName || "",
+      attachedWindowQuote, attachedDoorQuote,
     }),
     [
-      quoteNumber,
-      customerName,
-      lineItems,
-      sealedUnitMode,
-      isInstallation,
-      serviceSqftInput,
-      serviceLabourRateInput,
-      serviceMiscRateInput,
-      travelFeeType,
-      customTravelFee,
-      showOutTownTravel,
-      travelKm,
-      crewHours,
-      crewSize,
-      extraLabour,
-      hstRate,
-      selectedRegionId,
-      regionName,
-      attachedWindowQuote,
-      attachedDoorQuote,
+      quoteNumber, customerName, lineItems, sealedUnitMode, isInstallation,
+      serviceSqftInput, serviceLabourRateInput, serviceMiscRateInput, travelFeeType,
+      customTravelFee, showOutTownTravel, travelKm, crewHours, crewSize,
+      extraLabour, hstRate, selectedRegionId, regionName, attachedWindowQuote, attachedDoorQuote,
     ]
   )
 
@@ -208,15 +142,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       }
 
       const isDirty = isWorkspaceDirtyOrUnsaved("sealed_unit", {
-        quoteNumber,
-        customerName,
-        itemCount: lineItems.length,
-        grandTotal: totals.grandTotal,
-        data: {
-          lineItems,
-          attachedWindowQuote,
-          attachedDoorQuote,
-        },
+        quoteNumber, customerName, itemCount: lineItems.length, grandTotal: totals.grandTotal,
+        data: { lineItems, attachedWindowQuote, attachedDoorQuote },
       })
 
       if (isDirty) {
@@ -234,28 +161,12 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       setIsSavedQuotesOpen(false)
       toast.success(`Loaded Sealed Unit Quote #${draft.quoteNumber}`)
     },
-    [
-      router,
-      setters,
-      quoteNumber,
-      customerName,
-      lineItems,
-      totals.grandTotal,
-      attachedWindowQuote,
-      attachedDoorQuote,
-    ]
+    [router, setters, quoteNumber, customerName, lineItems, totals.grandTotal, attachedWindowQuote, attachedDoorQuote]
   )
 
   const autoSave = useSealedUnitsAutoSave({
-    currentSnapshotParams,
-    quoteNotes,
-    totals,
-    lineItems,
-    isServiceOnly,
-    serviceSqftInput,
-    attachedWindowQuote,
-    attachedDoorQuote,
-    setters,
+    currentSnapshotParams, quoteNotes, totals, lineItems, isServiceOnly,
+    serviceSqftInput, attachedWindowQuote, attachedDoorQuote, setters,
     loadDraftIntoWorkspace,
     onConflictDetected: (match) => {
       setPendingDraftToLoad(match)
@@ -263,123 +174,23 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     },
   })
 
-  const handleSaveDraft = useCallback(async () => {
-    const hasMeaningfulContent =
-      lineItems.length > 0 ||
-      (isServiceOnly &&
-        ((totals.totalSqft || 0) > 0 || serviceSqftInput.trim() !== "")) ||
-      Boolean(attachedWindowQuote) ||
-      Boolean(attachedDoorQuote)
+  const handleSaveDraft = useCallback(
+    () => executeSaveSealedUnitDraft({
+      lineItems, isServiceOnly, totals, serviceSqftInput, attachedWindowQuote,
+      attachedDoorQuote, customerName, quoteNumber, setQuoteNumber, generateQuoteNumber,
+      quoteNotes, currentSnapshotParams,
+      clearTimerAndSaveSnapshot: autoSave.clearTimerAndSaveSnapshot,
+    }),
+    [lineItems, isServiceOnly, totals, serviceSqftInput, attachedWindowQuote, attachedDoorQuote, customerName, quoteNumber, quoteNotes, currentSnapshotParams, autoSave.clearTimerAndSaveSnapshot]
+  )
 
-    if (!hasMeaningfulContent) {
-      toast.error(
-        "Add at least one sealed unit, service sqft, or attach a quote before saving."
-      )
-      return null
-    }
-
-    if (!customerName.trim()) {
-      toast.error("Customer name is required before saving a quote.")
-      return null
-    }
-
-    const effectiveQuoteNumber = quoteNumber.trim() || generateQuoteNumber()
-    if (!quoteNumber.trim()) {
-      setQuoteNumber(effectiveQuoteNumber)
-    }
-
-    const panesCount = lineItems
-      .map((l) => `${l.paneType === "triple" ? "Triple" : "Dual"} Pane`)
-      .slice(0, 3)
-      .join(", ")
-    const summaryTypeDesc = isServiceOnly
-      ? getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)
-      : lineItems.length > 0
-        ? `${lineItems.length} Sealed Units (${panesCount}${lineItems.length > 3 ? "..." : ""})`
-        : "0 Sealed Units"
-
-    const payload = createDraftSavePayload({
-      ...currentSnapshotParams,
-      quoteNumber: effectiveQuoteNumber,
-      quoteNotes,
-      totals,
-    })
-
-    try {
-      const saved = await saveQuoteDraftDirectly({
-        type: "sealed_unit",
-        quoteNumber: effectiveQuoteNumber,
-        customerName: customerName.trim() || "Unnamed Customer",
-        itemCount:
-          isServiceOnly && lineItems.length === 0
-            ? 1
-            : lineItems.reduce((acc, it) => acc + it.quantity, 0),
-        subtotal: totals.subtotalPreTax || 0,
-        grandTotal: totals.grandTotal || 0,
-        summaryLabel: summaryTypeDesc,
-        data: payload,
-      })
-
-      const snapshotString = serializeSealedUnitSnapshot({
-        ...currentSnapshotParams,
-        quoteNumber: effectiveQuoteNumber,
-      })
-      autoSave.clearTimerAndSaveSnapshot(snapshotString)
-
-      toast.success(
-        `Sealed Unit Quote #${effectiveQuoteNumber} saved directly to database!`
-      )
-      return saved
-    } catch (err) {
-      console.error("Failed to save sealed unit draft to database:", err)
-      toast.error(
-        "Failed to save draft to database. Please check your connection and try again."
-      )
-      return null
-    }
-  }, [
-    lineItems,
-    isServiceOnly,
-    totals,
-    attachedWindowQuote,
-    attachedDoorQuote,
-    customerName,
-    quoteNumber,
-    currentSnapshotParams,
-    quoteNotes,
-    autoSave,
-  ])
-
-  const handleConflictSaveExistingAndLoad = useCallback(async () => {
-    if (!pendingDraftToLoad) return
-    const saved = await handleSaveDraft()
-    if (saved) {
-      applyDraftDataToWorkspace(pendingDraftToLoad.data, setters)
-      clearActiveAutoSave("sealed_unit")
-      toast.success(
-        `Loaded Sealed Unit Quote #${pendingDraftToLoad.quoteNumber}`
-      )
-      setShowConflictModal(false)
-      setPendingDraftToLoad(null)
-      cleanUrlLoadDraftId()
-    }
-  }, [pendingDraftToLoad, handleSaveDraft, setters])
-
-  const handleConflictContinueWithNew = useCallback(() => {
-    if (!pendingDraftToLoad) return
-    applyDraftDataToWorkspace(pendingDraftToLoad.data, setters)
-    clearActiveAutoSave("sealed_unit")
-    toast.success(`Loaded Sealed Unit Quote #${pendingDraftToLoad.quoteNumber}`)
-    setShowConflictModal(false)
-    setPendingDraftToLoad(null)
-    cleanUrlLoadDraftId()
-  }, [pendingDraftToLoad, setters])
-
-  const handleConflictCancel = useCallback(() => {
-    setShowConflictModal(false)
-    setPendingDraftToLoad(null)
-    cleanUrlLoadDraftId()
-  }, [])
+  const conflictHandlers = useMemo(
+    () => createSealedUnitsConflictHandlers({
+      pendingDraftToLoad, setPendingDraftToLoad, setShowConflictModal,
+      handleSaveDraft, setters, cleanUrlLoadDraftId,
+    }),
+    [pendingDraftToLoad, handleSaveDraft, setters]
+  )
 
   useEffect(() => {
     const updateCount = () => {
@@ -409,33 +220,12 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
   }
 
   return {
-    quoteNumber,
-    setQuoteNumber,
-    generateQuoteNumber,
-    customerName,
-    setCustomerName,
-    quoteNotes,
-    setQuoteNotes,
-    isSavedQuotesOpen,
-    setIsSavedQuotesOpen,
-    isAttachModalOpen,
-    setIsAttachModalOpen,
-    attachedWindowQuote,
-    setAttachedWindowQuote,
-    attachedDoorQuote,
-    setAttachedDoorQuote,
-    savedDraftsCount,
-    lastSavedAt: autoSave.lastSavedAt,
-    showResetModal,
-    setShowResetModal,
-    loadDraftIntoWorkspace,
-    handleSaveDraft,
-    handleResetWorkspace,
-    showConflictModal,
-    setShowConflictModal,
-    pendingDraftToLoad,
-    handleConflictSaveExistingAndLoad,
-    handleConflictContinueWithNew,
-    handleConflictCancel,
+    quoteNumber, setQuoteNumber, generateQuoteNumber, customerName, setCustomerName,
+    quoteNotes, setQuoteNotes, isSavedQuotesOpen, setIsSavedQuotesOpen,
+    isAttachModalOpen, setIsAttachModalOpen, attachedWindowQuote, setAttachedWindowQuote,
+    attachedDoorQuote, setAttachedDoorQuote, savedDraftsCount, lastSavedAt: autoSave.lastSavedAt,
+    showResetModal, setShowResetModal, loadDraftIntoWorkspace, handleSaveDraft,
+    handleResetWorkspace, showConflictModal, setShowConflictModal, pendingDraftToLoad,
+    ...conflictHandlers,
   }
 }
