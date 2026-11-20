@@ -29,15 +29,20 @@ export function getInvoiceLabourItems({
 
   const items: { label: string; amount: number }[] = []
 
-  // 1. Window Labour
+  // 1. Window Labour (Pure base installation labour, excluding add-ons)
   if (hasWindows && winLabourCents > 0) {
-    const rawWinLabour = Number(taxTotals?.labourWindows || 0) * 100
+    const rawWinLabour =
+      taxTotals?.wLab !== undefined
+        ? Math.round(Number(taxTotals.wLab) * 100)
+        : taxTotals?.aLab !== undefined && taxTotals?.labourWindows !== undefined
+          ? Math.round((Number(taxTotals.labourWindows) - Number(taxTotals.aLab)) * 100)
+          : Number(taxTotals?.labourWindows || 0) * 100
     const count = effectiveWindows.length
     const label =
       count > 0
         ? `Window installation labour (${count} unit${count !== 1 ? "s" : ""})`
         : "Window installation labour"
-    const amount = rawWinLabour > 0 ? Math.round(rawWinLabour) : winLabourCents
+    const amount = rawWinLabour > 0 ? rawWinLabour : winLabourCents
     items.push({ label, amount })
   }
 

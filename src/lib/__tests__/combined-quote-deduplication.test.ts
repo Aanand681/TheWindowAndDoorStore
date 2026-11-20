@@ -240,6 +240,28 @@ describe("Combined Quote Travel & Setup Deduplication and Supply/Install Modes",
     })
   })
 
+  it("isolates pure window base installation labour from extra add-on labour", () => {
+    const items = getInvoiceLabourItems({
+      isSupplyOnly: false,
+      hasWindows: true,
+      winLabourCents: 63200,
+      effectiveWindows: [{}, {}],
+      taxTotals: {
+        wLab: 602,
+        aLab: 30,
+        labourWindows: 632,
+      },
+      hasDoors: false,
+      hasSealedUnits: false,
+    })
+
+    expect(items).toHaveLength(1)
+    expect(items[0]).toEqual({
+      label: "Window installation labour (2 units)",
+      amount: 60200,
+    })
+  })
+
   it("returns an empty labour breakdown in Supply Only mode for PDF", () => {
     const items = getInvoiceLabourItems({
       isSupplyOnly: true,
