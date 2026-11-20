@@ -1,17 +1,8 @@
 "use client"
 
 import React from "react"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { DoorLineItem, DoorQuoteTotals } from "@/lib/doors/types"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
-import { cn } from "@/lib/utils"
 import { DoorSummaryEditableRow } from "./DoorSummaryEditableRow"
 import { DoorSummaryTaxAndTotal } from "./DoorSummaryTaxAndTotal"
 
@@ -40,6 +31,9 @@ export interface DoorSummaryLedgerProps {
   winMisc: number
   suMisc: number
   setCustomMisc?: (val: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  defaultDoorDiscount?: number
   hasAnyAttached: boolean
   combinedSurcharge: number
   winDiscount: number
@@ -52,55 +46,24 @@ export interface DoorSummaryLedgerProps {
   displayGrandTotal: number
   firstPayment: number
   secondPayment: number
-  editingField: "labour" | "misc" | null
-  setEditingField: (field: "labour" | "misc" | null) => void
+  editingField: "labour" | "misc" | "discount" | null
+  setEditingField: (field: "labour" | "misc" | "discount" | null) => void
   tempEditVal: string
   setTempEditVal: (val: string) => void
   isReadOnly?: boolean
 }
 
 export function DoorSummaryLedger({
-  lineItems,
-  totals,
-  isInstallation,
-  hasAttachedWindow,
-  hasAttachedSU,
-  attachedWindowQuote,
-  attachedWinSentence,
-  attachedSUSentence,
-  winBase,
-  winJC,
-  winJCDescription,
-  suGlass,
-  combinedLabour,
-  customLabour,
-  defaultDoorLabour,
-  winLabour,
-  suLabour,
-  setCustomLabour,
-  combinedMisc,
-  customMisc,
-  defaultDoorMisc,
-  winMisc,
-  suMisc,
-  setCustomMisc,
-  hasAnyAttached,
-  combinedSurcharge,
-  winDiscount,
-  combinedSubtotal,
-  isFirstNation,
-  onToggleFirstNation,
-  hstRate,
-  setHstRate,
-  combinedTax,
-  displayGrandTotal,
-  firstPayment,
-  secondPayment,
-  editingField,
-  setEditingField,
-  tempEditVal,
-  setTempEditVal,
-  isReadOnly = false,
+  lineItems, totals, isInstallation, hasAttachedWindow, hasAttachedSU,
+  attachedWindowQuote, attachedWinSentence, attachedSUSentence, winBase,
+  winJC, winJCDescription, suGlass, combinedLabour, customLabour,
+  defaultDoorLabour, winLabour, suLabour, setCustomLabour, combinedMisc,
+  customMisc, defaultDoorMisc, winMisc, suMisc, setCustomMisc,
+  customDiscount = "", setCustomDiscount, defaultDoorDiscount = 0,
+  hasAnyAttached, combinedSurcharge, winDiscount, combinedSubtotal,
+  isFirstNation, onToggleFirstNation, hstRate, setHstRate, combinedTax,
+  displayGrandTotal, firstPayment, secondPayment, editingField,
+  setEditingField, tempEditVal, setTempEditVal, isReadOnly = false,
 }: DoorSummaryLedgerProps) {
   return (
     <div className="space-y-2 text-xs sm:text-sm">
@@ -120,8 +83,7 @@ export function DoorSummaryLedger({
                   {heading}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                  Preset: {item.presetLabel} • $
-                  {item.inksterBasePrice.toFixed(2)}/ea
+                  Preset: {item.presetLabel} • ${item.inksterBasePrice.toFixed(2)}/ea
                 </div>
               </div>
               <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">
@@ -133,16 +95,10 @@ export function DoorSummaryLedger({
       ) : (
         <div className="flex items-start justify-between gap-2 border-b border-border/30 pb-1.5">
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-foreground sm:text-sm">
-              Door Units
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              No doors configured yet
-            </div>
+            <div className="text-xs font-semibold text-foreground sm:text-sm">Door Units</div>
+            <div className="text-[11px] text-muted-foreground">No doors configured yet</div>
           </div>
-          <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">
-            $0.00
-          </div>
+          <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">$0.00</div>
         </div>
       )}
 
@@ -161,27 +117,21 @@ export function DoorSummaryLedger({
 
       {hasAttachedWindow && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
-          <span className="truncate font-medium text-foreground">
-            {attachedWinSentence}
-          </span>
+          <span className="truncate font-medium text-foreground">{attachedWinSentence}</span>
           <span className="font-mono font-semibold text-foreground">+${winBase.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedWindow && winJC > 0 && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
-          <span className="truncate font-medium text-foreground">
-            {winJCDescription}
-          </span>
+          <span className="truncate font-medium text-foreground">{winJCDescription}</span>
           <span className="font-mono font-semibold text-foreground">+${winJC.toFixed(2)}</span>
         </div>
       )}
 
       {hasAttachedSU && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
-          <span className="truncate font-medium text-foreground">
-            {attachedSUSentence}
-          </span>
+          <span className="truncate font-medium text-foreground">{attachedSUSentence}</span>
           <span className="font-mono font-semibold text-foreground">+${suGlass.toFixed(2)}</span>
         </div>
       )}
@@ -223,33 +173,31 @@ export function DoorSummaryLedger({
       )}
 
       <div className="flex items-center justify-between text-xs sm:text-sm">
-        <span className="font-medium text-foreground">
-          Surcharge (8% on materials)
-        </span>
-        <span className="font-mono font-semibold text-foreground">
-          +${combinedSurcharge.toFixed(2)}
-        </span>
+        <span className="font-medium text-foreground">Surcharge (8% on materials)</span>
+        <span className="font-mono font-semibold text-foreground">+${combinedSurcharge.toFixed(2)}</span>
       </div>
 
-      {totals.discountTotal > 0 && (
-        <div className="flex items-center justify-between text-xs sm:text-sm">
-          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            10% Discount
-          </span>
-          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-            -${totals.discountTotal.toFixed(2)}
-          </span>
-        </div>
+      {(totals.discountTotal > 0 || customDiscount !== "" || setCustomDiscount) && (
+        <DoorSummaryEditableRow
+          field="discount"
+          label={customDiscount !== "" ? "Discount" : "10% Discount"}
+          amount={totals.discountTotal}
+          customVal={customDiscount}
+          defaultAmount={defaultDoorDiscount}
+          isInstallation={true}
+          editingField={editingField}
+          setEditingField={setEditingField}
+          tempEditVal={tempEditVal}
+          setTempEditVal={setTempEditVal}
+          setter={setCustomDiscount}
+          isReadOnly={isReadOnly}
+        />
       )}
 
       {winDiscount > 0 && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            Promo Discount (
-            {attachedWindowQuote?.promoName ||
-              attachedWindowQuote?.quoteResult?.promoName ||
-              "Attached Window Promo"}
-            )
+            Promo Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Attached Window Promo"})
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
             -${winDiscount.toFixed(2)}

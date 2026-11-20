@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 export interface EditableLedgerRowProps {
-  field: "jc" | "labour" | "misc"
+  field: "jc" | "labour" | "misc" | "discount"
   label: string
   amountCents: number
   customVal: string
@@ -18,8 +18,8 @@ export interface EditableLedgerRowProps {
   setter: (val: string) => void
   suffix?: string
   isReadOnly?: boolean
-  editingField: "jc" | "labour" | "misc" | null
-  setEditingField: (field: "jc" | "labour" | "misc" | null) => void
+  editingField: "jc" | "labour" | "misc" | "discount" | null
+  setEditingField: (field: "jc" | "labour" | "misc" | "discount" | null) => void
   tempEditVal: string
   setTempEditVal: (val: string) => void
 }
@@ -159,14 +159,18 @@ export function EditableLedgerRow({
         <span
           className={cn(
             "font-mono whitespace-nowrap",
-            amountCents === 0
-              ? "text-xs text-muted-foreground"
-              : isCustom
-                ? "font-bold text-primary"
-                : "font-medium text-foreground"
+            field === "discount"
+              ? "font-bold text-emerald-600 dark:text-emerald-400"
+              : amountCents === 0
+                ? "text-xs text-muted-foreground"
+                : isCustom
+                  ? "font-bold text-primary"
+                  : "font-medium text-foreground"
           )}
         >
-          {amountCents > 0 ? `+${formatMoney(amountCents)}` : "$0.00"}
+          {field === "discount"
+            ? (amountCents > 0 ? `-${formatMoney(amountCents)}` : "$0.00")
+            : (amountCents > 0 ? `+${formatMoney(amountCents)}` : "$0.00")}
         </span>
         {!isReadOnly && (
           <button

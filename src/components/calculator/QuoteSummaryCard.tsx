@@ -40,6 +40,8 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     setCustomMisc,
     customLabour,
     setCustomLabour,
+    customDiscount = "",
+    setCustomDiscount,
     wantsUpgrade,
     setWantsUpgrade,
     upgrade,
@@ -105,7 +107,7 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
       : taxLabour || 0
 
   const [editingField, setEditingField] = React.useState<
-    "jc" | "labour" | "misc" | null
+    "jc" | "labour" | "misc" | "discount" | null
   >(null)
   const [tempEditVal, setTempEditVal] = React.useState<string>("")
   const [isCompareOpen, setIsCompareOpen] = React.useState<boolean>(false)
@@ -242,7 +244,7 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
   }, [dynamicInstallDeltaCents, supplyJCAmount, attachedInstallOption?.enabled])
 
   const renderEditableRow = (
-    field: "jc" | "labour" | "misc",
+    field: "jc" | "labour" | "misc" | "discount",
     label: string,
     amountCents: number,
     customVal: string,
@@ -342,12 +344,14 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                   customJC={customJC}
                   customMisc={customMisc}
                   customLabour={customLabour}
+                  customDiscount={customDiscount}
                   taxJC={taxJC}
                   taxMisc={taxMisc}
                   taxLabour={taxLabour}
                   setCustomJC={setCustomJC}
                   setCustomMisc={setCustomMisc}
                   setCustomLabour={setCustomLabour}
+                  setCustomDiscount={setCustomDiscount}
                   isSupplyOnly={isSupplyOnly}
                   hstRate={hstRate}
                   setHstRate={setHstRate}
@@ -365,12 +369,14 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                   customJC={customJC}
                   customMisc={customMisc}
                   customLabour={customLabour}
+                  customDiscount={customDiscount}
                   taxJC={taxJC}
                   taxMisc={taxMisc}
                   taxLabour={taxLabour}
                   setCustomJC={setCustomJC}
                   setCustomMisc={setCustomMisc}
                   setCustomLabour={setCustomLabour}
+                  setCustomDiscount={setCustomDiscount}
                   isSupplyOnly={isSupplyOnly}
                   surchargeRate={surchargeRate}
                   afterDiscount={afterDiscount}

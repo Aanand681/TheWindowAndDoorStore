@@ -10,7 +10,7 @@ export interface StandardLedgerSectionProps {
   summaryWindowGroups: any[]
   quoteResult: any
   renderEditableRow: (
-    field: "jc" | "labour" | "misc",
+    field: "jc" | "labour" | "misc" | "discount",
     label: string,
     amountCents: number,
     customVal: string,
@@ -25,12 +25,14 @@ export interface StandardLedgerSectionProps {
   customJC: string
   customMisc: string
   customLabour: string
+  customDiscount?: string
   taxJC: number
   taxMisc: number
   taxLabour: number
   setCustomJC: (val: string) => void
   setCustomMisc: (val: string) => void
   setCustomLabour: (val: string) => void
+  setCustomDiscount?: (val: string) => void
   isSupplyOnly: boolean
   surchargeRate: number
   afterDiscount: number
@@ -56,12 +58,14 @@ export function StandardLedgerSection({
   customJC,
   customMisc,
   customLabour,
+  customDiscount = "",
   taxJC,
   taxMisc,
   taxLabour,
   setCustomJC,
   setCustomMisc,
   setCustomLabour,
+  setCustomDiscount,
   isSupplyOnly,
   surchargeRate,
   afterDiscount,
@@ -168,16 +172,20 @@ export function StandardLedgerSection({
           </span>
         </div>
 
-        {/* Promo discount */}
-        {(quoteResult?.promoDiscount || 0) > 0 && (
+        {/* Promo / Custom Discount */}
+        {((quoteResult?.promoDiscount || 0) > 0 || customDiscount !== "" || setCustomDiscount) && (
           <>
-            <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
-              <span>Promo discount</span>
-              <span className="shrink-0 font-mono font-bold whitespace-nowrap">
-                -{formatMoney(quoteResult?.promoDiscount || 0)}
-              </span>
-            </div>
-            {quoteResult?.text && (
+            {renderEditableRow(
+              "discount",
+              customDiscount !== "" ? "Discount" : "Promo discount",
+              customDiscount !== ""
+                ? Math.round((parseFloat(customDiscount) || 0) * 100)
+                : quoteResult?.promoDiscount || 0,
+              customDiscount,
+              quoteResult?.promoDiscount || 0,
+              (val) => setCustomDiscount?.(val)
+            )}
+            {quoteResult?.text && !customDiscount && (
               <p className="my-1.5 flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                 <span>{quoteResult.text}</span>

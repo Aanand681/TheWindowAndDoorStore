@@ -21,6 +21,8 @@ export interface QuoteSummaryCardProps {
   setCustomMisc: (val: string) => void
   customLabour: string
   setCustomLabour: (val: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (val: string) => void
   includeJCInPromo: boolean
   setIncludeJCInPromo: (val: boolean) => void
   includeMiscInPromo: boolean

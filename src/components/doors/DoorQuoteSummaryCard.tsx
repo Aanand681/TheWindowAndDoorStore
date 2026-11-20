@@ -43,6 +43,8 @@ interface DoorQuoteSummaryCardProps {
   setCustomLabour?: (val: string) => void
   customMisc?: string
   setCustomMisc?: (val: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (val: string) => void
   attachedWindowQuote?: any | null
   attachedSealedUnit?: any | null
   onOpenAttachModal?: () => void
@@ -72,6 +74,8 @@ export function DoorQuoteSummaryCard({
   setCustomLabour,
   customMisc = "",
   setCustomMisc,
+  customDiscount = "",
+  setCustomDiscount,
   attachedWindowQuote,
   attachedSealedUnit,
   onRemoveAttachedWindowQuote,
@@ -81,7 +85,7 @@ export function DoorQuoteSummaryCard({
   isReviewMode = false,
   className,
 }: DoorQuoteSummaryCardProps) {
-  const [editingField, setEditingField] = useState<"labour" | "misc" | null>(
+  const [editingField, setEditingField] = useState<"labour" | "misc" | "discount" | null>(
     null
   )
   const [tempEditVal, setTempEditVal] = useState<string>("")
@@ -252,6 +256,7 @@ export function DoorQuoteSummaryCard({
     mode,
     customLabour,
     customMisc,
+    customDiscount,
     isFirstNation,
     attachedWindowQuote,
     attachedSealedUnit,
@@ -333,6 +338,9 @@ export function DoorQuoteSummaryCard({
             winMisc={winMisc}
             suMisc={suMisc}
             setCustomMisc={setCustomMisc}
+            customDiscount={customDiscount}
+            setCustomDiscount={setCustomDiscount}
+            defaultDoorDiscount={lineItems.reduce((acc, item) => item.category !== "storm" ? acc + item.discountAmount * item.quantity : acc, 0)}
             hasAnyAttached={hasAnyAttached}
             combinedSurcharge={combinedSurcharge}
             winDiscount={winDiscount}

@@ -9,6 +9,7 @@ import {
   CUSTOM_PAINT_PRICE,
   CUSTOM_PAINT_DOUBLE_PRICE,
 } from "../storm-door-catalog"
+import { resolveColorHex, getStormDoorColorStyles } from "@/components/doors/storm/storm-door-colors"
 
 describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
   it("contains all 9 York Aluminum storm door styles", () => {
@@ -178,5 +179,24 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       selectedAddonIds: ["screen_interchangeable"],
     })
     expect(desc).toBe("Full-View Storm Door with Interchangeable Screen - Black")
+  })
+
+  it("resolves factory, custom architectural names, and color wheel hexes accurately", () => {
+    expect(resolveColorHex("White")).toBe("#F8FAFC")
+    expect(resolveColorHex("Black")).toBe("#1E1E1E")
+    expect(resolveColorHex("Cranberry")).toBe("#8A1C30")
+    expect(resolveColorHex("Green")).toBe("#2E7D32")
+    expect(resolveColorHex("Forest Green")).toBe("#1E3F20")
+    expect(resolveColorHex("#3498db")).toBe("#3498db")
+
+    const cranStyles = getStormDoorColorStyles("Cranberry")
+    expect(cranStyles.outerFill).toBe("#8A1C30")
+    expect(cranStyles.handleColor).toBe("#E4E4E7") // Light handle on dark paint
+    expect(cranStyles.outerStroke).toBeDefined()
+    expect(cranStyles.kickFill).toBeDefined()
+
+    const whiteStyles = getStormDoorColorStyles("White")
+    expect(whiteStyles.outerFill).toBe("#F8FAFC")
+    expect(whiteStyles.handleColor).toBe("#27272A") // Dark handle on white paint
   })
 })

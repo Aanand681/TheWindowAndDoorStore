@@ -241,5 +241,36 @@ describe("Door Calculations Engine", () => {
       expect(totals.hstAmount).toBe(147.2)
       expect(totals.grandTotal).toBe(totals.subtotalPreTax + 147.2)
     })
+
+    it("should allow overriding discount with customDiscount", () => {
+      const lineItem = buildDoorLineItem({
+        preset: mockEntryPreset,
+        inksterBasePrice: 2000,
+        formula: defaultFormula,
+        quantity: 1,
+        hardwareType: "none",
+      })
+
+      const params: DoorCalculationParams = {
+        lineItems: [lineItem],
+        formula: defaultFormula,
+        mode: "supply_only",
+        travelFeeType: "none",
+        customTravelFee: "0",
+        showOutTownTravel: false,
+        travelKm: "0",
+        crewHours: "0",
+        crewSize: "2",
+        hstRate: 13,
+        logistics: defaultLogistics,
+        customDiscount: "350",
+      }
+
+      const totals = calculateDoorQuoteTotals(params)
+      // Custom discount of $350 overrides default 10% ($200)
+      expect(totals.discountTotal).toBe(350)
+      // Subtotal = Base ($2000) - Custom Discount ($350) + Surcharge ($160) = $1810
+      expect(totals.subtotalPreTax).toBe(1810)
+    })
   })
 })

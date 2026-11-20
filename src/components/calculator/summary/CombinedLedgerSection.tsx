@@ -12,7 +12,7 @@ export interface CombinedLedgerSectionProps {
   summaryWindowGroups: any[]
   attachedDoorQuote: any | null
   renderEditableRow: (
-    field: "jc" | "labour" | "misc",
+    field: "jc" | "labour" | "misc" | "discount",
     label: string,
     amountCents: number,
     customVal: string,
@@ -24,12 +24,14 @@ export interface CombinedLedgerSectionProps {
   customJC: string
   customMisc: string
   customLabour: string
+  customDiscount?: string
   taxJC: number
   taxMisc: number
   taxLabour: number
   setCustomJC: (val: string) => void
   setCustomMisc: (val: string) => void
   setCustomLabour: (val: string) => void
+  setCustomDiscount?: (val: string) => void
   isSupplyOnly: boolean
   hstRate: number
   setHstRate: (val: number) => void
@@ -45,12 +47,14 @@ export function CombinedLedgerSection({
   customJC,
   customMisc,
   customLabour,
+  customDiscount = "",
   taxJC,
   taxMisc,
   taxLabour,
   setCustomJC,
   setCustomMisc,
   setCustomLabour,
+  setCustomDiscount,
   isSupplyOnly,
   hstRate,
   setHstRate,
@@ -233,18 +237,17 @@ export function CombinedLedgerSection({
         </div>
 
         {/* Promo discount (Window only) */}
-        {combinedData.windowDiscountCents > 0 && (
-          <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
-            <span>
-              Promo discount{" "}
-              <span className="text-[10px] text-muted-foreground/70">
-                (window only)
-              </span>
-            </span>
-            <span className="shrink-0 font-mono whitespace-nowrap">
-              -{formatMoney(combinedData.windowDiscountCents)}
-            </span>
-          </div>
+        {(combinedData.windowDiscountCents > 0 || customDiscount !== "" || setCustomDiscount) && (
+          renderEditableRow(
+            "discount",
+            customDiscount !== "" ? "Discount (window only)" : "Promo discount (window only)",
+            customDiscount !== ""
+              ? Math.round((parseFloat(customDiscount) || 0) * 100)
+              : combinedData.windowDiscountCents,
+            customDiscount,
+            combinedData.windowDiscountCents,
+            (val) => setCustomDiscount?.(val)
+          )
         )}
 
         {/* Door Discount (Separated on its own line) */}

@@ -9,14 +9,14 @@ import { cn } from "@/lib/utils"
 import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 
 export interface DoorSummaryEditableRowProps {
-  field: "labour" | "misc"
+  field: "labour" | "misc" | "discount"
   label: string
   amount: number
   customVal: string
   defaultAmount: number
-  isInstallation: boolean
-  editingField: "labour" | "misc" | null
-  setEditingField: (field: "labour" | "misc" | null) => void
+  isInstallation?: boolean
+  editingField: "labour" | "misc" | "discount" | null
+  setEditingField: (field: "labour" | "misc" | "discount" | null) => void
   tempEditVal: string
   setTempEditVal: (val: string) => void
   setter?: (val: string) => void
@@ -30,7 +30,7 @@ export function DoorSummaryEditableRow({
   amount,
   customVal,
   defaultAmount,
-  isInstallation,
+  isInstallation = true,
   editingField,
   setEditingField,
   tempEditVal,
@@ -41,6 +41,7 @@ export function DoorSummaryEditableRow({
 }: DoorSummaryEditableRowProps) {
   const isEditing = editingField === field
   const isCustom = customVal !== ""
+  const isDiscount = field === "discount"
 
   if (isEditing && setter) {
     return (
@@ -121,13 +122,22 @@ export function DoorSummaryEditableRow({
     )
   }
 
+  const canEdit = setter && !isReadOnly && (isInstallation || isDiscount)
+
   return (
     <div
       key={field}
       className="group flex items-center justify-between py-0.5 text-xs sm:text-sm"
     >
       <div className="flex min-w-0 items-center gap-1.5">
-        <span className="truncate font-medium text-foreground">
+        <span
+          className={cn(
+            "truncate font-medium",
+            isDiscount
+              ? "font-semibold text-emerald-600 dark:text-emerald-400"
+              : "text-foreground"
+          )}
+        >
           {label}{" "}
           {suffix && (
             <span className="text-[10px] text-muted-foreground/80">
@@ -163,16 +173,22 @@ export function DoorSummaryEditableRow({
         <span
           className={cn(
             "font-mono whitespace-nowrap",
-            amount === 0
-              ? "text-xs text-muted-foreground"
-              : isCustom
-                ? "font-bold text-primary"
-                : "font-medium text-foreground"
+            isDiscount
+              ? "font-bold text-emerald-600 dark:text-emerald-400"
+              : amount === 0
+                ? "text-xs text-muted-foreground"
+                : isCustom
+                  ? "font-bold text-primary"
+                  : "font-medium text-foreground"
           )}
         >
-          ${amount.toFixed(2)}
+          {isDiscount
+            ? amount > 0
+              ? `-$${amount.toFixed(2)}`
+              : "$0.00"
+            : `$${amount.toFixed(2)}`}
         </span>
-        {setter && isInstallation && !isReadOnly && (
+        {canEdit && (
           <button
             type="button"
             onClick={() => {

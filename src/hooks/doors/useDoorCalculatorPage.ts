@@ -55,6 +55,7 @@ export function useDoorCalculatorPage(
   }, [])
   const [customLabour, setCustomLabour] = useState<string>("")
   const [customMisc, setCustomMisc] = useState<string>("")
+  const [customDiscount, setCustomDiscount] = useState<string>("")
   const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(
     null
   )
@@ -117,6 +118,7 @@ export function useDoorCalculatorPage(
       isFirstNation,
       formula,
       logistics,
+      customDiscount,
     })
   }, [
     lineItems,
@@ -132,6 +134,7 @@ export function useDoorCalculatorPage(
     isFirstNation,
     formula,
     logistics,
+    customDiscount,
   ])
 
   const sharedSyncProps = {
@@ -169,6 +172,8 @@ export function useDoorCalculatorPage(
     setCustomLabour,
     customMisc,
     setCustomMisc,
+    customDiscount,
+    setCustomDiscount,
     attachedWindowQuote,
     setAttachedWindowQuote,
     attachedSealedUnit,
@@ -367,6 +372,8 @@ export function useDoorCalculatorPage(
     setCustomLabour,
     customMisc,
     setCustomMisc,
+    customDiscount,
+    setCustomDiscount,
     attachedWindowQuote,
     setAttachedWindowQuote,
     attachedSealedUnit,

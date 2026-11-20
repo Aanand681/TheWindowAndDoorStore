@@ -121,6 +121,7 @@ export interface DoorCalculationParams {
   isFirstNation?: boolean
   formula: DoorFormulaSettings
   logistics: DoorLogisticsSettings
+  customDiscount?: string
 }
 
 export interface DoorQuoteTotals {

@@ -50,6 +50,7 @@ export function useCalculatorPricing({
   const [customJC, setCustomJC] = useState<string>("")
   const [customMisc, setCustomMisc] = useState<string>("")
   const [customLabour, setCustomLabour] = useState<string>("")
+  const [customDiscount, setCustomDiscount] = useState<string>("")
   const [includeJCInPromo, setIncludeJCInPromo] = useState<boolean>(true)
   const [includeMiscInPromo, setIncludeMiscInPromo] = useState<boolean>(true)
   const [includeLabourInPromo, setIncludeLabourInPromo] =
@@ -196,10 +197,11 @@ export function useCalculatorPricing({
       ? customMaterialsCents + effectiveJC + effectiveLabour + effectiveMisc
       : 0
 
-  const afterDiscount = Math.max(
-    0,
-    beforeTaxDiscount - (quoteResult?.promoDiscount || 0)
-  )
+  const effectiveDiscountCents = customDiscount !== ""
+    ? toCents(customDiscount)
+    : (quoteResult?.promoDiscount || 0)
+
+  const afterDiscount = Math.max(0, beforeTaxDiscount - effectiveDiscountCents)
   const upgrade = calculateUpgrade(afterDiscount, labourUpgradeTiers)
   const shownUpgrade = wantsUpgrade ? upgrade.charge : 0
 
@@ -209,7 +211,7 @@ export function useCalculatorPricing({
     ? Math.max(
         0,
         quoteResult.base -
-          (quoteResult?.promoDiscount || 0) +
+          effectiveDiscountCents +
           effectiveJC +
           customMaterialsCents
       )
@@ -249,6 +251,7 @@ export function useCalculatorPricing({
     setCustomJC("")
     setCustomMisc("")
     setCustomLabour("")
+    setCustomDiscount("")
     setIncludeJCInPromo(true)
     setIncludeMiscInPromo(true)
     setIncludeLabourInPromo(true)
@@ -258,52 +261,26 @@ export function useCalculatorPricing({
   }
 
   return {
-    availablePromos,
-    setAvailablePromos,
-    activePromoId,
-    setActivePromoId,
-    lockedPromoId,
-    setLockedPromoId,
-    quoteResult,
-    setQuoteResult,
-    compareOptions,
-    setCompareOptions,
-    taxTotals,
-    setTaxTotals,
-    customJC,
-    setCustomJC,
-    customMisc,
-    setCustomMisc,
-    customLabour,
-    setCustomLabour,
-    includeJCInPromo,
-    setIncludeJCInPromo,
-    includeMiscInPromo,
-    setIncludeMiscInPromo,
-    includeLabourInPromo,
-    setIncludeLabourInPromo,
-    wantsUpgrade,
-    setWantsUpgrade,
-    hstRate,
-    setHstRate,
-    effectiveJC,
-    effectiveMisc,
-    effectiveLabour,
-    taxJC,
-    taxMisc,
-    taxLabour,
-    hasSupplyJC,
-    beforeTaxDiscount,
-    afterDiscount,
-    upgrade,
-    shownUpgrade,
-    hst,
-    hstBase,
-    materialExemption,
-    total,
-    firstPayment,
-    secondPayment,
-    calculateQuote,
-    resetPricingOverrides,
+    availablePromos, setAvailablePromos,
+    activePromoId, setActivePromoId,
+    lockedPromoId, setLockedPromoId,
+    quoteResult, setQuoteResult,
+    compareOptions, setCompareOptions,
+    taxTotals, setTaxTotals,
+    customJC, setCustomJC,
+    customMisc, setCustomMisc,
+    customLabour, setCustomLabour,
+    customDiscount, setCustomDiscount,
+    includeJCInPromo, setIncludeJCInPromo,
+    includeMiscInPromo, setIncludeMiscInPromo,
+    includeLabourInPromo, setIncludeLabourInPromo,
+    wantsUpgrade, setWantsUpgrade,
+    hstRate, setHstRate,
+    effectiveJC, effectiveMisc, effectiveLabour,
+    taxJC, taxMisc, taxLabour, hasSupplyJC,
+    beforeTaxDiscount, afterDiscount, upgrade, shownUpgrade,
+    hst, hstBase, materialExemption,
+    total, firstPayment, secondPayment,
+    calculateQuote, resetPricingOverrides,
   }
 }

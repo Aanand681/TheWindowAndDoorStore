@@ -68,6 +68,8 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
     setCustomLabour,
     customMisc,
     setCustomMisc,
+    customDiscount,
+    setCustomDiscount,
     attachedWindowQuote,
     setAttachedWindowQuote,
     attachedSealedUnit,
@@ -337,6 +339,8 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
               setCustomLabour={setCustomLabour}
               customMisc={customMisc}
               setCustomMisc={setCustomMisc}
+              customDiscount={customDiscount}
+              setCustomDiscount={setCustomDiscount}
               onSubmitQuote={() => setShowSubmitModal(true)}
               onPrintPreview={() => setShowPreviewModal(true)}
               isAdmin={isAdmin}

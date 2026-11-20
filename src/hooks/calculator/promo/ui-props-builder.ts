@@ -176,6 +176,8 @@ export function buildSummaryProps(ctx: CalculatorPropsContext) {
     setCustomMisc: pricing.setCustomMisc,
     customLabour: pricing.customLabour,
     setCustomLabour: pricing.setCustomLabour,
+    customDiscount: pricing.customDiscount,
+    setCustomDiscount: pricing.setCustomDiscount,
     includeJCInPromo: pricing.includeJCInPromo,
     setIncludeJCInPromo: pricing.setIncludeJCInPromo,
     includeMiscInPromo: pricing.includeMiscInPromo,
