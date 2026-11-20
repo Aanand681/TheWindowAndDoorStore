@@ -45,7 +45,7 @@ export function InvoiceBreakdownTables({
             style={{ fontSize: `${smallFs}px` }}
             className="mb-0.5 border-b border-[#cbd5e1] pb-0.5 font-bold tracking-wider text-[#0f172a] uppercase"
           >
-            Installation &amp; Labour Details
+            Installation Labour
           </div>
           <table
             className="w-full border-collapse"
