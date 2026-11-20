@@ -158,7 +158,10 @@
    - In combined quotes, added *Sealed Unit Jobsite Labour & Add-ons* in `SealedUnitsScheduleTable.tsx` and rolled up totals via `useCombinedQuoteData.ts` and `invoice-pricing-rollup.ts`.
 5. **Review Submission Pipeline Safety**:
    - Verified end-to-end review lifecycle for Sealed Units: preparer submission, reviewer queue, polymorphic router `/review/[id]`, reviewer actions (Approve $\rightarrow$ Odoo clerk, Return $\rightarrow$ Preparer revision, Reassign), and preparer recall. Zero blockers or data loss.
-6. **Cross-Route Draft Loading Harmonization**:
+6. **PDF Invoice Scope Sequence & Pure Base Labour Isolation**:
+   - Fixed calculation presentation bug in `invoice-labour.ts` where add-on labour ($30) was inadvertently inflating base window installation labour ($602 $\rightarrow$ $632). Now strictly isolates pure base unit labour (`taxTotals.wLab` = $602) from add-on labour (`taxTotals.aLab` = $30).
+   - Standardized invoice left-column scope sequence in `InvoiceBreakdownTables.tsx`: (1) Installation Labour, (2) Extras & Add-ons, (3) Jamb & Casing Specifications, (4) Travel & Set-up Details, (5) Special Instructions & Notes, (6) Unified Options.
+7. **Cross-Route Draft Loading Harmonization**:
    - Investigated and harmonized draft navigation between `/sealed-units` and `/doors?loadDraftId=...` to ensure instant page transitions by eliminating conflicting mount loops between auto-save restoration and draft ID loading.
 
 
