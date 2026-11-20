@@ -1,6 +1,5 @@
 /**
- * Pure TypeScript helper to parse human-readable quote diff bullet points
- * into structured visual items (icons, types, and delta pills).
+ * Pure TypeScript helper to parse human-readable quote diff bullet points * into structured visual items (icons, types, and delta pills).
  */
 
 export interface ParsedDiffItem {

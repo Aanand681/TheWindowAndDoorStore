@@ -367,7 +367,7 @@ export function SealedUnitQuoteSummaryCard({
         labourAmount={compareLabour}
         miscAmount={compareMisc}
         surchargeAmount={combinedSurcharge}
-        surchargeLabel="Surcharge (8% on glass)"
+        surchargeLabel="Surcharge"
         hstRate={hstRate}
         onApplyMode={(m) =>
           onModeChange &&

@@ -265,28 +265,28 @@ export function formatSealedUnitSummarySentence(
 
   if (dWithGrills > 0) {
     groups.push({
-      text: `${dWithGrills} dual pane SU with grills`,
+      text: `${dWithGrills} dual pane ${dWithGrills === 1 ? "sealed unit" : "sealed units"} with grills`,
       count: dWithGrills,
       hasGrills: true,
     })
   }
   if (dNoGrills > 0) {
     groups.push({
-      text: `${dNoGrills} dual pane SU`,
+      text: `${dNoGrills} dual pane ${dNoGrills === 1 ? "sealed unit" : "sealed units"}`,
       count: dNoGrills,
       hasGrills: false,
     })
   }
   if (tWithGrills > 0) {
     groups.push({
-      text: `${tWithGrills} triple pane SU with grills`,
+      text: `${tWithGrills} triple pane ${tWithGrills === 1 ? "sealed unit" : "sealed units"} with grills`,
       count: tWithGrills,
       hasGrills: true,
     })
   }
   if (tNoGrills > 0) {
     groups.push({
-      text: `${tNoGrills} triple pane SU`,
+      text: `${tNoGrills} triple pane ${tNoGrills === 1 ? "sealed unit" : "sealed units"}`,
       count: tNoGrills,
       hasGrills: false,
     })

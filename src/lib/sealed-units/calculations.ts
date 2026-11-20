@@ -16,6 +16,7 @@ export interface SealedUnitCalculationParams {
   crewHours: string
   crewSize: "2" | "3"
   hstRate: number
+  extraLabour?: string | number
   labour: SealedUnitLabourSettings
 }
 
@@ -45,6 +46,7 @@ export interface SealedUnitTotalsResult {
   subtotalPreTax: number
   hstAmount: number
   grandTotal: number
+  extraLabour: number
   isInstallation: boolean
   isServiceOnly: boolean
 }
@@ -57,20 +59,15 @@ export function calculateSealedUnitTotals(
   params: SealedUnitCalculationParams
 ): SealedUnitTotalsResult {
   const {
-    lineItems,
-    sealedUnitMode,
-    serviceSqftInput,
-    serviceLabourRateInput,
-    serviceMiscRateInput,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-    hstRate,
-    labour,
+    lineItems, sealedUnitMode, serviceSqftInput, serviceLabourRateInput,
+    serviceMiscRateInput, travelFeeType, customTravelFee, showOutTownTravel,
+    travelKm, crewHours, crewSize, hstRate, extraLabour = "0", labour,
   } = params
+
+  const extraLabourAmount = Math.max(
+    0,
+    parseFloat(String(extraLabour || "0")) || 0
+  )
 
   const isInstallation = sealedUnitMode === "installation"
   const isServiceOnly = sealedUnitMode === "service_only"
@@ -204,7 +201,9 @@ export function calculateSealedUnitTotals(
 
   // Full Installation baseline totals (preserved across all modes for comparison & option badges)
   const fullInstallLabour =
-    Math.round((fullUnitLabourSum + fullTravelAndSetup) * 100) / 100
+    Math.round(
+      (fullUnitLabourSum + fullTravelAndSetup + extraLabourAmount) * 100
+    ) / 100
   const fullInstallMisc = Math.round(fullMiscTotal * 100) / 100
 
   // Active mode travel and setup
@@ -213,9 +212,7 @@ export function calculateSealedUnitTotals(
   const additionalFarFee = appliesTravelAndSetup ? fullAdditionalFarFee : 0
   const vehicleTravelFee = appliesTravelAndSetup ? fullVehicleTravelFee : 0
   const crewTravelFee = appliesTravelAndSetup ? fullCrewTravelFee : 0
-  const totalAdditionalTravel = appliesTravelAndSetup
-    ? fullTotalAdditionalTravel
-    : 0
+  const totalAdditionalTravel = appliesTravelAndSetup ? fullTotalAdditionalTravel : 0
   const totalTravelAndSetup = appliesTravelAndSetup ? fullTravelAndSetup : 0
 
   const unitLabourSum = isInstallation ? fullUnitLabourSum : 0
@@ -228,14 +225,18 @@ export function calculateSealedUnitTotals(
   const combinedLabourTotal = isInstallation
     ? fullInstallLabour
     : isServiceOnly
-      ? serviceLabourTotal + totalTravelAndSetup
-      : 0
+      ? Math.round(
+          (serviceLabourTotal + totalTravelAndSetup + extraLabourAmount) * 100
+        ) / 100
+      : Math.round(extraLabourAmount * 100) / 100
 
   const subtotalPreTax = isServiceOnly
     ? Math.round((combinedLabourTotal + miscTotal) * 100) / 100
     : Math.round(
         (glassSupplyTotal +
-          (isInstallation ? combinedLabourTotal + miscTotal : 0)) *
+          (isInstallation || extraLabourAmount > 0
+            ? combinedLabourTotal + miscTotal
+            : 0)) *
           100
       ) / 100
 
@@ -283,6 +284,7 @@ export function calculateSealedUnitTotals(
     subtotalPreTax,
     hstAmount,
     grandTotal,
+    extraLabour: extraLabourAmount,
     isInstallation: Boolean(isInstallation),
     isServiceOnly: Boolean(isServiceOnly),
   }

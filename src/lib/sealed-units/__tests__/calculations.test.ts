@@ -316,6 +316,38 @@ describe("Sealed Units Calculation Engine", () => {
       expect(supplyTotals.unitLabourSum).toBe(0)
       expect(supplyTotals.miscTotal).toBe(0)
     })
+
+    it("should include extraLabour add-on amount cleanly into combinedLabourTotal, subtotal, and grand total", () => {
+      const baseParams: SealedUnitCalculationParams = {
+        lineItems: [sampleLineItem],
+        sealedUnitMode: "installation",
+        serviceSqftInput: "",
+        serviceLabourRateInput: "",
+        serviceMiscRateInput: "",
+        travelFeeType: "local_std",
+        customTravelFee: "0",
+        showOutTownTravel: false,
+        travelKm: "",
+        crewHours: "",
+        crewSize: "2",
+        hstRate: 13,
+        labour: DEFAULT_LABOUR_SETTINGS,
+      }
+      const withoutExtra = calculateSealedUnitTotals(baseParams)
+
+      const withExtra = calculateSealedUnitTotals({
+        ...baseParams,
+        extraLabour: "150.00",
+      })
+
+      expect(withExtra.extraLabour).toBe(150)
+      expect(withExtra.combinedLabourTotal).toBe(
+        Math.round((withoutExtra.combinedLabourTotal + 150) * 100) / 100
+      )
+      expect(withExtra.subtotalPreTax).toBe(
+        Math.round((withoutExtra.subtotalPreTax + 150) * 100) / 100
+      )
+    })
   })
 
   describe("formatSealedUnitSummarySentence", () => {
@@ -326,7 +358,7 @@ describe("Sealed Units Calculation Engine", () => {
         quantity: 2,
         rawGrillCost: 0,
       }
-      expect(formatSealedUnitSummarySentence([dualItem])).toBe("2 dual pane SU")
+      expect(formatSealedUnitSummarySentence([dualItem])).toBe("2 dual pane sealed units")
 
       const tripleItem = {
         ...sampleLineItem,
@@ -334,7 +366,7 @@ describe("Sealed Units Calculation Engine", () => {
         quantity: 1,
         rawGrillCost: 0,
       }
-      expect(formatSealedUnitSummarySentence([tripleItem])).toBe("1 triple pane SU")
+      expect(formatSealedUnitSummarySentence([tripleItem])).toBe("1 triple pane sealed unit")
 
       const grillItem = {
         ...sampleLineItem,
@@ -343,12 +375,12 @@ describe("Sealed Units Calculation Engine", () => {
         rawGrillCost: 25.0,
       }
       expect(formatSealedUnitSummarySentence([grillItem])).toBe(
-        "3 dual pane SU with grills"
+        "3 dual pane sealed units with grills"
       )
 
       expect(
         formatSealedUnitSummarySentence([dualItem, grillItem])
-      ).toBe("3 dual pane SU with grills and 2 dual pane SU")
+      ).toBe("3 dual pane sealed units with grills and 2 dual pane sealed units")
     })
   })
 })

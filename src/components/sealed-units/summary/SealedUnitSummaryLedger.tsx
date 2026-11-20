@@ -193,7 +193,7 @@ export function SealedUnitSummaryLedger({
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Misc {hasAnyAttached ? "(all quotes combined)" : ""}
+                  Miscellaneous
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedMisc.toFixed(2)}
@@ -204,10 +204,7 @@ export function SealedUnitSummaryLedger({
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Labour{" "}
-                  {hasAnyAttached
-                    ? "(all quotes combined)"
-                    : "(includes all the labour and the travel charges)"}
+                  Labour
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedLabour.toFixed(2)}
@@ -217,8 +214,7 @@ export function SealedUnitSummaryLedger({
 
             <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
               <span className="font-medium text-foreground">
-                Surcharge{" "}
-                {hasAnyAttached ? "(8% on materials)" : "(8% Glass Surcharge)"}
+                Surcharge
               </span>
               <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 +${combinedSurcharge.toFixed(2)}

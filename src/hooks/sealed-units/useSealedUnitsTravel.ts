@@ -29,6 +29,7 @@ export function useSealedUnitsTravel() {
   const [travelKm, setTravelKm] = useState<string>("")
   const [crewHours, setCrewHours] = useState<string>("")
   const [crewSize, setCrewSize] = useState<"2" | "3">("3")
+  const [extraLabour, setExtraLabour] = useState<string>("")
   const [hstRate, setHstRate] = useState<number>(13)
 
   const handleSetSealedUnitMode = (
@@ -57,6 +58,7 @@ export function useSealedUnitsTravel() {
     travelKm,
     crewHours,
     crewSize,
+    extraLabour,
     hstRate,
     selectedRegionId,
   }
@@ -73,6 +75,7 @@ export function useSealedUnitsTravel() {
     setTravelKm,
     setCrewHours,
     setCrewSize,
+    setExtraLabour,
     setHstRate,
     setSelectedRegionId,
   }

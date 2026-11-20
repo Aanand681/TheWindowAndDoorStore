@@ -2,6 +2,8 @@
 
 import React from "react"
 import { Wrench, DollarSign, ChevronDown, ChevronUp } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { blockNegativeKey, sanitizeNonNegativeNumber } from "@/lib/input-sanitizers"
 import { SealedUnitLabourSettings } from "@/lib/sealed-units-logic"
 import { SealedUnitTravelCalculator } from "./SealedUnitTravelCalculator"
 import { SharedRegionOption } from "@/hooks/shared/useSharedRegions"
@@ -31,6 +33,8 @@ export interface SealedUnitLabourTravelCardProps {
   setCrewHours: (val: string) => void
   crewSize: "2" | "3"
   setCrewSize: (val: "2" | "3") => void
+  extraLabour?: string
+  setExtraLabour?: (val: string) => void
   serviceSqftInput?: string
   setServiceSqftInput?: (val: string) => void
   serviceLabourRateInput?: string
@@ -54,6 +58,7 @@ export interface SealedUnitLabourTravelCardProps {
     subtotalPreTax?: number
     hstAmount?: number
     grandTotal?: number
+    extraLabour?: number
     effectiveLabourRate?: number
     effectiveMiscRate?: number
   }
@@ -81,6 +86,8 @@ export function SealedUnitLabourTravelCard({
   setCrewHours,
   crewSize,
   setCrewSize,
+  extraLabour = "",
+  setExtraLabour,
   totals,
   isReadOnly = false,
 }: SealedUnitLabourTravelCardProps) {
@@ -141,6 +148,36 @@ export function SealedUnitLabourTravelCard({
                 <span className="block text-[10px] text-muted-foreground">
                   Total Labour
                 </span>
+              </div>
+            </div>
+
+            {/* Add-ons / Extra Labour */}
+            <div className="flex flex-col justify-between gap-2 rounded-xl border border-border/70 bg-card/40 p-3 sm:flex-row sm:items-center">
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground">
+                  Add-ons / Extra Labour
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Additional labor for high ladder, scaffolding, specialty stops, or custom work.
+                </p>
+              </div>
+              <div className="w-full sm:w-36 shrink-0">
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    type="text"
+                    value={extraLabour}
+                    disabled={isReadOnly}
+                    onKeyDown={blockNegativeKey}
+                    onChange={(e) =>
+                      setExtraLabour?.(sanitizeNonNegativeNumber(e.target.value))
+                    }
+                    placeholder="0.00"
+                    className="h-8 pl-6 text-right font-mono text-xs font-bold"
+                  />
+                </div>
               </div>
             </div>
 
@@ -233,6 +270,14 @@ export function SealedUnitLabourTravelCard({
                       ${totals.unitLabourSum.toFixed(2)}
                     </span>
                   </div>
+                  {Boolean((totals.extraLabour || 0) > 0) && (
+                    <div className="flex justify-between py-0.5 text-muted-foreground">
+                      <span>Add-ons / Extra Labour:</span>
+                      <span className="font-mono text-foreground">
+                        +${(totals.extraLabour || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t border-border/40 py-0.5 pt-1 font-semibold text-muted-foreground">
                     <span className="text-foreground">
                       Total Installation Labour:
@@ -247,6 +292,36 @@ export function SealedUnitLabourTravelCard({
           </>
         ) : currentMode === "service_only" ? (
           <div className="space-y-3">
+            {/* Add-ons / Extra Labour (Service) */}
+            <div className="flex flex-col justify-between gap-2 rounded-xl border border-border/70 bg-card/40 p-3 sm:flex-row sm:items-center">
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground">
+                  Add-ons / Extra Labour
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Additional labor for high ladder, scaffolding, specialty stops, or custom work.
+                </p>
+              </div>
+              <div className="w-full sm:w-36 shrink-0">
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    type="text"
+                    value={extraLabour}
+                    disabled={isReadOnly}
+                    onKeyDown={blockNegativeKey}
+                    onChange={(e) =>
+                      setExtraLabour?.(sanitizeNonNegativeNumber(e.target.value))
+                    }
+                    placeholder="0.00"
+                    className="h-8 pl-6 text-right font-mono text-xs font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Travel Calculator for Service Work */}
             <SealedUnitTravelCalculator
               labour={labour}

@@ -44,7 +44,7 @@ export function useSealedUnitsItemBuilder({
   const [shape, setShape] = useState<GlassShape>("rectangle")
   const [widthInput, setWidthInput] = useState<string>("")
   const [heightInput, setHeightInput] = useState<string>("")
-  const [qtyInput, setQtyInput] = useState<string>("")
+  const [qtyInput, setQtyInput] = useState<string>("1")
 
   // Interior Grill Builder State
   const [grillType, setGrillType] = useState<GrillType>("none")
@@ -248,8 +248,7 @@ export function useSealedUnitsItemBuilder({
       if (!activeCombo) throw new Error("Please select a glass combination.")
       const w = parseInchesInput(widthInput, "width")
       const h = parseInchesInput(heightInput, "height")
-      const qty = parseInt(qtyInput, 10)
-      if (!qty || qty < 1) throw new Error("Quantity must be at least 1.")
+      const qty = Math.max(1, parseInt(qtyInput, 10) || 1)
 
       const calculatedItem = calculateSealedUnitItem({
         combo: activeCombo,

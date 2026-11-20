@@ -210,6 +210,18 @@ export function SealedUnitSummaryLedger({
             </div>
           )}
 
+          {/* Add-ons / Extra Labour (itemized on PDF) */}
+          {Boolean((totals.extraLabour || 0) > 0) && (
+            <div className="flex items-baseline justify-between py-0.5">
+              <span className="font-sans">
+                Add-ons / Extra Labour
+              </span>
+              <span className="font-semibold">
+                +${(totals.extraLabour || 0).toFixed(2)}
+              </span>
+            </div>
+          )}
+
           {/* 3. Miscellaneous */}
           {(isInstallation || hasAnyAttached) && (
             <div className="flex items-baseline justify-between py-0.5">
@@ -220,10 +232,10 @@ export function SealedUnitSummaryLedger({
             </div>
           )}
 
-          {/* 4. Surcharge (8%) */}
+          {/* 4. Surcharge */}
           <div className="flex items-baseline justify-between py-0.5">
             <span className="font-sans">
-              Surcharge {hasAnyAttached ? "(8% on materials)" : "(8%)"}
+              Surcharge
             </span>
             <span className="font-semibold">
               +${combinedSurcharge.toFixed(2)}

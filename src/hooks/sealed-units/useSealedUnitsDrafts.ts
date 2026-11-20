@@ -45,6 +45,7 @@ export interface SealedUnitFormInputs {
   travelKm: string
   crewHours: string
   crewSize: "2" | "3"
+  extraLabour?: string
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -66,6 +67,7 @@ export interface SealedUnitFormSetters {
   setTravelKm: (val: string) => void
   setCrewHours: (val: string) => void
   setCrewSize: (val: "2" | "3") => void
+  setExtraLabour?: (val: string) => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
 }
@@ -95,6 +97,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     travelKm,
     crewHours,
     crewSize,
+    extraLabour,
     hstRate,
     selectedRegionId,
     regionName,
@@ -157,6 +160,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       travelKm,
       crewHours,
       crewSize,
+      extraLabour: extraLabour || "",
       hstRate,
       selectedRegionId: selectedRegionId || "",
       regionName: regionName || "",
@@ -178,6 +182,7 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       travelKm,
       crewHours,
       crewSize,
+      extraLabour,
       hstRate,
       selectedRegionId,
       regionName,

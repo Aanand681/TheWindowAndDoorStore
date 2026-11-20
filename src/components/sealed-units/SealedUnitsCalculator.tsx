@@ -129,6 +129,7 @@ export function SealedUnitsCalculator(
       setTravelKm: travel.setTravelKm,
       setCrewHours: travel.setCrewHours,
       setCrewSize: travel.setCrewSize,
+      setExtraLabour: travel.setExtraLabour,
       setHstRate: travel.setHstRate,
       setSelectedRegionId: travel.setSelectedRegionId,
       regions: travel.regions,
@@ -183,6 +184,7 @@ export function SealedUnitsCalculator(
     travelKm: travel.travelKm,
     crewHours: travel.crewHours,
     crewSize: travel.crewSize,
+    extraLabour: travel.extraLabour,
     hstRate: travel.hstRate,
     attachedWindowQuote: drafts.attachedWindowQuote,
     attachedDoorQuote: drafts.attachedDoorQuote,
@@ -212,6 +214,7 @@ export function SealedUnitsCalculator(
     travelKm: travel.travelKm,
     crewHours: travel.crewHours,
     crewSize: travel.crewSize,
+    extraLabour: travel.extraLabour,
   })
 
   const reviewWorkflowProps = {
@@ -390,6 +393,8 @@ export function SealedUnitsCalculator(
                 setCrewHours={travel.setCrewHours}
                 crewSize={travel.crewSize}
                 setCrewSize={travel.setCrewSize}
+                extraLabour={travel.extraLabour}
+                setExtraLabour={travel.setExtraLabour}
                 serviceSqftInput={travel.serviceSqftInput}
                 setServiceSqftInput={travel.setServiceSqftInput}
                 serviceLabourRateInput={travel.serviceLabourRateInput}

@@ -94,6 +94,7 @@ export function useSealedUnitsReviewLoader(
           travelKm: q.travelKm,
           crewHours: q.crewHours,
           crewSize: q.crewSize,
+          extraLabour: q.extraLabour || q.data?.extraLabour || "",
           hstRate: q.hstRate ?? q.taxTotals?.hstRate ?? 13,
           selectedRegionId: q.selectedRegionId,
           regionName: q.regionName,

@@ -54,6 +54,7 @@ export function useSealedUnitsAutoSave({
   const lastSavedSnapshotRef = useRef<string>("")
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const currentPayloadRef = useRef<any>(null)
+  const initialLoadDone = useRef(false)
 
   const restoreAutoSaveIntoWorkspace = useCallback(
     (recovered: any) => {
@@ -73,8 +74,11 @@ export function useSealedUnitsAutoSave({
     [setters]
   )
 
-  // Check URL query param and auto-save on mount
+  // Check URL query param and auto-save strictly once on mount
   useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
+
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search)
       const draftId = urlParams.get("loadDraftId")
@@ -110,10 +114,12 @@ export function useSealedUnitsAutoSave({
     ) {
       restoreAutoSaveIntoWorkspace(recovered)
     }
-  }, [loadDraftIntoWorkspace, restoreAutoSaveIntoWorkspace, onConflictDetected])
+  }, [])
 
   // Debounced auto-save effect
   useEffect(() => {
+    if (!initialLoadDone.current) return
+
     const hasMeaningfulContent =
       lineItems.length > 0 ||
       (isServiceOnly &&

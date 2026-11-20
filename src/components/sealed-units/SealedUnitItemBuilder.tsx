@@ -142,7 +142,7 @@ export function SealedUnitItemBuilder({
   const handleResetInputs = () => {
     setWidthInput("")
     setHeightInput("")
-    setQtyInput("")
+    setQtyInput("1")
     widthRef.current?.focus()
   }
 

@@ -22,6 +22,7 @@ export interface SealedUnitSnapshotParams {
   travelKm: string
   crewHours: string
   crewSize: "2" | "3"
+  extraLabour?: string
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -47,6 +48,7 @@ export function serializeSealedUnitSnapshot(
     travelKm: params.travelKm,
     crewHours: params.crewHours,
     crewSize: params.crewSize,
+    extraLabour: params.extraLabour || "",
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",
@@ -75,6 +77,7 @@ export interface WorkspaceSetters {
   setTravelKm: (val: string) => void
   setCrewHours: (val: string) => void
   setCrewSize: (val: "2" | "3") => void
+  setExtraLabour?: (val: string) => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
   regions?: any[]
@@ -107,6 +110,8 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
   if (d.travelKm !== undefined) setters.setTravelKm(d.travelKm)
   if (d.crewHours !== undefined) setters.setCrewHours(d.crewHours)
   if (d.crewSize !== undefined) setters.setCrewSize(d.crewSize)
+  if (d.extraLabour !== undefined && setters.setExtraLabour)
+    setters.setExtraLabour(String(d.extraLabour))
   if (d.hstRate !== undefined) setters.setHstRate(d.hstRate)
   if (setters.setSelectedRegionId) {
     if (d.selectedRegionId) {
@@ -154,6 +159,7 @@ export function createDraftSavePayload(
     travelKm: params.travelKm,
     crewHours: params.crewHours,
     crewSize: params.crewSize,
+    extraLabour: params.extraLabour || "",
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",

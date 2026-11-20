@@ -29,6 +29,7 @@ export interface SealedUnitTotals {
   effectiveMiscRate?: number
   isInstallation?: boolean
   isServiceOnly?: boolean
+  extraLabour?: number
 }
 
 export interface SealedUnitPrintInvoiceProps {

@@ -35,6 +35,7 @@ interface UseSealedUnitsReviewSubmitProps {
   travelKm?: string
   crewHours?: string
   crewSize?: string
+  extraLabour?: string
 }
 
 export function useSealedUnitsReviewSubmit({
@@ -58,6 +59,7 @@ export function useSealedUnitsReviewSubmit({
   travelKm,
   crewHours,
   crewSize,
+  extraLabour,
 }: UseSealedUnitsReviewSubmitProps) {
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
   const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
@@ -161,6 +163,7 @@ export function useSealedUnitsReviewSubmit({
           travelKm,
           crewHours,
           crewSize,
+          extraLabour: extraLabour || "",
           hstRate,
           windows: effectiveLineItems,
           taxTotals: {
