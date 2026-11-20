@@ -33,7 +33,7 @@ export function useAdminDoors() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<
-    "presets" | "upcharges" | "formula" | "logistics" | "stormDoors"
+    "presets" | "upcharges" | "formula" | "logistics"
   >("presets")
 
   const fetchDoorSettings = async () => {

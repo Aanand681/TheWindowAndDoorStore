@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { DoorClosed, Wrench, Percent, Truck, Shield } from "lucide-react"
+import { DoorClosed, Wrench, Percent, Truck } from "lucide-react"
 import { AppHeader } from "@/components/layout/AppHeader"
 import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
 import { useAdminDoors } from "@/hooks/admin/useAdminDoors"
@@ -12,7 +12,6 @@ import {
   AdminDoorUpchargesTab,
   AdminDoorFormulaTab,
   AdminDoorLogisticsTab,
-  AdminStormDoorsTab,
 } from "@/components/admin/doors"
 
 export default function AdminDoorsPage() {
@@ -71,14 +70,10 @@ export default function AdminDoorsPage() {
           onValueChange={(val) => setActiveTab(val as any)}
           className="space-y-6"
         >
-          <TabsList className="grid w-full max-w-4xl grid-cols-2 bg-muted/50 p-1 sm:grid-cols-3 md:grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-2 bg-muted/50 p-1 sm:grid-cols-4">
             <TabsTrigger value="presets" className="gap-2 text-xs sm:text-sm">
               <DoorClosed className="h-4 w-4" />
               <span>Door Presets ({presets.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="stormDoors" className="gap-2 text-xs sm:text-sm">
-              <Shield className="h-4 w-4" />
-              <span>Storm Doors ({stormDoors.length})</span>
             </TabsTrigger>
             <TabsTrigger value="upcharges" className="gap-2 text-xs sm:text-sm">
               <Wrench className="h-4 w-4" />
@@ -100,13 +95,6 @@ export default function AdminDoorsPage() {
               onAddPreset={handleAddPreset}
               onUpdatePreset={handleUpdatePreset}
               onDeletePreset={handleDeletePreset}
-            />
-          </TabsContent>
-
-          <TabsContent value="stormDoors" className="space-y-4">
-            <AdminStormDoorsTab
-              stormDoors={stormDoors}
-              onUpdateStormDoor={handleUpdateStormDoor}
             />
           </TabsContent>
 

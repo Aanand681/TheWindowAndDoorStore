@@ -8,8 +8,10 @@ import {
   StormDoorVentType,
   StormDoorSwing,
   StormDoorStyle,
+  StormDoorAddonOption,
+  PapaizFinish,
 } from "@/lib/doors/storm-door-types"
-import { YORK_STORM_ADDONS } from "@/lib/doors/storm-door-catalog"
+import { StormDoorAddonRow } from "./StormDoorAddonRow"
 
 export interface StormDoorOptionsPaneProps {
   style: StormDoorStyle
@@ -25,8 +27,15 @@ export interface StormDoorOptionsPaneProps {
   colorList: string[]
   isCustomPaint: boolean
   setIsCustomPaint: (cp: boolean) => void
+  isDoubleDoorCustomPaint?: boolean
+  setIsDoubleDoorCustomPaint?: (val: boolean) => void
+  papaizFinish?: PapaizFinish
+  setPapaizFinish?: (val: PapaizFinish) => void
   selectedAddons: string[]
   toggleAddon: (id: string) => void
+  addonModes?: Record<string, "included" | "option">
+  setAddonMode?: (id: string, mode: "included" | "option") => void
+  availableAddons?: StormDoorAddonOption[]
 }
 
 export function StormDoorOptionsPane({
@@ -43,9 +52,26 @@ export function StormDoorOptionsPane({
   colorList,
   isCustomPaint,
   setIsCustomPaint,
+  isDoubleDoorCustomPaint = false,
+  setIsDoubleDoorCustomPaint,
+  papaizFinish = "Satin Chrome",
+  setPapaizFinish,
   selectedAddons,
   toggleAddon,
+  addonModes = {},
+  setAddonMode,
+  availableAddons = [],
 }: StormDoorOptionsPaneProps) {
+  const filteredAddons = availableAddons.filter((addon) => {
+    if (addon.applicableStyles && addon.applicableStyles.length > 0) {
+      if (!addon.applicableStyles.includes(style)) return false
+    }
+    if (addon.applicableSwings && addon.applicableSwings.length > 0) {
+      if (!addon.applicableSwings.includes(swing)) return false
+    }
+    return true
+  })
+
   return (
     <div className="p-4 md:col-span-7 space-y-3 overflow-y-auto">
       {style !== "project_self_storing" && (
@@ -150,7 +176,32 @@ export function StormDoorOptionsPane({
         </div>
       </div>
 
-      {/* Colors */}
+      {/* Papaiz Lever Finish on Inswing */}
+      {swing === "inswing" && setPapaizFinish && (
+        <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+          <label className="text-[11px] font-semibold text-primary uppercase">
+            Papaiz Lever Finish
+          </label>
+          <div className="flex gap-2">
+            {(["Satin Chrome", "Brass", "Black"] as PapaizFinish[]).map((fin) => (
+              <button
+                key={fin}
+                type="button"
+                onClick={() => setPapaizFinish(fin)}
+                className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold border ${
+                  papaizFinish === fin
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border text-foreground hover:bg-muted"
+                }`}
+              >
+                {fin}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Colors & Custom Paint */}
       <div className="space-y-1">
         <div className="flex justify-between items-center">
           <label className="text-[11px] font-semibold text-muted-foreground uppercase">
@@ -163,9 +214,37 @@ export function StormDoorOptionsPane({
               isCustomPaint ? "text-amber-500" : "text-muted-foreground"
             }`}
           >
-            {isCustomPaint ? "Custom Paint (+$1,113)" : "Custom Paint?"}
+            {isCustomPaint ? "Custom Paint Active" : "Custom Paint?"}
           </button>
         </div>
+
+        {isCustomPaint && setIsDoubleDoorCustomPaint && (
+          <div className="flex gap-2 pb-1">
+            <button
+              type="button"
+              onClick={() => setIsDoubleDoorCustomPaint(false)}
+              className={`flex-1 rounded-md px-2 py-1 text-xs border font-medium ${
+                !isDoubleDoorCustomPaint
+                  ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold"
+                  : "bg-muted/40 border-border"
+              }`}
+            >
+              Single Door (+$1,113)
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsDoubleDoorCustomPaint(true)}
+              className={`flex-1 rounded-md px-2 py-1 text-xs border font-medium ${
+                isDoubleDoorCustomPaint
+                  ? "bg-amber-500/20 text-amber-600 border-amber-500/50 font-bold"
+                  : "bg-muted/40 border-border"
+              }`}
+            >
+              Double French (+$2,184)
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-1.5">
           {colorList.map((c) => (
             <button
@@ -184,34 +263,21 @@ export function StormDoorOptionsPane({
         </div>
       </div>
 
-      {/* Add-ons */}
-      <div className="space-y-1 pt-1">
+      {/* Add-ons & Option Upgrade Selection */}
+      <div className="space-y-1.5 pt-1">
         <label className="text-[11px] font-semibold text-muted-foreground uppercase">
-          Available Add-ons
+          Available Add-ons &amp; Upgrades
         </label>
-        <div className="space-y-1">
-          {YORK_STORM_ADDONS.filter((addon) => {
-            if (addon.applicableStyles && !addon.applicableStyles.includes(style)) return false
-            if (addon.applicableSwings && !addon.applicableSwings.includes(swing)) return false
-            return true
-          }).map((addon) => (
-            <label
+        <div className="space-y-1.5">
+          {filteredAddons.map((addon) => (
+            <StormDoorAddonRow
               key={addon.id}
-              className="flex items-center justify-between rounded-lg border border-border/70 p-2 text-xs hover:bg-muted/30 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selectedAddons.includes(addon.id)}
-                  onChange={() => toggleAddon(addon.id)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary"
-                />
-                <span>{addon.label}</span>
-              </div>
-              <span className="font-mono font-bold text-primary">
-                +${addon.price.toFixed(2)}
-              </span>
-            </label>
+              addon={addon}
+              isSelected={selectedAddons.includes(addon.id)}
+              currentMode={addonModes[addon.id] || "included"}
+              onToggle={() => toggleAddon(addon.id)}
+              onSetMode={setAddonMode ? (mode) => setAddonMode(addon.id, mode) : undefined}
+            />
           ))}
         </div>
       </div>

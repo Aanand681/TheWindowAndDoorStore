@@ -1,8 +1,9 @@
 "use client"
 
 import React from "react"
-import { DoorClosed, RotateCcw, Save, History } from "lucide-react"
+import { DoorClosed, RotateCcw, Save, History, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 
 export interface AdminDoorsHeaderProps {
@@ -41,6 +42,18 @@ export function AdminDoorsHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Link href="/admin/storm-doors">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="cursor-pointer gap-1.5 text-xs border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Storm Door Catalog</span>
+          </Button>
+        </Link>
+
         <Button
           type="button"
           variant="outline"

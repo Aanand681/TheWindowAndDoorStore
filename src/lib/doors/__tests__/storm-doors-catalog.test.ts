@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest"
 import {
   YORK_STORM_DOORS,
+  YORK_STORM_ADDONS,
   computeStormDoorPrice,
   buildStormDoorDescription,
   CUSTOM_PAINT_PRICE,
+  CUSTOM_PAINT_DOUBLE_PRICE,
 } from "../storm-door-catalog"
 
 describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
@@ -71,11 +73,11 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
     expect(result.totalPrice).toBe(1056.64)
   })
 
-  it("adds custom paint option ($1,113.00) properly", () => {
+  it("adds custom paint option ($1,113.00 single & $2,184.00 double) properly", () => {
     const item = YORK_STORM_DOORS.find(
       (d) => d.style === "hi_view" && d.profile === '2"'
     )!
-    const result = computeStormDoorPrice(item, {
+    const singleRes = computeStormDoorPrice(item, {
       ventType: "standard",
       swing: "outswing",
       color: "Sherwin Williams Custom Green",
@@ -83,8 +85,20 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       selectedAddonIds: [],
     })
     // 686 (base) + 1113 (paint) = 1799.00
-    expect(result.totalPrice).toBe(1799.0)
-    expect(result.addonsTotal).toBe(CUSTOM_PAINT_PRICE)
+    expect(singleRes.totalPrice).toBe(1799.0)
+    expect(singleRes.addonsTotal).toBe(CUSTOM_PAINT_PRICE)
+
+    const doubleRes = computeStormDoorPrice(item, {
+      ventType: "standard",
+      swing: "outswing",
+      color: "Custom Blue",
+      isCustomPaint: true,
+      isDoubleDoorCustomPaint: true,
+      selectedAddonIds: [],
+    })
+    // 686 (base) + 2184 (double paint) = 2870.00
+    expect(doubleRes.totalPrice).toBe(2870.0)
+    expect(doubleRes.addonsTotal).toBe(CUSTOM_PAINT_DOUBLE_PRICE)
   })
 
   it("calculates 1-1/4\" Project Door Mill Finish ($559.00) vs White ($589.00)", () => {
@@ -104,5 +118,32 @@ describe("York Aluminum Storm Doors Catalog & Pricing Engine", () => {
       selectedAddonIds: [],
     })
     expect(millRes.totalPrice).toBe(559.0)
+  })
+
+  it("adds the interchangeable screen insert ($73.00) to Full-View doors", () => {
+    const item = YORK_STORM_DOORS.find(
+      (d) => d.style === "full_view" && d.profile === '2"'
+    )!
+    const screenAddon = YORK_STORM_ADDONS.find((a) => a.id === "screen_interchangeable")
+    expect(screenAddon).toBeDefined()
+    expect(screenAddon?.price).toBe(73.0)
+
+    const res = computeStormDoorPrice(item, {
+      ventType: "standard",
+      swing: "outswing",
+      color: "Black",
+      selectedAddonIds: ["screen_interchangeable"],
+    })
+    // 772 (base) + 73 (screen) = 845.00
+    expect(res.totalPrice).toBe(845.0)
+    expect(res.addonsTotal).toBe(73.0)
+
+    const desc = buildStormDoorDescription(item, {
+      ventType: "standard",
+      swing: "outswing",
+      color: "Black",
+      selectedAddonIds: ["screen_interchangeable"],
+    })
+    expect(desc).toContain("[Interchangeable Screen Insert]")
   })
 })

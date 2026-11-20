@@ -9,7 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Tag, DollarSign, Map, Layers, DoorClosed } from "lucide-react"
+import { Users, Tag, DollarSign, Map, Layers, DoorClosed, Shield } from "lucide-react"
 import Link from "next/link"
 import { AppHeader } from "@/components/layout/AppHeader"
 
@@ -167,6 +167,26 @@ export default async function AdminDashboard() {
             <CardContent>
               <Link href="/admin/promos" className="block w-full">
                 <Button className="w-full">Manage Promos</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* 8. Storm Door Catalog & Options */}
+          <Card className="border-border bg-card/50 shadow-xl backdrop-blur-xl transition-colors hover:border-primary/50">
+            <CardHeader>
+              <div className="mb-1 flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Shield className="h-5 w-5 text-primary" />
+                  Storm Door Catalog &amp; Options
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Manage York Aluminum storm door models, prices, interchangeable screen add-ons, and finishes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/storm-doors" className="block w-full">
+                <Button className="w-full">Manage Storm Doors</Button>
               </Link>
             </CardContent>
           </Card>

@@ -55,27 +55,27 @@ export function calculateInvoicePricingRollup({
     : attachedWindowQuote?.totals?.promoDiscount
       ? Math.round(attachedWindowQuote.totals.promoDiscount * 100)
       : attachedWindowQuote?.quoteResult?.promoDiscount ||
-        activePromo?.discount ||
-        0
+      activePromo?.discount ||
+      0
   const monthlyDiscountCents = Math.round((taxDiscount || 0) * 100)
 
   const winMaterialsCents = hasWindows
     ? quoteResult?.base ||
-      basePrice ||
-      (attachedWindowQuote?.totals?.base
-        ? Math.round(attachedWindowQuote.totals.base * 100)
-        : 0)
+    basePrice ||
+    (attachedWindowQuote?.totals?.base
+      ? Math.round(attachedWindowQuote.totals.base * 100)
+      : 0)
     : 0
   const rawWinSurchargeCents = hasWindows
     ? surcharge ||
-      (attachedWindowQuote?.totals?.surcharge
-        ? Math.round(attachedWindowQuote.totals.surcharge * 100)
-        : 0)
+    (attachedWindowQuote?.totals?.surcharge
+      ? Math.round(attachedWindowQuote.totals.surcharge * 100)
+      : 0)
     : 0
   const winSurchargeCents =
     !isWindowHost &&
-    rawWinSurchargeCents > winMaterialsCents &&
-    winMaterialsCents > 0
+      rawWinSurchargeCents > winMaterialsCents &&
+      winMaterialsCents > 0
       ? Math.round(winMaterialsCents * 0.08)
       : rawWinSurchargeCents
   const winLabourCents = hasWindows && !isSupply
@@ -114,23 +114,23 @@ export function calculateInvoicePricingRollup({
     : 0
   const suExtraLabour = Number(
     effectiveSUTotals.extraLabour ??
-      (Array.isArray(effectiveSUTotals.globalUpcharges)
-        ? effectiveSUTotals.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
-        : 0)
+    (Array.isArray(effectiveSUTotals.globalUpcharges)
+      ? effectiveSUTotals.globalUpcharges.reduce((acc: number, u: any) => acc + (parseFloat(String(u.price || u.rate || 0)) || 0), 0)
+      : 0)
   )
   const rawSuUnitLabour = isAttachedSUService
     ? Number(effectiveSUTotals.serviceLabourTotal || 0)
     : Number(
-        effectiveSUTotals.unitLabourSum ??
-          effectiveSUTotals.doorPureLabourTotal ??
-          effectiveSUTotals.pureLabourTotal ??
-          Math.max(
-            0,
-            (effectiveSUTotals.combinedLabourTotal || 0) -
-              (effectiveSUTotals.baseSetupFee || 0) -
-              (effectiveSUTotals.totalTravelAndSetup || 0)
-          )
+      effectiveSUTotals.unitLabourSum ??
+      effectiveSUTotals.doorPureLabourTotal ??
+      effectiveSUTotals.pureLabourTotal ??
+      Math.max(
+        0,
+        (effectiveSUTotals.combinedLabourTotal || 0) -
+        (effectiveSUTotals.baseSetupFee || 0) -
+        (effectiveSUTotals.totalTravelAndSetup || 0)
       )
+    )
 
   const suLabourCents = hasSealedUnits && !suIsSupply
     ? isSUHost
@@ -141,11 +141,11 @@ export function calculateInvoicePricingRollup({
   const doorIsSupply = isSupply || effectiveDoorTotals?.mode === "supply_only" || Boolean(effectiveDoorTotals?.isSupplyOnly)
   const doorRawBaseCents = hasDoors
     ? Math.round(
-        ((effectiveDoorTotals.rawDoorBaseTotal || 0) +
-          (effectiveDoorTotals.stormDoorTotal || 0) +
-          (effectiveDoorTotals.hardwareTotal || 0)) *
-          100
-      )
+      ((effectiveDoorTotals.rawDoorBaseTotal || 0) +
+        (effectiveDoorTotals.stormDoorTotal || 0) +
+        (effectiveDoorTotals.hardwareTotal || 0)) *
+      100
+    )
     : 0
   const doorDiscountCents = hasDoors
     ? Math.round((effectiveDoorTotals.discountTotal || 0) * 100)
@@ -165,15 +165,15 @@ export function calculateInvoicePricingRollup({
     effectiveDoorTotals.doorPureLabourTotal !== undefined
       ? Number(effectiveDoorTotals.doorPureLabourTotal)
       : (effectiveDoorTotals.unitLabourTotal !== undefined ||
-          effectiveDoorTotals.upchargesTotal !== undefined)
+        effectiveDoorTotals.upchargesTotal !== undefined)
         ? (effectiveDoorTotals.unitLabourTotal || 0) +
-          (effectiveDoorTotals.upchargesTotal || 0)
+        (effectiveDoorTotals.upchargesTotal || 0)
         : Math.max(
-            0,
-            (effectiveDoorTotals.combinedLabourTotal || 0) -
-              (effectiveDoorTotals.baseSetupFee || 0) -
-              (effectiveDoorTotals.totalTravelAndSetup || 0)
-          )
+          0,
+          (effectiveDoorTotals.combinedLabourTotal || 0) -
+          (effectiveDoorTotals.baseSetupFee || 0) -
+          (effectiveDoorTotals.totalTravelAndSetup || 0)
+        )
 
   const doorLabourCents = hasDoors && !doorIsSupply
     ? isDoorHost
@@ -184,13 +184,13 @@ export function calculateInvoicePricingRollup({
   const effectiveMiscTotalCents = isSupply
     ? 0
     : (hasWindows ? winMiscCents : 0) +
-      (hasSealedUnits ? suMiscCents : 0) +
-      (hasDoors ? doorMiscCents : 0)
+    (hasSealedUnits ? suMiscCents : 0) +
+    (hasDoors ? doorMiscCents : 0)
   const effectiveLabourTotalCents = isSupply
     ? 0
     : (hasWindows ? winLabourCents : 0) +
-      (hasSealedUnits ? suLabourCents : 0) +
-      (hasDoors ? doorLabourCents : 0)
+    (hasSealedUnits ? suLabourCents : 0) +
+    (hasDoors ? doorLabourCents : 0)
   const effectiveSurchargeTotalCents =
     (hasWindows ? winSurchargeCents : 0) +
     (hasSealedUnits ? suSurchargeCents : 0) +
@@ -200,18 +200,18 @@ export function calculateInvoicePricingRollup({
   const combinedSubtotalCalculatedCents = Math.max(
     0,
     (hasWindows ? winMaterialsCents - totalDiscountCents + winJCCents : 0) +
-      suGlassCents +
-      doorNetMaterialsCents +
-      effectiveMiscTotalCents +
-      effectiveLabourTotalCents +
-      effectiveSurchargeTotalCents
+    suGlassCents +
+    doorNetMaterialsCents +
+    effectiveMiscTotalCents +
+    effectiveLabourTotalCents +
+    effectiveSurchargeTotalCents
   )
 
   const finalSubtotalCents =
     hasAnyAttached || isDoorHost || isSUHost
       ? combinedSubtotalCalculatedCents
       : afterDiscount > 0 &&
-          Math.abs(afterDiscount - combinedSubtotalCalculatedCents) <= 10
+        Math.abs(afterDiscount - combinedSubtotalCalculatedCents) <= 10
         ? afterDiscount
         : combinedSubtotalCalculatedCents
 
@@ -234,8 +234,8 @@ export function calculateInvoicePricingRollup({
       (hasWindows
         ? winMaterialsCents - totalDiscountCents + winJCCents + customMatCents
         : 0) +
-        (hasSealedUnits ? suGlassCents : 0) +
-        (hasDoors ? doorNetMaterialsCents : 0)
+      (hasSealedUnits ? suGlassCents : 0) +
+      (hasDoors ? doorNetMaterialsCents : 0)
     )
     const hstBase = Math.round(finalSubtotalCents * 0.13)
     const matExemption = Math.round(matCents * 0.08)
