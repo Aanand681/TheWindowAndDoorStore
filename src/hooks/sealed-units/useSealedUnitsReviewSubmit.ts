@@ -1,18 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { toast } from "sonner"
+import { useCallback } from "react"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
-import {
-  clearActiveAutoSave,
-  syncRemoteDrafts,
-  purgeSubmittedDrafts,
-} from "@/lib/quote-drafts-storage"
+import { useUniversalReviewSubmit } from "@/hooks/quotes/review/useUniversalReviewSubmit"
 
 interface UseSealedUnitsReviewSubmitProps {
   user: any
@@ -63,62 +58,8 @@ export function useSealedUnitsReviewSubmit({
   extraLabour,
   globalUpcharges,
 }: UseSealedUnitsReviewSubmitProps) {
-  const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
-  const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
-  const [adminSubmitMode, setAdminSubmitMode] = useState<
-    "direct_approve" | "submit_review"
-  >("direct_approve")
-  const [preparerNotes, setPreparerNotes] = useState<string>("")
-
-  const handleSubmitForReview = async () => {
-    if (!quoteNumber.trim() || !customerName.trim()) {
-      toast.error(
-        "Please enter Customer Name and Quote Number before submitting!"
-      )
-      return
-    }
-    if (
-      lineItems.length === 0 &&
-      !(isServiceOnly && (totals.totalSqft || 0) > 0)
-    ) {
-      toast.error(
-        "Please add at least one sealed unit or enter service sq ft before submitting!"
-      )
-      return
-    }
-
-    const isDirectApprove = Boolean(
-      (user?.role === "ADMIN" || user?.role === "SUPERADMIN") &&
-      adminSubmitMode === "direct_approve"
-    )
-
-    const effectiveReviewer =
-      assignedReviewer &&
-      assignedReviewer.toLowerCase() !== user?.username?.toLowerCase()
-        ? assignedReviewer
-        : ""
-
-    if (isDirectApprove && !selectedOdooClerk) {
-      toast.error("Please select an Odoo clerk to assign this quote to")
-      return
-    }
-    if (!isDirectApprove) {
-      if (!effectiveReviewer) {
-        toast.error(
-          "Please select another reviewer. You cannot submit a quote to yourself."
-        )
-        return
-      }
-      if (effectiveReviewer.toLowerCase() === user?.username?.toLowerCase()) {
-        toast.error(
-          "You cannot submit a quote for review to yourself. Please select another team member."
-        )
-        return
-      }
-    }
-
-    setSubmittingQuote(true)
-    try {
+  const buildSubmitPayload = useCallback(
+    ({ isDirectApprove, effectiveReviewer, effectiveClerk, preparerNotes }: any) => {
       const effectiveLineItems =
         lineItems.length > 0
           ? lineItems
@@ -143,98 +84,82 @@ export function useSealedUnitsReviewSubmit({
               } as any,
             ]
 
-      const res = await fetch("/api/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quoteNumber,
-          customerName,
-          assignedTo: isDirectApprove ? user?.username || "" : effectiveReviewer,
-          directApprove: isDirectApprove,
-          odooAssignedTo: isDirectApprove ? selectedOdooClerk : undefined,
-          preparerNotes,
-          quoteNotes,
-          attachedWindowQuote,
-          attachedDoorQuote,
-          attachedInstallOption: readSessionAttachedInstallOption(),
-          customOptions: readSessionCustomOptions(),
-          selectedRegionId,
-          travelFeeType,
-          customTravelFee,
-          showOutTownTravel,
-          travelKm,
-          crewHours,
-          crewSize,
-          extraLabour: extraLabour || "",
-          globalUpcharges: globalUpcharges || [],
-          hstRate,
-          windows: effectiveLineItems,
-          taxTotals: {
-            isSupplyOnly: !isInstallation,
-            subtotalPreTax: totals.subtotalPreTax,
-            grandTotal: totals.grandTotal,
-            hstAmount: totals.hstAmount,
-            hstRate,
-            totalUnits: totals.totalUnits,
-            totalSqft: totals.totalSqft,
-            glassSupplyTotal: totals.glassSupplyTotal,
-            combinedLabourTotal: totals.combinedLabourTotal,
-            miscTotal: totals.miscTotal,
-            baseSetupFee: totals.baseSetupFee,
-            totalAdditionalTravel: totals.totalAdditionalTravel,
-            isSealedUnitQuote: true,
-          },
-          quoteResult: {
-            base: totals.glassBefore8PercentTotal,
-            surcharge: totals.glass8PercentSurchargeTotal,
-            total: totals.grandTotal,
-            isSealedUnit: true,
-          },
-          quoteSummaryTotal: Math.round(totals.grandTotal * 100),
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to submit quote")
-
-      // Purge drafts for this submitted quote AND any absorbed child quotes
-      purgeSubmittedDrafts({
-        mainQuoteNumber: quoteNumber,
-        mainType: "sealed_unit",
+      return {
+        quoteNumber,
+        customerName,
+        assignedTo: isDirectApprove ? user?.username || "" : (effectiveReviewer || assignedReviewer),
+        directApprove: isDirectApprove,
+        odooAssignedTo: isDirectApprove ? (effectiveClerk || selectedOdooClerk) : undefined,
+        preparerNotes,
+        quoteNotes,
         attachedWindowQuote,
         attachedDoorQuote,
-      })
-
-      clearActiveAutoSave("sealed_unit")
-      syncRemoteDrafts().catch(() => {})
-
-      if (isDirectApprove) {
-        toast.success(
-          `Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk} for Odoo entry!`
-        )
-      } else {
-        toast.success(
-          `Quote #${quoteNumber} submitted to ${effectiveReviewer} for review!`
-        )
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        selectedRegionId,
+        travelFeeType,
+        customTravelFee,
+        showOutTownTravel,
+        travelKm,
+        crewHours,
+        crewSize,
+        extraLabour: extraLabour || "",
+        globalUpcharges: globalUpcharges || [],
+        hstRate,
+        windows: effectiveLineItems,
+        taxTotals: {
+          isSupplyOnly: !isInstallation,
+          subtotalPreTax: totals.subtotalPreTax,
+          grandTotal: totals.grandTotal,
+          hstAmount: totals.hstAmount,
+          hstRate,
+          totalUnits: totals.totalUnits,
+          totalSqft: totals.totalSqft,
+          glassSupplyTotal: totals.glassSupplyTotal,
+          combinedLabourTotal: totals.combinedLabourTotal,
+          miscTotal: totals.miscTotal,
+          baseSetupFee: totals.baseSetupFee,
+          totalAdditionalTravel: totals.totalAdditionalTravel,
+          isSealedUnitQuote: true,
+        },
+        quoteResult: {
+          base: totals.glassBefore8PercentTotal,
+          surcharge: totals.glass8PercentSurchargeTotal,
+          total: totals.grandTotal,
+          isSealedUnit: true,
+        },
+        quoteSummaryTotal: Math.round(totals.grandTotal * 100),
       }
-      setShowSubmitModal(false)
-      setPreparerNotes("")
-      window.dispatchEvent(new CustomEvent("quote-count-updated"))
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit quote")
-    } finally {
-      setSubmittingQuote(false)
-    }
-  }
+    },
+    [
+      lineItems, totals, quoteNumber, customerName, user?.username, assignedReviewer,
+      selectedOdooClerk, quoteNotes, attachedWindowQuote, attachedDoorQuote,
+      selectedRegionId, travelFeeType, customTravelFee, showOutTownTravel, travelKm,
+      crewHours, crewSize, extraLabour, globalUpcharges, hstRate, isInstallation,
+    ]
+  )
+
+  const universal = useUniversalReviewSubmit({
+    user,
+    isAdmin: user?.role === "ADMIN" || user?.role === "SUPERADMIN",
+    customerName,
+    quoteNumber,
+    itemCount: isServiceOnly && (totals.totalSqft || 0) > 0 ? 1 : lineItems.length,
+    quoteType: "sealed_unit",
+    quoteTypeLabel: "Sealed Unit",
+    buildSubmitPayload,
+    attachedWindowQuote,
+    attachedDoorQuote,
+  })
 
   return {
-    showSubmitModal,
-    setShowSubmitModal,
-    submittingQuote,
-    adminSubmitMode,
-    setAdminSubmitMode,
-    preparerNotes,
-    setPreparerNotes,
-    handleSubmitForReview,
+    showSubmitModal: universal.showSubmitModal,
+    setShowSubmitModal: universal.setShowSubmitModal,
+    submittingQuote: universal.submittingQuote,
+    adminSubmitMode: universal.adminSubmitMode,
+    setAdminSubmitMode: universal.setAdminSubmitMode,
+    preparerNotes: universal.preparerNotes,
+    setPreparerNotes: universal.setPreparerNotes,
+    handleSubmitForReview: universal.handleSubmitQuote,
   }
 }
