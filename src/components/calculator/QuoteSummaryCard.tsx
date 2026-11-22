@@ -2,25 +2,19 @@
 
 import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { toCents, getJcSummaryLabel } from "@/lib/promo-logic"
-import {
-  readSessionSupplyState,
-  readSessionInstallState,
-  readSessionAttachedInstallOption,
-  writeSessionAttachedInstallOption,
-  ATTACHED_INSTALL_CHANGE_EVENT,
-  type CachedAttachedInstallOption,
-} from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { getJcSummaryLabel } from "@/lib/promo-logic"
+import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useCombinedQuoteData } from "@/hooks/calculator/useCombinedQuoteData"
 import { QuoteSummaryHeader } from "./summary/QuoteSummaryHeader"
 import { AttachedQuoteBadges } from "./summary/AttachedQuoteBadges"
 import { EditableLedgerRow } from "./summary/EditableLedgerRow"
-import { CombinedLedgerSection } from "./summary/CombinedLedgerSection"
-import { StandardLedgerSection } from "./summary/StandardLedgerSection"
 import { SummaryUpgradeCard } from "./summary/SummaryUpgradeCard"
 import { SummaryReviewActions } from "./summary/SummaryReviewActions"
 import { ReviewerRevisionAlert } from "./summary/ReviewerRevisionAlert"
-import { SupplyVsInstallCompareModal } from "@/components/shared/SupplyVsInstallCompareModal"
+import { useQuoteSummaryComparison } from "./summary/useQuoteSummaryComparison"
+import { SummaryCompareModalWrapper } from "./summary/SummaryCompareModalWrapper"
+import { SummaryLedgerSwitcher } from "./summary/SummaryLedgerSwitcher"
+import { computeEffectiveCents } from "./summary/effective-cents-calc"
 import type { QuoteSummaryCardProps } from "./summary/types"
 
 export type { QuoteSummaryCardProps }
@@ -34,11 +28,11 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     taxJC,
     taxMisc,
     taxLabour,
-    customJC,
+    customJC = "",
     setCustomJC,
-    customMisc,
+    customMisc = "",
     setCustomMisc,
-    customLabour,
+    customLabour = "",
     setCustomLabour,
     customDiscount = "",
     setCustomDiscount,
@@ -52,8 +46,6 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     total,
     firstPayment,
     secondPayment,
-    quoteNotes,
-    setQuoteNotes,
     isReadOnly,
     reviewQuote,
     quoteNumber,
@@ -67,181 +59,56 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     onRemoveAttachedDoorQuote,
     onRemoveAttachedUpgrade,
   } = props
-  const isSupply = Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
-  const hasSupplyJC = isSupply
-    ? Boolean(
-        (taxTotals?.selectedJamb &&
-          taxTotals.selectedJamb.id !== "none" &&
-          Number(
-            taxTotals.selectedJamb.total || taxTotals.selectedJamb.rate || 0
-          ) > 0) ||
-        (taxTotals?.selectedCasing &&
-          taxTotals.selectedCasing.id !== "none" &&
-          Number(
-            taxTotals.selectedCasing.total || taxTotals.selectedCasing.rate || 0
-          ) > 0) ||
-        (taxTotals?.jcLabourCents && taxTotals.jcLabourCents > 0)
-      )
-    : true
 
-  const effectiveJCCents = isSupply
-    ? hasSupplyJC
-      ? customJC !== ""
-        ? toCents(customJC)
-        : taxJC || 0
-      : 0
-    : customJC !== ""
-      ? toCents(customJC)
-      : taxJC || 0
-  const effectiveMiscCents = isSupply
-    ? customMisc !== ""
-      ? toCents(customMisc)
-      : 0
-    : customMisc !== ""
-      ? toCents(customMisc)
-      : taxMisc || 0
-  const effectiveLabourCents = isSupply
-    ? 0
-    : customLabour !== ""
-      ? toCents(customLabour)
-      : taxLabour || 0
+  const isSupply = Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
+
+  const {
+    hasSupplyJC,
+    effectiveJCCents,
+    effectiveMiscCents,
+    effectiveLabourCents,
+  } = computeEffectiveCents(
+    isSupply,
+    taxTotals,
+    taxJC,
+    taxMisc,
+    taxLabour,
+    customJC,
+    customMisc,
+    customLabour
+  )
 
   const [editingField, setEditingField] = React.useState<
     "jc" | "labour" | "misc" | "discount" | null
   >(null)
   const [tempEditVal, setTempEditVal] = React.useState<string>("")
-  const [isCompareOpen, setIsCompareOpen] = React.useState<boolean>(false)
-  const [attachedInstallOption, setAttachedInstallOption] =
-    React.useState<CachedAttachedInstallOption | null>(null)
 
-  React.useEffect(() => {
-    const sync = () =>
-      setAttachedInstallOption(readSessionAttachedInstallOption())
-    sync()
-    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
-    window.addEventListener("storage", sync)
-    return () => {
-      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
-      window.removeEventListener("storage", sync)
-    }
-  }, [isSupply, quoteNumber, reviewQuote?._id])
-
-  const windowGroupsBaseTotal = React.useMemo(() => {
-    if (summaryWindowGroups && summaryWindowGroups.length > 0) {
-      return (
-        summaryWindowGroups.reduce((acc, g) => acc + (g.baseCents || 0), 0) /
-        100
-      )
-    }
-    return (quoteResult?.base || 0) / 100
-  }, [summaryWindowGroups, quoteResult?.base])
-
-  const supplyJCAmount = React.useMemo(() => {
-    if (isSupply) {
-      if (hasSupplyJC) {
-        if (effectiveJCCents > 0) return effectiveJCCents / 100
-        if (taxTotals?.jcLabourCents && taxTotals.jcLabourCents > 0)
-          return taxTotals.jcLabourCents / 100
-      }
-      return 0
-    }
-    const cachedSupply = readSessionSupplyState()
-    if (
-      !cachedSupply ||
-      (cachedSupply.jambId === "none" && cachedSupply.casingId === "none")
-    )
-      return 0
-    if (cachedSupply.customJC) return toCents(cachedSupply.customJC) / 100
-    if (
-      cachedSupply.supplyJCAmount !== undefined &&
-      cachedSupply.supplyJCAmount > 0
-    ) {
-      return cachedSupply.supplyJCAmount
-    }
-    return 0
-  }, [isSupply, hasSupplyJC, effectiveJCCents, taxTotals])
-
-  const installJCAmount = React.useMemo(() => {
-    if (!isSupply) return effectiveJCCents / 100
-    const c = readSessionInstallState()
-    if (c?.customJC) return toCents(c.customJC) / 100
-    if (
-      taxTotals?.fullInstallJCCents !== undefined &&
-      taxTotals.fullInstallJCCents > 0
-    )
-      return taxTotals.fullInstallJCCents / 100
-    if (c?.installJCAmount !== undefined && c.installJCAmount > 0)
-      return c.installJCAmount
-    return (
-      (taxTotals?.jcLabourCents
-        ? taxTotals.jcLabourCents / 100
-        : (taxJC || 0) / 100)
-    )
-  }, [isSupply, effectiveJCCents, taxTotals, taxJC])
-
-  const compareLabourAmount = React.useMemo(() => {
-    if (!isSupply) return effectiveLabourCents / 100
-    const c = readSessionInstallState()
-    if (c?.customLabour) return toCents(c.customLabour) / 100
-    if (
-      taxTotals?.fullInstallLabourCents !== undefined &&
-      taxTotals.fullInstallLabourCents > 0
-    )
-      return taxTotals.fullInstallLabourCents / 100
-    if (c?.installLabourAmount !== undefined && c.installLabourAmount > 0)
-      return c.installLabourAmount
-    return (taxLabour || 0) / 100
-  }, [isSupply, effectiveLabourCents, taxLabour, taxTotals])
-
-  const compareMiscAmount = React.useMemo(() => {
-    if (!isSupply) return effectiveMiscCents / 100
-    const c = readSessionInstallState()
-    if (c?.customMisc) return toCents(c.customMisc) / 100
-    if (
-      taxTotals?.fullInstallMiscCents !== undefined &&
-      taxTotals.fullInstallMiscCents > 0
-    )
-      return taxTotals.fullInstallMiscCents / 100
-    if (c?.installMiscAmount !== undefined && c.installMiscAmount > 0)
-      return c.installMiscAmount
-    return (taxMisc || 0) / 100
-  }, [isSupply, effectiveMiscCents, taxMisc, taxTotals])
-
-  const dynamicInstallDeltaCents = React.useMemo(() => {
-    const effectiveSupplyJC =
-      !isSupply && !attachedInstallOption?.hasSupplyJC ? 0 : supplyJCAmount
-    const extraJC = Math.max(0, installJCAmount - effectiveSupplyJC)
-    return Math.round(
-      (compareLabourAmount + compareMiscAmount + extraJC) * 100
-    )
-  }, [
+  const {
+    isCompareOpen,
+    setIsCompareOpen,
+    attachedInstallOption,
+    setAttachedInstallOption,
+    windowGroupsBaseTotal,
+    supplyJCAmount,
+    installJCAmount,
     compareLabourAmount,
     compareMiscAmount,
-    installJCAmount,
-    supplyJCAmount,
+    dynamicInstallDeltaCents,
+  } = useQuoteSummaryComparison({
     isSupply,
-    attachedInstallOption?.hasSupplyJC,
-  ])
-
-  React.useEffect(() => {
-    if (attachedInstallOption?.enabled && dynamicInstallDeltaCents > 0) {
-      const current = readSessionAttachedInstallOption()
-      const isSupplyJCPresent = supplyJCAmount > 0
-      if (
-        current?.enabled &&
-        (current.amountPreTaxCents !== dynamicInstallDeltaCents ||
-          current.hasSupplyJC !== isSupplyJCPresent)
-      ) {
-        const updated = {
-          ...current,
-          amountPreTaxCents: dynamicInstallDeltaCents,
-          hasSupplyJC: isSupplyJCPresent,
-        }
-        writeSessionAttachedInstallOption(updated)
-        setAttachedInstallOption(updated)
-      }
-    }
-  }, [dynamicInstallDeltaCents, supplyJCAmount, attachedInstallOption?.enabled])
+    quoteNumber,
+    reviewQuoteId: reviewQuote?._id ? String(reviewQuote._id) : undefined,
+    summaryWindowGroups,
+    quoteResult,
+    taxTotals,
+    taxJC,
+    taxLabour,
+    taxMisc,
+    effectiveJCCents,
+    effectiveLabourCents,
+    effectiveMiscCents,
+    hasSupplyJC,
+  })
 
   const renderEditableRow = (
     field: "jc" | "labour" | "misc" | "discount",
@@ -334,63 +201,40 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
               />
 
               {/* FINANCIAL LEDGER */}
-              {combinedData ? (
-                <CombinedLedgerSection
-                  combinedData={combinedData}
-                  summaryWindowGroups={summaryWindowGroups}
-                  attachedDoorQuote={attachedDoorQuote}
-                  renderEditableRow={renderEditableRow}
-                  jcSummaryLabel={jcSummaryLabel}
-                  customJC={customJC}
-                  customMisc={customMisc}
-                  customLabour={customLabour}
-                  customDiscount={customDiscount}
-                  taxJC={taxJC}
-                  taxMisc={taxMisc}
-                  taxLabour={taxLabour}
-                  setCustomJC={setCustomJC}
-                  setCustomMisc={setCustomMisc}
-                  setCustomLabour={setCustomLabour}
-                  setCustomDiscount={setCustomDiscount}
-                  isSupplyOnly={isSupplyOnly}
-                  hstRate={hstRate}
-                  setHstRate={setHstRate}
-                  isReadOnly={isReadOnly}
-                />
-              ) : (
-                <StandardLedgerSection
-                  summaryWindowGroups={summaryWindowGroups}
-                  quoteResult={quoteResult}
-                  renderEditableRow={renderEditableRow}
-                  jcSummaryLabel={jcSummaryLabel}
-                  effectiveJCCents={effectiveJCCents}
-                  effectiveLabourCents={effectiveLabourCents}
-                  effectiveMiscCents={effectiveMiscCents}
-                  customJC={customJC}
-                  customMisc={customMisc}
-                  customLabour={customLabour}
-                  customDiscount={customDiscount}
-                  taxJC={taxJC}
-                  taxMisc={taxMisc}
-                  taxLabour={taxLabour}
-                  setCustomJC={setCustomJC}
-                  setCustomMisc={setCustomMisc}
-                  setCustomLabour={setCustomLabour}
-                  setCustomDiscount={setCustomDiscount}
-                  isSupplyOnly={isSupplyOnly}
-                  surchargeRate={surchargeRate}
-                  afterDiscount={afterDiscount}
-                  total={total}
-                  firstPayment={firstPayment}
-                  secondPayment={secondPayment}
-                  hstRate={hstRate}
-                  setHstRate={setHstRate}
-                  taxTotals={taxTotals}
-                  hstBaseCents={props.hstBase}
-                  materialExemptionCents={props.materialExemption}
-                  isReadOnly={isReadOnly}
-                />
-              )}
+              <SummaryLedgerSwitcher
+                combinedData={combinedData}
+                summaryWindowGroups={summaryWindowGroups}
+                attachedDoorQuote={attachedDoorQuote}
+                quoteResult={quoteResult}
+                renderEditableRow={renderEditableRow}
+                jcSummaryLabel={jcSummaryLabel}
+                effectiveJCCents={effectiveJCCents}
+                effectiveLabourCents={effectiveLabourCents}
+                effectiveMiscCents={effectiveMiscCents}
+                customJC={customJC}
+                customMisc={customMisc}
+                customLabour={customLabour}
+                customDiscount={customDiscount}
+                taxJC={taxJC}
+                taxMisc={taxMisc}
+                taxLabour={taxLabour}
+                setCustomJC={setCustomJC}
+                setCustomMisc={setCustomMisc}
+                setCustomLabour={setCustomLabour}
+                setCustomDiscount={setCustomDiscount}
+                isSupplyOnly={isSupplyOnly}
+                surchargeRate={surchargeRate}
+                afterDiscount={afterDiscount}
+                total={total}
+                firstPayment={firstPayment}
+                secondPayment={secondPayment}
+                hstRate={hstRate}
+                setHstRate={setHstRate}
+                taxTotals={taxTotals}
+                hstBaseCents={props.hstBase}
+                materialExemptionCents={props.materialExemption}
+                isReadOnly={isReadOnly}
+              />
 
               {/* 5-Year Free Labour Upgrade & Attached Window/Door Options */}
               <SummaryUpgradeCard
@@ -424,50 +268,26 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
         </CardContent>
       </Card>
 
-      <SupplyVsInstallCompareModal
+      <SummaryCompareModalWrapper
         isOpen={isCompareOpen}
         onClose={() => setIsCompareOpen(false)}
-        title="Window Quote Comparison"
         quoteNumber={quoteNumber}
         customerName={customerName}
-        currentMode={isSupplyOnly ? "supply" : "install"}
+        isSupplyOnly={isSupplyOnly}
         currentSubtotal={afterDiscount / 100}
-        baseLabel="Windows"
-        baseAmount={windowGroupsBaseTotal}
-        jcLabel={jcSummaryLabel}
-        jcAmount={isSupply ? supplyJCAmount : installJCAmount}
+        windowGroupsBaseTotal={windowGroupsBaseTotal}
+        jcSummaryLabel={jcSummaryLabel}
+        isSupply={isSupply}
         supplyJCAmount={supplyJCAmount}
         installJCAmount={installJCAmount}
-        materialsAmount={
-          taxTotals?.customMaterialsTotalCents
-            ? taxTotals.customMaterialsTotalCents / 100
-            : (taxTotals?.customMaterialsTotal || 0)
-        }
-        materialsLabel={
-          Array.isArray(taxTotals?.customMaterials) && taxTotals.customMaterials.length === 1 && taxTotals.customMaterials[0]?.label
-            ? taxTotals.customMaterials[0].label
-            : "Additional Materials"
-        }
-        labourAmount={compareLabourAmount}
-        miscAmount={compareMiscAmount}
-        surchargeAmount={(quoteResult?.surcharge || 0) / 100}
-        surchargeLabel={`Surcharge (${surchargeRate}%)`}
-        discountAmount={(quoteResult?.promoDiscount || 0) / 100}
-        discountLabel={quoteResult?.promoName || "Promo Discount"}
+        taxTotals={taxTotals}
+        compareLabourAmount={compareLabourAmount}
+        compareMiscAmount={compareMiscAmount}
+        quoteResult={quoteResult}
+        surchargeRate={surchargeRate}
         hstRate={hstRate}
-        onApplyMode={(m) => setIsSupplyOnly && setIsSupplyOnly(m === "supply")}
-        onToggleAttachOption={(att, c, title, hasSupplyJC) =>
-          setAttachedInstallOption(
-            att
-              ? {
-                  enabled: true,
-                  amountPreTaxCents: c,
-                  title,
-                  hasSupplyJC: hasSupplyJC ?? supplyJCAmount > 0,
-                }
-              : null
-          )
-        }
+        setIsSupplyOnly={setIsSupplyOnly}
+        setAttachedInstallOption={setAttachedInstallOption}
       />
     </div>
   )
