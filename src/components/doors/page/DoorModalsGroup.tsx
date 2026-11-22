@@ -7,229 +7,126 @@ import { SubmitReviewModal } from "@/components/calculator/SubmitReviewModal"
 import { SavedQuotesModal } from "@/components/calculator/SavedQuotesModal"
 import { AttachQuoteModal } from "@/components/calculator/AttachQuoteModal"
 import { UnsavedQuoteConflictModal } from "@/components/shared/UnsavedQuoteConflictModal"
-import { QuoteDraftItem } from "@/lib/quote-drafts-storage"
-import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { DoorCalculatorPageState } from "@/hooks/doors"
 
 const QuotePreviewModal = dynamic(
   () => import("@/components/quotes/QuotePreviewModal"),
   { ssr: false }
 )
 
-interface DoorModalsGroupProps {
-  showPreviewModal: boolean
-  setShowPreviewModal: (show: boolean) => void
-  showSubmitModal: boolean
-  setShowSubmitModal: (show: boolean) => void
-  showResetModal: boolean
-  setShowResetModal: (show: boolean) => void
-  isSavedQuotesOpen: boolean
-  setIsSavedQuotesOpen: (open: boolean) => void
-  isAttachModalOpen: boolean
-  setIsAttachModalOpen: (open: boolean) => void
-  customerName: string
-  quoteNumber: string
-  lineItems: any[]
-  mode: any
-  globalUpcharges: any[]
-  regionName?: string
-  isFirstNation: boolean
-  quoteNotes: string
-  setQuoteNotes: (notes: string) => void
-  attachedWindowQuote: any
-  setAttachedWindowQuote: (q: any) => void
-  attachedSealedUnit: any
-  setAttachedSealedUnit: (u: any) => void
-  totals: any
-  quoteTemplate: QuoteTemplateType
-  setQuoteTemplate: (t: QuoteTemplateType) => void
-  quoteFontSize: number
-  setQuoteFontSize: (s: number) => void
-  quoteSpacing: number
-  setQuoteSpacing: (s: number) => void
-  user: any
-  adminSubmitMode: "direct_approve" | "submit_review"
-  setAdminSubmitMode: (m: "direct_approve" | "submit_review") => void
-  staffList: any[]
-  assignedReviewer: string
-  setAssignedReviewer: (r: string) => void
-  clerkList: any[]
-  selectedOdooClerk: string
-  setSelectedOdooClerk: (c: string) => void
-  preparerNotes: string
-  setPreparerNotes: (n: string) => void
-  submittingQuote: boolean
-  onSubmitQuote: () => Promise<void>
-  onLoadQuoteFromDrafts: (draft: QuoteDraftItem) => void
-  onConfirmReset: () => void
-  onSaveDraft?: () => Promise<any> | void
-  showConflictModal?: boolean
-  setShowConflictModal?: (show: boolean) => void
-  pendingDraftToLoad?: QuoteDraftItem | null
-  onConflictSaveExistingAndLoad?: () => Promise<void> | void
-  onConflictContinueWithNew?: () => void
-  onConflictCancel?: () => void
+export interface DoorModalsGroupProps {
+  page: DoorCalculatorPageState
 }
 
-export function DoorModalsGroup({
-  showPreviewModal,
-  setShowPreviewModal,
-  showSubmitModal,
-  setShowSubmitModal,
-  showResetModal,
-  setShowResetModal,
-  isSavedQuotesOpen,
-  setIsSavedQuotesOpen,
-  isAttachModalOpen,
-  setIsAttachModalOpen,
-  customerName,
-  quoteNumber,
-  lineItems,
-  mode,
-  globalUpcharges,
-  regionName,
-  isFirstNation,
-  quoteNotes,
-  setQuoteNotes,
-  attachedWindowQuote,
-  setAttachedWindowQuote,
-  attachedSealedUnit,
-  setAttachedSealedUnit,
-  totals,
-  quoteTemplate,
-  setQuoteTemplate,
-  quoteFontSize,
-  setQuoteFontSize,
-  quoteSpacing,
-  setQuoteSpacing,
-  user,
-  adminSubmitMode,
-  setAdminSubmitMode,
-  staffList,
-  assignedReviewer,
-  setAssignedReviewer,
-  clerkList,
-  selectedOdooClerk,
-  setSelectedOdooClerk,
-  preparerNotes,
-  setPreparerNotes,
-  submittingQuote,
-  onSubmitQuote,
-  onLoadQuoteFromDrafts,
-  onConfirmReset,
-  onSaveDraft,
-  showConflictModal,
-  setShowConflictModal,
-  pendingDraftToLoad,
-  onConflictSaveExistingAndLoad,
-  onConflictContinueWithNew,
-  onConflictCancel,
-}: DoorModalsGroupProps) {
+export function DoorModalsGroup({ page }: DoorModalsGroupProps) {
   const totalDoorUnits =
-    totals.totalUnits ||
-    lineItems.reduce((acc, it) => acc + (it.quantity || 1), 0)
+    page.totals.totalUnits ||
+    page.lineItems.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0)
+
+  const regionName =
+    page.mode === "supply_only" ? undefined : page.selectedRegion?.name
 
   return (
     <>
       {/* 1. Preview Modal */}
-      {showPreviewModal && (
+      {page.showPreviewModal && (
         <QuotePreviewModal
-          isOpen={showPreviewModal}
-          onClose={() => setShowPreviewModal(false)}
-          template={quoteTemplate}
-          onTemplateChange={setQuoteTemplate}
-          fontSize={quoteFontSize}
-          onFontSizeChange={setQuoteFontSize}
-          spacing={quoteSpacing}
-          onSpacingChange={setQuoteSpacing}
-          quoteNotes={quoteNotes}
-          onQuoteNotesChange={setQuoteNotes}
-          primaryQuoteType="door"
-          doors={lineItems}
-          doorTotals={totals}
-          customerName={customerName}
-          quoteNumber={quoteNumber}
-          preparedBy={user?.name || user?.username || "The Window & Door Store"}
-          hstRate={isFirstNation ? 8 : 13}
-          isSupplyOnly={mode === "supply_only"}
+          isOpen={page.showPreviewModal}
+          onClose={() => page.setShowPreviewModal(false)}
+          customerName={page.customerName}
+          quoteNumber={page.quoteNumber}
+          preparedBy={
+            page.user?.name || page.user?.username || "The Window & Door Store"
+          }
+          doors={page.lineItems}
+          doorTotals={page.totals}
+          quoteNotes={page.quoteNotes}
+          template={page.quoteTemplate}
+          fontSize={page.quoteFontSize}
+          spacing={page.quoteSpacing}
+          onTemplateChange={page.setQuoteTemplate}
+          onFontSizeChange={page.setQuoteFontSize}
+          onSpacingChange={page.setQuoteSpacing}
+          isSupplyOnly={page.mode === "supply_only"}
           regionName={regionName}
-          globalUpcharges={globalUpcharges}
-          attachedWindowQuote={attachedWindowQuote}
-          attachedSealedUnit={attachedSealedUnit}
+          globalUpcharges={page.globalUpcharges}
+          hstRate={page.isFirstNation ? 8 : 13}
+          attachedWindowQuote={page.attachedWindowQuote}
+          attachedSealedUnit={page.attachedSealedUnit}
           isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
           attachedInstallOption={readSessionAttachedInstallOption()}
           customOptions={readSessionCustomOptions()}
         />
       )}
 
-      {/* 2. Submit Review / Direct Approve Modal */}
-      {showSubmitModal && (
+      {/* 2. Submit / Direct Approve Modal */}
+      {page.showSubmitModal && (
         <SubmitReviewModal
-          isOpen={showSubmitModal}
-          onClose={() => setShowSubmitModal(false)}
-          user={user}
-          adminSubmitMode={adminSubmitMode}
-          setAdminSubmitMode={setAdminSubmitMode}
-          quoteNumber={quoteNumber}
-          customerName={customerName}
+          isOpen={page.showSubmitModal}
+          onClose={() => page.setShowSubmitModal(false)}
           quoteType="door"
-          totalUnits={totalDoorUnits}
-          lineCount={lineItems.length}
+          quoteNumber={page.quoteNumber}
+          customerName={page.customerName}
+          user={page.user}
+          adminSubmitMode={page.adminSubmitMode}
+          setAdminSubmitMode={page.setAdminSubmitMode}
+          lineCount={page.lineItems.length}
           windowsCount={totalDoorUnits}
-          total={totals.grandTotal}
-          staffList={staffList}
-          clerkList={clerkList}
-          assignedReviewer={assignedReviewer}
-          setAssignedReviewer={setAssignedReviewer}
-          selectedOdooClerk={selectedOdooClerk}
-          setSelectedOdooClerk={setSelectedOdooClerk}
-          preparerNotes={preparerNotes}
-          setPreparerNotes={setPreparerNotes}
-          submittingQuote={submittingQuote}
-          onSubmit={onSubmitQuote}
+          total={page.totals.grandTotal}
+          staffList={page.staffList}
+          clerkList={page.clerkList}
+          assignedReviewer={page.assignedReviewer}
+          setAssignedReviewer={page.setAssignedReviewer}
+          selectedOdooClerk={page.selectedOdooClerk}
+          setSelectedOdooClerk={page.setSelectedOdooClerk}
+          preparerNotes={page.preparerNotes}
+          setPreparerNotes={page.setPreparerNotes}
+          submittingQuote={page.submittingQuote}
+          onSubmit={page.handleSubmitQuote}
         />
       )}
 
       {/* 3. Saved Quotes Modal */}
-      {isSavedQuotesOpen && (
+      {page.isSavedQuotesOpen && (
         <SavedQuotesModal
-          isOpen={isSavedQuotesOpen}
-          onClose={() => setIsSavedQuotesOpen(false)}
+          isOpen={page.isSavedQuotesOpen}
+          onClose={() => page.setIsSavedQuotesOpen(false)}
           defaultType="door"
-          onLoadQuote={onLoadQuoteFromDrafts}
+          onLoadQuote={page.handleLoadQuoteFromDrafts}
         />
       )}
 
       {/* 4. Attach Quote Modal */}
-      {isAttachModalOpen && (
+      {page.isAttachModalOpen && (
         <AttachQuoteModal
-          isOpen={isAttachModalOpen}
-          onClose={() => setIsAttachModalOpen(false)}
+          isOpen={page.isAttachModalOpen}
+          onClose={() => page.setIsAttachModalOpen(false)}
           currentQuoteType="door"
-          attachedWindowQuote={attachedWindowQuote}
-          attachedSealedUnit={attachedSealedUnit}
-          onAttachWindow={(win) => setAttachedWindowQuote(win)}
-          onDetachWindow={() => setAttachedWindowQuote(null)}
-          onAttachSealedUnit={(su) => setAttachedSealedUnit(su)}
-          onDetachSealedUnit={() => setAttachedSealedUnit(null)}
+          attachedWindowQuote={page.attachedWindowQuote}
+          attachedSealedUnit={page.attachedSealedUnit}
+          onAttachWindow={(win) => page.setAttachedWindowQuote(win)}
+          onDetachWindow={() => page.setAttachedWindowQuote(null)}
+          onAttachSealedUnit={(su) => page.setAttachedSealedUnit(su)}
+          onDetachSealedUnit={() => page.setAttachedSealedUnit(null)}
         />
       )}
 
       {/* 5. In-App Reset Confirmation Dialog */}
       <ResetModalWrapper
-        isOpen={showResetModal}
-        onClose={() => setShowResetModal(false)}
-        onConfirm={onConfirmReset}
+        isOpen={page.showResetModal}
+        onClose={() => page.setShowResetModal(false)}
+        onConfirm={page.handleConfirmReset}
         onSaveDraftAndReset={
-          onSaveDraft
+          page.handleExplicitSaveDraft
             ? async () => {
-                const saved = await onSaveDraft()
+                const saved = await page.handleExplicitSaveDraft()
                 if (saved) {
-                  onConfirmReset()
-                  setShowResetModal(false)
+                  page.handleConfirmReset()
+                  page.setShowResetModal(false)
                 }
               }
             : undefined
@@ -238,23 +135,23 @@ export function DoorModalsGroup({
       />
 
       {/* 6. Unsaved Quote Conflict Dialog */}
-      {showConflictModal && (
+      {page.showConflictModal && (
         <UnsavedQuoteConflictModal
-          isOpen={Boolean(showConflictModal)}
-          onClose={onConflictCancel || (() => setShowConflictModal?.(false))}
+          isOpen={Boolean(page.showConflictModal)}
+          onClose={page.handleConflictCancel || (() => page.setShowConflictModal?.(false))}
           quoteTypeLabel="Door"
           existingQuoteTitle={
-            customerName || quoteNumber
-              ? `#${quoteNumber || "Draft"} - ${customerName || "Unnamed"}`
+            page.customerName || page.quoteNumber
+              ? `#${page.quoteNumber || "Draft"} - ${page.customerName || "Unnamed"}`
               : "Draft in progress"
           }
           incomingQuoteTitle={
-            pendingDraftToLoad?.quoteNumber
-              ? `Door Quote #${pendingDraftToLoad.quoteNumber}`
+            page.pendingDraftToLoad?.quoteNumber
+              ? `Door Quote #${page.pendingDraftToLoad.quoteNumber}`
               : "new door quote"
           }
-          onSaveExistingAndLoad={onConflictSaveExistingAndLoad || (() => {})}
-          onContinueWithNew={onConflictContinueWithNew || (() => {})}
+          onSaveExistingAndLoad={page.handleConflictSaveExistingAndLoad || (() => {})}
+          onContinueWithNew={page.handleConflictContinueWithNew || (() => {})}
         />
       )}
     </>

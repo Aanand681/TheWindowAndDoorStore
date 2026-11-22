@@ -21,6 +21,8 @@ export interface UseDoorCalculatorPageOptions {
   originSubTab?: string
 }
 
+export type DoorCalculatorPageState = ReturnType<typeof useDoorCalculatorPage>
+
 export function useDoorCalculatorPage(
   options: UseDoorCalculatorPageOptions = {}
 ) {
