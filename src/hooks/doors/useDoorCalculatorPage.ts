@@ -1,27 +1,22 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useMemo } from "react"
 import { useSession } from "next-auth/react"
-import { DoorQuotingMode, DoorSelectedUpcharge } from "@/lib/doors/types"
 import { calculateDoorQuoteTotals } from "@/lib/doors/calculations"
-import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
 import { useDoorSettings } from "./useDoorSettings"
 import { useDoorItemBuilder } from "./useDoorItemBuilder"
 import { useDoorTravel } from "./useDoorTravel"
 import { useDoorDrafts } from "./useDoorDrafts"
 import { useDoorAutoSave } from "./useDoorAutoSave"
-import { useDoorReviewSubmit } from "./useDoorReviewSubmit"
-import { useDoorReviewLoader } from "./door-review-loader"
-import { useDoorReviewActions } from "./door-review-actions"
-import { useDoorAttachedSync } from "./useDoorAttachedSync"
+import { useDoorBaseQuoteState } from "./useDoorBaseQuoteState"
+import { useDoorReviewIntegration } from "./useDoorReviewIntegration"
+import { buildDoorSharedSyncProps } from "./door-sync-props-builder"
 
 export interface UseDoorCalculatorPageOptions {
   initialReviewQuoteId?: string
   initialIsEditMode?: boolean
   originSubTab?: string
 }
-
-export type DoorCalculatorPageState = ReturnType<typeof useDoorCalculatorPage>
 
 export function useDoorCalculatorPage(
   options: UseDoorCalculatorPageOptions = {}
@@ -34,411 +29,153 @@ export function useDoorCalculatorPage(
   const { presets, upcharges, formula, logistics } = useDoorSettings()
 
   // 2. Base Quote Customer & Mode State
-  const [customerName, setCustomerName] = useState<string>("")
-  const [quoteNumber, setQuoteNumber] = useState<string>("")
-  const [mode, setMode] = useState<DoorQuotingMode>("installation")
-  const [globalUpcharges, setGlobalUpcharges] = useState<
-    DoorSelectedUpcharge[]
-  >([])
+  const base = useDoorBaseQuoteState()
 
-  // 3. Customer / Notes / Tax / Attached Quotes State
-  const [quoteNotes, setQuoteNotes] = useState<string>("")
-  const [isFirstNation, setIsFirstNation] = useState<boolean>(false)
-  const [hstRate, setHstRateState] = useState<number>(13)
+  // 3. Line Item Builder Hook
+  const items = useDoorItemBuilder()
 
-  const setHstRate = useCallback((rate: number) => {
-    setHstRateState(rate)
-    setIsFirstNation(rate === 8)
-  }, [])
+  // 4. Travel & Logistics Hook
+  const travel = useDoorTravel()
 
-  const handleToggleFirstNation = useCallback((val: boolean) => {
-    setIsFirstNation(val)
-    setHstRateState(val ? 8 : 13)
-  }, [])
-  const [customLabour, setCustomLabour] = useState<string>("")
-  const [customMisc, setCustomMisc] = useState<string>("")
-  const [customDiscount, setCustomDiscount] = useState<string>("")
-  const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(
-    null
-  )
-  const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
-
-  // 4. Print / Preview Configuration State
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("cards")
-  const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5)
-  const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0)
-  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false)
-  const [isAttachModalOpen, setIsAttachModalOpen] = useState<boolean>(false)
-
-  // 5. Line Item Builder Hook
-  const {
-    lineItems,
-    setLineItems,
-    editingItem,
-    setEditingItem,
-    handleSaveItem,
-    handleEditItem,
-    handleDuplicateItem,
-    handleDeleteItem,
-  } = useDoorItemBuilder()
-
-  // 6. Travel & Logistics Hook
-  const {
-    regions,
-    selectedRegionId,
-    setSelectedRegionId,
-    selectedRegion,
-    regionsLoading,
-    travelFeeType,
-    setTravelFeeType,
-    customTravelFee,
-    setCustomTravelFee,
-    showOutTownTravel,
-    setShowOutTownTravel,
-    travelKm,
-    setTravelKm,
-    crewHours,
-    setCrewHours,
-    crewSize,
-    setCrewSize,
-    handleUpdateTravelParams,
-  } = useDoorTravel()
-
-  // 7. Calculate Totals using Pure Calculation Engine
+  // 5. Calculate Totals using Pure Calculation Engine
   const totals = useMemo(() => {
     return calculateDoorQuoteTotals({
-      lineItems,
-      mode,
-      globalUpcharges,
-      travelFeeType,
-      customTravelFee,
-      showOutTownTravel,
-      travelKm,
-      crewHours,
-      crewSize,
-      hstRate,
-      isFirstNation,
+      lineItems: items.lineItems,
+      mode: base.mode,
+      globalUpcharges: base.globalUpcharges,
+      travelFeeType: travel.travelFeeType,
+      customTravelFee: travel.customTravelFee,
+      showOutTownTravel: travel.showOutTownTravel,
+      travelKm: travel.travelKm,
+      crewHours: travel.crewHours,
+      crewSize: travel.crewSize,
+      hstRate: base.hstRate,
+      isFirstNation: base.isFirstNation,
       formula,
       logistics,
-      customDiscount,
+      customDiscount: base.customDiscount,
     })
   }, [
-    lineItems,
-    mode,
-    globalUpcharges,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-    hstRate,
-    isFirstNation,
+    items.lineItems,
+    base.mode,
+    base.globalUpcharges,
+    travel.travelFeeType,
+    travel.customTravelFee,
+    travel.showOutTownTravel,
+    travel.travelKm,
+    travel.crewHours,
+    travel.crewSize,
+    base.hstRate,
+    base.isFirstNation,
     formula,
     logistics,
-    customDiscount,
+    base.customDiscount,
   ])
 
-  const sharedSyncProps = {
-    customerName,
-    setCustomerName,
-    quoteNumber,
-    setQuoteNumber,
-    mode,
-    setMode,
-    lineItems,
-    setLineItems,
-    globalUpcharges,
-    setGlobalUpcharges,
-    selectedRegionId,
-    setSelectedRegionId,
-    travelFeeType,
-    setTravelFeeType,
-    customTravelFee,
-    setCustomTravelFee,
-    showOutTownTravel,
-    setShowOutTownTravel,
-    travelKm,
-    setTravelKm,
-    crewHours,
-    setCrewHours,
-    crewSize,
-    setCrewSize,
-    quoteNotes,
-    setQuoteNotes,
-    isFirstNation,
-    setIsFirstNation: handleToggleFirstNation,
-    hstRate,
-    setHstRate,
-    customLabour,
-    setCustomLabour,
-    customMisc,
-    setCustomMisc,
-    customDiscount,
-    setCustomDiscount,
-    attachedWindowQuote,
-    setAttachedWindowQuote,
-    attachedSealedUnit,
-    setAttachedSealedUnit,
+  const sharedSyncProps = buildDoorSharedSyncProps({
+    ...base,
+    lineItems: items.lineItems,
+    setLineItems: items.setLineItems,
+    selectedRegionId: travel.selectedRegionId,
+    setSelectedRegionId: travel.setSelectedRegionId,
+    travelFeeType: travel.travelFeeType,
+    setTravelFeeType: travel.setTravelFeeType,
+    customTravelFee: travel.customTravelFee,
+    setCustomTravelFee: travel.setCustomTravelFee,
+    showOutTownTravel: travel.showOutTownTravel,
+    setShowOutTownTravel: travel.setShowOutTownTravel,
+    travelKm: travel.travelKm,
+    setTravelKm: travel.setTravelKm,
+    crewHours: travel.crewHours,
+    setCrewHours: travel.setCrewHours,
+    crewSize: travel.crewSize,
+    setCrewSize: travel.setCrewSize,
     totals,
-  }
+  })
 
-  // 8. Auto-Save Hook
+  // 6. Auto-Save Hook
   const { lastSavedAt, setLastSavedAt } = useDoorAutoSave(sharedSyncProps)
 
-  // 9. Drafts & Workspace Reset Hook
-  const {
-    savedDraftsCount,
-    isSavedQuotesOpen,
-    setIsSavedQuotesOpen,
-    showResetModal,
-    setShowResetModal,
-    showConflictModal,
-    setShowConflictModal,
-    pendingDraftToLoad,
-    handleConflictSaveExistingAndLoad,
-    handleConflictContinueWithNew,
-    handleConflictCancel,
-    handleExplicitSaveDraft,
-    handleLoadQuoteFromDrafts,
-    handleConfirmReset,
-  } = useDoorDrafts({
+  // 7. Drafts & Workspace Reset Hook
+  const drafts = useDoorDrafts({
     ...sharedSyncProps,
-    setEditingItem,
+    setEditingItem: items.setEditingItem,
     setLastSavedAt,
   })
 
-  // 10. Submit & Review Workflow Hook
-  const {
-    showSubmitModal,
-    setShowSubmitModal,
-    submittingQuote,
-    assignedReviewer,
-    setAssignedReviewer,
-    selectedOdooClerk,
-    setSelectedOdooClerk,
-    adminSubmitMode,
-    setAdminSubmitMode,
-    preparerNotes,
-    setPreparerNotes,
-    staffList,
-    clerkList,
-    handleSubmitQuote,
-  } = useDoorReviewSubmit({
+  // 8. Review Mode & Workflow Hooks
+  const review = useDoorReviewIntegration({
     user,
     isAdmin,
-    customerName,
-    quoteNumber,
-    lineItems,
-    mode,
-    quoteNotes,
-    isFirstNation,
+    customerName: base.customerName,
+    quoteNumber: base.quoteNumber,
+    lineItems: items.lineItems,
+    mode: base.mode,
+    quoteNotes: base.quoteNotes,
+    isFirstNation: base.isFirstNation,
     totals,
-    attachedWindowQuote,
-    attachedSealedUnit,
-    selectedRegionId,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-  })
-
-  // 11. Review Mode & Workflow Hooks
-  const reviewLoader = useDoorReviewLoader({
-    user,
+    attachedWindowQuote: base.attachedWindowQuote,
+    attachedSealedUnit: base.attachedSealedUnit,
+    selectedRegionId: travel.selectedRegionId,
+    travelFeeType: travel.travelFeeType,
+    customTravelFee: travel.customTravelFee,
+    showOutTownTravel: travel.showOutTownTravel,
+    travelKm: travel.travelKm,
+    crewHours: travel.crewHours,
+    crewSize: travel.crewSize,
+    globalUpcharges: base.globalUpcharges,
+    hstRate: base.hstRate,
+    customLabour: base.customLabour,
+    customMisc: base.customMisc,
     presets,
     formula,
-    setCustomerName,
-    setQuoteNumber,
-    setQuoteNotes,
-    setMode,
-    setLineItems,
-    setGlobalUpcharges,
-    setSelectedRegionId,
-    setTravelFeeType,
-    setCustomTravelFee,
-    setShowOutTownTravel,
-    setTravelKm,
-    setCrewHours,
-    setCrewSize,
-    setIsFirstNation: handleToggleFirstNation,
-    setHstRate,
-    setCustomLabour,
-    setCustomMisc,
-    setAttachedWindowQuote,
-    setAttachedSealedUnit,
-    onConfirmReset: handleConfirmReset,
+    setCustomerName: base.setCustomerName,
+    setQuoteNumber: base.setQuoteNumber,
+    setQuoteNotes: base.setQuoteNotes,
+    setMode: base.setMode,
+    setLineItems: items.setLineItems,
+    setGlobalUpcharges: base.setGlobalUpcharges,
+    setSelectedRegionId: travel.setSelectedRegionId,
+    setTravelFeeType: travel.setTravelFeeType,
+    setCustomTravelFee: travel.setCustomTravelFee,
+    setShowOutTownTravel: travel.setShowOutTownTravel,
+    setTravelKm: travel.setTravelKm,
+    setCrewHours: travel.setCrewHours,
+    setCrewSize: travel.setCrewSize,
+    handleToggleFirstNation: base.handleToggleFirstNation,
+    setHstRate: base.setHstRate,
+    setCustomLabour: base.setCustomLabour,
+    setCustomMisc: base.setCustomMisc,
+    setAttachedWindowQuote: base.setAttachedWindowQuote,
+    setAttachedSealedUnit: base.setAttachedSealedUnit,
+    handleConfirmReset: drafts.handleConfirmReset,
+    setShowPreviewModal: base.setShowPreviewModal,
     initialReviewQuoteId: options.initialReviewQuoteId,
     initialIsEditMode: options.initialIsEditMode,
     originSubTab: options.originSubTab,
   })
 
-  // Auto-sync attached child quotes (windows & sealed units) when edited in other tabs
-  useDoorAttachedSync({
-    attachedWindowQuote,
-    setAttachedWindowQuote,
-    attachedSealedUnit,
-    setAttachedSealedUnit,
-    enabled: !reviewLoader.reviewQuote,
-  })
-
-  const reviewActions = useDoorReviewActions({
-    user,
-    reviewQuoteId: reviewLoader.reviewQuoteId,
-    reviewQuote: reviewLoader.reviewQuote,
-    setReviewQuote: reviewLoader.setReviewQuote,
-    setOriginalSnapshot: reviewLoader.setOriginalSnapshot,
-    setIsEditMode: reviewLoader.setIsEditMode,
-    handleExitReview: reviewLoader.handleExitReview,
-    customerName,
-    quoteNumber,
-    quoteNotes,
-    mode,
-    lineItems,
-    totals,
-    globalUpcharges,
-    selectedRegionId,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-    isFirstNation,
-    hstRate,
-    customLabour,
-    customMisc,
-    attachedWindowQuote,
-    attachedSealedUnit,
-    staffList,
-    clerkList,
-  })
-
-  const reviewWorkflowProps = {
-    reviewQuote: reviewLoader.reviewQuote,
-    activeTab: "door",
-    isEditMode: reviewLoader.isEditMode,
-    setIsEditMode: reviewLoader.setIsEditMode,
-    canEditCurrentQuote: reviewLoader.perms.canEditCurrentQuote,
-    isReviewerOrAdmin: reviewLoader.perms.isReviewerOrAdmin,
-    canApprove: reviewLoader.perms.canApprove,
-    isAssignedReviewer: reviewLoader.perms.isAssignedReviewer,
-    isOdooClerk: reviewLoader.perms.isOdooClerk,
-    user,
-    reviewActionLoading: reviewActions.reviewActionLoading,
-    handleSaveQuotePrices: reviewActions.handleSaveQuotePrices,
-    handleCancelEdits: reviewLoader.handleCancelEdits,
-    handleResubmitReturnedQuote: reviewActions.handleResubmitReturnedQuote,
-    handleExitReview: reviewLoader.handleExitReview,
-    setIsPreviewOpen: setShowPreviewModal,
-    setOdooOrderNumberInput: reviewActions.setOdooOrderNumberInput,
-    setShowCompleteOdooModal: reviewActions.setShowCompleteOdooModal,
-    staffList,
-    setReassignTo: reviewActions.setReassignTo,
-    setReassignNotes: reviewActions.setReassignNotes,
-    setShowReassignModal: reviewActions.setShowReassignModal,
-    handleReturnReviewQuote: reviewActions.handleReturnReviewQuote,
-    handleApproveReviewQuote: reviewActions.handleApproveReviewQuote,
-  }
-
   return {
-    reviewQuote: reviewLoader.reviewQuote,
-    isEditMode: reviewLoader.isEditMode,
-    isReadOnly: reviewLoader.perms.isReadOnly,
-    reviewWorkflowProps,
-    reviewLoader,
-    reviewActions,
+    reviewQuote: review.reviewLoader.reviewQuote,
+    isEditMode: review.reviewLoader.isEditMode,
+    isReadOnly: review.reviewLoader.perms.isReadOnly,
+    reviewWorkflowProps: review.reviewWorkflowProps,
+    reviewLoader: review.reviewLoader,
+    reviewActions: review.reviewActions,
     user,
     isAdmin,
     presets,
     upcharges,
     formula,
     logistics,
-    customerName,
-    setCustomerName,
-    quoteNumber,
-    setQuoteNumber,
-    mode,
-    setMode,
-    globalUpcharges,
-    setGlobalUpcharges,
-    quoteNotes,
-    setQuoteNotes,
-    isFirstNation,
-    setIsFirstNation: handleToggleFirstNation,
-    hstRate,
-    setHstRate,
-    customLabour,
-    setCustomLabour,
-    customMisc,
-    setCustomMisc,
-    customDiscount,
-    setCustomDiscount,
-    attachedWindowQuote,
-    setAttachedWindowQuote,
-    attachedSealedUnit,
-    setAttachedSealedUnit,
-    quoteTemplate,
-    setQuoteTemplate,
-    quoteFontSize,
-    setQuoteFontSize,
-    quoteSpacing,
-    setQuoteSpacing,
-    showPreviewModal,
-    setShowPreviewModal,
-    isAttachModalOpen,
-    setIsAttachModalOpen,
-    lineItems,
-    setLineItems,
-    editingItem,
-    setEditingItem,
-    handleSaveItem,
-    handleEditItem,
-    handleDuplicateItem,
-    handleDeleteItem,
-    regions,
-    selectedRegionId,
-    setSelectedRegionId,
-    selectedRegion,
-    regionsLoading,
-    travelFeeType,
-    customTravelFee,
-    showOutTownTravel,
-    travelKm,
-    crewHours,
-    crewSize,
-    handleUpdateTravelParams,
+    ...base,
+    ...items,
+    ...travel,
     totals,
     lastSavedAt,
-    savedDraftsCount,
-    isSavedQuotesOpen,
-    setIsSavedQuotesOpen,
-    showResetModal,
-    setShowResetModal,
-    showConflictModal,
-    setShowConflictModal,
-    pendingDraftToLoad,
-    handleConflictSaveExistingAndLoad,
-    handleConflictContinueWithNew,
-    handleConflictCancel,
-    handleExplicitSaveDraft,
-    handleLoadQuoteFromDrafts,
-    handleConfirmReset,
-    showSubmitModal,
-    setShowSubmitModal,
-    submittingQuote,
-    assignedReviewer,
-    setAssignedReviewer,
-    selectedOdooClerk,
-    setSelectedOdooClerk,
-    adminSubmitMode,
-    setAdminSubmitMode,
-    preparerNotes,
-    setPreparerNotes,
-    staffList,
-    clerkList,
-    handleSubmitQuote,
+    ...drafts,
+    ...review.reviewSubmit,
   }
 }
+
+export type DoorCalculatorPageState = ReturnType<typeof useDoorCalculatorPage>
