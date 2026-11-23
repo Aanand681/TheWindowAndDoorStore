@@ -397,5 +397,18 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
         amount: 22000,
       })
     })
+
+    it("verifies universal pricing handles 8% and 0.05 First Nations tax rate without NaN or truncation", () => {
+      const fnResult = calculateUniversalPricing({
+        windowQuote: windowDraft,
+        hostType: "window",
+        hstRate: 0.05,
+        isFirstNation: true,
+      })
+
+      expect(fnResult.taxLabel).toBe("First Nation Point-of-Sale Exemption")
+      expect(fnResult.materialExemption).toBeGreaterThan(0)
+      expect(fnResult.total).toBeGreaterThan(fnResult.subtotal)
+    })
   })
 })

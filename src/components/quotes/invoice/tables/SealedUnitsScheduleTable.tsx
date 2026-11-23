@@ -57,7 +57,21 @@ export function SealedUnitsScheduleTable({
               actualSqft: effectiveSUTotals.totalSqft || 0,
             },
           ]
-        : []
+        : isService && Number(effectiveSUTotals.serviceLabourTotal) > 0
+          ? [
+              {
+                id: "su-service-flat",
+                widthIn: "On-Site Service",
+                heightIn: "",
+                paneType: "service",
+                combinationName: "On-Site Sealed Unit Service & Glazing",
+                shapeDescription: "Labour & Service",
+                grillDescription: "None",
+                quantity: 1,
+                actualSqft: 0,
+              },
+            ]
+          : []
 
   if (!hasSealedUnits || effectiveSULineItems.length === 0) return null
 

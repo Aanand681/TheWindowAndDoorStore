@@ -168,7 +168,7 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
 
   if (hstRate === 0) {
     taxLabel = "0% Tax (Exempt)"
-  } else if (isFirstNation || hstRate === 8) {
+  } else if (isFirstNation || hstRate === 8 || hstRate === 0.05) {
     materialExemption = Math.round(materials * 0.08 * 100) / 100
     hstAmount = Math.max(0, Math.round((hstBase - materialExemption) * 100) / 100)
     taxLabel = "First Nation Point-of-Sale Exemption"

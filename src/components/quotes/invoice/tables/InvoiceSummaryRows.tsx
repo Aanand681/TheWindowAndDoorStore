@@ -285,7 +285,7 @@ export function InvoiceSummaryRows({
             >
               Discount Applied:
             </span>
-            10% Door Discount (Non-Storm Doors)
+            {attachedDoorQuote?.discountLabel || "Door Discount"}
           </td>
           <td
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}

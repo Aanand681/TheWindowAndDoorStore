@@ -29,8 +29,18 @@ export function DoorSummaryRows({
         effectiveDoors.map((dItem: any, dIdx: number) => {
           const q = Number(dItem.quantity) || 1
           const heading = formatDoorItemHeading(dItem)
+          const rawPrice = Number(
+            dItem.inksterBasePrice ??
+              dItem.netBasePrice ??
+              dItem.finalUnitPrice ??
+              dItem.unitPrice ??
+              dItem.basePrice ??
+              (dItem.totalPrice ? dItem.totalPrice / q : 0)
+          )
           const itemBaseCents = Math.round(
-            (dItem.inksterBasePrice || 0) * q * 100
+            (dItem.totalPrice !== undefined
+              ? Number(dItem.totalPrice)
+              : rawPrice * q) * 100
           )
           return (
             <tr key={dItem.id || dIdx} className="border-b border-[#e2e8f0]">
