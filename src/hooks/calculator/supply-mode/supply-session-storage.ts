@@ -105,6 +105,7 @@ export const SESSION_ATTACHED_INSTALL_OPTION_KEY =
 export interface CachedAttachedInstallOption {
   enabled: boolean
   amountPreTaxCents: number
+  amountPreTax?: number
   mode?: "supply" | "install"
   title?: string
   hasSupplyJC?: boolean

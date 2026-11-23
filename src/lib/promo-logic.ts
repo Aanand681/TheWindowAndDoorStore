@@ -30,6 +30,20 @@ export const formatMoney = (cents: number) => {
   }).format(cents / 100)
 }
 
+export const formatDollars = (amount: number | string) => {
+  const n = typeof amount === "string" ? parseFloat(amount) : Number(amount)
+  const val = Number.isFinite(n) ? n : 0
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+  }).format(val)
+}
+
+export const toDollars = (val: number | string) => {
+  const n = typeof val === "string" ? parseFloat(val) : Number(val)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0
+}
+
 export const toCents = (val: number | string) => {
   const n = Number(val)
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0

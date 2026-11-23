@@ -174,12 +174,12 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     attachedAmount: attachedAmount || 0,
     surchargeAmount,
     discountAmount,
-    supplyHardwareCents,
-    installHardwareCents,
-    opt1JCCents: Math.round(opt1JCAmount * 100),
-    opt2JCCents: Math.round(opt2JCAmount * 100),
-    labourCents: Math.round((labourAmount || 0) * 100),
-    miscCents: Math.round((miscAmount || 0) * 100),
+    supplyHardware: supplyHardwareTotal,
+    installHardware: installHardwareTotal,
+    opt1JC: opt1JCAmount,
+    opt2JC: opt2JCAmount,
+    labourAmount: labourAmount || 0,
+    miscAmount: miscAmount || 0,
     hstRate,
   })
 
@@ -187,10 +187,12 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     const next = !isOptionAttached
     setIsOptionAttached(next)
     const extraCents = totals.extraSubtotalCents
+    const extraDollars = totals.extraSubtotal
     writeSessionAttachedInstallOption(
       next
         ? {
             enabled: true,
+            amountPreTax: extraDollars,
             amountPreTaxCents: extraCents,
             mode: currentMode,
             title: attachTitle,
