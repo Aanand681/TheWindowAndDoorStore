@@ -26,6 +26,12 @@ export interface UseUniversalReviewSubmitProps {
   attachedWindowQuote?: any
   attachedDoorQuote?: any
   attachedSealedUnit?: any
+  onSuccess?: (params: {
+    data: any
+    isDirectApprove: boolean
+    effectiveClerk: string
+    effectiveReviewer: string
+  }) => void
 }
 
 export function useUniversalReviewSubmit({
@@ -40,6 +46,7 @@ export function useUniversalReviewSubmit({
   attachedWindowQuote,
   attachedDoorQuote,
   attachedSealedUnit,
+  onSuccess,
 }: UseUniversalReviewSubmitProps) {
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false)
   const [submittingQuote, setSubmittingQuote] = useState<boolean>(false)
@@ -169,11 +176,16 @@ export function useUniversalReviewSubmit({
       clearActiveAutoSave(quoteType)
       syncRemoteDrafts().catch(() => {})
 
-      toast.success(
-        isDirectApprove
-          ? `${quoteTypeLabel} quote approved and assigned!`
-          : `${quoteTypeLabel} quote submitted for review!`
-      )
+      if (onSuccess) {
+        onSuccess({ data, isDirectApprove, effectiveClerk, effectiveReviewer })
+      } else {
+        toast.success(
+          isDirectApprove
+            ? `${quoteTypeLabel} quote approved and assigned!`
+            : `${quoteTypeLabel} quote submitted for review!`
+        )
+      }
+
       setShowSubmitModal(false)
       setPreparerNotes("")
       window.dispatchEvent(new CustomEvent("quote-count-updated"))
@@ -197,7 +209,9 @@ export function useUniversalReviewSubmit({
     preparerNotes,
     setPreparerNotes,
     staffList,
+    setStaffList,
     clerkList,
+    setClerkList,
     handleSubmitQuote,
   }
 }

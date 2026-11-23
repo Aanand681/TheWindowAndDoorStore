@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
+import { detectQuoteChanges } from "@/lib/quote-diff"
 
 export interface UseUniversalReviewActionsProps {
   quoteTypeLabel: string
@@ -16,6 +17,7 @@ export interface UseUniversalReviewActionsProps {
   clerkList: any[]
   user: any
   buildUpdatePayload: (extra?: Record<string, any>) => any
+  originalSnapshot?: any
 }
 
 export function useUniversalReviewActions({
@@ -31,6 +33,7 @@ export function useUniversalReviewActions({
   clerkList,
   user,
   buildUpdatePayload,
+  originalSnapshot,
 }: UseUniversalReviewActionsProps) {
   const [reviewActionLoading, setReviewActionLoading] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -54,8 +57,9 @@ export function useUniversalReviewActions({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `Failed to update ${quoteTypeLabel.toLowerCase()} quote`)
-      setReviewQuote(data)
-      setOriginalSnapshot(data)
+      const updated = data.quote || data
+      setReviewQuote(updated)
+      setOriginalSnapshot(updated.initialSnapshot || updated)
       setIsEditMode(false)
       toast.success(`${quoteTypeLabel} Quote #${quoteNumber} updated!`)
     } catch (err: any) {
@@ -83,13 +87,21 @@ export function useUniversalReviewActions({
       return
     }
     setReviewActionLoading(true)
+
+    const payloadData = buildUpdatePayload()
+    const changes = originalSnapshot ? detectQuoteChanges(originalSnapshot, payloadData) : []
+    const finalStatus = changes.length > 0 ? "MODIFIED" : "APPROVED"
+    const reviewerNotes = `Reviewed and approved by ${user?.username || "Admin"}`
+
     try {
       const res = await fetch(`/api/quotes/${reviewQuoteId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           buildUpdatePayload({
-            status: "APPROVED",
+            status: finalStatus,
+            reviewChanges: changes,
+            reviewerNotes,
             odooAssignedTo: selectedOdooClerk,
             odooStatus: "PENDING_ENTRY",
           })
@@ -97,7 +109,7 @@ export function useUniversalReviewActions({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to approve quote")
-      toast.success(`${quoteTypeLabel} Quote #${quoteNumber} approved!`)
+      toast.success(`${quoteTypeLabel} Quote #${quoteNumber} approved & assigned to ${selectedOdooClerk}!`)
       setShowApproveOdooModal(false)
       handleExitReview()
     } catch (err: any) {
@@ -125,7 +137,7 @@ export function useUniversalReviewActions({
         body: JSON.stringify(
           buildUpdatePayload({
             status: "RETURNED",
-            reviewerNotes: returnNotes,
+            reviewerNotes: returnNotes.trim(),
           })
         ),
       })
@@ -175,6 +187,7 @@ export function useUniversalReviewActions({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assignedTo: reassignTo,
+          status: "PENDING_REVIEW",
           preparerNotes: reassignNotes
             ? `${reviewQuote?.preparerNotes ? reviewQuote.preparerNotes + "\n\n" : ""}[Reassigned by ${user?.username}]: ${reassignNotes}`
             : reviewQuote?.preparerNotes,
