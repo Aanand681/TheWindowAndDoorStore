@@ -91,6 +91,8 @@
 3. **Stage 3 (Completed): Quote Recall & Needs Revision Queue:** Preparers can retract/revise `PENDING_REVIEW` quotes without hard deletion; dedicated "Needs Revision" tab and notification badges for returned quotes.
 4. **Stage 4 (Completed): Universal Review Action Dialogs & Model Standardization:** Consolidated `CalculatorReviewModals`, `ReviewActionDialogs`, and `SubmitReviewModal` so Windows, Doors, and Sealed Units all consume the exact same review modal tree with zero duplicated markup.
 5. **Stage 5 (Completed): Auto-Save Options Hash & Event Synchronization:** Connected `CUSTOM_OPTIONS_CHANGE_EVENT` and `ATTACHED_INSTALL_CHANGE_EVENT` in `useDoorAutoSave` and `useSealedUnitsAutoSave`, preventing reload drops on option changes across all 3 calculators.
+6. **Stage 6 (Completed): Polymorphic Quote Review Diffing:** Added domain-specific line item diffing for Doors and Sealed Units plus global upcharges, delivering itemized audit logs during review.
+7. **Stage 7 (Completed): Universal Workspace Drafts State Machine (`useUniversalWorkspaceDrafts`):** Unified draft loading, dirty checking, conflict resolution, remote sync, and cross-calculator routing into a single universal hook, eliminating ~500 lines of duplicated state code.
 
 ---
 
