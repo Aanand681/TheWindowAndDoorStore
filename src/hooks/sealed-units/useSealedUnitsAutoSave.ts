@@ -22,6 +22,12 @@ import {
   SealedUnitSnapshotParams,
   WorkspaceSetters,
 } from "./sealed-units-storage-helpers"
+import {
+  readSessionAttachedInstallOption,
+  readSessionCustomOptions,
+  CUSTOM_OPTIONS_CHANGE_EVENT,
+  ATTACHED_INSTALL_CHANGE_EVENT,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseSealedUnitsAutoSaveProps {
   currentSnapshotParams: SealedUnitSnapshotParams
@@ -51,10 +57,35 @@ export function useSealedUnitsAutoSave({
   onConflictDetected,
 }: UseSealedUnitsAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [optionsHash, setOptionsHash] = useState(() =>
+    JSON.stringify({
+      c: readSessionCustomOptions(),
+      a: readSessionAttachedInstallOption(),
+    })
+  )
   const lastSavedSnapshotRef = useRef<string>("")
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const currentPayloadRef = useRef<any>(null)
   const initialLoadDone = useRef(false)
+
+  useEffect(() => {
+    const updateHash = () => {
+      setOptionsHash(
+        JSON.stringify({
+          c: readSessionCustomOptions(),
+          a: readSessionAttachedInstallOption(),
+        })
+      )
+    }
+    window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+    window.addEventListener("storage", updateHash)
+    return () => {
+      window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+      window.removeEventListener("storage", updateHash)
+    }
+  }, [])
 
   const restoreAutoSaveIntoWorkspace = useCallback(
     (recovered: any) => {
@@ -132,7 +163,10 @@ export function useSealedUnitsAutoSave({
       return
     }
 
-    const currentSnapshot = serializeSealedUnitSnapshot(currentSnapshotParams)
+    const currentSnapshot = serializeSealedUnitSnapshot({
+      ...currentSnapshotParams,
+      optionsHash,
+    })
     if (currentSnapshot === lastSavedSnapshotRef.current) {
       return
     }
@@ -191,6 +225,7 @@ export function useSealedUnitsAutoSave({
     attachedDoorQuote,
     currentSnapshotParams,
     quoteNotes,
+    optionsHash,
   ])
 
   const clearTimerAndSaveSnapshot = (snapshotString: string) => {

@@ -13,6 +13,8 @@ import {
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
+  CUSTOM_OPTIONS_CHANGE_EVENT,
+  ATTACHED_INSTALL_CHANGE_EVENT,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 interface UseDoorAutoSaveProps {
@@ -95,8 +97,34 @@ export function useDoorAutoSave({
   totals,
 }: UseDoorAutoSaveProps) {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [optionsHash, setOptionsHash] = useState(() =>
+    JSON.stringify({
+      c: readSessionCustomOptions(),
+      a: readSessionAttachedInstallOption(),
+    })
+  )
   const initialLoadDone = useRef(false)
+  const lastSavedFingerprintRef = useRef<string | null>(null)
   const currentPayloadRef = useRef<any>(null)
+
+  useEffect(() => {
+    const updateHash = () => {
+      setOptionsHash(
+        JSON.stringify({
+          c: readSessionCustomOptions(),
+          a: readSessionAttachedInstallOption(),
+        })
+      )
+    }
+    window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+    window.addEventListener("storage", updateHash)
+    return () => {
+      window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
+      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
+      window.removeEventListener("storage", updateHash)
+    }
+  }, [])
 
   // Load Active Auto-save Draft on Mount (Skipped if a specific draft is requested via URL)
   useEffect(() => {
@@ -166,6 +194,7 @@ export function useDoorAutoSave({
     l: customLabour,
     misc: customMisc,
     qnNotes: quoteNotes,
+    opts: optionsHash,
   })
 
   const buildDoorPayload = useCallback(() => {
@@ -233,6 +262,7 @@ export function useDoorAutoSave({
     travelKm,
     crewHours,
     crewSize,
+    optionsHash,
   ])
 
   useEffect(() => {
@@ -255,6 +285,11 @@ export function useDoorAutoSave({
       (!customerName || customerName === "Valued Customer")
     ) {
       clearActiveAutoSave("door")
+      lastSavedFingerprintRef.current = null
+      return
+    }
+
+    if (lastSavedFingerprintRef.current === doorFingerprint) {
       return
     }
 
@@ -265,6 +300,7 @@ export function useDoorAutoSave({
       })
       const payload = buildDoorPayload()
       saveActiveAutoSave("door", payload)
+      lastSavedFingerprintRef.current = doorFingerprint
       setLastSavedAt(nowStr)
     }, 700)
 
@@ -272,6 +308,7 @@ export function useDoorAutoSave({
       clearTimeout(timer)
     }
   }, [
+    doorFingerprint,
     lineItems.length,
     attachedWindowQuote,
     attachedSealedUnit,

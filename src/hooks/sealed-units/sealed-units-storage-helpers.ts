@@ -29,6 +29,7 @@ export interface SealedUnitSnapshotParams {
   regionName?: string
   attachedWindowQuote?: any | null
   attachedDoorQuote?: any | null
+  optionsHash?: string
 }
 
 export function serializeSealedUnitSnapshot(
@@ -56,6 +57,7 @@ export function serializeSealedUnitSnapshot(
     regionName: params.regionName || "",
     attachedWindowQuote: params.attachedWindowQuote || null,
     attachedDoorQuote: params.attachedDoorQuote || null,
+    optionsHash: params.optionsHash || "",
   })
 }
 
