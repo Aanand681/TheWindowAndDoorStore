@@ -4,8 +4,7 @@ import React from "react"
 import { cn } from "@/lib/utils"
 import { formatMoney, toCents } from "@/lib/promo-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
-import { SummaryTaxSection } from "./SummaryTaxSection"
-import { SummaryDepositSchedule } from "./SummaryDepositSchedule"
+import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 
 export interface CombinedLedgerSectionProps {
   combinedData: any
@@ -276,22 +275,18 @@ export function CombinedLedgerSection({
         </div>
       </div>
 
-      {/* Tax Section */}
-      <SummaryTaxSection
+      {/* Tax Section & Deposit Schedule */}
+      <UnifiedTaxAndDeposit
         hstRate={hstRate}
         setHstRate={setHstRate}
         taxCents={combinedData.combinedTaxCents}
         hstBaseCents={combinedData.combinedHstBaseCents}
         materialExemptionCents={combinedData.combinedMaterialExemptionCents}
-        isReadOnly={isReadOnly}
-        idPrefix="promoCombined"
-      />
-
-      {/* Total & Deposit Schedule */}
-      <SummaryDepositSchedule
         totalCents={combinedData.combinedTotalCents}
         firstPaymentCents={combinedData.combinedFirstPayment}
         secondPaymentCents={combinedData.combinedSecondPayment}
+        isReadOnly={isReadOnly}
+        idPrefix="promoCombined"
       />
     </>
   )

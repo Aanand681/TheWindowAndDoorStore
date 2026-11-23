@@ -17,6 +17,7 @@ export interface CombinedPricingParams {
   effectiveJC?: number // cents
   effectiveMisc?: number // cents
   effectiveLabour?: number // cents
+  customDiscount?: string | number
   hstRate?: number // 13 or 8 (First Nation exempt) or 0
   isSupplyOnly?: boolean
 }
@@ -25,6 +26,8 @@ export interface CombinedPricingResult {
   // Dollar amounts (used for auto-save and draft records)
   subtotalDollars: number
   grandTotalDollars: number
+  combinedSubtotal: number
+  combinedTotal: number
 
   // Cents amounts (exact financial accounting)
   combinedSubtotalCents: number
@@ -65,19 +68,24 @@ export function computeCombinedQuoteFinancials(
   const {
     quoteResult, afterDiscount = 0, total = 0, attachedSealedUnit,
     attachedDoorQuote, effectiveJC = 0, effectiveMisc = 0,
-    effectiveLabour = 0, hstRate = 13, isSupplyOnly = false,
+    effectiveLabour = 0, customDiscount = "", hstRate = 13, isSupplyOnly = false,
   } = params
 
   const isSupply = Boolean(isSupplyOnly)
 
   const qTaxTotals = (quoteResult as any)?.taxTotals || (params as any)?.taxTotals || {}
   const winTravel = Number(qTaxTotals?.extras ?? qTaxTotals?.totalTravelAndSetup ?? 0)
+  const resolvedCustomDiscount =
+    customDiscount !== undefined && String(customDiscount).trim() !== ""
+      ? String(customDiscount).trim()
+      : ""
 
   const universal = calculateUniversalPricing({
     windowQuote: {
       data: {
         effectiveBase: (quoteResult?.base || 0) / 100,
         quoteResult,
+        customDiscount: resolvedCustomDiscount,
         taxTotals: {
           ...qTaxTotals,
           extras: winTravel,
@@ -111,6 +119,7 @@ export function computeCombinedQuoteFinancials(
     isSupplyOnly: isSupply,
     hstRate,
     isFirstNation: hstRate === 8,
+    overrides: resolvedCustomDiscount !== "" ? { customDiscount: resolvedCustomDiscount } : undefined,
   })
 
   const hasAnyAttached = Boolean(attachedSealedUnit || attachedDoorQuote)
@@ -125,6 +134,8 @@ export function computeCombinedQuoteFinancials(
     : universal.totalCents
 
   return {
+    combinedSubtotal: Math.round(combinedSubtotalCents) / 100,
+    combinedTotal: Math.round(combinedTotalCents) / 100,
     subtotalDollars: Math.round(combinedSubtotalCents) / 100,
     grandTotalDollars: Math.round(combinedTotalCents) / 100,
     combinedSubtotalCents,

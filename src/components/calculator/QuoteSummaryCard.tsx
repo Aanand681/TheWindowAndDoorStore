@@ -149,6 +149,7 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     attachedSealedUnit,
     attachedDoorQuote,
     quoteResult,
+    customDiscount,
     effectiveMisc,
     effectiveLabour,
     effectiveJC,

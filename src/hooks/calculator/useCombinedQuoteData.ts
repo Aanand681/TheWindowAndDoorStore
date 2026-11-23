@@ -50,6 +50,7 @@ export interface UseCombinedQuoteDataParams {
   attachedSealedUnit?: any | null
   attachedDoorQuote?: any | null
   quoteResult?: any
+  customDiscount?: string | number
   // Dollar decimal amounts
   effectiveMisc?: number
   effectiveLabour?: number
@@ -70,6 +71,7 @@ export function useCombinedQuoteData({
   attachedSealedUnit,
   attachedDoorQuote,
   quoteResult,
+  customDiscount,
   effectiveMisc,
   effectiveLabour,
   effectiveJC,
@@ -99,6 +101,7 @@ export function useCombinedQuoteData({
       quoteResult,
       attachedSealedUnit,
       attachedDoorQuote,
+      customDiscount,
       effectiveJC: resolvedJCCents,
       effectiveMisc: resolvedMiscCents,
       effectiveLabour: resolvedLabourCents,
@@ -194,6 +197,7 @@ export function useCombinedQuoteData({
     attachedSealedUnit,
     attachedDoorQuote,
     quoteResult,
+    customDiscount,
     effectiveMisc,
     effectiveLabour,
     effectiveJC,

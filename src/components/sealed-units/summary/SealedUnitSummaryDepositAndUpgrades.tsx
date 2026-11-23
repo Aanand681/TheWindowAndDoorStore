@@ -4,9 +4,9 @@ import React from "react"
 import { Sparkles } from "lucide-react"
 
 export interface SealedUnitSummaryDepositAndUpgradesProps {
-  displayGrandTotal: number
-  firstPayment: number
-  secondPayment: number
+  displayGrandTotal?: number
+  firstPayment?: number
+  secondPayment?: number
   hasAttachedDoor: boolean
   hasAttachedWindow: boolean
   attachedDoorQuote?: any
@@ -24,34 +24,36 @@ export function SealedUnitSummaryDepositAndUpgrades({
 }: SealedUnitSummaryDepositAndUpgradesProps) {
   return (
     <>
-      {/* Grand Total & 50/50 Deposit */}
-      <div className="pt-1">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-base font-bold">Total</span>
-          <span className="shrink-0 font-mono text-2xl font-black tracking-tight whitespace-nowrap text-primary">
-            ${displayGrandTotal.toFixed(2)}
-          </span>
-        </div>
+      {/* Grand Total & 50/50 Deposit (rendered only if provided) */}
+      {displayGrandTotal !== undefined && firstPayment !== undefined && secondPayment !== undefined && (
+        <div className="pt-1">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-base font-bold">Total</span>
+            <span className="shrink-0 font-mono text-2xl font-black tracking-tight whitespace-nowrap text-primary">
+              ${displayGrandTotal.toFixed(2)}
+            </span>
+          </div>
 
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5">
-            <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              First 50% Deposit
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5">
+              <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                First 50% Deposit
+              </div>
+              <div className="font-mono text-sm font-bold whitespace-nowrap text-primary">
+                ${firstPayment.toFixed(2)}
+              </div>
             </div>
-            <div className="font-mono text-sm font-bold whitespace-nowrap text-primary">
-              ${firstPayment.toFixed(2)}
-            </div>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5">
-            <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Final 50% Balance
-            </div>
-            <div className="font-mono text-sm font-bold whitespace-nowrap text-primary">
-              ${secondPayment.toFixed(2)}
+            <div className="rounded-xl border border-border/60 bg-muted/60 p-2.5">
+              <div className="mb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Final 50% Balance
+              </div>
+              <div className="font-mono text-sm font-bold whitespace-nowrap text-primary">
+                ${secondPayment.toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Option for door Callout */}
       {hasAttachedDoor &&

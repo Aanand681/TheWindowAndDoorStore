@@ -3,8 +3,7 @@
 import React from "react"
 import { Info } from "lucide-react"
 import { formatMoney } from "@/lib/promo-logic"
-import { SummaryTaxSection } from "./SummaryTaxSection"
-import { SummaryDepositSchedule } from "./SummaryDepositSchedule"
+import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 
 export interface StandardLedgerSectionProps {
   summaryWindowGroups: any[]
@@ -205,22 +204,18 @@ export function StandardLedgerSection({
         </div>
       </div>
 
-      {/* Tax Section */}
-      <SummaryTaxSection
+      {/* Tax Section & Deposit Schedule */}
+      <UnifiedTaxAndDeposit
         hstRate={hstRate}
         setHstRate={setHstRate}
         taxCents={total - afterDiscount}
         hstBaseCents={hstBaseCents}
         materialExemptionCents={materialExemptionCents}
-        isReadOnly={isReadOnly}
-        idPrefix="promo"
-      />
-
-      {/* Total & Deposit Schedule */}
-      <SummaryDepositSchedule
         totalCents={total}
         firstPaymentCents={firstPayment}
         secondPaymentCents={secondPayment}
+        isReadOnly={isReadOnly}
+        idPrefix="promo"
       />
     </>
   )

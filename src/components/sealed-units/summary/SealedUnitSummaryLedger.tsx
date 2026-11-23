@@ -8,7 +8,7 @@ import {
 } from "@/lib/sealed-units-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { SealedUnitSummaryDepositAndUpgrades } from "./SealedUnitSummaryDepositAndUpgrades"
-import { SealedUnitSummaryTaxSection } from "./SealedUnitSummaryTaxSection"
+import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 
 export interface SealedUnitSummaryLedgerProps {
   isService: boolean
@@ -41,6 +41,8 @@ export interface SealedUnitSummaryLedgerProps {
   isInstallation: boolean
   hstRate: number
   setHstRate?: (rate: number) => void
+  combinedHstBase?: number
+  combinedMaterialExemption?: number
 }
 
 export function SealedUnitSummaryLedger({
@@ -51,6 +53,7 @@ export function SealedUnitSummaryLedger({
   attachedWinSentence, attachedDoorSentence, winBase, winJC,
   winJCDescription, winCustomMaterialsList, winDiscount, doorRawBase,
   doorDiscount, isInstallation, hstRate, setHstRate,
+  combinedHstBase, combinedMaterialExemption,
 }: SealedUnitSummaryLedgerProps) {
   return (
     <div className="space-y-3 text-xs">
@@ -149,7 +152,7 @@ export function SealedUnitSummaryLedger({
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Miscellaneous {hasAnyAttached ? "(all quotes)" : ""}
+                  Miscellaneous {hasAnyAttached ? "(combined)" : ""}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedMisc.toFixed(2)}
@@ -160,7 +163,7 @@ export function SealedUnitSummaryLedger({
             {(isInstallation || hasAnyAttached) && (
               <div className="flex items-center justify-between py-0.5 text-xs sm:text-sm">
                 <span className="font-medium text-foreground">
-                  Labour {hasAnyAttached ? "(all quotes)" : ""}
+                  Labour {hasAnyAttached ? "(combined)" : ""}
                 </span>
                 <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                   +${combinedLabour.toFixed(2)}
@@ -178,7 +181,7 @@ export function SealedUnitSummaryLedger({
             {winDiscount > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
                 <span>
-                  Promo Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
+                  Window Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
                 </span>
                 <span className="shrink-0 font-mono whitespace-nowrap">-${winDiscount.toFixed(2)}</span>
               </div>
@@ -186,7 +189,12 @@ export function SealedUnitSummaryLedger({
 
             {doorDiscount > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
-                <span>10% Door Discount (non-storm doors)</span>
+                <span>
+                  {attachedDoorQuote?.discountLabel || "Door Discount"}{" "}
+                  <span className="text-[10px] text-muted-foreground/70">
+                    (attached door)
+                  </span>
+                </span>
                 <span className="shrink-0 font-mono whitespace-nowrap">-${doorDiscount.toFixed(2)}</span>
               </div>
             )}
@@ -196,22 +204,33 @@ export function SealedUnitSummaryLedger({
 
       <div className="border-b border-border/50 pb-2.5 text-xs sm:text-sm">
         <div className="flex items-center justify-between font-medium">
-          <span className="font-bold text-foreground">Subtotal</span>
+          <span className="font-bold text-foreground">
+            {hasAnyAttached ? "Combined Subtotal" : "Subtotal"}
+          </span>
           <span className="shrink-0 font-mono font-bold whitespace-nowrap text-primary">
             ${combinedSubtotal.toFixed(2)}
           </span>
         </div>
       </div>
 
-      <SealedUnitSummaryTaxSection
-        isService={isService} hstRate={hstRate} setHstRate={setHstRate || (() => {})}
-        combinedTax={combinedTax} totals={totals}
+      <UnifiedTaxAndDeposit
+        isService={isService}
+        hstRate={hstRate}
+        setHstRate={setHstRate}
+        taxAmount={combinedTax}
+        hstBase={combinedHstBase ?? totals.hstBase}
+        materialExemption={combinedMaterialExemption ?? totals.materialExemption}
+        total={displayGrandTotal}
+        firstPayment={firstPayment}
+        secondPayment={secondPayment}
+        idPrefix="sealedUnit"
       />
 
       <SealedUnitSummaryDepositAndUpgrades
-        displayGrandTotal={displayGrandTotal} firstPayment={firstPayment} secondPayment={secondPayment}
-        hasAttachedDoor={hasAttachedDoor} hasAttachedWindow={hasAttachedWindow}
-        attachedDoorQuote={attachedDoorQuote} attachedWindowQuote={attachedWindowQuote}
+        hasAttachedDoor={hasAttachedDoor}
+        hasAttachedWindow={hasAttachedWindow}
+        attachedDoorQuote={attachedDoorQuote}
+        attachedWindowQuote={attachedWindowQuote}
       />
     </div>
   )

@@ -106,6 +106,9 @@ export function calculateInvoicePricingRollup({
     isSupplyOnly: isSupply,
     hstRate,
     isFirstNation: hstRate === 8,
+    overrides: (isWindowHost && (promoDiscountCents > 0 || monthlyDiscountCents > 0))
+      ? { customDiscount: ((promoDiscountCents + monthlyDiscountCents) / 100).toString() }
+      : undefined,
   })
 
   return {

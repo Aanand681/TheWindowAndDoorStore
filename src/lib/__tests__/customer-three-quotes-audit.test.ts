@@ -4,6 +4,7 @@ import { detectQuoteChanges } from "../quote-diff"
 import { calculateCompareTotals } from "@/components/shared/compare/compare-math"
 import { getInvoiceLabourItems } from "@/hooks/quotes/invoice-labour"
 import { calculateInvoicePricingRollup } from "@/hooks/quotes/invoice-pricing-rollup"
+import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 
 describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)", () => {
   // Customer: "Acme Corporation"
@@ -409,6 +410,68 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
       expect(fnResult.taxLabel).toBe("First Nation Point-of-Sale Exemption")
       expect(fnResult.materialExemption).toBeGreaterThan(0)
       expect(fnResult.total).toBeGreaterThan(fnResult.subtotal)
+    })
+
+    it("guarantees window quote subtotal deducts custom discount both standalone and when doors/sealed units are attached", () => {
+      const standaloneWindow = computeCombinedQuoteFinancials({
+        quoteResult: { base: 331840, surcharge: 26547, promoDiscount: 0 },
+        customDiscount: "250",
+        effectiveJC: 33557,
+        effectiveLabour: 149977,
+        effectiveMisc: 26058,
+        hstRate: 13,
+      })
+
+      // Standalone window subtotal should be: (3318.40 - 250) + 335.57 + 265.47 + 260.58 + 1499.77 = 5429.79
+      expect(standaloneWindow.combinedSubtotal).toBe(5429.79)
+      expect(standaloneWindow.windowDiscountCents).toBe(25000)
+
+      // When doors and sealed units are attached:
+      const attachedCombined = computeCombinedQuoteFinancials({
+        quoteResult: { base: 331840, surcharge: 26547, promoDiscount: 0 },
+        customDiscount: "250",
+        effectiveJC: 33557,
+        effectiveLabour: 149977,
+        effectiveMisc: 26058,
+        attachedDoorQuote: doorDraft,
+        attachedSealedUnit: sealedUnitDraft,
+        hstRate: 13,
+      })
+
+      // Combined window net materials should still deduct 250
+      expect(attachedCombined.windowDiscountCents).toBe(25000)
+      // Total combined subtotal includes window discount of 250
+      expect(attachedCombined.combinedSubtotal).toBe(
+        Math.round((standaloneWindow.combinedSubtotal + (2472.56 + 199.83 + 180.58 + 196.43) + (2366.26 + 189.30 + 74.40 + 446.43)) * 100) / 100
+      )
+    })
+
+    it("preserves window discount when attached to door quote and applies 8% First Nations exemption across combined materials", () => {
+      const windowDraftWithDiscount = {
+        ...windowDraft,
+        data: {
+          ...windowDraft.data,
+          customDiscount: "300",
+        },
+      }
+
+      const doorPricing = calculateUniversalPricing({
+        doorQuote: doorDraft,
+        windowQuote: windowDraftWithDiscount,
+        hostType: "door",
+        hstRate: 8,
+        isFirstNation: true,
+      })
+
+      // Window discount of 300 must be captured in winNorm
+      expect(doorPricing.winNorm?.discount).toBe(300)
+      // Combined materials must reflect (raw window base - 300)
+      expect(doorPricing.winNorm?.materials).toBe(3318.4 - 300)
+      // First Nations 8% rebate must calculate on combined net materials across doors + windows
+      expect(doorPricing.materialExemption).toBe(
+        Math.round(doorPricing.materials * 0.08 * 100) / 100
+      )
+      expect(doorPricing.materialExemption).toBeGreaterThan(0)
     })
   })
 })

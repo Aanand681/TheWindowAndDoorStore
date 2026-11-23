@@ -180,6 +180,7 @@ export function DoorQuoteSummaryCard({
             hstRate={hstRate} setHstRate={setHstRate} combinedTax={combinedTax} displayGrandTotal={displayGrandTotal}
             firstPayment={firstPayment} secondPayment={secondPayment} editingField={editingField}
             setEditingField={setEditingField} tempEditVal={tempEditVal} setTempEditVal={setTempEditVal} isReadOnly={isReadOnly}
+            combinedHstBase={universal.hstBase} combinedMaterialExemption={universal.materialExemption}
           />
           <DoorSummaryUpgrades upgradeItems={upgradeItems} />
           <CustomOptionsSection canModifyOptions={!isReadOnly} quoteNumber={quoteNumber} />

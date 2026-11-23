@@ -104,7 +104,19 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
       : []
   const customMaterialsDollars = customMaterialsList.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0)
 
-  const promoDiscountDollars = (rawData.quoteResult?.promoDiscount ? rawData.quoteResult.promoDiscount / 100 : 0) || rawData.promoDiscount || 0
+  const customDiscountDollars =
+    rawData.customDiscount !== undefined && String(rawData.customDiscount).trim() !== ""
+      ? parseFloat(String(rawData.customDiscount)) || 0
+      : (draft as any).customDiscount !== undefined && String((draft as any).customDiscount).trim() !== ""
+        ? parseFloat(String((draft as any).customDiscount)) || 0
+        : 0
+
+  const promoDiscountDollars =
+    (rawData.quoteResult?.promoDiscount ? rawData.quoteResult.promoDiscount / 100 : 0) ||
+    rawData.promoDiscount ||
+    0
+
+  const resolvedWindowDiscount = customDiscountDollars > 0 ? customDiscountDollars : promoDiscountDollars
   const promoName = rawData.quoteResult?.promoName || rawData.activePromoName || ""
   const hasJamb = Boolean(rawData.taxTotals?.selectedJamb && (Number(rawData.taxTotals.selectedJamb.total) > 0 || Number(rawData.taxTotals.selectedJamb.rate) > 0))
   const hasCasing = Boolean(rawData.taxTotals?.selectedCasing && (Number(rawData.taxTotals.selectedCasing.total) > 0 || Number(rawData.taxTotals.selectedCasing.rate) > 0))
@@ -124,7 +136,8 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     summaryLabel: finalSentence,
     summarySentence: finalSentence,
     jcLabel: jcDollars > 0 ? jcLabel : "",
-    promoName: promoDiscountDollars > 0 ? promoName : "",
+    promoName: resolvedWindowDiscount > 0 ? promoName || "Window Discount" : "",
+    customDiscount: customDiscountDollars > 0 ? String(customDiscountDollars) : "",
     totals: {
       subtotal: draft.subtotal,
       grandTotal: draft.grandTotal,
@@ -137,7 +150,8 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
       jc: jcDollars,
       customMaterials: customMaterialsDollars,
       customMaterialsList,
-      promoDiscount: promoDiscountDollars,
+      discount: resolvedWindowDiscount,
+      promoDiscount: resolvedWindowDiscount,
     },
     taxTotals: rawData.taxTotals,
     quoteResult: rawData.quoteResult,

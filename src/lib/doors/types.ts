@@ -132,6 +132,7 @@ export interface DoorQuoteTotals {
   surchargeTotal: number
   doorWithSurchargeTotal: number
   discountTotal: number
+  discountLabel?: string
   netDoorSupplyTotal: number
   stormDoorTotal: number
   hardwareTotal: number

@@ -4,7 +4,7 @@ import React from "react"
 import { DoorLineItem, DoorQuoteTotals } from "@/lib/doors/types"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { DoorSummaryEditableRow } from "./DoorSummaryEditableRow"
-import { DoorSummaryTaxAndTotal } from "./DoorSummaryTaxAndTotal"
+import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 
 export interface DoorSummaryLedgerProps {
   lineItems: DoorLineItem[]
@@ -52,6 +52,8 @@ export interface DoorSummaryLedgerProps {
   tempEditVal: string
   setTempEditVal: (val: string) => void
   isReadOnly?: boolean
+  combinedHstBase?: number
+  combinedMaterialExemption?: number
 }
 
 export function DoorSummaryLedger({
@@ -65,6 +67,7 @@ export function DoorSummaryLedger({
   isFirstNation, onToggleFirstNation, hstRate, setHstRate, combinedTax,
   displayGrandTotal, firstPayment, secondPayment, editingField,
   setEditingField, tempEditVal, setTempEditVal, isReadOnly = false,
+  combinedHstBase, combinedMaterialExemption,
 }: DoorSummaryLedgerProps) {
   return (
     <div className="space-y-2 text-xs sm:text-sm">
@@ -107,8 +110,8 @@ export function DoorSummaryLedger({
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-medium text-foreground">
             {totals.hardwareQty && totals.hardwareQty > 0
-              ? `${totals.hardwareQty} Locksets & Deadbolts`
-              : "Locksets & Deadbolts"}
+              ? `${totals.hardwareQty} Door Locksets & Hardware`
+              : "Door Lockset & Hardware"}
           </span>
           <span className="font-mono font-semibold text-foreground">
             +${totals.hardwareTotal.toFixed(2)}
@@ -165,7 +168,7 @@ export function DoorSummaryLedger({
           tempEditVal={tempEditVal}
           setTempEditVal={setTempEditVal}
           setter={setCustomMisc}
-          suffix={hasAnyAttached ? "(all quotes)" : undefined}
+          suffix={hasAnyAttached ? "(combined)" : undefined}
           isReadOnly={isReadOnly}
         />
       )}
@@ -183,7 +186,7 @@ export function DoorSummaryLedger({
           tempEditVal={tempEditVal}
           setTempEditVal={setTempEditVal}
           setter={setCustomLabour}
-          suffix={hasAnyAttached ? "(all quotes)" : undefined}
+          suffix={hasAnyAttached ? "(combined)" : undefined}
           isReadOnly={isReadOnly}
         />
       )}
@@ -196,7 +199,7 @@ export function DoorSummaryLedger({
       {(totals.discountTotal > 0 || customDiscount !== "" || setCustomDiscount) && (
         <DoorSummaryEditableRow
           field="discount"
-          label={customDiscount !== "" ? "Discount" : "10% Discount"}
+          label={customDiscount !== "" ? "Discount" : totals.discountLabel || "Door Discount"}
           amount={totals.discountTotal}
           customVal={customDiscount}
           defaultAmount={defaultDoorDiscount}
@@ -213,7 +216,7 @@ export function DoorSummaryLedger({
       {winDiscount > 0 && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            Promo Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Attached Window Promo"})
+            Window Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
             -${winDiscount.toFixed(2)}
@@ -224,23 +227,24 @@ export function DoorSummaryLedger({
       <div className="border-t border-border/60 pt-1" />
 
       <div className="flex items-center justify-between text-sm font-semibold">
-        <span>Subtotal</span>
+        <span>{hasAnyAttached ? "Combined Subtotal" : "Subtotal"}</span>
         <span className="font-mono text-base font-bold text-foreground">
           ${combinedSubtotal.toFixed(2)}
         </span>
       </div>
 
-      <DoorSummaryTaxAndTotal
-        totals={totals}
-        isFirstNation={isFirstNation}
-        onToggleFirstNation={onToggleFirstNation}
-        hstRate={hstRate}
+      <UnifiedTaxAndDeposit
+        hstRate={hstRate !== undefined ? hstRate : isFirstNation ? 8 : 13}
         setHstRate={setHstRate}
-        combinedTax={combinedTax}
-        displayGrandTotal={displayGrandTotal}
+        onToggleFirstNation={onToggleFirstNation}
+        taxAmount={combinedTax}
+        hstBase={combinedHstBase ?? totals.hstBase}
+        materialExemption={combinedMaterialExemption ?? totals.materialExemption}
+        total={displayGrandTotal}
         firstPayment={firstPayment}
         secondPayment={secondPayment}
         isReadOnly={isReadOnly}
+        idPrefix="door"
       />
     </div>
   )

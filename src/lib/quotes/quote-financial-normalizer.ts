@@ -59,10 +59,24 @@ export function normalizeWindowQuote(
     }, 0)
   }
 
-  const promoDisc = Number(data.quoteResult?.promoDiscount ? data.quoteResult.promoDiscount / 100 : taxTotals?.discount || 0)
+  const rawDiscount =
+    data.customDiscount !== undefined && String(data.customDiscount).trim() !== ""
+      ? parseFloat(String(data.customDiscount)) || 0
+      : quote?.customDiscount !== undefined && String(quote.customDiscount).trim() !== ""
+        ? parseFloat(String(quote.customDiscount)) || 0
+        : Number(
+            data.quoteResult?.promoDiscount
+              ? data.quoteResult.promoDiscount / 100
+              : quote?.totals?.discount ??
+                data.totals?.discount ??
+                quote?.totals?.promoDiscount ??
+                data.totals?.promoDiscount ??
+                taxTotals?.discount ??
+                0
+          )
   const discount = overrides?.customDiscount !== undefined && overrides.customDiscount !== ""
     ? parseFloat(overrides.customDiscount) || 0
-    : promoDisc
+    : rawDiscount
   const materials = Math.max(0, Math.round((rawBase - discount) * 100) / 100)
 
   const rawRate = Number(data.surchargeRate ?? 8)

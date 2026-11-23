@@ -153,6 +153,7 @@ export function SealedUnitQuoteSummaryCard({
               winBase={winBase} winJC={winJC} winJCDescription={winJCDescription} winCustomMaterialsList={winCustomMaterialsList}
               winDiscount={winDiscount} doorRawBase={doorRawBase} doorDiscount={doorDiscount} isInstallation={isInstallation}
               hstRate={hstRate} setHstRate={setHstRate}
+              combinedHstBase={universal.hstBase} combinedMaterialExemption={universal.materialExemption}
             />
           )}
           <CustomOptionsSection canModifyOptions={!isReadOnly} quoteNumber={quoteNumber} />
