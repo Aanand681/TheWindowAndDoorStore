@@ -14,7 +14,7 @@ import { ReviewerRevisionAlert } from "./summary/ReviewerRevisionAlert"
 import { useQuoteSummaryComparison } from "./summary/useQuoteSummaryComparison"
 import { SummaryCompareModalWrapper } from "./summary/SummaryCompareModalWrapper"
 import { SummaryLedgerSwitcher } from "./summary/SummaryLedgerSwitcher"
-import { computeEffectiveCents } from "./summary/effective-cents-calc"
+import { computeEffectiveDollars } from "./summary/effective-cents-calc"
 import type { QuoteSummaryCardProps } from "./summary/types"
 
 export type { QuoteSummaryCardProps }
@@ -64,10 +64,13 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
 
   const {
     hasSupplyJC,
+    effectiveJC,
+    effectiveMisc,
+    effectiveLabour,
     effectiveJCCents,
     effectiveMiscCents,
     effectiveLabourCents,
-  } = computeEffectiveCents(
+  } = computeEffectiveDollars(
     isSupply,
     taxTotals,
     taxJC,
@@ -146,6 +149,9 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     attachedSealedUnit,
     attachedDoorQuote,
     quoteResult,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJC,
     effectiveMiscCents,
     effectiveLabourCents,
     effectiveJCCents,
@@ -154,15 +160,14 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
   })
 
   const compareSubtotal = combinedData
-    ? combinedData.combinedSubtotalCents / 100
+    ? combinedData.combinedSubtotal
     : afterDiscount / 100
 
   const compareAttachedAmount = combinedData
-    ? ((combinedData.hasDoor
-        ? combinedData.doorMaterialsCents - combinedData.doorDiscountCents
+    ? (combinedData.hasDoor
+        ? combinedData.doorMaterials - combinedData.doorDiscount
         : 0) +
-        (combinedData.hasSU ? combinedData.suGlassCents : 0)) /
-      100
+        (combinedData.hasSU ? combinedData.suGlass : 0)
     : undefined
 
   const compareAttachedLabel = combinedData

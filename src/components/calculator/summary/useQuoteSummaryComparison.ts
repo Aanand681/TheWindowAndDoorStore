@@ -166,6 +166,7 @@ export function useQuoteSummaryComparison({
       ) {
         const updated = {
           ...current,
+          amountPreTax: dynamicInstallDeltaCents / 100,
           amountPreTaxCents: dynamicInstallDeltaCents,
           hasSupplyJC: isSupplyJCPresent,
         }
@@ -185,6 +186,7 @@ export function useQuoteSummaryComparison({
     installJCAmount,
     compareLabourAmount,
     compareMiscAmount,
+    dynamicInstallDelta: dynamicInstallDeltaCents / 100,
     dynamicInstallDeltaCents,
   }
 }

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest"
 import { calculateUniversalPricing } from "../quotes/universal-pricing-engine"
 import { detectQuoteChanges } from "../quote-diff"
 import { calculateCompareTotals } from "@/components/shared/compare/compare-math"
+import { getInvoiceLabourItems } from "@/hooks/quotes/invoice-labour"
+import { calculateInvoicePricingRollup } from "@/hooks/quotes/invoice-pricing-rollup"
 
 describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)", () => {
   // Customer: "Acme Corporation"
@@ -285,6 +287,115 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
       expect(diffs.some((d) => d.includes("Custom Misc"))).toBe(true)
       // Verifies door quantity/price/hardware diff detected
       expect(diffs.some((d) => d.includes("Executive 6-Panel Entry Door") || d.includes("hardware") || d.includes("Qty"))).toBe(true)
+    })
+  })
+
+  describe("5. PDF Creation, Labour Breakdown & Dollar Decimal Precision", () => {
+    it("preserves window labour on PDF generation when includeLabourInPromo is false", () => {
+      // PDF invoice rollup with window installation labour and includeLabourInPromo = false
+      const rollup = calculateInvoicePricingRollup({
+        hasWindows: true,
+        hasSealedUnits: false,
+        hasDoors: false,
+        hasAnyAttached: false,
+        isWindowHost: true,
+        isDoorHost: false,
+        isSUHost: false,
+        isAttachedSUService: false,
+        quoteResult: { base: 200000 },
+        basePrice: 2000,
+        surcharge: 160,
+        taxLabourCents: 35000, // $350 labour
+        taxMiscCents: 5000,
+        taxJCCents: 10000,
+        taxDiscount: 0,
+        activePromo: { name: "Spring 10% Off", discount: 200 },
+        attachedWindowQuote: null,
+        effectiveSUTotals: null,
+        effectiveDoorTotals: null,
+        hstRate: 13,
+        afterDiscount: 2000,
+        taxTotals: { extras: 0 },
+        isSupplyOnly: false,
+      })
+
+      // Must expose direct dollar amounts without loss of precision
+      expect(rollup.finalSubtotal).toBeGreaterThan(0)
+      expect(rollup.effectiveLabourTotal).toBe(350)
+      expect(rollup.effectiveLabourTotalCents).toBe(35000)
+
+      const labourItems = getInvoiceLabourItems({
+        isSupplyOnly: false,
+        hasWindows: true,
+        winLabourCents: rollup.effectiveLabourTotalCents,
+        effectiveWindows: [{ id: "w1" }, { id: "w2" }],
+        taxTotals: { labourWindows: 350 },
+        hasDoors: false,
+        hasSealedUnits: false,
+      })
+
+      expect(labourItems).toHaveLength(1)
+      expect(labourItems[0].label).toContain("Window installation labour (2 units)")
+      expect(labourItems[0].amount).toBe(35000)
+    })
+
+    it("includes sealed unit extra labour and door custom labour overrides in PDF items", () => {
+      const labourItems = getInvoiceLabourItems({
+        isSupplyOnly: false,
+        hasWindows: false,
+        winLabourCents: 0,
+        hasDoors: true,
+        effectiveDoors: [{ id: "d1" }],
+        effectiveDoorTotals: {
+          unitLabourTotal: 180,
+          doorPureLabourTotal: 300, // custom override of $300 instead of default 180
+          upchargesTotal: 0,
+        },
+        hasSealedUnits: true,
+        effectiveSUTotals: {
+          unitLabourSum: 150,
+          extraLabour: 75, // $75 extra labour
+        },
+        isAttachedSUService: false,
+      })
+
+      expect(labourItems).toHaveLength(3)
+      // Door installation labour reflects the custom override ($300)
+      expect(labourItems[0]).toEqual({
+        label: "Door installation labour (1 unit)",
+        amount: 30000,
+      })
+      // Sealed unit installation labour
+      expect(labourItems[1]).toEqual({
+        label: "Sealed unit installation labour",
+        amount: 15000,
+      })
+      // Sealed unit extra labour is not omitted ($75)
+      expect(labourItems[2]).toEqual({
+        label: "Sealed unit extra labour",
+        amount: 7500,
+      })
+    })
+
+    it("itemizes sealed unit service labour correctly for primary service quotes", () => {
+      const labourItems = getInvoiceLabourItems({
+        isSupplyOnly: false,
+        hasWindows: false,
+        winLabourCents: 0,
+        hasDoors: false,
+        hasSealedUnits: true,
+        effectiveSUTotals: {
+          serviceLabourTotal: 220,
+          extraLabour: 0,
+        },
+        isAttachedSUService: true,
+      })
+
+      expect(labourItems).toHaveLength(1)
+      expect(labourItems[0]).toEqual({
+        label: "Sealed unit service labour",
+        amount: 22000,
+      })
     })
   })
 })

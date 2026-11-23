@@ -1,6 +1,6 @@
-import { toCents } from "@/lib/promo-logic"
+import { toCents, toDollars } from "@/lib/promo-logic"
 
-export function computeEffectiveCents(
+export function computeEffectiveDollars(
   isSupply: boolean,
   taxTotals: any,
   taxJC?: number,
@@ -26,34 +26,85 @@ export function computeEffectiveCents(
       )
     : true
 
-  const effectiveJCCents = isSupply
+  // Support inputs that may be either raw cents (> 1000) or pure dollars
+  const baseJCDollars =
+    taxJC !== undefined
+      ? taxTotals?.finalJC !== undefined
+        ? Number(taxTotals.finalJC)
+        : taxJC > 1000
+          ? taxJC / 100
+          : taxJC
+      : 0
+  const baseMiscDollars =
+    taxMisc !== undefined
+      ? taxTotals?.finalMisc !== undefined
+        ? Number(taxTotals.finalMisc)
+        : taxMisc > 1000
+          ? taxMisc / 100
+          : taxMisc
+      : 0
+  const baseLabourDollars =
+    taxLabour !== undefined
+      ? taxTotals?.finalLabour !== undefined
+        ? Number(taxTotals.finalLabour)
+        : taxLabour > 1000
+          ? taxLabour / 100
+          : taxLabour
+      : 0
+
+  const effectiveJC = isSupply
     ? hasSupplyJC
       ? customJC !== ""
-        ? toCents(customJC)
-        : taxJC || 0
+        ? toDollars(customJC)
+        : baseJCDollars
       : 0
     : customJC !== ""
-      ? toCents(customJC)
-      : taxJC || 0
+      ? toDollars(customJC)
+      : baseJCDollars
 
-  const effectiveMiscCents = isSupply
+  const effectiveMisc = isSupply
     ? customMisc !== ""
-      ? toCents(customMisc)
+      ? toDollars(customMisc)
       : 0
     : customMisc !== ""
-      ? toCents(customMisc)
-      : taxMisc || 0
+      ? toDollars(customMisc)
+      : baseMiscDollars
 
-  const effectiveLabourCents = isSupply
+  const effectiveLabour = isSupply
     ? 0
     : customLabour !== ""
-      ? toCents(customLabour)
-      : taxLabour || 0
+      ? toDollars(customLabour)
+      : baseLabourDollars
 
   return {
     hasSupplyJC,
-    effectiveJCCents,
-    effectiveMiscCents,
-    effectiveLabourCents,
+    effectiveJC,
+    effectiveMisc,
+    effectiveLabour,
+    effectiveJCCents: Math.round(effectiveJC * 100),
+    effectiveMiscCents: Math.round(effectiveMisc * 100),
+    effectiveLabourCents: Math.round(effectiveLabour * 100),
   }
+}
+
+export function computeEffectiveCents(
+  isSupply: boolean,
+  taxTotals: any,
+  taxJC?: number,
+  taxMisc?: number,
+  taxLabour?: number,
+  customJC = "",
+  customMisc = "",
+  customLabour = ""
+) {
+  return computeEffectiveDollars(
+    isSupply,
+    taxTotals,
+    taxJC,
+    taxMisc,
+    taxLabour,
+    customJC,
+    customMisc,
+    customLabour
+  )
 }
