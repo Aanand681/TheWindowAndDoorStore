@@ -9,6 +9,7 @@ import {
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { useReviewPermissions } from "@/hooks/calculator/review/useReviewPermissions"
+import { navigateExitReview } from "@/hooks/quotes/review/review-navigation"
 import {
   applyDraftDataToWorkspace,
   WorkspaceSetters,
@@ -149,14 +150,7 @@ export function useSealedUnitsReviewLoader(
     setIsEditMode(false)
     setOriginalSnapshot(null)
     onConfirmReset()
-    if (typeof window !== "undefined") {
-      const sub = p.originSubTab || new URLSearchParams(window.location.search).get("sub")
-      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
-        window.history.back()
-        return
-      }
-      window.location.href = sub ? `/quotes?sub=${sub}` : "/quotes"
-    }
+    navigateExitReview(p.originSubTab)
   }, [onConfirmReset, p.originSubTab])
 
   return {

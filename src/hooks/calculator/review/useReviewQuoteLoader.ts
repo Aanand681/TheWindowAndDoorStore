@@ -8,6 +8,7 @@ import {
   writeSessionAttachedInstallOption,
   writeSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import { navigateExitReview } from "@/hooks/quotes/review/review-navigation"
 
 export interface UseReviewQuoteLoaderParams {
   user: any
@@ -259,13 +260,7 @@ export function useReviewQuoteLoader({
     const targetSubTab = (originSubTab || urlSub || quotesSubTab || defaultTab) as QuotesSubTabType
     setQuotesSubTab(targetSubTab)
     setActiveTab("quotes")
-    if (typeof window !== "undefined") {
-      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
-        window.history.back()
-        return
-      }
-      window.location.href = `/quotes?sub=${targetSubTab}`
-    }
+    navigateExitReview(targetSubTab)
   }
 
   return {

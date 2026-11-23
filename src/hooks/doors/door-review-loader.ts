@@ -16,6 +16,7 @@ import {
   DoorCategory,
 } from "@/lib/doors/types"
 import { useReviewPermissions } from "@/hooks/calculator/review/useReviewPermissions"
+import { navigateExitReview } from "@/hooks/quotes/review/review-navigation"
 
 export function mapSavedWindowToDoorLineItem(
   w: any,
@@ -254,14 +255,7 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
     setIsEditMode(false)
     setOriginalSnapshot(null)
     onConfirmReset()
-    if (typeof window !== "undefined") {
-      const sub = p.originSubTab || new URLSearchParams(window.location.search).get("sub")
-      if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
-        window.history.back()
-        return
-      }
-      window.location.href = sub ? `/quotes?sub=${sub}` : "/quotes"
-    }
+    navigateExitReview(p.originSubTab)
   }, [onConfirmReset, p.originSubTab])
 
   return {
