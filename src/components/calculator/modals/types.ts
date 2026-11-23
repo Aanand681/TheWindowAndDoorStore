@@ -36,33 +36,36 @@ export interface CalculatorReviewModalsProps {
   total: number
 
   // Workflow Dialogs
-  showReassignModal: boolean
-  setShowReassignModal: (show: boolean) => void
-  reviewQuote: QuoteReviewState | null
-  reassignTo: string
-  setReassignTo: (user: string) => void
-  reassignNotes: string
-  setReassignNotes: (notes: string) => void
-  handleReassignQuote: () => void
-  showReturnModal: boolean
-  setShowReturnModal: (show: boolean) => void
-  returnNotes: string
-  setReturnNotes: (notes: string) => void
-  submitReturnReviewQuote: () => void
-  showExitReviewForPdfModal: boolean
-  setShowExitReviewForPdfModal: (show: boolean) => void
-  handleExitReviewAndImportPdf: () => void
-  reviewActionLoading: boolean
+  showReassignModal?: boolean
+  setShowReassignModal?: (show: boolean) => void
+  reviewQuote?: QuoteReviewState | null
+  reassignTo?: string
+  setReassignTo?: (user: string) => void
+  reassignNotes?: string
+  setReassignNotes?: (notes: string) => void
+  handleReassignQuote?: () => void
+  showReturnModal?: boolean
+  setShowReturnModal?: (show: boolean) => void
+  returnNotes?: string
+  setReturnNotes?: (notes: string) => void
+  submitReturnReviewQuote?: () => void
+  showExitReviewForPdfModal?: boolean
+  setShowExitReviewForPdfModal?: (show: boolean) => void
+  handleExitReviewAndImportPdf?: () => void
+  reviewActionLoading?: boolean
 
   // Odoo Action Modals
-  showApproveOdooModal: boolean
-  setShowApproveOdooModal: (show: boolean) => void
-  showCompleteOdooModal: boolean
-  setShowCompleteOdooModal: (show: boolean) => void
-  odooOrderNumberInput: string
-  setOdooOrderNumberInput: (val: string) => void
-  confirmApproveReviewQuote: () => void
-  handleCompleteOdooEntry: () => void
+  showApproveOdooModal?: boolean
+  setShowApproveOdooModal?: (show: boolean) => void
+  showCompleteOdooModal?: boolean
+  setShowCompleteOdooModal?: (show: boolean) => void
+  odooOrderNumberInput?: string
+  setOdooOrderNumberInput?: (val: string) => void
+  confirmApproveReviewQuote?: () => void
+  handleCompleteOdooEntry?: () => void
+
+  // Optional unified review actions bundle
+  reviewActions?: any
 }
 
 export interface CalculatorUtilityModalsProps {

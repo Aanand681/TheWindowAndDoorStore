@@ -24,10 +24,22 @@ export function ReviewActionDialogs({
   staffList,
   clerkList,
   showExitReviewForPdfModal = false,
-  setShowExitReviewForPdfModal = () => {},
-  handleExitReviewAndImportPdf = () => {},
+  setShowExitReviewForPdfModal,
+  handleExitReviewAndImportPdf,
 }: ReviewActionDialogsProps) {
   if (!reviewActions) return null
+
+  const isExitModalOpen =
+    showExitReviewForPdfModal ||
+    Boolean(reviewActions.showExitReviewForPdfModal)
+  const onSetExitModal =
+    setShowExitReviewForPdfModal ??
+    reviewActions.setShowExitReviewForPdfModal ??
+    (() => {})
+  const onExitPdf =
+    handleExitReviewAndImportPdf ??
+    reviewActions.handleExitReviewAndImportPdf ??
+    (() => {})
 
   return (
     <>
@@ -47,9 +59,9 @@ export function ReviewActionDialogs({
         returnNotes={reviewActions.returnNotes}
         setReturnNotes={reviewActions.setReturnNotes}
         submitReturnReviewQuote={reviewActions.submitReturnReviewQuote}
-        showExitReviewForPdfModal={showExitReviewForPdfModal}
-        setShowExitReviewForPdfModal={setShowExitReviewForPdfModal}
-        handleExitReviewAndImportPdf={handleExitReviewAndImportPdf}
+        showExitReviewForPdfModal={isExitModalOpen}
+        setShowExitReviewForPdfModal={onSetExitModal}
+        handleExitReviewAndImportPdf={onExitPdf}
         reviewActionLoading={reviewActions.reviewActionLoading}
       />
 

@@ -98,6 +98,7 @@ export function buildModalProps(ctx: CalculatorPropsContext) {
     setOdooOrderNumberInput: review.setOdooOrderNumberInput,
     confirmApproveReviewQuote: review.confirmApproveReviewQuote,
     handleCompleteOdooEntry: review.handleCompleteOdooEntry,
+    reviewActions: review,
     isCompareModalOpen: base.isCompareModalOpen,
     setIsCompareModalOpen: base.setIsCompareModalOpen,
     baseSnapshotA: comparison.baseSnapshotA,

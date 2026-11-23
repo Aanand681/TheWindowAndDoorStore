@@ -89,7 +89,7 @@
 1. **Stage 1 (Completed): Dynamic Review Routing (`/review/[id]`):** Polymorphic router inspects quote type and renders the native domain calculator.
 2. **Stage 2 (Completed): Dual Option Parity & Read-Only Protection:** Connected `onToggleAttachOption`, dynamic deltas, and view/review read-only locks across all calculators.
 3. **Stage 3 (Completed): Quote Recall & Needs Revision Queue:** Preparers can retract/revise `PENDING_REVIEW` quotes without hard deletion; dedicated "Needs Revision" tab and notification badges for returned quotes.
-4. **Stage 4 (Next Up): Custom Additional Materials (`+ Add Material`) in Doors & Sealed Units:** Mirror Window `SupplyJambCasingCard` / `ExtrasAndJambsCard` to support custom line items in `DoorLabourTravelCard` and `SealedUnitLabourTravelCard`.
+4. **Stage 4 (Completed): Universal Review Action Dialogs & Model Standardization:** Consolidated `CalculatorReviewModals`, `ReviewActionDialogs`, and `SubmitReviewModal` so Windows, Doors, and Sealed Units all consume the exact same review modal tree with zero duplicated markup.
 5. **Stage 5 (Next Up): Auto-Save Options Hash:** Ensure `useDoorAutoSave` and `useSealedUnitsAutoSave` hash custom options to prevent reload drop.
 
 ---

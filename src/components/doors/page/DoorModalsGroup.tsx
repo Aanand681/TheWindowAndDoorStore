@@ -75,6 +75,7 @@ export function DoorModalsGroup({ page }: DoorModalsGroupProps) {
           adminSubmitMode={page.adminSubmitMode}
           setAdminSubmitMode={page.setAdminSubmitMode}
           lineCount={page.lineItems.length}
+          totalUnits={totalDoorUnits}
           windowsCount={totalDoorUnits}
           total={page.totals.grandTotal}
           staffList={page.staffList}
