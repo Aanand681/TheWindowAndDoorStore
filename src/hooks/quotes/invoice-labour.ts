@@ -45,7 +45,21 @@ function getDoorLabourItems(
   if (!hasDoors || !effectiveDoorTotals) return []
   const items: { label: string; amount: number }[] = []
   const count = effectiveDoors.length
-  const unitLab = Math.round(Number(effectiveDoorTotals.unitLabourTotal || 0) * 100)
+
+  const totalUpcharges = Number(effectiveDoorTotals.upchargesTotal || 0)
+  const rawUnitLabour = Number(effectiveDoorTotals.unitLabourTotal || 0)
+  const doorPure =
+    effectiveDoorTotals.doorPureLabourTotal !== undefined
+      ? Number(effectiveDoorTotals.doorPureLabourTotal)
+      : undefined
+
+  // If doorPure was explicitly set (e.g. custom override or attached), determine base unit labour
+  const baseLabour =
+    doorPure !== undefined && (rawUnitLabour === 0 || doorPure !== rawUnitLabour + totalUpcharges)
+      ? Math.max(0, doorPure - totalUpcharges)
+      : rawUnitLabour
+
+  const unitLab = Math.round(baseLabour * 100)
   if (unitLab > 0) {
     const label =
       count > 0
@@ -157,6 +171,18 @@ function getSealedUnitLabourItems(
       })
     }
   })
+
+  // Include extraLabour if defined on effectiveSUTotals and not already itemized
+  const extraLabourCents = Math.round(Number(effectiveSUTotals.extraLabour || 0) * 100)
+  const hasExtraLabourInUpcharges = effectiveSUUp.some((u: any) =>
+    (u.label || "").toLowerCase().includes("extra labour")
+  )
+  if (extraLabourCents > 0 && !hasExtraLabourInUpcharges) {
+    items.push({
+      label: "Sealed unit extra labour",
+      amount: extraLabourCents,
+    })
+  }
 
   return items
 }

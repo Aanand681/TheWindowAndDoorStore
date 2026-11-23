@@ -59,7 +59,9 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
   const hasSealedUnits =
     sealedUnits.length > 0 ||
     Boolean(attachedSealedUnit?.lineItems?.length) ||
-    Boolean(sealedUnitTotals?.totalSqft)
+    Boolean(sealedUnitTotals?.totalSqft) ||
+    Boolean(Number(sealedUnitTotals?.serviceLabourTotal) > 0) ||
+    Boolean(Number(sealedUnitTotals?.grandTotal) > 0)
 
   if (
     !hasWindows &&

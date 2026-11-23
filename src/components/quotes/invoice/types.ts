@@ -90,6 +90,20 @@ export interface InvoiceCalculationsResult {
   finalTotalCents: number
   finalFirstPayment: number
   finalSecondPayment: number
+  finalSubtotal?: number
+  finalHstAmount?: number
+  finalTotal?: number
+  finalFirstPaymentDollar?: number
+  finalSecondPaymentDollar?: number
+  winMaterials?: number
+  totalWindowBase?: number
+  suGlass?: number
+  doorNetMaterials?: number
+  effectiveLabourTotal?: number
+  effectiveMiscTotal?: number
+  effectiveSurchargeTotal?: number
+  promoDiscount?: number
+  monthlyDiscount?: number
   baseFs: number
   titleFs: number
   h2Fs: number

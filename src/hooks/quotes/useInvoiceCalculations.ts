@@ -33,9 +33,9 @@ export function useInvoiceCalculations({
   hstRate = 13,
   afterDiscount = 0,
   regionName,
-  includeLabourInPromo = true,
-  includeMiscInPromo = true,
-  includeJCInPromo = true,
+  includeLabourInPromo: _includeLabourInPromo = true,
+  includeMiscInPromo: _includeMiscInPromo = true,
+  includeJCInPromo: _includeJCInPromo = true,
   effectiveJC,
   effectiveMisc,
   effectiveLabour,
@@ -88,10 +88,12 @@ export function useInvoiceCalculations({
   const isAttachedSUService =
     attachedSealedUnit?.sealedUnitMode === "service_only" ||
     attachedSealedUnit?.data?.sealedUnitMode === "service_only" ||
-    Boolean(effectiveSUTotals.isServiceOnly)
+    Boolean(effectiveSUTotals.isServiceOnly) ||
+    Boolean(Number(effectiveSUTotals.serviceLabourTotal) > 0)
   const hasSealedUnits =
     effectiveSealedUnits.length > 0 ||
-    (isAttachedSUService && (effectiveSUTotals.totalSqft || 0) > 0)
+    (isAttachedSUService && ((effectiveSUTotals.totalSqft || 0) > 0 || Number(effectiveSUTotals.serviceLabourTotal) > 0)) ||
+    (primaryQuoteType === "sealed_unit" && (Number(effectiveSUTotals.grandTotal) > 0 || Number(effectiveSUTotals.pureLabour) > 0))
 
   // 2. Identify primary host quote type
   const isDoorHost =
@@ -141,8 +143,8 @@ export function useInvoiceCalculations({
     isSupplyOnly && (hasSupplyJamb || hasSupplyCasing)
   )
 
-  const taxJCCents = includeJCInPromo
-    ? isSupplyOnly && !isLooseSupplyJC && effectiveJC === undefined
+  const taxJCCents =
+    isSupplyOnly && !isLooseSupplyJC && effectiveJC === undefined
       ? 0
       : effectiveJC !== undefined
         ? effectiveJC
@@ -151,18 +153,16 @@ export function useInvoiceCalculations({
               taxTotals?.finalJC ?? taxTotals?.jcTotal ?? taxTotals?.jc ?? 0
             ) * 100
           )
-    : 0
-  const taxMiscCents = includeMiscInPromo
-    ? isSupplyOnly && effectiveMisc === undefined
+  const taxMiscCents =
+    isSupplyOnly && effectiveMisc === undefined
       ? 0
       : effectiveMisc !== undefined
         ? effectiveMisc
         : Math.round(
             Number(taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0) * 100
           )
-    : 0
-  const taxLabourCents = includeLabourInPromo
-    ? isSupplyOnly && effectiveLabour === undefined
+  const taxLabourCents =
+    isSupplyOnly && effectiveLabour === undefined
       ? 0
       : effectiveLabour !== undefined
         ? effectiveLabour
@@ -174,7 +174,6 @@ export function useInvoiceCalculations({
                 0
             ) * 100
           )
-    : 0
 
   const jcItems: { label: string; amount: number }[] = []
   if (taxJCCents > 0) {
@@ -275,6 +274,20 @@ export function useInvoiceCalculations({
     finalTotalCents: pricing.finalTotalCents,
     finalFirstPayment: pricing.finalFirstPayment,
     finalSecondPayment: pricing.finalSecondPayment,
+    finalSubtotal: pricing.finalSubtotal,
+    finalHstAmount: pricing.finalHstAmount,
+    finalTotal: pricing.finalTotal,
+    finalFirstPaymentDollar: pricing.finalFirstPaymentDollar,
+    finalSecondPaymentDollar: pricing.finalSecondPaymentDollar,
+    winMaterials: pricing.winMaterials,
+    totalWindowBase: totalWindowBaseCents / 100,
+    suGlass: pricing.suGlass,
+    doorNetMaterials: pricing.doorNetMaterials,
+    effectiveLabourTotal: pricing.effectiveLabourTotal,
+    effectiveMiscTotal: pricing.effectiveMiscTotal,
+    effectiveSurchargeTotal: pricing.effectiveSurchargeTotal,
+    promoDiscount: pricing.promoDiscount,
+    monthlyDiscount: pricing.monthlyDiscount,
     baseFs, titleFs, h2Fs, thFs, bodyFs, smallFs, microFs, rowPy, cardGap, sectionMb,
     taxTotals, quoteResult,
     winMaterialsCents: pricing.winMaterialsCents, totalWindowBaseCents, windowSummarySentence,

@@ -125,5 +125,20 @@ export function calculateInvoicePricingRollup({
     finalTotalCents: universal.totalCents,
     finalFirstPayment: Math.round(universal.firstPayment * 100),
     finalSecondPayment: Math.round(universal.secondPayment * 100),
+    // Direct dollar decimal amounts
+    finalSubtotal: universal.subtotal,
+    finalHstAmount: universal.hstAmount,
+    finalTotal: universal.total,
+    finalFirstPaymentDollar: universal.firstPayment,
+    finalSecondPaymentDollar: universal.secondPayment,
+    winMaterials: universal.winNorm ? universal.winNorm.materials : 0,
+    suGlass: universal.suNorm ? universal.suNorm.materials : 0,
+    doorNetMaterials: universal.doorNorm ? universal.doorNorm.materials : 0,
+    effectiveLabourTotal: universal.combinedLabour,
+    effectiveMiscTotal: universal.misc,
+    effectiveSurchargeTotal: universal.surcharges,
+    promoDiscount: promoDiscountCents / 100,
+    monthlyDiscount: monthlyDiscountCents / 100,
+    universal,
   }
 }
