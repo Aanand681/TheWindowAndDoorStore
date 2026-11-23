@@ -138,6 +138,17 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
           #printable-invoice * {
             visibility: visible !important;
           }
+          #printable-invoice table {
+            page-break-inside: auto;
+            break-inside: auto;
+          }
+          #printable-invoice tr,
+          #printable-invoice thead,
+          #printable-invoice tfoot,
+          .print-avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
         }
       `,
         }}

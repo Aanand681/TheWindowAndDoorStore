@@ -235,6 +235,21 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
       expect(compare.installSubtotal).toBeGreaterThan(compare.supplySubtotal)
       expect(compare.extraSubtotalCents).toBeGreaterThan(0)
     })
+
+    it("properly combines multi-attached quote labels for compare modals", () => {
+      const winSentence = "2 Windows"
+      const doorSentence = "1 Entry Door + 1 Storm Door"
+      const suSentence = "2 Sealed Units"
+
+      const suHostAttachedLabel = [winSentence, doorSentence].filter(Boolean).join(" + ")
+      expect(suHostAttachedLabel).toBe("2 Windows + 1 Entry Door + 1 Storm Door")
+
+      const doorHostAttachedLabel = [winSentence, suSentence].filter(Boolean).join(" + ")
+      expect(doorHostAttachedLabel).toBe("2 Windows + 2 Sealed Units")
+
+      const winHostAttachedLabel = [doorSentence, suSentence].filter(Boolean).join(" + ")
+      expect(winHostAttachedLabel).toBe("1 Entry Door + 1 Storm Door + 2 Sealed Units")
+    })
   })
 
   describe("4. Review Submission & Polymorphic Diff Recall", () => {

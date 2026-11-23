@@ -30,6 +30,7 @@ export interface UseCalculatorReviewActionsProps {
   setWindows: (windows: any[]) => void
   taxTotals: any
   setTaxTotals: (totals: any) => void
+  hstRate?: number
   setHstRate?: (rate: number) => void
   quoteResult: any
   activePromoId: string
@@ -90,6 +91,7 @@ export function useCalculatorReviewActions({
   setWindows,
   taxTotals,
   setTaxTotals,
+  hstRate,
   setHstRate,
   quoteResult,
   activePromoId,
@@ -188,47 +190,60 @@ export function useCalculatorReviewActions({
 
   // 3. Payload Builders
   const buildSubmitPayload = useCallback(
-    ({ isDirectApprove, effectiveReviewer, effectiveClerk, preparerNotes }: any) => ({
-      quoteNumber,
-      customerName,
-      assignedTo: isDirectApprove ? user?.username || "" : effectiveReviewer,
-      directApprove: isDirectApprove,
-      odooAssignedTo: isDirectApprove ? effectiveClerk : undefined,
-      preparerNotes,
-      windows,
-      taxTotals,
-      quoteResult,
-      quoteNotes,
-      surchargeRate,
-      activePromoId,
-      customJC,
-      customMisc,
-      customLabour,
-      includeJCInPromo,
-      includeMiscInPromo,
-      includeLabourInPromo,
-      attachedUpgrade,
-      attachedInstallOption: readSessionAttachedInstallOption(),
-      customOptions: readSessionCustomOptions(),
-      selectedRegionId: taxTotals?.selectedRegionId,
-      regionName: taxTotals?.regionName,
-      attachedDoorQuote,
-      attachedSealedUnit,
-      supplyJambId,
-      supplyJambRate,
-      supplyCasingId,
-      supplyCasingRate,
-      wantsUpgrade,
-      isSupplyOnly,
-      isServiceOnly,
-      quoteSummaryTotal: total,
-    }),
+    ({ isDirectApprove, effectiveReviewer, effectiveClerk, preparerNotes }: any) => {
+      const effectiveHst =
+        hstRate !== undefined
+          ? hstRate
+          : taxTotals?.hstRate !== undefined
+            ? taxTotals.hstRate
+            : 13
+      return {
+        quoteNumber,
+        customerName,
+        assignedTo: isDirectApprove ? user?.username || "" : effectiveReviewer,
+        directApprove: isDirectApprove,
+        odooAssignedTo: isDirectApprove ? effectiveClerk : undefined,
+        preparerNotes,
+        windows,
+        taxTotals: {
+          ...taxTotals,
+          hstRate: effectiveHst,
+        },
+        hstRate: effectiveHst,
+        quoteResult,
+        quoteNotes,
+        surchargeRate,
+        activePromoId,
+        customJC,
+        customMisc,
+        customLabour,
+        includeJCInPromo,
+        includeMiscInPromo,
+        includeLabourInPromo,
+        attachedUpgrade,
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        selectedRegionId: taxTotals?.selectedRegionId,
+        regionName: taxTotals?.regionName,
+        attachedDoorQuote,
+        attachedSealedUnit,
+        supplyJambId,
+        supplyJambRate,
+        supplyCasingId,
+        supplyCasingRate,
+        wantsUpgrade,
+        isSupplyOnly,
+        isServiceOnly,
+        quoteSummaryTotal: total,
+      }
+    },
     [
       quoteNumber,
       customerName,
       user?.username,
       windows,
       taxTotals,
+      hstRate,
       quoteResult,
       quoteNotes,
       surchargeRate,
@@ -254,43 +269,56 @@ export function useCalculatorReviewActions({
   )
 
   const buildUpdatePayload = useCallback(
-    (extra: Record<string, any> = {}) => ({
-      customerName,
-      quoteNumber,
-      windows,
-      taxTotals,
-      quoteResult,
-      quoteNotes,
-      surchargeRate,
-      activePromoId,
-      customJC,
-      customMisc,
-      customLabour,
-      includeJCInPromo,
-      includeMiscInPromo,
-      includeLabourInPromo,
-      attachedUpgrade,
-      attachedInstallOption: readSessionAttachedInstallOption(),
-      customOptions: readSessionCustomOptions(),
-      selectedRegionId: taxTotals?.selectedRegionId,
-      regionName: taxTotals?.regionName,
-      attachedDoorQuote,
-      attachedSealedUnit,
-      wantsUpgrade,
-      isSupplyOnly,
-      isServiceOnly,
-      supplyJambId,
-      supplyJambRate,
-      supplyCasingId,
-      supplyCasingRate,
-      quoteSummaryTotal: total,
-      ...extra,
-    }),
+    (extra: Record<string, any> = {}) => {
+      const effectiveHst =
+        hstRate !== undefined
+          ? hstRate
+          : taxTotals?.hstRate !== undefined
+            ? taxTotals.hstRate
+            : 13
+      return {
+        customerName,
+        quoteNumber,
+        windows,
+        taxTotals: {
+          ...taxTotals,
+          hstRate: effectiveHst,
+        },
+        hstRate: effectiveHst,
+        quoteResult,
+        quoteNotes,
+        surchargeRate,
+        activePromoId,
+        customJC,
+        customMisc,
+        customLabour,
+        includeJCInPromo,
+        includeMiscInPromo,
+        includeLabourInPromo,
+        attachedUpgrade,
+        attachedInstallOption: readSessionAttachedInstallOption(),
+        customOptions: readSessionCustomOptions(),
+        selectedRegionId: taxTotals?.selectedRegionId,
+        regionName: taxTotals?.regionName,
+        attachedDoorQuote,
+        attachedSealedUnit,
+        wantsUpgrade,
+        isSupplyOnly,
+        isServiceOnly,
+        supplyJambId,
+        supplyJambRate,
+        supplyCasingId,
+        supplyCasingRate,
+        quoteSummaryTotal: total,
+        ...extra,
+      }
+    },
     [
       customerName,
       quoteNumber,
       windows,
       taxTotals,
+      hstRate,
       quoteResult,
       quoteNotes,
       surchargeRate,

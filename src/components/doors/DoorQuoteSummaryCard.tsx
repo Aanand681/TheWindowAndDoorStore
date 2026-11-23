@@ -193,7 +193,7 @@ export function DoorQuoteSummaryCard({
         isOpen={isCompareOpen} onClose={() => setIsCompareOpen(false)} title="Door Quote Comparison"
         quoteNumber={quoteNumber} customerName={customerName} currentMode={mode === "supply_only" ? "supply" : "install"}
         currentSubtotal={combinedSubtotal} baseLabel="Door Units" baseAmount={totals.rawDoorBaseTotal + totals.stormDoorTotal}
-        attachedLabel={hasAttachedWindow ? attWinSentence : hasAttachedSU ? attSUSentence : undefined}
+        attachedLabel={[hasAttachedWindow ? attWinSentence : "", hasAttachedSU ? attSUSentence : ""].filter(Boolean).join(" + ") || undefined}
         attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedSU ? suGlass : 0)}
         labourAmount={compareLabour} miscAmount={compareMisc} surchargeAmount={combinedSurcharge}
         surchargeLabel="Surcharge (8% on materials)" discountAmount={totals.discountTotal + (winDiscount > 0 ? winDiscount : 0)}

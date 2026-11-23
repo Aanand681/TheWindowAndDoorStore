@@ -18,6 +18,8 @@ export interface SummaryCompareModalWrapperProps {
   taxTotals: any
   compareLabourAmount: number
   compareMiscAmount: number
+  attachedLabel?: string
+  attachedAmount?: number
   quoteResult: any
   surchargeRate: number
   hstRate: number
@@ -40,6 +42,8 @@ export function SummaryCompareModalWrapper({
   taxTotals,
   compareLabourAmount,
   compareMiscAmount,
+  attachedLabel,
+  attachedAmount,
   quoteResult,
   surchargeRate,
   hstRate,
@@ -57,6 +61,8 @@ export function SummaryCompareModalWrapper({
       currentSubtotal={currentSubtotal}
       baseLabel="Windows"
       baseAmount={windowGroupsBaseTotal}
+      attachedLabel={attachedLabel}
+      attachedAmount={attachedAmount}
       jcLabel={jcSummaryLabel}
       jcAmount={isSupply ? supplyJCAmount : installJCAmount}
       supplyJCAmount={supplyJCAmount}

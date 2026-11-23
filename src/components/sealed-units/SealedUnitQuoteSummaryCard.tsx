@@ -167,7 +167,7 @@ export function SealedUnitQuoteSummaryCard({
         quoteNumber={quoteNumber} customerName={customerName} currentMode={mode === "supply_only" ? "supply" : "install"}
         currentSubtotal={combinedSubtotal} baseLabel={isService ? "Service Total" : "Glass Units"}
         baseAmount={totals.glassBefore8PercentTotal}
-        attachedLabel={hasAttachedWindow ? attachedWinSentence : hasAttachedDoor ? attachedDoorSentence : undefined}
+        attachedLabel={[hasAttachedWindow ? attachedWinSentence : "", hasAttachedDoor ? attachedDoorSentence : ""].filter(Boolean).join(" + ") || undefined}
         attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedDoor ? doorRawBase - doorDiscount : 0)}
         labourAmount={compareLabour} miscAmount={compareMisc} surchargeAmount={combinedSurcharge} surchargeLabel="Surcharge"
         hstRate={hstRate} onApplyMode={(m) => onModeChange && onModeChange(m === "supply" ? "supply_only" : "installation")}

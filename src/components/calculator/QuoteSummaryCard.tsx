@@ -153,6 +153,63 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     isSupplyOnly: isSupply,
   })
 
+  const compareSubtotal = combinedData
+    ? combinedData.combinedSubtotalCents / 100
+    : afterDiscount / 100
+
+  const compareAttachedAmount = combinedData
+    ? ((combinedData.hasDoor
+        ? combinedData.doorMaterialsCents - combinedData.doorDiscountCents
+        : 0) +
+        (combinedData.hasSU ? combinedData.suGlassCents : 0)) /
+      100
+    : undefined
+
+  const compareAttachedLabel = combinedData
+    ? [
+        combinedData.hasDoor ? combinedData.doorSummarySentence : "",
+        combinedData.hasSU ? combinedData.suSummarySentence : "",
+      ]
+        .filter(Boolean)
+        .join(" + ") || undefined
+    : undefined
+
+  const doorInstallLabour = attachedDoorQuote
+    ? Number(
+        attachedDoorQuote.totals?.fullInstallLabour ??
+          attachedDoorQuote.totals?.combinedLabourTotal ??
+          attachedDoorQuote.totals?.doorPureLabourTotal ??
+          0
+      )
+    : 0
+  const suInstallLabour = attachedSealedUnit
+    ? Number(
+        attachedSealedUnit.totals?.fullInstallLabour ??
+          attachedSealedUnit.totals?.combinedLabourTotal ??
+          attachedSealedUnit.totals?.pureLabour ??
+          0
+      )
+    : 0
+  const effectiveCompareLabour =
+    compareLabourAmount + doorInstallLabour + suInstallLabour
+
+  const doorInstallMisc = attachedDoorQuote
+    ? Number(
+        attachedDoorQuote.totals?.fullInstallMisc ??
+          attachedDoorQuote.totals?.miscTotal ??
+          0
+      )
+    : 0
+  const suInstallMisc = attachedSealedUnit
+    ? Number(
+        attachedSealedUnit.totals?.fullInstallMisc ??
+          attachedSealedUnit.totals?.miscTotal ??
+          0
+      )
+    : 0
+  const effectiveCompareMisc =
+    compareMiscAmount + doorInstallMisc + suInstallMisc
+
   const hasActiveQuoteData = Boolean(
     (quoteResult &&
       ((quoteResult.base || 0) > 0 || (quoteResult.total || 0) > 0)) ||
@@ -274,15 +331,17 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
         quoteNumber={quoteNumber}
         customerName={customerName}
         isSupplyOnly={isSupplyOnly}
-        currentSubtotal={afterDiscount / 100}
+        currentSubtotal={compareSubtotal}
         windowGroupsBaseTotal={windowGroupsBaseTotal}
         jcSummaryLabel={jcSummaryLabel}
         isSupply={isSupply}
         supplyJCAmount={supplyJCAmount}
         installJCAmount={installJCAmount}
         taxTotals={taxTotals}
-        compareLabourAmount={compareLabourAmount}
-        compareMiscAmount={compareMiscAmount}
+        compareLabourAmount={effectiveCompareLabour}
+        compareMiscAmount={effectiveCompareMisc}
+        attachedLabel={compareAttachedLabel}
+        attachedAmount={compareAttachedAmount}
         quoteResult={quoteResult}
         surchargeRate={surchargeRate}
         hstRate={hstRate}

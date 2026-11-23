@@ -141,6 +141,7 @@ export function useCalculatorWorkflows(p: {
     setWindows,
     taxTotals: pricing.taxTotals,
     setTaxTotals: pricing.setTaxTotals,
+    hstRate: pricing.hstRate,
     setHstRate: pricing.setHstRate,
     quoteResult: pricing.quoteResult,
     activePromoId: pricing.activePromoId,
