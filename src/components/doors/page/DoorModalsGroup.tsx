@@ -54,7 +54,7 @@ export function DoorModalsGroup({ page }: DoorModalsGroupProps) {
           isSupplyOnly={page.mode === "supply_only"}
           regionName={regionName}
           globalUpcharges={page.globalUpcharges}
-          hstRate={page.isFirstNation ? 8 : 13}
+          hstRate={page.hstRate !== undefined ? page.hstRate : (page.isFirstNation ? 8 : 13)}
           attachedWindowQuote={page.attachedWindowQuote}
           attachedSealedUnit={page.attachedSealedUnit}
           isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}

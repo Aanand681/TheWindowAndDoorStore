@@ -199,7 +199,7 @@ export function DoorQuoteSummaryCard({
         surchargeLabel="Surcharge (8% on materials)" discountAmount={totals.discountTotal + (winDiscount > 0 ? winDiscount : 0)}
         discountLabel="10% Discount" hardwareAmount={totals.hardwareTotal} hardwareLabel="Lockset & Hardware"
         doorItems={lineItems} standardHardwarePrice={158.0} onApplyDoorHardware={onApplyDoorHardware}
-        hstRate={isFirstNation ? 5 : 13} onApplyMode={(m) => onModeChange(m === "supply" ? "supply_only" : "installation")}
+        hstRate={hstRate !== undefined ? hstRate : (isFirstNation ? 8 : 13)} onApplyMode={(m) => onModeChange(m === "supply" ? "supply_only" : "installation")}
         onToggleAttachOption={(att, c, title, hasSupplyJC, hardwareConfig, hardwareTotal) => {
           setAttachedInstallOption(att ? { enabled: true, amountPreTaxCents: c, title, hasSupplyJC, hardwareConfig, hardwareTotal } : null)
         }}

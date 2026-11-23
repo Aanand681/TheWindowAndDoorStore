@@ -30,6 +30,7 @@ export interface UseCalculatorReviewActionsProps {
   setWindows: (windows: any[]) => void
   taxTotals: any
   setTaxTotals: (totals: any) => void
+  setHstRate?: (rate: number) => void
   quoteResult: any
   activePromoId: string
   setActivePromoId: (id: string) => void
@@ -89,6 +90,7 @@ export function useCalculatorReviewActions({
   setWindows,
   taxTotals,
   setTaxTotals,
+  setHstRate,
   quoteResult,
   activePromoId,
   setActivePromoId,
@@ -173,6 +175,7 @@ export function useCalculatorReviewActions({
     setSupplyCasingId,
     setSupplyCasingRate,
     setTaxTotals,
+    setHstRate,
     originSubTab,
   })
 

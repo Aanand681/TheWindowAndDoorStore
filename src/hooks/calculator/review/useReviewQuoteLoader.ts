@@ -34,6 +34,7 @@ export interface UseReviewQuoteLoaderParams {
   setIncludeMiscInPromo: (val: boolean) => void
   setIncludeLabourInPromo: (val: boolean) => void
   setTaxTotals: (totals: any) => void
+  setHstRate?: (rate: number) => void
   setAttachedUpgrade?: (val: any) => void
   setAttachedDoorQuote?: (val: any) => void
   setAttachedSealedUnit?: (val: any) => void
@@ -81,6 +82,7 @@ export function useReviewQuoteLoader({
   setSupplyCasingId,
   setSupplyCasingRate,
   setTaxTotals,
+  setHstRate,
   originSubTab,
 }: UseReviewQuoteLoaderParams) {
   const [reviewQuoteId, setReviewQuoteId] = useState<string | null>(null)
@@ -181,6 +183,9 @@ export function useReviewQuoteLoader({
           if (setSupplyCasingRate && q.supplyCasingRate !== undefined) setSupplyCasingRate(q.supplyCasingRate)
           writeSessionAttachedInstallOption(q.attachedInstallOption ?? null)
           writeSessionCustomOptions(Array.isArray(q.customOptions) ? q.customOptions : [])
+          if (setHstRate && (q.hstRate !== undefined || q.taxTotals?.hstRate !== undefined)) {
+            setHstRate(Number(q.hstRate ?? q.taxTotals?.hstRate))
+          }
           if (q.taxTotals) {
             setTaxTotals({
               ...q.taxTotals,
@@ -233,6 +238,9 @@ export function useReviewQuoteLoader({
     if (setSupplyCasingRate && reviewQuote.supplyCasingRate !== undefined) setSupplyCasingRate(reviewQuote.supplyCasingRate)
     writeSessionAttachedInstallOption(reviewQuote.attachedInstallOption ?? null)
     writeSessionCustomOptions(Array.isArray(reviewQuote.customOptions) ? reviewQuote.customOptions : [])
+    if (setHstRate && (reviewQuote.hstRate !== undefined || reviewQuote.taxTotals?.hstRate !== undefined)) {
+      setHstRate(Number(reviewQuote.hstRate ?? reviewQuote.taxTotals?.hstRate))
+    }
     if (reviewQuote.taxTotals) {
       setTaxTotals({
         ...reviewQuote.taxTotals,

@@ -111,7 +111,7 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
             template={page.quoteTemplate}
             fontSize={page.quoteFontSize}
             spacing={page.quoteSpacing}
-            hstRate={page.isFirstNation ? 8 : 13}
+            hstRate={page.hstRate !== undefined ? page.hstRate : (page.isFirstNation ? 8 : 13)}
             isSupplyOnly={page.mode === "supply_only"}
             regionName={
               page.mode === "supply_only" ? undefined : page.selectedRegion?.name

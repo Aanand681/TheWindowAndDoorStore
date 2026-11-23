@@ -180,9 +180,15 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
       if (q.travelKm !== undefined) setTravelKm(String(q.travelKm))
       if (q.crewHours !== undefined) setCrewHours(String(q.crewHours))
       if (q.crewSize) setCrewSize(q.crewSize)
-      if (q.isFirstNation !== undefined) {
+      if (q.hstRate !== undefined) {
+        setHstRate(Number(q.hstRate))
+        setIsFirstNation(Number(q.hstRate) === 8 || Boolean(q.isFirstNation))
+      } else if (q.isFirstNation !== undefined) {
         setIsFirstNation(Boolean(q.isFirstNation))
-        setHstRate(q.isFirstNation ? 8 : (q.hstRate ?? 13))
+        setHstRate(q.isFirstNation ? 8 : 13)
+      } else if (q.taxTotals?.hstRate !== undefined) {
+        setHstRate(Number(q.taxTotals.hstRate))
+        setIsFirstNation(Number(q.taxTotals.hstRate) === 8)
       }
       setCustomLabour(q.customLabour !== undefined ? String(q.customLabour) : "")
       setCustomMisc(q.customMisc !== undefined ? String(q.customMisc) : "")

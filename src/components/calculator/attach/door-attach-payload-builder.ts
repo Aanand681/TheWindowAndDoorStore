@@ -71,7 +71,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       travelKm: "0",
       crewHours: "0",
       crewSize: "2",
-      hstRate: rawData.isFirstNation ? 8 : (rawData.hstRate ?? 13),
+      hstRate: rawData.hstRate !== undefined ? rawData.hstRate : (rawData.isFirstNation ? 8 : 13),
       logistics: DEFAULT_DOOR_LOGISTICS,
       formula: DEFAULT_DOOR_FORMULA,
     })
@@ -131,7 +131,14 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       100
   ) / 100
 
-  const hstRate = rawData.isFirstNation ? 8 : (srcTotals.hstRate ?? 13)
+  const hstRate =
+    rawData.hstRate !== undefined
+      ? rawData.hstRate
+      : srcTotals.hstRate !== undefined
+        ? srcTotals.hstRate
+        : rawData.isFirstNation
+          ? 8
+          : 13
   let tax = 0
   if (hstRate === 13) {
     tax = Math.round(subtotalPreTax * 0.13 * 100) / 100
