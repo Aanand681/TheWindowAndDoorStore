@@ -112,18 +112,20 @@ export function detectAddonDiffs(
     const key = (ca.label || ca.name || ca.id || "").trim().toLowerCase()
     const oa = origAddonMap.get(key)
     const label = ca.label || ca.name || "Add-on"
+    const caQty = Number(ca.quantity ?? ca.qty ?? 1)
+    const caCost = Number(ca.total || (ca.lab || 0) + (ca.misc || 0) || ca.price || ca.cost || ca.amount || 0)
+
     if (!oa) {
-      const priceVal = Number(ca.total || (ca.lab || 0) + (ca.misc || 0))
-      const priceText = priceVal > 0 ? ` (+${fmtDollar(priceVal)})` : ""
-      changes.push(`Added Add-on: "${label}" (Qty: ${ca.qty || 1}${priceText})`)
-    } else if (Number(ca.qty || 0) !== Number(oa.qty || 0)) {
-      changes.push(
-        `Add-on "${label}": Qty updated from ${oa.qty || 1} to ${ca.qty || 1}`
-      )
+      const priceText = caCost > 0 ? ` (+${fmtDollar(caCost)})` : ""
+      changes.push(`Added Add-on: "${label}" (Qty: ${caQty}${priceText})`)
     } else {
-      const caCost = Number(ca.total || (ca.lab || 0) + (ca.misc || 0))
-      const oaCost = Number(oa.total || (oa.lab || 0) + (oa.misc || 0))
-      if (Math.abs(caCost - oaCost) > 0.5) {
+      const oaQty = Number(oa.quantity ?? oa.qty ?? 1)
+      const oaCost = Number(oa.total || (oa.lab || 0) + (oa.misc || 0) || oa.price || oa.cost || oa.amount || 0)
+      if (caQty !== oaQty) {
+        changes.push(
+          `Add-on "${label}": Qty updated from ${oaQty} to ${caQty}`
+        )
+      } else if (Math.abs(caCost - oaCost) > 0.5) {
         changes.push(
           `Add-on "${label}": Price adjusted from ${fmtDollar(oaCost)} to ${fmtDollar(caCost)}`
         )
@@ -136,6 +138,116 @@ export function detectAddonDiffs(
     if (!curAddonMap.has(key)) {
       const label = oa.label || oa.name || "Add-on"
       changes.push(`Removed Add-on: "${label}"`)
+    }
+  })
+
+  return changes
+}
+
+export function detectDoorDiffs(
+  origDoors: any[],
+  curDoors: any[]
+): string[] {
+  const changes: string[] = []
+  if (origDoors.length === 0 || curDoors.length === 0) return changes
+
+  if (origDoors.length !== curDoors.length) {
+    changes.push(
+      `Door line items changed (${curDoors.length} doors vs ${origDoors.length} originally)`
+    )
+    return changes
+  }
+
+  origDoors.forEach((od: any, idx: number) => {
+    const cd = curDoors[idx]
+    if (!cd) return
+
+    const odLabel = od.presetLabel || od.combinationName || od.label || `Door #${idx + 1}`
+    const cdLabel = cd.presetLabel || cd.combinationName || cd.label || `Door #${idx + 1}`
+    if (odLabel !== cdLabel) {
+      changes.push(`Door #${idx + 1} model changed to "${cdLabel}" (was "${odLabel}")`)
+    }
+
+    const odQty = Number(od.quantity ?? od.qty ?? 1)
+    const cdQty = Number(cd.quantity ?? cd.qty ?? 1)
+    if (odQty !== cdQty) {
+      changes.push(`Door #${idx + 1} qty updated from ${odQty} to ${cdQty}`)
+    }
+
+    const odSlab = od.slabWidth && od.slabHeight ? `${od.slabWidth}" × ${od.slabHeight}"` : ""
+    const cdSlab = cd.slabWidth && cd.slabHeight ? `${cd.slabWidth}" × ${cd.slabHeight}"` : ""
+    if (odSlab && cdSlab && odSlab !== cdSlab) {
+      changes.push(`Door #${idx + 1} slab size updated from ${odSlab} to ${cdSlab}`)
+    }
+
+    const odPrice = Number(od.netDoorPrice ?? od.inksterBasePrice ?? od.finalUnitPrice ?? od.base ?? 0)
+    const cdPrice = Number(cd.netDoorPrice ?? cd.inksterBasePrice ?? cd.finalUnitPrice ?? cd.base ?? 0)
+    if (odPrice > 0 && cdPrice > 0 && Math.abs(odPrice - cdPrice) > 0.01) {
+      changes.push(`Door #${idx + 1} price updated from ${fmtDollar(odPrice)} to ${fmtDollar(cdPrice)}`)
+    }
+
+    const odHw = od.hardwareType || (od.hardwarePrice ? "Custom" : "Standard")
+    const cdHw = cd.hardwareType || (cd.hardwarePrice ? "Custom" : "Standard")
+    if (odHw && cdHw && odHw.toLowerCase() !== cdHw.toLowerCase()) {
+      changes.push(`Door #${idx + 1} hardware updated to ${cdHw} (was ${odHw})`)
+    }
+  })
+
+  return changes
+}
+
+export function detectSealedUnitDiffs(
+  origUnits: any[],
+  curUnits: any[]
+): string[] {
+  const changes: string[] = []
+  if (origUnits.length === 0 || curUnits.length === 0) return changes
+
+  if (origUnits.length !== curUnits.length) {
+    changes.push(
+      `Sealed unit line items changed (${curUnits.length} vs ${origUnits.length} originally)`
+    )
+    return changes
+  }
+
+  origUnits.forEach((ou: any, idx: number) => {
+    const cu = curUnits[idx]
+    if (!cu) return
+
+    const ouSize = ou.width && ou.height ? `${ou.width}" × ${ou.height}"` : ""
+    const cuSize = cu.width && cu.height ? `${cu.width}" × ${cu.height}"` : ""
+    if (ouSize && cuSize && ouSize !== cuSize) {
+      changes.push(`Sealed Unit #${idx + 1} dimensions updated from ${ouSize} to ${cuSize}`)
+    }
+
+    const ouQty = Number(ou.quantity ?? ou.qty ?? 1)
+    const cuQty = Number(cu.quantity ?? cu.qty ?? 1)
+    if (ouQty !== cuQty) {
+      changes.push(`Sealed Unit #${idx + 1} qty updated from ${ouQty} to ${cuQty}`)
+    }
+
+    const ouGlass = ou.glassType || ou.glass || ""
+    const cuGlass = cu.glassType || cu.glass || ""
+    if (ouGlass && cuGlass && ouGlass.toLowerCase() !== cuGlass.toLowerCase()) {
+      changes.push(`Sealed Unit #${idx + 1} glass updated to "${cuGlass}" (was "${ouGlass}")`)
+    }
+
+    const ouSpacer = ou.spacer || ""
+    const cuSpacer = cu.spacer || ""
+    if (ouSpacer && cuSpacer && ouSpacer.toLowerCase() !== cuSpacer.toLowerCase()) {
+      changes.push(`Sealed Unit #${idx + 1} spacer updated to "${cuSpacer}" (was "${ouSpacer}")`)
+    }
+
+    const ouGas = Boolean(ou.argon || ou.gasFill)
+    const cuGas = Boolean(cu.argon || cu.gasFill)
+    if (ouGas !== cuGas) {
+      changes.push(`Sealed Unit #${idx + 1} gas fill changed to ${cuGas ? "Argon" : "Air"}`)
+    }
+
+    const ouLabour = Number(ou.unitGlazingLabour ?? ou.labour ?? 0)
+    const cuLabour = Number(cu.unitGlazingLabour ?? cu.labour ?? 0)
+    if (ouLabour > 0 && cuLabour > 0 && Math.abs(ouLabour - cuLabour) > 0.01) {
+      changes.push(`Sealed Unit #${idx + 1} glazing labour updated from ${fmtDollar(ouLabour)} to ${fmtDollar(cuLabour)}`)
     }
   })
 

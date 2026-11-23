@@ -244,4 +244,185 @@ describe("Quote Diff Engine - detectQuoteChanges", () => {
       )
     })
   })
+
+  describe("Door Quotes Polymorphic Diffing", () => {
+    it("should detect door model, qty, slab size, hardware and price changes", () => {
+      const orig = {
+        type: "door",
+        lineItems: [
+          {
+            id: "d1",
+            presetLabel: "Classic 6-Panel Entry Door",
+            quantity: 1,
+            slabWidth: "36",
+            slabHeight: "80",
+            netDoorPrice: 1200,
+            hardwareType: "standard",
+          },
+        ],
+      }
+      const cur = {
+        type: "door",
+        lineItems: [
+          {
+            id: "d1",
+            presetLabel: "Modern Flush Glazed Entry Door",
+            quantity: 2,
+            slabWidth: "36",
+            slabHeight: "84",
+            netDoorPrice: 1550,
+            hardwareType: "custom",
+          },
+        ],
+      }
+
+      const changes = detectQuoteChanges(orig, cur)
+      expect(
+        changes.some((c) =>
+          c.includes(
+            'Door #1 model changed to "Modern Flush Glazed Entry Door" (was "Classic 6-Panel Entry Door")'
+          )
+        )
+      ).toBe(true)
+      expect(changes.some((c) => c.includes("Door #1 qty updated from 1 to 2"))).toBe(true)
+      expect(
+        changes.some((c) => c.includes('Door #1 slab size updated from 36" × 80" to 36" × 84"'))
+      ).toBe(true)
+      expect(
+        changes.some((c) => c.includes("Door #1 price updated from $1,200.00 to $1,550.00"))
+      ).toBe(true)
+      expect(
+        changes.some((c) => c.includes("Door #1 hardware updated to custom (was standard)"))
+      ).toBe(true)
+    })
+
+    it("should detect door line items count changes", () => {
+      const orig = {
+        quoteType: "door",
+        lineItems: [{ id: "d1", presetLabel: "Door 1" }],
+      }
+      const cur = {
+        quoteType: "door",
+        lineItems: [
+          { id: "d1", presetLabel: "Door 1" },
+          { id: "d2", presetLabel: "Door 2" },
+        ],
+      }
+      const changes = detectQuoteChanges(orig, cur)
+      expect(changes[0]).toContain("Door line items changed (2 doors vs 1 originally)")
+    })
+  })
+
+  describe("Sealed Unit Quotes Polymorphic Diffing", () => {
+    it("should detect sealed unit dimensions, qty, glass type, spacer, gas fill, and labour changes", () => {
+      const orig = {
+        type: "sealed_unit",
+        lineItems: [
+          {
+            id: "su1",
+            width: "24",
+            height: "36",
+            quantity: 1,
+            glassType: "Clear / Clear",
+            spacer: "Super Spacer Black",
+            argon: false,
+            unitGlazingLabour: 75,
+          },
+        ],
+      }
+      const cur = {
+        type: "sealed_unit",
+        lineItems: [
+          {
+            id: "su1",
+            width: "28",
+            height: "40",
+            quantity: 3,
+            glassType: "Low-E 180 / Clear",
+            spacer: "Intercept",
+            argon: true,
+            unitGlazingLabour: 95,
+          },
+        ],
+      }
+
+      const changes = detectQuoteChanges(orig, cur)
+      expect(
+        changes.some((c) =>
+          c.includes('Sealed Unit #1 dimensions updated from 24" × 36" to 28" × 40"')
+        )
+      ).toBe(true)
+      expect(
+        changes.some((c) => c.includes("Sealed Unit #1 qty updated from 1 to 3"))
+      ).toBe(true)
+      expect(
+        changes.some((c) =>
+          c.includes('Sealed Unit #1 glass updated to "Low-E 180 / Clear" (was "Clear / Clear")')
+        )
+      ).toBe(true)
+      expect(
+        changes.some((c) =>
+          c.includes('Sealed Unit #1 spacer updated to "Intercept" (was "Super Spacer Black")')
+        )
+      ).toBe(true)
+      expect(
+        changes.some((c) => c.includes("Sealed Unit #1 gas fill changed to Argon"))
+      ).toBe(true)
+      expect(
+        changes.some((c) =>
+          c.includes("Sealed Unit #1 glazing labour updated from $75.00 to $95.00")
+        )
+      ).toBe(true)
+    })
+
+    it("should detect sealed unit line items count changes", () => {
+      const orig = {
+        type: "sealed_unit",
+        lineItems: [{ id: "su1", width: "24", height: "36" }],
+      }
+      const cur = {
+        type: "sealed_unit",
+        lineItems: [
+          { id: "su1", width: "24", height: "36" },
+          { id: "su2", width: "30", height: "48" },
+        ],
+      }
+      const changes = detectQuoteChanges(orig, cur)
+      expect(changes[0]).toContain("Sealed unit line items changed (2 vs 1 originally)")
+    })
+  })
+
+  describe("Global Upcharges Polymorphic Diffing (Door & Sealed Units)", () => {
+    it("should detect added, modified, and removed global upcharges", () => {
+      const orig = {
+        type: "door",
+        globalUpcharges: [
+          { id: "haul", label: "Haul Away & Disposal", price: 75, quantity: 1 },
+          { id: "paint", label: "Custom Paint Finish", price: 200, quantity: 1 },
+        ],
+      }
+      const cur = {
+        type: "door",
+        globalUpcharges: [
+          { id: "haul", label: "Haul Away & Disposal", price: 100, quantity: 1 },
+          { id: "trim", label: "Brickmould Install", price: 150, quantity: 2 },
+        ],
+      }
+
+      const changes = detectQuoteChanges(orig, cur)
+      expect(
+        changes.some((c) =>
+          c.includes('Add-on "Haul Away & Disposal": Price adjusted from $75.00 to $100.00')
+        )
+      ).toBe(true)
+      expect(
+        changes.some((c) =>
+          c.includes('Added Add-on: "Brickmould Install" (Qty: 2 (+$150.00))')
+        )
+      ).toBe(true)
+      expect(
+        changes.some((c) => c.includes('Removed Add-on: "Custom Paint Finish"'))
+      ).toBe(true)
+    })
+  })
 })

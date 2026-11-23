@@ -9,6 +9,8 @@ import {
   cleanJambLabel,
   cleanCasingLabel,
   detectWindowDiffs,
+  detectDoorDiffs,
+  detectSealedUnitDiffs,
   detectAddonDiffs,
   normalizeDiffTotalCents,
 } from "./quote-diff-helpers"
@@ -87,22 +89,68 @@ export function detectQuoteChanges(original: any, current: any): string[] {
     changes.push(`Base window total updated from ${fmt(origBase / 100)} to ${fmt(curBase / 100)}`)
   }
 
-  // 5. Window Items inspection
-  const origWindows = Array.isArray(original.windows) ? original.windows : []
-  const curWindows = Array.isArray(current.windows) ? current.windows : []
-  changes.push(...detectWindowDiffs(origWindows, curWindows))
+  // 5. Line Items Inspection (Windows, Doors, Sealed Units)
+  const rawType = (
+    original.type ||
+    current.type ||
+    original.quoteType ||
+    current.quoteType ||
+    (original.doors || current.doors || original.lineItems?.[0]?.category || current.lineItems?.[0]?.category ? "door" :
+     original.sealedUnits || current.sealedUnits || original.lineItems?.[0]?.glassType || current.lineItems?.[0]?.glassType ? "sealed_unit" : "window")
+  )
+  const quoteType = String(rawType || "window").toLowerCase()
+
+  if (quoteType === "door") {
+    const origDoors = Array.isArray(original.lineItems) ? original.lineItems : Array.isArray(original.doors) ? original.doors : Array.isArray(original.windows) ? original.windows : []
+    const curDoors = Array.isArray(current.lineItems) ? current.lineItems : Array.isArray(current.doors) ? current.doors : Array.isArray(current.windows) ? current.windows : []
+    changes.push(...detectDoorDiffs(origDoors, curDoors))
+  } else if (quoteType === "sealed_unit" || quoteType === "sealedunit") {
+    const origUnits = Array.isArray(original.lineItems) ? original.lineItems : Array.isArray(original.sealedUnits) ? original.sealedUnits : Array.isArray(original.windows) ? original.windows : []
+    const curUnits = Array.isArray(current.lineItems) ? current.lineItems : Array.isArray(current.sealedUnits) ? current.sealedUnits : Array.isArray(current.windows) ? current.windows : []
+    changes.push(...detectSealedUnitDiffs(origUnits, curUnits))
+  } else {
+    const origWindows = Array.isArray(original.windows) ? original.windows : Array.isArray(original.lineItems) ? original.lineItems : []
+    const curWindows = Array.isArray(current.windows) ? current.windows : Array.isArray(current.lineItems) ? current.lineItems : []
+    changes.push(...detectWindowDiffs(origWindows, curWindows))
+  }
 
   // 6. Travel and Setup
-  const origTravel = (Number(original.taxTotals?.vehicle) || 0) + (Number(original.taxTotals?.crewTravel) || 0) + (Number(original.taxTotals?.setup) || 0)
-  const curTravel = (Number(current.taxTotals?.vehicle) || 0) + (Number(current.taxTotals?.crewTravel) || 0) + (Number(current.taxTotals?.setup) || 0)
-  if (Math.abs(origTravel - curTravel) > 0.5) {
+  const origTravel =
+    (Number(original.taxTotals?.vehicle) || 0) +
+    (Number(original.taxTotals?.crewTravel) || 0) +
+    (Number(original.taxTotals?.setup) || 0) +
+    (Number(original.taxTotals?.vehicleTravelFee) || 0) +
+    (Number(original.taxTotals?.crewTravelFee) || 0) +
+    (Number(original.taxTotals?.baseSetupFee) || 0)
+  const curTravel =
+    (Number(current.taxTotals?.vehicle) || 0) +
+    (Number(current.taxTotals?.crewTravel) || 0) +
+    (Number(current.taxTotals?.setup) || 0) +
+    (Number(current.taxTotals?.vehicleTravelFee) || 0) +
+    (Number(current.taxTotals?.crewTravelFee) || 0) +
+    (Number(current.taxTotals?.baseSetupFee) || 0)
+  if (Math.abs(origTravel - curTravel) > 0.5 && (origTravel > 0 || curTravel > 0)) {
     changes.push(`Travel & Setup fee updated from ${fmt(origTravel)} to ${fmt(curTravel)}`)
   }
 
-  // 7. Addons and Extras
-  const origAddons = Array.isArray(original.taxTotals?.selectedAddons) ? original.taxTotals.selectedAddons : []
-  const curAddons = Array.isArray(current.taxTotals?.selectedAddons) ? current.taxTotals.selectedAddons : []
-  changes.push(...detectAddonDiffs(origAddons, curAddons))
+  // 7. Addons and Global Upcharges
+  const origAddons = Array.isArray(original.globalUpcharges)
+    ? original.globalUpcharges
+    : Array.isArray(original.taxTotals?.selectedAddons)
+      ? original.taxTotals.selectedAddons
+      : Array.isArray(original.taxTotals?.globalUpcharges)
+        ? original.taxTotals.globalUpcharges
+        : []
+  const curAddons = Array.isArray(current.globalUpcharges)
+    ? current.globalUpcharges
+    : Array.isArray(current.taxTotals?.selectedAddons)
+      ? current.taxTotals.selectedAddons
+      : Array.isArray(current.taxTotals?.globalUpcharges)
+        ? current.taxTotals.globalUpcharges
+        : []
+  if (origAddons.length > 0 || curAddons.length > 0) {
+    changes.push(...detectAddonDiffs(origAddons, curAddons))
+  }
 
   // 8. Surcharge Rate
   if (original.surchargeRate !== undefined && current.surchargeRate !== undefined && Number(original.surchargeRate) !== Number(current.surchargeRate)) {
