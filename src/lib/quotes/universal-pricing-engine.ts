@@ -18,6 +18,8 @@ export interface UniversalPricingParams {
     customMisc?: string
     customDiscount?: string
     customJC?: string
+    loyaltyDiscount?: string
+    loyaltyDiscountLabel?: string
   }
 }
 
@@ -159,7 +161,9 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const materials = Math.round(((winNorm?.materials || 0) + (doorNorm?.materials || 0) + (suNorm?.materials || 0) + jambsAndCasing + customMaterials) * 100) / 100
   const surcharges = Math.round(((winNorm?.surcharge || 0) + (doorNorm?.surcharge || 0) + (suNorm?.surcharge || 0)) * 100) / 100
   const misc = isSupplyOnly ? 0 : Math.round(((winNorm?.misc || 0) + (doorNorm?.misc || 0) + (suNorm?.misc || 0)) * 100) / 100
-  const discounts = Math.round(((winNorm?.discount || 0) + (doorNorm?.discount || 0) + (suNorm?.discount || 0)) * 100) / 100
+  const baseDiscounts = (winNorm?.discount || 0) + (doorNorm?.discount || 0) + (suNorm?.discount || 0)
+  const loyaltyDiscounts = (winNorm?.loyaltyDiscount || 0) + (doorNorm?.loyaltyDiscount || 0) + (suNorm?.loyaltyDiscount || 0)
+  const discounts = Math.round((baseDiscounts + loyaltyDiscounts) * 100) / 100
   const discountLabel = winNorm?.discountLabel || doorNorm?.discountLabel || suNorm?.discountLabel || "Discount"
 
   const subtotal = Math.round((materials + surcharges + misc + combinedLabour) * 100) / 100
@@ -188,7 +192,20 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const materialsLineItems = buildMaterialLineItems(winNorm, doorNorm, suNorm)
   const surchargeLineItems: UniversalLineItem[] = surcharges > 0 ? [{ label: "8% Factory glass & handling surcharge", amount: surcharges, category: "surcharge" }] : []
   const miscLineItems: UniversalLineItem[] = misc > 0 ? [{ label: "Disposal, caulking & miscellaneous", amount: misc, category: "misc" }] : []
-  const discountLineItems: UniversalLineItem[] = discounts > 0 ? [{ label: discountLabel, amount: discounts, category: "discount" }] : []
+  const discountLineItems: UniversalLineItem[] = []
+  if (winNorm?.discount && winNorm.discount > 0) {
+    discountLineItems.push({ label: winNorm.discountLabel || "Window Discount", amount: winNorm.discount, category: "discount" })
+  }
+  if (doorNorm?.discount && doorNorm.discount > 0) {
+    discountLineItems.push({ label: doorNorm.discountLabel || "Door Discount", amount: doorNorm.discount, category: "discount" })
+  }
+  if (suNorm?.discount && suNorm.discount > 0) {
+    discountLineItems.push({ label: suNorm.discountLabel || "Sealed Unit Discount", amount: suNorm.discount, category: "discount" })
+  }
+  if (loyaltyDiscounts > 0) {
+    const loyaltyLabel = winNorm?.loyaltyDiscountLabel || doorNorm?.loyaltyDiscountLabel || suNorm?.loyaltyDiscountLabel || "Loyalty Points Redemption"
+    discountLineItems.push({ label: loyaltyLabel, amount: Math.round(loyaltyDiscounts * 100) / 100, category: "discount" })
+  }
   const travelItems = effectiveTravel > 0 ? [{ label: "Site setup & travel fee", amount: effectiveTravel, details: "Highest travel charge applied" }] : []
 
   return {

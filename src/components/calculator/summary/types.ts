@@ -25,6 +25,10 @@ export interface QuoteSummaryCardProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number

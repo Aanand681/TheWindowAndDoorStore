@@ -11,6 +11,7 @@ export function calculateDoorQuoteTotals(
   const {
     lineItems, mode, travelFeeType, customTravelFee, showOutTownTravel,
     travelKm, crewHours, crewSize, hstRate, logistics, customDiscount,
+    loyaltyDiscount, loyaltyDiscountLabel,
   } = params
 
   const isInstallation = mode === "installation"
@@ -48,6 +49,11 @@ export function calculateDoorQuoteTotals(
   if (customDiscount !== undefined && customDiscount !== "") {
     discountTotal = Math.max(0, parseFloat(customDiscount) || 0)
   }
+
+  const loyaltyDiscountAmount = loyaltyDiscount !== undefined && loyaltyDiscount !== ""
+    ? Math.max(0, parseFloat(loyaltyDiscount) || 0)
+    : 0
+  const combinedDiscount = discountTotal + loyaltyDiscountAmount
 
   const totalUnits = totalDoors + totalStormDoors
   let fullBaseSetupFee = 0, additionalFarFee = 0, vehicleTravelFee = 0, crewTravelFee = 0
@@ -89,7 +95,7 @@ export function calculateDoorQuoteTotals(
 
   const totalDoorBase = rawDoorBaseTotal + stormDoorTotal
   const subtotalPreTax = Math.round(
-    (totalDoorBase - discountTotal + surchargeTotal + combinedLabourTotal + activeMiscTotal + hardwareTotal) * 100
+    (totalDoorBase - combinedDiscount + surchargeTotal + combinedLabourTotal + activeMiscTotal + hardwareTotal) * 100
   ) / 100
 
   const isNoTax = hstRate === 0
@@ -99,7 +105,7 @@ export function calculateDoorQuoteTotals(
   if (isNoTax) {
     hstAmount = 0; hstBase = 0; materialExemption = 0
   } else if (isFN) {
-    const materialsBase = totalDoorBase - discountTotal + hardwareTotal
+    const materialsBase = totalDoorBase - combinedDiscount + hardwareTotal
     hstBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
     materialExemption = Math.round(materialsBase * 0.08 * 100) / 100
     hstAmount = Math.max(0, Math.round((hstBase - materialExemption) * 100) / 100)
@@ -113,7 +119,8 @@ export function calculateDoorQuoteTotals(
 
   return {
     totalDoors, totalStormDoors, totalUnits, rawDoorBaseTotal, surchargeTotal,
-    doorWithSurchargeTotal, discountTotal, netDoorSupplyTotal, stormDoorTotal,
+    doorWithSurchargeTotal, discountTotal, loyaltyDiscount: loyaltyDiscountAmount,
+    loyaltyDiscountLabel, totalDiscount: combinedDiscount, netDoorSupplyTotal, stormDoorTotal,
     hardwareTotal, hardwareQty, unitLabourTotal, upchargesTotal, baseSetupFee,
     fullBaseSetupFee, additionalFarFee, vehicleTravelFee, crewTravelFee,
     totalAdditionalTravel, totalTravelAndSetup, fullInstallLabour, fullInstallMisc,

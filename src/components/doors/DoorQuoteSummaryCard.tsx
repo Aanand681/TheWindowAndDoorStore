@@ -40,6 +40,10 @@ interface DoorQuoteSummaryCardProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number
@@ -63,6 +67,8 @@ export function DoorQuoteSummaryCard({
   onPrintPreview, isAdmin = false, customLabour = "", setCustomLabour,
   customMisc = "", setCustomMisc, customDiscount = "", setCustomDiscount,
   customDiscountLabel = "", setCustomDiscountLabel,
+  loyaltyDiscount = "", setLoyaltyDiscount,
+  loyaltyDiscountLabel = "", setLoyaltyDiscountLabel,
   discountType = "none", setDiscountType,
   loyaltyPoints = 0, setLoyaltyPoints,
   loyaltyGrossAmount = 0, setLoyaltyGrossAmount,
@@ -187,6 +193,8 @@ export function DoorQuoteSummaryCard({
             winMisc={winMisc} suMisc={suMisc} setCustomMisc={setCustomMisc ? handleSetCustomMisc : undefined}
             customDiscount={customDiscount} setCustomDiscount={setCustomDiscount}
             customDiscountLabel={customDiscountLabel} setCustomDiscountLabel={setCustomDiscountLabel}
+            loyaltyDiscount={loyaltyDiscount} setLoyaltyDiscount={setLoyaltyDiscount}
+            loyaltyDiscountLabel={loyaltyDiscountLabel} setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
             discountType={discountType} setDiscountType={setDiscountType}
             loyaltyPoints={loyaltyPoints} setLoyaltyPoints={setLoyaltyPoints}
             loyaltyGrossAmount={loyaltyGrossAmount} setLoyaltyGrossAmount={setLoyaltyGrossAmount}

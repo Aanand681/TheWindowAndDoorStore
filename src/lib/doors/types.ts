@@ -122,6 +122,8 @@ export interface DoorCalculationParams {
   formula: DoorFormulaSettings
   logistics: DoorLogisticsSettings
   customDiscount?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
 }
 
 export interface DoorQuoteTotals {
@@ -133,6 +135,9 @@ export interface DoorQuoteTotals {
   doorWithSurchargeTotal: number
   discountTotal: number
   discountLabel?: string
+  loyaltyDiscount?: number
+  loyaltyDiscountLabel?: string
+  totalDiscount?: number
   netDoorSupplyTotal: number
   stormDoorTotal: number
   hardwareTotal: number

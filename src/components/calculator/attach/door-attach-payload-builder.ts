@@ -163,6 +163,8 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
     summarySentence: doorSentence,
     discountLabel:
       rawData.discountLabel || (draft as any).discountLabel || "Door Discount",
+    loyaltyDiscount: rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || "",
+    loyaltyDiscountLabel: rawData.loyaltyDiscountLabel || (draft as any).loyaltyDiscountLabel || "",
     totals: {
       grandTotal,
       subtotalPreTax,
@@ -176,6 +178,8 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       miscTotal,
       surchargeTotal,
       discountTotal,
+      loyaltyDiscount: Number(rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || 0),
+      loyaltyDiscountLabel: rawData.loyaltyDiscountLabel || (draft as any).loyaltyDiscountLabel || "",
       hstAmount: tax,
       depositAmount: Math.round(grandTotal * 0.5 * 100) / 100,
       unitLabourTotal,

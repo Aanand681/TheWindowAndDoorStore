@@ -29,6 +29,10 @@ export interface StandardLedgerSectionProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number
@@ -69,7 +73,11 @@ export function StandardLedgerSection({
   customLabour,
   customDiscount = "",
   customDiscountLabel = "",
-  setCustomDiscountLabel,
+  setCustomDiscountLabel: _setCustomDiscountLabel,
+  loyaltyDiscount = "",
+  setLoyaltyDiscount,
+  loyaltyDiscountLabel = "",
+  setLoyaltyDiscountLabel,
   discountType = "none",
   setDiscountType,
   loyaltyPoints = 0,
@@ -190,36 +198,17 @@ export function StandardLedgerSection({
           </span>
         </div>
 
-        {/* Discount / Loyalty Points Program */}
-        {setCustomDiscount ? (
-          <DiscountLoyaltySelector
-            customDiscount={customDiscount}
-            setCustomDiscount={setCustomDiscount}
-            customDiscountLabel={customDiscountLabel}
-            setCustomDiscountLabel={setCustomDiscountLabel}
-            discountType={discountType}
-            setDiscountType={setDiscountType}
-            loyaltyPoints={loyaltyPoints}
-            setLoyaltyPoints={setLoyaltyPoints}
-            loyaltyGrossAmount={loyaltyGrossAmount}
-            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
-            combinedMaterials={combinedMaterials ?? ((quoteResult?.base || 0) / 100)}
-            hstRate={hstRate}
-            isFirstNation={hstRate === 8}
-            isReadOnly={isReadOnly}
-          />
-        ) : (
-          ((quoteResult?.promoDiscount || 0) > 0 || customDiscount !== "") && (
-            renderEditableRow(
-              "discount",
-              customDiscountLabel || (customDiscount !== "" ? "Discount" : "Promo discount"),
-              customDiscount !== ""
-                ? Math.round((parseFloat(customDiscount) || 0) * 100)
-                : quoteResult?.promoDiscount || 0,
-              customDiscount,
-              quoteResult?.promoDiscount || 0,
-              () => {}
-            )
+        {/* Layer 1: Base Promotional / Campaign Discount */}
+        {((quoteResult?.promoDiscount || 0) > 0 || customDiscount !== "") && (
+          renderEditableRow(
+            "discount",
+            customDiscountLabel || (customDiscount !== "" ? "Promo discount (custom)" : quoteResult?.promoName || "Promo discount"),
+            customDiscount !== ""
+              ? Math.round((parseFloat(customDiscount) || 0) * 100)
+              : quoteResult?.promoDiscount || 0,
+            customDiscount,
+            quoteResult?.promoDiscount || 0,
+            (val) => setCustomDiscount?.(val)
           )
         )}
         {quoteResult?.text && !customDiscount && (
@@ -227,6 +216,27 @@ export function StandardLedgerSection({
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <span>{quoteResult.text}</span>
           </p>
+        )}
+
+        {/* Layer 2: Loyalty Points / Additional Discount (ON TOP) */}
+        {setLoyaltyDiscount && (
+          <DiscountLoyaltySelector
+            loyaltyDiscount={loyaltyDiscount}
+            setLoyaltyDiscount={setLoyaltyDiscount}
+            loyaltyDiscountLabel={loyaltyDiscountLabel}
+            setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints}
+            setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount}
+            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+            combinedMaterials={combinedMaterials ?? ((quoteResult?.base || 0) / 100)}
+            otherDiscounts={customDiscount !== "" ? parseFloat(customDiscount) || 0 : (quoteResult?.promoDiscount || 0) / 100}
+            hstRate={hstRate}
+            isFirstNation={hstRate === 8}
+            isReadOnly={isReadOnly}
+          />
         )}
       </div>
 

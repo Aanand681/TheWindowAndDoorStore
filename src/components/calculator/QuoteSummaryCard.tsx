@@ -280,6 +280,10 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 customDiscount={customDiscount}
                 customDiscountLabel={props.customDiscountLabel}
                 setCustomDiscountLabel={props.setCustomDiscountLabel}
+                loyaltyDiscount={props.loyaltyDiscount}
+                setLoyaltyDiscount={props.setLoyaltyDiscount}
+                loyaltyDiscountLabel={props.loyaltyDiscountLabel}
+                setLoyaltyDiscountLabel={props.setLoyaltyDiscountLabel}
                 discountType={props.discountType}
                 setDiscountType={props.setDiscountType}
                 loyaltyPoints={props.loyaltyPoints}

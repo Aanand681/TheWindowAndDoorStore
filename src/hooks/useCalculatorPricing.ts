@@ -52,6 +52,8 @@ export function useCalculatorPricing({
   const [customLabour, setCustomLabour] = useState<string>("")
   const [customDiscount, setCustomDiscount] = useState<string>("")
   const [customDiscountLabel, setCustomDiscountLabel] = useState<string>("")
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState<string>("")
+  const [loyaltyDiscountLabel, setLoyaltyDiscountLabel] = useState<string>("")
   const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
   const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
@@ -201,9 +203,15 @@ export function useCalculatorPricing({
       ? customMaterialsCents + effectiveJC + effectiveLabour + effectiveMisc
       : 0
 
-  const effectiveDiscountCents = customDiscount !== ""
+  const basePromoDiscountCents = customDiscount !== ""
     ? toCents(customDiscount)
     : (quoteResult?.promoDiscount || 0)
+
+  const loyaltyDiscountCents = loyaltyDiscount !== ""
+    ? toCents(loyaltyDiscount)
+    : 0
+
+  const effectiveDiscountCents = basePromoDiscountCents + loyaltyDiscountCents
 
   const afterDiscount = Math.max(0, beforeTaxDiscount - effectiveDiscountCents)
   const upgrade = calculateUpgrade(afterDiscount, labourUpgradeTiers)
@@ -256,6 +264,12 @@ export function useCalculatorPricing({
     setCustomMisc("")
     setCustomLabour("")
     setCustomDiscount("")
+    setCustomDiscountLabel("")
+    setLoyaltyDiscount("")
+    setLoyaltyDiscountLabel("")
+    setDiscountType("none")
+    setLoyaltyPoints(0)
+    setLoyaltyGrossAmount(0)
     setIncludeJCInPromo(true)
     setIncludeMiscInPromo(true)
     setIncludeLabourInPromo(true)
@@ -276,9 +290,12 @@ export function useCalculatorPricing({
     customLabour, setCustomLabour,
     customDiscount, setCustomDiscount,
     customDiscountLabel, setCustomDiscountLabel,
+    loyaltyDiscount, setLoyaltyDiscount,
+    loyaltyDiscountLabel, setLoyaltyDiscountLabel,
     discountType, setDiscountType,
     loyaltyPoints, setLoyaltyPoints,
     loyaltyGrossAmount, setLoyaltyGrossAmount,
+    basePromoDiscountCents, loyaltyDiscountCents,
     includeJCInPromo, setIncludeJCInPromo,
     includeMiscInPromo, setIncludeMiscInPromo,
     includeLabourInPromo, setIncludeLabourInPromo,

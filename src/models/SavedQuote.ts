@@ -54,6 +54,8 @@ export interface ISavedQuote extends Document {
   activePromoId?: string
   customDiscount?: string | number
   customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   discountType?: "none" | "custom" | "loyalty"
   loyaltyPoints?: number
   loyaltyGrossAmount?: number
@@ -223,6 +225,14 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
       default: "",
     },
     customDiscountLabel: {
+      type: String,
+      default: "",
+    },
+    loyaltyDiscount: {
+      type: Schema.Types.Mixed,
+      default: "",
+    },
+    loyaltyDiscountLabel: {
       type: String,
       default: "",
     },

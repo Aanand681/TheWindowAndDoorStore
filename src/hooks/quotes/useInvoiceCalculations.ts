@@ -304,5 +304,6 @@ export function useInvoiceCalculations({
     effectiveMiscTotalCents: pricing.effectiveMiscTotalCents,
     effectiveSurchargeTotalCents: pricing.effectiveSurchargeTotalCents,
     surchargeRate: 0.08, isSingleLineMergedItem,
+    discountLineItems: pricing.universal?.discountLineItems || [],
   }
 }

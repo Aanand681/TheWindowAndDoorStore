@@ -29,6 +29,10 @@ export interface SummaryLedgerSwitcherProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number
@@ -67,6 +71,10 @@ export function SummaryLedgerSwitcher(props: SummaryLedgerSwitcherProps) {
     customDiscount: props.customDiscount,
     customDiscountLabel: props.customDiscountLabel,
     setCustomDiscountLabel: props.setCustomDiscountLabel,
+    loyaltyDiscount: props.loyaltyDiscount,
+    setLoyaltyDiscount: props.setLoyaltyDiscount,
+    loyaltyDiscountLabel: props.loyaltyDiscountLabel,
+    setLoyaltyDiscountLabel: props.setLoyaltyDiscountLabel,
     discountType: props.discountType,
     setDiscountType: props.setDiscountType,
     loyaltyPoints: props.loyaltyPoints,

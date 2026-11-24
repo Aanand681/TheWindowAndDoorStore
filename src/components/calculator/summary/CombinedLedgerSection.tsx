@@ -28,6 +28,10 @@ export interface CombinedLedgerSectionProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number
@@ -58,7 +62,11 @@ export function CombinedLedgerSection({
   customLabour,
   customDiscount = "",
   customDiscountLabel = "",
-  setCustomDiscountLabel,
+  setCustomDiscountLabel: _setCustomDiscountLabel,
+  loyaltyDiscount = "",
+  setLoyaltyDiscount,
+  loyaltyDiscountLabel = "",
+  setLoyaltyDiscountLabel,
   discountType = "none",
   setDiscountType,
   loyaltyPoints = 0,
@@ -254,41 +262,21 @@ export function CombinedLedgerSection({
           </span>
         </div>
 
-        {/* Discount / Loyalty Points Program (Window) */}
-        {setCustomDiscount ? (
-          <DiscountLoyaltySelector
-            customDiscount={customDiscount}
-            setCustomDiscount={setCustomDiscount}
-            customDiscountLabel={customDiscountLabel}
-            setCustomDiscountLabel={setCustomDiscountLabel}
-            discountType={discountType}
-            setDiscountType={setDiscountType}
-            loyaltyPoints={loyaltyPoints}
-            setLoyaltyPoints={setLoyaltyPoints}
-            loyaltyGrossAmount={loyaltyGrossAmount}
-            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
-            combinedMaterials={combinedMaterials ?? (combinedData.combinedBaseTotal || 0)}
-            otherDiscounts={combinedData.doorDiscountCents / 100}
-            hstRate={hstRate}
-            isFirstNation={hstRate === 8}
-            isReadOnly={isReadOnly}
-          />
-        ) : (
-          (combinedData.windowDiscountCents > 0 || customDiscount !== "") && (
-            renderEditableRow(
-              "discount",
-              customDiscountLabel || (customDiscount !== "" ? "Discount (window only)" : "Promo discount (window only)"),
-              customDiscount !== ""
-                ? Math.round((parseFloat(customDiscount) || 0) * 100)
-                : combinedData.windowDiscountCents,
-              customDiscount,
-              combinedData.windowDiscountCents,
-              () => {}
-            )
+        {/* Layer 1: Base Window Promo Discount */}
+        {(combinedData.windowDiscountCents > 0 || customDiscount !== "") && (
+          renderEditableRow(
+            "discount",
+            customDiscountLabel || (customDiscount !== "" ? "Window Discount (custom)" : "Window Promo Discount"),
+            customDiscount !== ""
+              ? Math.round((parseFloat(customDiscount) || 0) * 100)
+              : combinedData.windowDiscountCents,
+            customDiscount,
+            combinedData.windowDiscountCents,
+            (val) => setCustomDiscount?.(val)
           )
         )}
 
-        {/* Door Discount (Separated on its own line) */}
+        {/* Door Discount (Attached Door Promo) */}
         {combinedData.doorDiscountCents > 0 && (
           <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
             <span>
@@ -301,6 +289,27 @@ export function CombinedLedgerSection({
               -{formatMoney(combinedData.doorDiscountCents)}
             </span>
           </div>
+        )}
+
+        {/* Layer 2: Loyalty Points / Additional Discount (ON TOP OF BOTH) */}
+        {setLoyaltyDiscount && (
+          <DiscountLoyaltySelector
+            loyaltyDiscount={loyaltyDiscount}
+            setLoyaltyDiscount={setLoyaltyDiscount}
+            loyaltyDiscountLabel={loyaltyDiscountLabel}
+            setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints}
+            setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount}
+            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+            combinedMaterials={combinedMaterials ?? (combinedData.windowBase + combinedData.suGlass + combinedData.doorMaterials)}
+            otherDiscounts={(customDiscount !== "" ? parseFloat(customDiscount) || 0 : combinedData.windowDiscountCents / 100) + (combinedData.doorDiscountCents / 100)}
+            hstRate={hstRate}
+            isFirstNation={hstRate === 8}
+            isReadOnly={isReadOnly}
+          />
         )}
       </div>
 

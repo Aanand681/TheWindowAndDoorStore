@@ -54,6 +54,8 @@ export function useDoorCalculatorPage(
       formula,
       logistics,
       customDiscount: base.customDiscount,
+      loyaltyDiscount: base.loyaltyDiscount,
+      loyaltyDiscountLabel: base.loyaltyDiscountLabel,
     })
   }, [
     items.lineItems,
@@ -70,6 +72,8 @@ export function useDoorCalculatorPage(
     formula,
     logistics,
     base.customDiscount,
+    base.loyaltyDiscount,
+    base.loyaltyDiscountLabel,
   ])
 
   const sharedSyncProps = buildDoorSharedSyncProps({

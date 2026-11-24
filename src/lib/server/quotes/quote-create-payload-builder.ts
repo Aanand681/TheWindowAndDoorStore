@@ -36,6 +36,8 @@ export function buildQuotePayload(
     customLabour: body.customLabour,
     customDiscount: body.customDiscount,
     customDiscountLabel: body.customDiscountLabel,
+    loyaltyDiscount: body.loyaltyDiscount,
+    loyaltyDiscountLabel: body.loyaltyDiscountLabel,
     discountType: body.discountType,
     loyaltyPoints: body.loyaltyPoints,
     loyaltyGrossAmount: body.loyaltyGrossAmount,

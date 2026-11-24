@@ -37,6 +37,10 @@ export interface DoorSummaryLedgerProps {
   setCustomDiscount?: (val: string) => void
   customDiscountLabel?: string
   setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
   discountType?: "none" | "custom" | "loyalty"
   setDiscountType?: (val: "none" | "custom" | "loyalty") => void
   loyaltyPoints?: number
@@ -73,7 +77,11 @@ export function DoorSummaryLedger({
   customMisc, defaultDoorMisc, winMisc, suMisc, setCustomMisc,
   customDiscount = "",
   customDiscountLabel = "",
-  setCustomDiscountLabel,
+  setCustomDiscountLabel: _setCustomDiscountLabel,
+  loyaltyDiscount = "",
+  setLoyaltyDiscount,
+  loyaltyDiscountLabel = "",
+  setLoyaltyDiscountLabel,
   discountType = "none",
   setDiscountType,
   loyaltyPoints = 0,
@@ -209,42 +217,22 @@ export function DoorSummaryLedger({
         <span className="font-mono font-semibold text-foreground">+${combinedSurcharge.toFixed(2)}</span>
       </div>
 
-      {/* Discount / Loyalty Points Program (Door) */}
-      {setCustomDiscount ? (
-        <DiscountLoyaltySelector
-          customDiscount={customDiscount}
-          setCustomDiscount={setCustomDiscount}
-          customDiscountLabel={customDiscountLabel}
-          setCustomDiscountLabel={setCustomDiscountLabel}
-          discountType={discountType}
-          setDiscountType={setDiscountType}
-          loyaltyPoints={loyaltyPoints}
-          setLoyaltyPoints={setLoyaltyPoints}
-          loyaltyGrossAmount={loyaltyGrossAmount}
-          setLoyaltyGrossAmount={setLoyaltyGrossAmount}
-          combinedMaterials={Number(((totals.rawDoorBaseTotal || 0) + (totals.stormDoorTotal || 0) + (totals.hardwareTotal || 0)) + (winBase || 0) + (suGlass || 0))}
-          otherDiscounts={winDiscount}
-          hstRate={hstRate ?? (isFirstNation ? 8 : 13)}
-          isFirstNation={isFirstNation}
+      {/* Layer 1: Base Door Discount */}
+      {(totals.discountTotal > 0 || customDiscount !== "") && (
+        <DoorSummaryEditableRow
+          field="discount"
+          label={customDiscountLabel || (customDiscount !== "" ? "Door Discount (custom)" : totals.discountLabel || "Door Discount")}
+          amount={totals.discountTotal}
+          customVal={customDiscount}
+          defaultAmount={defaultDoorDiscount}
+          isInstallation={true}
+          editingField={editingField}
+          setEditingField={setEditingField}
+          tempEditVal={tempEditVal}
+          setTempEditVal={setTempEditVal}
+          setter={setCustomDiscount}
           isReadOnly={isReadOnly}
         />
-      ) : (
-        (totals.discountTotal > 0 || customDiscount !== "") && (
-          <DoorSummaryEditableRow
-            field="discount"
-            label={customDiscountLabel || (customDiscount !== "" ? "Discount" : totals.discountLabel || "Door Discount")}
-            amount={totals.discountTotal}
-            customVal={customDiscount}
-            defaultAmount={defaultDoorDiscount}
-            isInstallation={true}
-            editingField={editingField}
-            setEditingField={setEditingField}
-            tempEditVal={tempEditVal}
-            setTempEditVal={setTempEditVal}
-            setter={setCustomDiscount}
-            isReadOnly={isReadOnly}
-          />
-        )
       )}
 
       {winDiscount > 0 && (
@@ -258,6 +246,27 @@ export function DoorSummaryLedger({
             -${winDiscount.toFixed(2)}
           </span>
         </div>
+      )}
+
+      {/* Layer 2: Loyalty Points / Additional Discount (ON TOP) */}
+      {setLoyaltyDiscount && (
+        <DiscountLoyaltySelector
+          loyaltyDiscount={loyaltyDiscount}
+          setLoyaltyDiscount={setLoyaltyDiscount}
+          loyaltyDiscountLabel={loyaltyDiscountLabel}
+          setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
+          discountType={discountType}
+          setDiscountType={setDiscountType}
+          loyaltyPoints={loyaltyPoints}
+          setLoyaltyPoints={setLoyaltyPoints}
+          loyaltyGrossAmount={loyaltyGrossAmount}
+          setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+          combinedMaterials={Number(((totals.rawDoorBaseTotal || 0) + (totals.stormDoorTotal || 0) + (totals.hardwareTotal || 0)) + (winBase || 0) + (suGlass || 0))}
+          otherDiscounts={(totals.discountTotal || 0) + (winDiscount || 0)}
+          hstRate={hstRate ?? (isFirstNation ? 8 : 13)}
+          isFirstNation={isFirstNation}
+          isReadOnly={isReadOnly}
+        />
       )}
 
       <div className="border-t border-border/60 pt-1" />

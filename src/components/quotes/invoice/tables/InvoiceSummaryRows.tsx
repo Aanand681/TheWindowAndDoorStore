@@ -239,64 +239,91 @@ export function InvoiceSummaryRows({
       )}
 
       {/* Line 8: Discounts */}
-      {promoDiscountCents > 0 && (
-        <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
-          <td
-            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="pl-1"
-          >
-            <span
-              style={{ fontSize: `${microFs}px` }}
-              className="block font-bold tracking-wider text-emerald-700 uppercase"
+      {calc.discountLineItems && calc.discountLineItems.length > 0 ? (
+        calc.discountLineItems.map((item, idx) => (
+          <tr key={idx} className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="pl-1"
             >
-              Discount Applied:
-            </span>
-            {resolvedPromoName}
-          </td>
-          <td
-            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="pr-1 text-right font-mono font-bold text-emerald-700"
-          >
-            −{formatMoney(promoDiscountCents)}
-          </td>
-        </tr>
-      )}
-
-      {monthlyDiscountCents > 0 && (
-        <tr className="border-b border-[#e2e8f0] font-semibold text-emerald-800">
-          <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}>
-            Monthly Discount
-          </td>
-          <td
-            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="text-right font-mono"
-          >
-            −{formatMoney(monthlyDiscountCents)}
-          </td>
-        </tr>
-      )}
-
-      {doorDiscountCents > 0 && (
-        <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
-          <td
-            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="pl-1"
-          >
-            <span
-              style={{ fontSize: `${microFs}px` }}
-              className="block font-bold tracking-wider text-emerald-700 uppercase"
+              <span
+                style={{ fontSize: `${microFs}px` }}
+                className="block font-bold tracking-wider text-emerald-700 uppercase"
+              >
+                Discount Applied:
+              </span>
+              {item.label}
+            </td>
+            <td
+              style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+              className="pr-1 text-right font-mono font-bold text-emerald-700"
             >
-              Discount Applied:
-            </span>
-            {attachedDoorQuote?.discountLabel || "Door Discount"}
-          </td>
-          <td
-            style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-            className="pr-1 text-right font-mono font-bold text-emerald-700"
-          >
-            −{formatMoney(doorDiscountCents)}
-          </td>
-        </tr>
+              −{formatMoney(Math.round(item.amount * 100))}
+            </td>
+          </tr>
+        ))
+      ) : (
+        <>
+          {promoDiscountCents > 0 && (
+            <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className="pl-1"
+              >
+                <span
+                  style={{ fontSize: `${microFs}px` }}
+                  className="block font-bold tracking-wider text-emerald-700 uppercase"
+                >
+                  Discount Applied:
+                </span>
+                {resolvedPromoName}
+              </td>
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className="pr-1 text-right font-mono font-bold text-emerald-700"
+              >
+                −{formatMoney(promoDiscountCents)}
+              </td>
+            </tr>
+          )}
+
+          {monthlyDiscountCents > 0 && (
+            <tr className="border-b border-[#e2e8f0] font-semibold text-emerald-800">
+              <td style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}>
+                Monthly Discount
+              </td>
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className="text-right font-mono"
+              >
+                −{formatMoney(monthlyDiscountCents)}
+              </td>
+            </tr>
+          )}
+
+          {doorDiscountCents > 0 && (
+            <tr className="border-b border-[#cbd5e1] bg-white font-semibold text-emerald-900">
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className="pl-1"
+              >
+                <span
+                  style={{ fontSize: `${microFs}px` }}
+                  className="block font-bold tracking-wider text-emerald-700 uppercase"
+                >
+                  Discount Applied:
+                </span>
+                {attachedDoorQuote?.discountLabel || "Door Discount"}
+              </td>
+              <td
+                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
+                className="pr-1 text-right font-mono font-bold text-emerald-700"
+              >
+                −{formatMoney(doorDiscountCents)}
+              </td>
+            </tr>
+          )}
+        </>
       )}
 
       {/* Line 9: Subtotal */}

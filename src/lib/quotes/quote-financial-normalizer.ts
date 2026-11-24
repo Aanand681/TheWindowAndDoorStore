@@ -13,6 +13,8 @@ export interface NormalizedQuoteFinancials {
   rawBase: number
   discount: number
   discountLabel?: string
+  loyaltyDiscount?: number
+  loyaltyDiscountLabel?: string
   materials: number
   surcharge: number
   pureLabour: number
@@ -42,7 +44,7 @@ function resolvePureLabour(
 
 export function normalizeWindowQuote(
   quote: any,
-  overrides?: { customLabour?: string; customMisc?: string; customJC?: string; customDiscount?: string }
+  overrides?: { customLabour?: string; customMisc?: string; customJC?: string; customDiscount?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
   const taxTotals = data.taxTotals || quote?.taxTotals || {}
@@ -81,8 +83,21 @@ export function normalizeWindowQuote(
   const discountLabel =
     data.customDiscountLabel ||
     quote?.customDiscountLabel ||
+    data.quoteResult?.promoName ||
+    "Promo Discount"
+
+  const loyaltyDiscount = Number(
+    overrides?.loyaltyDiscount !== undefined && overrides.loyaltyDiscount !== ""
+      ? parseFloat(overrides.loyaltyDiscount) || 0
+      : data.loyaltyDiscount ?? quote?.totals?.loyaltyDiscount ?? quote?.loyaltyDiscount ?? 0
+  )
+  const loyaltyDiscountLabel =
+    data.loyaltyDiscountLabel ||
+    quote?.loyaltyDiscountLabel ||
     (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
-  const materials = Math.max(0, Math.round((rawBase - discount) * 100) / 100)
+
+  const totalDiscount = discount + loyaltyDiscount
+  const materials = Math.max(0, Math.round((rawBase - totalDiscount) * 100) / 100)
 
   const rawRate = Number(data.surchargeRate ?? 8)
   const decRate = rawRate > 1 ? rawRate / 100 : rawRate
@@ -107,7 +122,7 @@ export function normalizeWindowQuote(
     type: "window", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: false,
-    rawBase, discount, discountLabel, materials, surcharge, pureLabour, travelAndSetup,
+    rawBase, discount, discountLabel, loyaltyDiscount, loyaltyDiscountLabel, materials, surcharge, pureLabour, travelAndSetup,
     misc, jambsAndCasing, customMaterials, lineItems,
     summarySentence: `${lineItems.length} window${lineItems.length !== 1 ? "s" : ""}`,
     upcharges: [],
@@ -116,7 +131,7 @@ export function normalizeWindowQuote(
 
 export function normalizeDoorQuote(
   quote: any,
-  overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string }
+  overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
   const totals = {
@@ -137,8 +152,21 @@ export function normalizeDoorQuote(
     data.customDiscountLabel ||
     quote?.customDiscountLabel ||
     totals.discountLabel ||
+    "Door Discount"
+
+  const loyaltyDiscount = Number(
+    overrides?.loyaltyDiscount !== undefined && overrides.loyaltyDiscount !== ""
+      ? parseFloat(overrides.loyaltyDiscount) || 0
+      : totals.loyaltyDiscount ?? data.loyaltyDiscount ?? quote?.totals?.loyaltyDiscount ?? quote?.loyaltyDiscount ?? 0
+  )
+  const loyaltyDiscountLabel =
+    data.loyaltyDiscountLabel ||
+    quote?.loyaltyDiscountLabel ||
+    totals.loyaltyDiscountLabel ||
     (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
-  const materials = Math.max(0, Math.round((rawBase - discount) * 100) / 100)
+
+  const totalDiscount = discount + loyaltyDiscount
+  const materials = Math.max(0, Math.round((rawBase - totalDiscount) * 100) / 100)
   const surcharge = Number(totals.surchargeTotal ?? totals.surcharge ?? (materials > 0 ? Math.round(materials * 0.08 * 100) / 100 : 0))
 
   const travelAndSetup = isSupply ? 0 : Number(quote?.totals?.travelAndSetupFee ?? totals?.totalTravelAndSetup ?? 0)
@@ -165,7 +193,7 @@ export function normalizeDoorQuote(
     type: "door", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: false,
-    rawBase, discount, discountLabel, materials, surcharge, pureLabour, travelAndSetup,
+    rawBase, discount, discountLabel, loyaltyDiscount, loyaltyDiscountLabel, materials, surcharge, pureLabour, travelAndSetup,
     misc, jambsAndCasing, customMaterials: 0, lineItems,
     summarySentence: `${itemCount} door${itemCount !== 1 ? "s" : ""}`,
     upcharges: data.globalUpcharges || totals.globalUpcharges || [],

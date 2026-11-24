@@ -139,6 +139,8 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     promoName: resolvedWindowDiscount > 0 ? promoName || "Window Discount" : "",
     discountLabel: promoName || "Window Discount",
     customDiscount: customDiscountDollars > 0 ? String(customDiscountDollars) : "",
+    loyaltyDiscount: rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || "",
+    loyaltyDiscountLabel: rawData.loyaltyDiscountLabel || (draft as any).loyaltyDiscountLabel || "",
     totals: {
       subtotal: draft.subtotal,
       grandTotal: draft.grandTotal,
@@ -153,6 +155,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
       customMaterialsList,
       discount: resolvedWindowDiscount,
       promoDiscount: resolvedWindowDiscount,
+      loyaltyDiscount: Number(rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || 0),
     },
     taxTotals: rawData.taxTotals,
     quoteResult: rawData.quoteResult,

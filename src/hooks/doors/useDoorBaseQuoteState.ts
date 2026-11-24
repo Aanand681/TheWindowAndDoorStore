@@ -27,6 +27,8 @@ export function useDoorBaseQuoteState() {
   const [customMisc, setCustomMisc] = useState<string>("")
   const [customDiscount, setCustomDiscount] = useState<string>("")
   const [customDiscountLabel, setCustomDiscountLabel] = useState<string>("")
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState<string>("")
+  const [loyaltyDiscountLabel, setLoyaltyDiscountLabel] = useState<string>("")
   const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
   const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
@@ -63,6 +65,10 @@ export function useDoorBaseQuoteState() {
     setCustomDiscount,
     customDiscountLabel,
     setCustomDiscountLabel,
+    loyaltyDiscount,
+    setLoyaltyDiscount,
+    loyaltyDiscountLabel,
+    setLoyaltyDiscountLabel,
     discountType,
     setDiscountType,
     loyaltyPoints,

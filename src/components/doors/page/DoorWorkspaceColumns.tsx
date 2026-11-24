@@ -94,6 +94,10 @@ export function DoorWorkspaceColumns({
           setCustomDiscount={page.setCustomDiscount}
           customDiscountLabel={page.customDiscountLabel}
           setCustomDiscountLabel={page.setCustomDiscountLabel}
+          loyaltyDiscount={page.loyaltyDiscount}
+          setLoyaltyDiscount={page.setLoyaltyDiscount}
+          loyaltyDiscountLabel={page.loyaltyDiscountLabel}
+          setLoyaltyDiscountLabel={page.setLoyaltyDiscountLabel}
           discountType={page.discountType}
           setDiscountType={page.setDiscountType}
           loyaltyPoints={page.loyaltyPoints}

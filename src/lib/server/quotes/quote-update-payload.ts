@@ -43,6 +43,8 @@ export async function buildQuoteUpdatePayload(p: {
     "customLabour",
     "customDiscount",
     "customDiscountLabel",
+    "loyaltyDiscount",
+    "loyaltyDiscountLabel",
     "discountType",
     "loyaltyPoints",
     "loyaltyGrossAmount",

@@ -137,4 +137,5 @@ export interface InvoiceCalculationsResult {
   effectiveSurchargeTotalCents: number
   surchargeRate: number
   isSingleLineMergedItem: boolean
+  discountLineItems?: { label: string; amount: number; category?: string }[]
 }
