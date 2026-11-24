@@ -52,6 +52,27 @@ describe("quotes-tab-filter isolation & visibility rules", () => {
       reviewerNotes: "Please correct the jamb specs.",
       createdAt: "2026-11-12T10:00:00.000Z",
     },
+    {
+      _id: "q6",
+      quoteNumber: "100006",
+      customerName: "Frank Odoo In Progress",
+      status: "APPROVED",
+      preparedBy: employeeUsername,
+      odooAssignedTo: "clerk_jane",
+      odooStatus: "PENDING_ENTRY",
+      createdAt: "2026-11-11T10:00:00.000Z",
+    },
+    {
+      _id: "q7",
+      quoteNumber: "100007",
+      customerName: "Grace Odoo Done",
+      status: "APPROVED",
+      preparedBy: employeeUsername,
+      odooAssignedTo: "clerk_jane",
+      odooStatus: "COMPLETED",
+      odooOrderNumber: "SO-9921",
+      createdAt: "2026-11-10T10:00:00.000Z",
+    },
   ]
 
   it("removes PENDING_REVIEW quotes from employee general Quote History ('my' tab)", () => {
@@ -70,8 +91,8 @@ describe("quotes-tab-filter isolation & visibility rules", () => {
     // q1 is PENDING_REVIEW -> must be hidden
     // q4 is DRAFT -> excluded
     // q3 is prepared by another user -> hidden
-    // q2 is APPROVED -> visible
-    expect(result.map((q) => q._id)).toEqual(["q2"])
+    // q2, q6, q7 are APPROVED -> visible
+    expect(result.map((q) => q._id)).toEqual(["q2", "q6", "q7"])
   })
 
   it("shows PENDING_REVIEW quotes in employee 'review' tab (My Submissions)", () => {
@@ -133,14 +154,36 @@ describe("quotes-tab-filter isolation & visibility rules", () => {
       myUsername: employeeUsername,
     })
 
-    // employeeHistoryCount should only count non-PENDING_REVIEW, non-RETURNED quotes prepared by user (q2)
-    expect(counts.employeeHistoryCount).toBe(1)
+    // employeeHistoryCount should only count non-PENDING_REVIEW, non-RETURNED quotes prepared by user (q2, q6, q7)
+    expect(counts.employeeHistoryCount).toBe(3)
     // employeeInReviewCount counts quotes prepared by user in PENDING_REVIEW (q1)
     expect(counts.employeeInReviewCount).toBe(1)
     // employeeReturnedCount counts quotes prepared by user in RETURNED (q5)
     expect(counts.employeeReturnedCount).toBe(1)
     // employeeAssignedCount counts quotes assigned to user in PENDING_REVIEW (q3)
     expect(counts.employeeAssignedCount).toBe(1)
+    // employeeOdooInProgressCount counts quotes in Odoo progress prepared by user (q6)
+    expect(counts.employeeOdooInProgressCount).toBe(1)
+    // employeeOdooDoneCount counts quotes completed in Odoo prepared by user (q7)
+    expect(counts.employeeOdooDoneCount).toBe(1)
+  })
+
+  it("strictly filters employee 'odoo' tab to quotes in Odoo progress and excludes in-review or returned quotes", () => {
+    const result = filterAndSortQuotes({
+      quotes: sampleQuotes,
+      activeTab: "odoo",
+      statusFilter: "all",
+      search: "",
+      canReview: false,
+      isSuperAdmin: false,
+      isClerk: false,
+      hasOdooAccess: false,
+      myUsername: employeeUsername,
+    })
+
+    // Only q6 is in Odoo progress prepared by Kyle
+    // Must NOT contain q1 (PENDING_REVIEW) or q5 (RETURNED) or q2 (APPROVED not in Odoo) or q7 (COMPLETED in Odoo)
+    expect(result.map((q) => q._id)).toEqual(["q6"])
   })
 
   it("sorts quotes by updatedAt descending so updated/resubmitted quotes appear at the top", () => {

@@ -17,6 +17,7 @@ export interface QuotesStatsRibbonProps {
   employeeAssignedCount: number
   employeeInReviewCount: number
   employeeReturnedCount: number
+  employeeOdooInProgressCount?: number
   employeeOdooDoneCount: number
   employeeHistoryCount: number
   clerkPendingCount: number
@@ -37,6 +38,7 @@ export function QuotesStatsRibbon({
   employeeAssignedCount,
   employeeInReviewCount,
   employeeReturnedCount,
+  employeeOdooInProgressCount,
   employeeOdooDoneCount,
   employeeHistoryCount,
   clerkPendingCount,
@@ -62,6 +64,7 @@ export function QuotesStatsRibbon({
           employeeAssignedCount={employeeAssignedCount}
           employeeInReviewCount={employeeInReviewCount}
           employeeReturnedCount={employeeReturnedCount}
+          employeeOdooInProgressCount={employeeOdooInProgressCount}
           employeeOdooDoneCount={employeeOdooDoneCount}
           employeeHistoryCount={employeeHistoryCount}
         />

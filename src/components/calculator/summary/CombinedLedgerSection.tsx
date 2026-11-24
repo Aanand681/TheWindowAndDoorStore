@@ -204,7 +204,7 @@ export function CombinedLedgerSection({
                 if (!val) { setCustomMisc(""); return }
                 setCustomMisc((Math.max(0, toCents(val) - attMisc) / 100).toFixed(2))
               },
-              "(window + attached)"
+              "(combined)"
             )
           })()}
 
@@ -218,7 +218,7 @@ export function CombinedLedgerSection({
                 if (!val) { setCustomLabour(""); return }
                 setCustomLabour((Math.max(0, toCents(val) - attLab) / 100).toFixed(2))
               },
-              "(window + attached)"
+              "(combined)"
             )
           })()}
 

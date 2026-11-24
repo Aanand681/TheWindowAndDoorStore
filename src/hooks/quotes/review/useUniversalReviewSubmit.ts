@@ -64,7 +64,7 @@ export function useUniversalReviewSubmit({
       fetch("/api/users")
         .then((r) => r.json())
         .catch(() => []),
-      fetch("/api/users?canBeAssigned=true")
+      fetch("/api/users?assignees=true")
         .then((r) => r.json())
         .catch(() => []),
     ]).then(([allUsers, assignees]) => {

@@ -17,6 +17,7 @@ export interface EmployeeStatsCardsProps {
   employeeAssignedCount: number
   employeeInReviewCount: number
   employeeReturnedCount: number
+  employeeOdooInProgressCount?: number
   employeeOdooDoneCount: number
   employeeHistoryCount: number
 }
@@ -27,6 +28,7 @@ export function EmployeeStatsCards({
   employeeAssignedCount,
   employeeInReviewCount,
   employeeReturnedCount,
+  employeeOdooInProgressCount,
   employeeOdooDoneCount,
   employeeHistoryCount,
 }: EmployeeStatsCardsProps) {
@@ -135,7 +137,9 @@ export function EmployeeStatsCards({
               <span>Odoo In-Progress</span>
             </div>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
-              {employeeOdooDoneCount}
+              {employeeOdooInProgressCount !== undefined
+                ? employeeOdooInProgressCount
+                : employeeOdooDoneCount}
             </div>
           </div>
           <div className="rounded-full bg-indigo-500/20 p-2.5 text-indigo-500">

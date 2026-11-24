@@ -90,24 +90,42 @@ export function OdooActionModals({
                   className="w-full cursor-pointer rounded-xl border border-input bg-background p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">-- Select Odoo Clerk (Required) --</option>
-                  {(clerkList.length > 0 ? clerkList : staffList).map(
-                    (member: any) => {
-                      const displayName =
-                        member.name ||
-                        (member.username
-                          ? member.username.charAt(0).toUpperCase() +
-                            member.username.slice(1)
-                          : "Staff")
-                      return (
-                        <option
-                          key={member._id || member.username}
-                          value={member.username}
-                        >
-                          {displayName}
-                        </option>
+                  {(clerkList.length > 0
+                    ? clerkList
+                    : staffList.filter(
+                        (s: any) =>
+                          s.role === "ADMIN" ||
+                          s.department === "CLERK" ||
+                          s.customPermissions?.canAccessOdooQueue ||
+                          s.customPermissions?.canMarkOdooEntry
                       )
-                    }
-                  )}
+                  ).map((member: any) => {
+                    const baseName =
+                      member.name ||
+                      (member.username
+                        ? member.username.charAt(0).toUpperCase() +
+                          member.username.slice(1)
+                        : "Staff")
+                    const roleSuffix =
+                      member.department === "CLERK"
+                        ? "(Clerk)"
+                        : member.role === "ADMIN"
+                          ? "(Admin)"
+                          : member.department
+                            ? `(${member.department})`
+                            : ""
+                    const displayName = roleSuffix
+                      ? `${baseName} ${roleSuffix}`
+                      : baseName
+                    return (
+                      <option
+                        key={member._id || member.username}
+                        value={member.username}
+                      >
+                        {displayName}
+                      </option>
+                    )
+                  })}
                 </select>
                 <p className="text-[11px] text-muted-foreground">
                   The assigned clerk will receive an instant notification and

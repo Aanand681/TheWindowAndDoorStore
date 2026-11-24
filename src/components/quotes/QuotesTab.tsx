@@ -92,6 +92,7 @@ export default function QuotesTab(props: QuotesTabProps) {
     employeeAssignedCount,
     employeeInReviewCount,
     employeeReturnedCount,
+    employeeOdooInProgressCount,
     employeeOdooDoneCount,
     employeeHistoryCount,
     clerkPendingCount,
@@ -148,6 +149,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         employeeAssignedCount={employeeAssignedCount}
         employeeInReviewCount={employeeInReviewCount}
         employeeReturnedCount={employeeReturnedCount}
+        employeeOdooInProgressCount={employeeOdooInProgressCount}
         employeeOdooDoneCount={employeeOdooDoneCount}
         employeeHistoryCount={employeeHistoryCount}
         clerkPendingCount={clerkPendingCount}
@@ -172,6 +174,7 @@ export default function QuotesTab(props: QuotesTabProps) {
         employeeAssignedCount={employeeAssignedCount}
         employeeInReviewCount={employeeInReviewCount}
         employeeReturnedCount={employeeReturnedCount}
+        employeeOdooInProgressCount={employeeOdooInProgressCount}
         employeeOdooDoneCount={employeeOdooDoneCount}
         clerkPendingCount={clerkPendingCount}
         clerkCompletedCount={clerkCompletedCount}

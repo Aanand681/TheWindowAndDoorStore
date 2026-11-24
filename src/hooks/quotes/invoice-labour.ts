@@ -172,11 +172,9 @@ function getSealedUnitLabourItems(
     }
   })
 
-  // Include extraLabour if defined on effectiveSUTotals and not already itemized
+  // Include extraLabour if defined on effectiveSUTotals and not already itemized via upcharges
   const extraLabourCents = Math.round(Number(effectiveSUTotals.extraLabour || 0) * 100)
-  const hasExtraLabourInUpcharges = effectiveSUUp.some((u: any) =>
-    (u.label || "").toLowerCase().includes("extra labour")
-  )
+  const hasExtraLabourInUpcharges = effectiveSUUp.length > 0
   if (extraLabourCents > 0 && !hasExtraLabourInUpcharges) {
     items.push({
       label: "Sealed unit extra labour",

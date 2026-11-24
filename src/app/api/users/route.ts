@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const reviewersOnly = searchParams.get("reviewersOnly") === "true"
-    const assignees = searchParams.get("assignees") === "true"
+    const assignees =
+      searchParams.get("assignees") === "true" ||
+      searchParams.get("canBeAssigned") === "true"
     const roleParam = searchParams.get("role")
 
     if (assignees) {
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
             { "customPermissions.canMarkOdooEntry": true },
           ],
         },
-        "username role email department customPermissions"
+        "name username role email department customPermissions"
       ).sort({ username: 1 })
 
       cacheSet(cacheKey, staff, USER_CACHE_TTL).catch(() => {})

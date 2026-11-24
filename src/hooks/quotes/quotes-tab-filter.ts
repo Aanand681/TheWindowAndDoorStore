@@ -50,14 +50,10 @@ export function filterAndSortQuotes({
       } else if (activeTab === "returned") {
         if (quote.status !== "RETURNED") return false
       } else if (activeTab === "odoo") {
-        if (
-          !Boolean(
-            quote.odooAssignedTo ||
-            quote.odooStatus === "PENDING_ENTRY" ||
-            quote.odooStatus === "COMPLETED"
-          )
-        )
-          return false
+        const isOdooPending =
+          quote.odooStatus === "PENDING_ENTRY" ||
+          (!quote.odooStatus && Boolean(quote.odooAssignedTo))
+        if (!isOdooPending) return false
       }
     } else if (isClerk) {
       if (activeTab === "odoo") {
@@ -94,8 +90,14 @@ export function filterAndSortQuotes({
           if (quote.status !== "PENDING_REVIEW" || !isMyPrepared) return false
         } else if (activeTab === "returned") {
           if (quote.status !== "RETURNED" || !isMyPrepared) return false
+        } else if (activeTab === "odoo") {
+          const isPendingOdoo =
+            (quote.odooStatus === "PENDING_ENTRY" ||
+              Boolean(quote.odooAssignedTo)) &&
+            quote.odooStatus !== "COMPLETED"
+          if (!isMyPrepared || !isPendingOdoo) return false
         } else if (activeTab === "odoo_completed") {
-          if (quote.odooStatus !== "COMPLETED") return false
+          if (quote.odooStatus !== "COMPLETED" || !isMyPrepared) return false
         } else if (activeTab === "my") {
           if (quote.status === "PENDING_REVIEW" || quote.status === "RETURNED") return false
         }
@@ -214,6 +216,12 @@ export function computeQuotesTabCounts({
       q.preparedBy?.toLowerCase() === myUsername &&
       q.status === "RETURNED"
   ).length
+  const employeeOdooInProgressCount = quotes.filter(
+    (q) =>
+      q.preparedBy?.toLowerCase() === myUsername &&
+      (q.odooStatus === "PENDING_ENTRY" || Boolean(q.odooAssignedTo)) &&
+      q.odooStatus !== "COMPLETED"
+  ).length
   const employeeOdooDoneCount = quotes.filter(
     (q) =>
       q.preparedBy?.toLowerCase() === myUsername && q.odooStatus === "COMPLETED"
@@ -256,6 +264,7 @@ export function computeQuotesTabCounts({
     employeeAssignedCount,
     employeeInReviewCount,
     employeeReturnedCount,
+    employeeOdooInProgressCount,
     employeeOdooDoneCount,
     employeeHistoryCount,
     clerkPendingCount,

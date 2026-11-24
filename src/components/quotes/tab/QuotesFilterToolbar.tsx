@@ -20,6 +20,7 @@ export interface QuotesFilterToolbarProps {
   employeeAssignedCount: number
   employeeInReviewCount: number
   employeeReturnedCount: number
+  employeeOdooInProgressCount?: number
   employeeOdooDoneCount: number
   clerkPendingCount: number
   clerkCompletedCount: number
@@ -42,6 +43,7 @@ export function QuotesFilterToolbar({
   employeeAssignedCount,
   employeeInReviewCount,
   employeeReturnedCount,
+  employeeOdooInProgressCount,
   employeeOdooDoneCount,
   clerkPendingCount,
   clerkCompletedCount,
@@ -169,14 +171,21 @@ export function QuotesFilterToolbar({
                 </Button>
               ) : (
                 <Button
-                  variant={
-                    activeTab === "odoo_completed" ? "secondary" : "ghost"
-                  }
+                  variant={activeTab === "odoo" ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => handleTabChange("odoo_completed")}
-                  className="h-7 cursor-pointer text-xs font-semibold"
+                  onClick={() => handleTabChange("odoo")}
+                  className={`flex h-7 cursor-pointer items-center gap-1.5 text-xs font-semibold ${
+                    (employeeOdooInProgressCount ?? employeeOdooDoneCount) > 0
+                      ? "font-bold text-indigo-500"
+                      : ""
+                  }`}
                 >
-                  Entered in Odoo ({employeeOdooDoneCount})
+                  <span>Odoo In-Progress</span>
+                  {(employeeOdooInProgressCount ?? employeeOdooDoneCount) > 0 && (
+                    <span className="py-0.2 rounded-full bg-indigo-500 px-1.5 text-[10px] font-bold text-white">
+                      {employeeOdooInProgressCount ?? employeeOdooDoneCount}
+                    </span>
+                  )}
                 </Button>
               )}
               <Button

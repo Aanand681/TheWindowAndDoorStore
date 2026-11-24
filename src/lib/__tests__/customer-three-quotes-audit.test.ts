@@ -399,6 +399,29 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
       })
     })
 
+    it("itemizes sealed unit custom upcharge (e.g. being on top floor) exactly once on PDF without duplicate generic extra labour", () => {
+      const labourItems = getInvoiceLabourItems({
+        isSupplyOnly: false,
+        hasWindows: false,
+        winLabourCents: 0,
+        hasDoors: false,
+        hasSealedUnits: true,
+        effectiveSUTotals: {
+          unitLabourSum: 300,
+          extraLabour: 250,
+          globalUpcharges: [{ id: "up1", label: "being on top floor", price: 250 }],
+        },
+        suUpcharges: [{ id: "up1", label: "being on top floor", price: 250 }],
+        isAttachedSUService: false,
+      })
+
+      // Must have exactly 2 items: installation labour ($300) and being on top floor ($250)
+      // Must NOT duplicate with a 3rd item for generic "Sealed unit extra labour"
+      expect(labourItems).toHaveLength(2)
+      expect(labourItems[0]).toEqual({ label: "Sealed unit installation labour", amount: 30000 })
+      expect(labourItems[1]).toEqual({ label: "Sealed unit being on top floor", amount: 25000 })
+    })
+
     it("verifies universal pricing handles 8% and 0.05 First Nations tax rate without NaN or truncation", () => {
       const fnResult = calculateUniversalPricing({
         windowQuote: windowDraft,
@@ -449,10 +472,7 @@ describe("End-to-End Audit: Customer with 3 Quotes (Window, Door, Sealed Unit)",
     it("preserves window discount when attached to door quote and applies 8% First Nations exemption across combined materials", () => {
       const windowDraftWithDiscount = {
         ...windowDraft,
-        data: {
-          ...windowDraft.data,
-          customDiscount: "300",
-        },
+        data: { ...windowDraft.data, customDiscount: "300" },
       }
 
       const doorPricing = calculateUniversalPricing({

@@ -80,29 +80,23 @@ export function DoorSummaryLedger({
           return (
             <div
               key={item.id || idx}
-              className="flex items-start justify-between gap-2 border-b border-border/30 pb-1.5"
+              className="flex items-center justify-between gap-2 py-0.5 text-xs sm:text-sm"
             >
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-foreground sm:text-sm">
-                  {heading}
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Preset: {item.presetLabel} • ${item.inksterBasePrice.toFixed(2)}/ea
-                </div>
-              </div>
-              <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">
+              <span className="truncate font-medium text-foreground">
+                {heading}
+              </span>
+              <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
                 ${itemBaseTotal.toFixed(2)}
-              </div>
+              </span>
             </div>
           )
         })
       ) : (
-        <div className="flex items-start justify-between gap-2 border-b border-border/30 pb-1.5">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-foreground sm:text-sm">Door Units</div>
-            <div className="text-[11px] text-muted-foreground">No doors configured yet</div>
-          </div>
-          <div className="shrink-0 font-mono text-xs font-semibold sm:text-sm">$0.00</div>
+        <div className="flex items-center justify-between gap-2 py-0.5 text-xs sm:text-sm">
+          <span className="truncate font-medium text-foreground">Door Units</span>
+          <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-muted-foreground">
+            $0.00
+          </span>
         </div>
       )}
 
