@@ -189,23 +189,28 @@
 
 ---
 
-## 🎯 9. Architectural Initiative: Attached Sealed Unit Labour Parity, Schedule Schedule Clean-up & SU Summary Badge Optimization (COMPLETED)
+## 🎯 10. Architectural Initiative: Unified Tax & Deposit, Odoo Access Scoping, PDF Labour Deduplication, Card Padding & React 19 Hook Hygiene (COMPLETED)
 
 ### What Was Built:
-1. **Resolved Sealed Unit Base Installation Labour Nullish Evaluation**:
-   - Fixed bug in `invoice-labour.ts` where `effectiveSUTotals.serviceLabourTotal ?? effectiveSUTotals.unitLabourSum` halted at `0` (since `0` is not nullish in JS), causing base installation labour ($150) to be omitted when attached to a window quote.
-   - Refactored to explicitly evaluate mode: service mode checks `serviceLabourTotal`, whereas installation mode evaluates `unitLabourSum || pureLabourTotal || combinedLabourTotal`.
-2. **Product Schedule Table Clean-up (Eliminated Double-Rendering)**:
-   - In `SealedUnitsScheduleTable.tsx`, removed the embedded `Sealed Unit Jobsite Labour & Add-ons` sub-table that was stuck inside the product schedule container. Renamed header to **`Sealed Unit Specifications`** (harmonized with `Window Specifications` and `Door Specifications`).
-   - In `DoorsScheduleTable.tsx`, removed embedded `Jobsite Labour & Special Site Services` from the door card.
-   - All extra add-ons and site labour for all domains now cleanly and exclusively live in the consolidated **`Labour & Extra Add-ons`** invoice card.
-3. **Sealed Unit Attachment Payload Upcharge Propagation**:
-   - In `attach-payload-builders.ts`, ensured `buildSealedUnitAttachPayload` passes `globalUpcharges: rawData.globalUpcharges || []` into `calculateSealedUnitTotals` and in the return object so add-ons seamlessly transfer to host quotes.
-4. **Summary Card Attached Badge Optimization ("SU")**:
-   - Replaced verbose `"Sealed Unit"` and `"Edit in Sealed Units"` text in `AttachedQuoteItemBadge.tsx` and `AttachedQuotesPills.tsx` with sleek, compact **`SU`** and **`Edit SU`**.
-   - Prevents sidebar text-wrapping and aligns action buttons on a single clean row within narrow calculator summary containers.
-
-
-
-
+1. **Single Global Unified Tax & Deposit Component (`UnifiedTaxAndDeposit.tsx`)**:
+   - Replaced fragmented summary cards across Door, Window, and Sealed Unit pages with a single shared global component.
+   - Unified First Nation status toggle, 8% material exemption calculations, and deposit payment schedules (50% first payment / 50% on completion) across all three domain calculators.
+2. **Cross-Domain Window Discount Propagation**:
+   - Fixed discount omission bug where attaching doors or sealed units to a window quote dropped window discounts from the final subtotal.
+   - Preserves discrete domain discount rows while ensuring universal price calculations accurately subtract all discounts.
+3. **Odoo Assignee Permissive Scoping & Queue Isolation**:
+   - Restricted reviewer assignee dropdown to users with role `ADMIN`, `SUPERADMIN`, or department `CLERK` / `permissions.canAccessOdooQueue`.
+   - Prevented sales employees from being assigned Odoo tasks they cannot view.
+   - Filtered employee "Odoo In-Progress" tab to display strictly their own quotes in progress, excluding `PENDING_REVIEW` or `RETURNED` quotes.
+4. **Door Summary Card Single-Line Items**:
+   - Cleaned up door summary rows in `DoorSummaryLedger.tsx` to match the compact single-line style of windows and sealed units, removing the extra height line.
+   - Standardized `(combined)` suffix across all three domain ledgers.
+5. **Sealed Unit PDF Labour Deduplication**:
+   - Fixed double-rendering of extra site labour in `invoice-labour.ts` on PDF previews and prints.
+6. **Quotes & Bin Card Padding Optimization**:
+   - Overrode default compounding 24px shadcn card padding (`py-0`) and refined `CardContent` padding (`px-4 py-3 sm:px-5 sm:py-3.5`), reducing top/bottom padding by ~68% on quote cards and ribbon stats cards.
+7. **React 19 Hook & Ref Hygiene (Zero ESLint Errors)**:
+   - Resolved conditional hook call in `StormDoorSelectorModal.tsx` by moving `useStormDoorBuilderActions` above early return guards.
+   - Decoupled `autoSave` temporal dead zone in `useSealedUnitsDrafts.ts` using a synchronized ref.
+   - Resolved render-phase ref mutations in `useAttachedQuotesAutoSync.ts` and `useUniversalWorkspaceDrafts.ts` by synchronizing refs inside `useEffect`.
 

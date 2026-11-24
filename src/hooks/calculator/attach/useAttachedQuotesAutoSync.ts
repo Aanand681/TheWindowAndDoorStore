@@ -28,7 +28,10 @@ export function useAttachedQuotesAutoSync(
 ) {
   const { enabled = true } = options
   const configsRef = useRef(configs)
-  configsRef.current = configs
+
+  useEffect(() => {
+    configsRef.current = configs
+  })
 
   useEffect(() => {
     if (!enabled) return

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import { toast } from "sonner"
 import {
   clearActiveAutoSave,
@@ -127,12 +127,14 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     [setters]
   )
 
+  const autoSaveRef = useRef<{ clearTimerAndSaveSnapshot: (snap: string) => void } | null>(null)
+
   const handleSaveDraft = useCallback(
     () => executeSaveSealedUnitDraft({
       lineItems, isServiceOnly, totals, serviceSqftInput, attachedWindowQuote,
       attachedDoorQuote, customerName, quoteNumber, setQuoteNumber, generateQuoteNumber,
       quoteNotes, currentSnapshotParams,
-      clearTimerAndSaveSnapshot: autoSave.clearTimerAndSaveSnapshot,
+      clearTimerAndSaveSnapshot: (snap: string) => autoSaveRef.current?.clearTimerAndSaveSnapshot(snap),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lineItems, isServiceOnly, totals, serviceSqftInput, attachedWindowQuote, attachedDoorQuote, customerName, quoteNumber, quoteNotes, currentSnapshotParams]
@@ -154,6 +156,10 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       universalDrafts.setPendingDraftToLoad(match)
       universalDrafts.setShowConflictModal(true)
     },
+  })
+
+  useEffect(() => {
+    autoSaveRef.current = autoSave
   })
 
   const handleResetWorkspace = () => {

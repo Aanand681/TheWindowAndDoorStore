@@ -101,8 +101,6 @@ export function StormDoorSelectorModal({
     })
   }, [currentItem, ventType, swing, color, isCustomPaint, isDoubleDoorCustomPaint, papaizFinish, includedAddonIds, addons])
 
-  if (!isOpen || !mounted) return null
-
   const { handleApply, handleAddAsQuoteOption } = useStormDoorBuilderActions({
     calculationTotalPrice: calculation.totalPrice,
     fullCalculationTotalPrice: fullCalculation.totalPrice,
@@ -137,6 +135,8 @@ export function StormDoorSelectorModal({
     }
     setStep("configure")
   }
+
+  if (!isOpen || !mounted) return null
 
   const modalContent = (
     <div

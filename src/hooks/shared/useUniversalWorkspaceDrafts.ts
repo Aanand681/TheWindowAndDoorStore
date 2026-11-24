@@ -47,7 +47,10 @@ export function useUniversalWorkspaceDrafts({
 
   const initialLoadDone = useRef(false)
   const applyRef = useRef(applyDraftToWorkspace)
-  applyRef.current = applyDraftToWorkspace
+
+  useEffect(() => {
+    applyRef.current = applyDraftToWorkspace
+  })
 
   // Check URL query param ?loadDraftId=... strictly once on mount
   useEffect(() => {
