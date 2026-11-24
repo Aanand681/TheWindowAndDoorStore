@@ -92,6 +92,14 @@ export function DoorWorkspaceColumns({
           setCustomMisc={page.setCustomMisc}
           customDiscount={page.customDiscount}
           setCustomDiscount={page.setCustomDiscount}
+          customDiscountLabel={page.customDiscountLabel}
+          setCustomDiscountLabel={page.setCustomDiscountLabel}
+          discountType={page.discountType}
+          setDiscountType={page.setDiscountType}
+          loyaltyPoints={page.loyaltyPoints}
+          setLoyaltyPoints={page.setLoyaltyPoints}
+          loyaltyGrossAmount={page.loyaltyGrossAmount}
+          setLoyaltyGrossAmount={page.setLoyaltyGrossAmount}
           onSubmitQuote={() => page.setShowSubmitModal(true)}
           onPrintPreview={() => page.setShowPreviewModal(true)}
           isAdmin={page.isAdmin}

@@ -68,11 +68,14 @@ export function InvoiceSummaryRows({
 
   const resolvedPromoName =
     (isWindowHost
-      ? activePromo?.name
-      : attachedWindowQuote?.promoName ||
+      ? activePromo?.name ||
+        taxTotals?.discountLabel ||
+        quoteResult?.discountLabel
+      : attachedWindowQuote?.discountLabel ||
+        attachedWindowQuote?.promoName ||
         attachedWindowQuote?.quoteResult?.promoName ||
         activePromo?.name
-    )?.trim() || "Promotion Discount"
+    )?.trim() || "Discount"
 
   return (
     <>
@@ -246,7 +249,7 @@ export function InvoiceSummaryRows({
               style={{ fontSize: `${microFs}px` }}
               className="block font-bold tracking-wider text-emerald-700 uppercase"
             >
-              Promo Applied:
+              Discount Applied:
             </span>
             {resolvedPromoName}
           </td>

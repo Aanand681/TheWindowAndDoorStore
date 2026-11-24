@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { cacheGet, cacheSet, cacheDel } from "@/lib/redis"
 import { DEFAULT_LABOUR_UPGRADE_TIERS } from "@/lib/promo-logic"
+import { DEFAULT_LOYALTY_TIERS } from "@/lib/loyalty/loyalty-engine"
 import { handleApiError } from "@/lib/api-error"
 import { recordPricingSnapshot } from "@/lib/server/pricing-history/service"
 
@@ -110,6 +111,7 @@ export async function GET() {
         windowMiscMin: 74,
         extraLinPerWindow: 2.17,
         labourUpgradeTiers: DEFAULT_LABOUR_UPGRADE_TIERS,
+        loyaltyTiers: DEFAULT_LOYALTY_TIERS,
       })
     } else {
       let shouldSave = false
@@ -118,6 +120,13 @@ export async function GET() {
         settings.labourUpgradeTiers.length === 0
       ) {
         settings.labourUpgradeTiers = DEFAULT_LABOUR_UPGRADE_TIERS
+        shouldSave = true
+      }
+      if (
+        !settings.loyaltyTiers ||
+        settings.loyaltyTiers.length === 0
+      ) {
+        settings.loyaltyTiers = DEFAULT_LOYALTY_TIERS
         shouldSave = true
       }
       if (settings.windowLabourPerSqft === undefined) {
@@ -175,6 +184,8 @@ export async function PUT(request: Request) {
       updateFields.extraLinPerWindow = body.extraLinPerWindow
     if (body.labourUpgradeTiers !== undefined)
       updateFields.labourUpgradeTiers = body.labourUpgradeTiers
+    if (body.loyaltyTiers !== undefined)
+      updateFields.loyaltyTiers = body.loyaltyTiers
 
     // Upsert the first settings document
     const updatedSettings = await Settings.findOneAndUpdate(

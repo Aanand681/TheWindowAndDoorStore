@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose"
+import { ILoyaltyTier } from "@/lib/loyalty/loyalty-engine"
 
 export interface ILabourUpgradeTier {
   id: string
@@ -18,6 +19,7 @@ export interface ISettings extends Document {
   vehicleRate: number
   crewRates: { crewSize: string; hourlyRate: number }[]
   labourUpgradeTiers?: ILabourUpgradeTier[]
+  loyaltyTiers?: ILoyaltyTier[]
   windowLabourPerSqft?: number
   windowMiscPerSqft?: number
   windowLabourMin?: number
@@ -46,6 +48,18 @@ const SettingsSchema = new Schema<ISettings>(
         ratePercent: Number,
         minFee: Number,
         isAvailable: Boolean,
+        label: String,
+      },
+    ],
+    loyaltyTiers: [
+      {
+        id: String,
+        points: Number,
+        minPurchase: Number,
+        rewardAmount: Number,
+        isTaxInclusive: { type: Boolean, default: true },
+        preTaxAmount: Number,
+        isActive: { type: Boolean, default: true },
         label: String,
       },
     ],

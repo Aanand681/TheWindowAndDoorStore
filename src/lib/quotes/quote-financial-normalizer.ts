@@ -12,6 +12,7 @@ export interface NormalizedQuoteFinancials {
   isServiceOnly: boolean
   rawBase: number
   discount: number
+  discountLabel?: string
   materials: number
   surcharge: number
   pureLabour: number
@@ -77,6 +78,10 @@ export function normalizeWindowQuote(
   const discount = overrides?.customDiscount !== undefined && overrides.customDiscount !== ""
     ? parseFloat(overrides.customDiscount) || 0
     : rawDiscount
+  const discountLabel =
+    data.customDiscountLabel ||
+    quote?.customDiscountLabel ||
+    (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
   const materials = Math.max(0, Math.round((rawBase - discount) * 100) / 100)
 
   const rawRate = Number(data.surchargeRate ?? 8)
@@ -102,7 +107,7 @@ export function normalizeWindowQuote(
     type: "window", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: false,
-    rawBase, discount, materials, surcharge, pureLabour, travelAndSetup,
+    rawBase, discount, discountLabel, materials, surcharge, pureLabour, travelAndSetup,
     misc, jambsAndCasing, customMaterials, lineItems,
     summarySentence: `${lineItems.length} window${lineItems.length !== 1 ? "s" : ""}`,
     upcharges: [],
@@ -128,6 +133,11 @@ export function normalizeDoorQuote(
   const discount = overrides?.customDiscount !== undefined && overrides.customDiscount !== ""
     ? parseFloat(overrides.customDiscount) || 0
     : Number(totals.discountTotal ?? totals.discount ?? 0)
+  const discountLabel =
+    data.customDiscountLabel ||
+    quote?.customDiscountLabel ||
+    totals.discountLabel ||
+    (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
   const materials = Math.max(0, Math.round((rawBase - discount) * 100) / 100)
   const surcharge = Number(totals.surchargeTotal ?? totals.surcharge ?? (materials > 0 ? Math.round(materials * 0.08 * 100) / 100 : 0))
 
@@ -155,7 +165,7 @@ export function normalizeDoorQuote(
     type: "door", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: false,
-    rawBase, discount, materials, surcharge, pureLabour, travelAndSetup,
+    rawBase, discount, discountLabel, materials, surcharge, pureLabour, travelAndSetup,
     misc, jambsAndCasing, customMaterials: 0, lineItems,
     summarySentence: `${itemCount} door${itemCount !== 1 ? "s" : ""}`,
     upcharges: data.globalUpcharges || totals.globalUpcharges || [],
@@ -196,7 +206,7 @@ export function normalizeSealedUnitQuote(
               Number(totals.combinedLabourTotal || 0) -
                 Number(totals.baseSetupFee || 0) -
                 Number(totals.totalTravelAndSetup || 0)
-            ) + Number(totals.extraLabour || 0)
+            )
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(totals.miscTotal || 0))

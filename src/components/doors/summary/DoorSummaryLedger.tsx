@@ -5,6 +5,7 @@ import { DoorLineItem, DoorQuoteTotals } from "@/lib/doors/types"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { DoorSummaryEditableRow } from "./DoorSummaryEditableRow"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
+import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
 
 export interface DoorSummaryLedgerProps {
   lineItems: DoorLineItem[]
@@ -34,6 +35,14 @@ export interface DoorSummaryLedgerProps {
   setCustomMisc?: (val: string) => void
   customDiscount?: string
   setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
   defaultDoorDiscount?: number
   hasAnyAttached: boolean
   combinedSurcharge: number
@@ -62,7 +71,17 @@ export function DoorSummaryLedger({
   winJC, winJCDescription, winCustomMaterialsList, suGlass, combinedLabour, customLabour,
   defaultDoorLabour, winLabour, suLabour, setCustomLabour, combinedMisc,
   customMisc, defaultDoorMisc, winMisc, suMisc, setCustomMisc,
-  customDiscount = "", setCustomDiscount, defaultDoorDiscount = 0,
+  customDiscount = "",
+  customDiscountLabel = "",
+  setCustomDiscountLabel,
+  discountType = "none",
+  setDiscountType,
+  loyaltyPoints = 0,
+  setLoyaltyPoints,
+  loyaltyGrossAmount = 0,
+  setLoyaltyGrossAmount,
+  setCustomDiscount,
+  defaultDoorDiscount = 0,
   hasAnyAttached, combinedSurcharge, winDiscount, combinedSubtotal,
   isFirstNation, onToggleFirstNation, hstRate, setHstRate, combinedTax,
   displayGrandTotal, firstPayment, secondPayment, editingField,
@@ -190,27 +209,50 @@ export function DoorSummaryLedger({
         <span className="font-mono font-semibold text-foreground">+${combinedSurcharge.toFixed(2)}</span>
       </div>
 
-      {(totals.discountTotal > 0 || customDiscount !== "" || setCustomDiscount) && (
-        <DoorSummaryEditableRow
-          field="discount"
-          label={customDiscount !== "" ? "Discount" : totals.discountLabel || "Door Discount"}
-          amount={totals.discountTotal}
-          customVal={customDiscount}
-          defaultAmount={defaultDoorDiscount}
-          isInstallation={true}
-          editingField={editingField}
-          setEditingField={setEditingField}
-          tempEditVal={tempEditVal}
-          setTempEditVal={setTempEditVal}
-          setter={setCustomDiscount}
+      {/* Discount / Loyalty Points Program (Door) */}
+      {setCustomDiscount ? (
+        <DiscountLoyaltySelector
+          customDiscount={customDiscount}
+          setCustomDiscount={setCustomDiscount}
+          customDiscountLabel={customDiscountLabel}
+          setCustomDiscountLabel={setCustomDiscountLabel}
+          discountType={discountType}
+          setDiscountType={setDiscountType}
+          loyaltyPoints={loyaltyPoints}
+          setLoyaltyPoints={setLoyaltyPoints}
+          loyaltyGrossAmount={loyaltyGrossAmount}
+          setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+          combinedMaterials={Number(((totals.rawDoorBaseTotal || 0) + (totals.stormDoorTotal || 0) + (totals.hardwareTotal || 0)) + (winBase || 0) + (suGlass || 0))}
+          otherDiscounts={winDiscount}
+          hstRate={hstRate ?? (isFirstNation ? 8 : 13)}
+          isFirstNation={isFirstNation}
           isReadOnly={isReadOnly}
         />
+      ) : (
+        (totals.discountTotal > 0 || customDiscount !== "") && (
+          <DoorSummaryEditableRow
+            field="discount"
+            label={customDiscountLabel || (customDiscount !== "" ? "Discount" : totals.discountLabel || "Door Discount")}
+            amount={totals.discountTotal}
+            customVal={customDiscount}
+            defaultAmount={defaultDoorDiscount}
+            isInstallation={true}
+            editingField={editingField}
+            setEditingField={setEditingField}
+            tempEditVal={tempEditVal}
+            setTempEditVal={setTempEditVal}
+            setter={setCustomDiscount}
+            isReadOnly={isReadOnly}
+          />
+        )
       )}
 
       {winDiscount > 0 && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            Window Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
+            {attachedWindowQuote?.discountLabel
+              ? `Window Discount (${attachedWindowQuote.discountLabel})`
+              : `Window Discount (${attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})`}
           </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
             -${winDiscount.toFixed(2)}

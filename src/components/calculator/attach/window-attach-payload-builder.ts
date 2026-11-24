@@ -117,7 +117,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     0
 
   const resolvedWindowDiscount = customDiscountDollars > 0 ? customDiscountDollars : promoDiscountDollars
-  const promoName = rawData.quoteResult?.promoName || rawData.activePromoName || ""
+  const promoName = rawData.taxTotals?.discountLabel || rawData.discountLabel || rawData.quoteResult?.discountLabel || rawData.quoteResult?.promoName || rawData.activePromoName || ""
   const hasJamb = Boolean(rawData.taxTotals?.selectedJamb && (Number(rawData.taxTotals.selectedJamb.total) > 0 || Number(rawData.taxTotals.selectedJamb.rate) > 0))
   const hasCasing = Boolean(rawData.taxTotals?.selectedCasing && (Number(rawData.taxTotals.selectedCasing.total) > 0 || Number(rawData.taxTotals.selectedCasing.rate) > 0))
   const jcLabel = hasJamb && hasCasing ? "Jambs & Casing" : hasJamb ? "Jambs Only" : hasCasing ? "Casing Only" : "Jambs & Casing"
@@ -137,6 +137,7 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     summarySentence: finalSentence,
     jcLabel: jcDollars > 0 ? jcLabel : "",
     promoName: resolvedWindowDiscount > 0 ? promoName || "Window Discount" : "",
+    discountLabel: promoName || "Window Discount",
     customDiscount: customDiscountDollars > 0 ? String(customDiscountDollars) : "",
     totals: {
       subtotal: draft.subtotal,

@@ -52,6 +52,12 @@ export interface ISavedQuote extends Document {
   quoteNotes: string
   surchargeRate: number
   activePromoId?: string
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  loyaltyTierId?: string
   customJC?: string | number
   customMisc?: string | number
   customLabour?: string | number
@@ -210,6 +216,31 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     },
     customJC: {
       type: Schema.Types.Mixed,
+      default: "",
+    },
+    customDiscount: {
+      type: Schema.Types.Mixed,
+      default: "",
+    },
+    customDiscountLabel: {
+      type: String,
+      default: "",
+    },
+    discountType: {
+      type: String,
+      enum: ["none", "custom", "loyalty"],
+      default: "none",
+    },
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+    },
+    loyaltyGrossAmount: {
+      type: Number,
+      default: 0,
+    },
+    loyaltyTierId: {
+      type: String,
       default: "",
     },
     customMisc: {

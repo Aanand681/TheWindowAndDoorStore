@@ -26,13 +26,22 @@ export interface SummaryLedgerSwitcherProps {
   customMisc?: string
   customLabour?: string
   customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
+  combinedMaterials?: number
   taxJC?: number
   taxMisc?: number
   taxLabour?: number
   setCustomJC?: (val: string) => void
   setCustomMisc?: (val: string) => void
   setCustomLabour?: (val: string) => void
-  setCustomDiscount?: (val: string) => void
   isSupplyOnly: boolean
   surchargeRate?: number
   afterDiscount?: number
@@ -56,6 +65,15 @@ export function SummaryLedgerSwitcher(props: SummaryLedgerSwitcherProps) {
     customMisc: props.customMisc || "",
     customLabour: props.customLabour || "",
     customDiscount: props.customDiscount,
+    customDiscountLabel: props.customDiscountLabel,
+    setCustomDiscountLabel: props.setCustomDiscountLabel,
+    discountType: props.discountType,
+    setDiscountType: props.setDiscountType,
+    loyaltyPoints: props.loyaltyPoints,
+    setLoyaltyPoints: props.setLoyaltyPoints,
+    loyaltyGrossAmount: props.loyaltyGrossAmount,
+    setLoyaltyGrossAmount: props.setLoyaltyGrossAmount,
+    combinedMaterials: props.combinedMaterials,
     taxJC: props.taxJC || 0,
     taxMisc: props.taxMisc || 0,
     taxLabour: props.taxLabour || 0,

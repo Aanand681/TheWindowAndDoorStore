@@ -4,6 +4,7 @@ import React from "react"
 import { Info } from "lucide-react"
 import { formatMoney } from "@/lib/promo-logic"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
+import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
 
 export interface StandardLedgerSectionProps {
   summaryWindowGroups: any[]
@@ -25,13 +26,22 @@ export interface StandardLedgerSectionProps {
   customMisc: string
   customLabour: string
   customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
+  combinedMaterials?: number
   taxJC: number
   taxMisc: number
   taxLabour: number
   setCustomJC: (val: string) => void
   setCustomMisc: (val: string) => void
   setCustomLabour: (val: string) => void
-  setCustomDiscount?: (val: string) => void
   isSupplyOnly: boolean
   surchargeRate: number
   afterDiscount: number
@@ -58,6 +68,15 @@ export function StandardLedgerSection({
   customMisc,
   customLabour,
   customDiscount = "",
+  customDiscountLabel = "",
+  setCustomDiscountLabel,
+  discountType = "none",
+  setDiscountType,
+  loyaltyPoints = 0,
+  setLoyaltyPoints,
+  loyaltyGrossAmount = 0,
+  setLoyaltyGrossAmount,
+  combinedMaterials,
   taxJC,
   taxMisc,
   taxLabour,
@@ -171,26 +190,43 @@ export function StandardLedgerSection({
           </span>
         </div>
 
-        {/* Promo / Custom Discount */}
-        {((quoteResult?.promoDiscount || 0) > 0 || customDiscount !== "" || setCustomDiscount) && (
-          <>
-            {renderEditableRow(
+        {/* Discount / Loyalty Points Program */}
+        {setCustomDiscount ? (
+          <DiscountLoyaltySelector
+            customDiscount={customDiscount}
+            setCustomDiscount={setCustomDiscount}
+            customDiscountLabel={customDiscountLabel}
+            setCustomDiscountLabel={setCustomDiscountLabel}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints}
+            setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount}
+            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+            combinedMaterials={combinedMaterials ?? ((quoteResult?.base || 0) / 100)}
+            hstRate={hstRate}
+            isFirstNation={hstRate === 8}
+            isReadOnly={isReadOnly}
+          />
+        ) : (
+          ((quoteResult?.promoDiscount || 0) > 0 || customDiscount !== "") && (
+            renderEditableRow(
               "discount",
-              customDiscount !== "" ? "Discount" : "Promo discount",
+              customDiscountLabel || (customDiscount !== "" ? "Discount" : "Promo discount"),
               customDiscount !== ""
                 ? Math.round((parseFloat(customDiscount) || 0) * 100)
                 : quoteResult?.promoDiscount || 0,
               customDiscount,
               quoteResult?.promoDiscount || 0,
-              (val) => setCustomDiscount?.(val)
-            )}
-            {quoteResult?.text && !customDiscount && (
-              <p className="my-1.5 flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                <span>{quoteResult.text}</span>
-              </p>
-            )}
-          </>
+              () => {}
+            )
+          )
+        )}
+        {quoteResult?.text && !customDiscount && (
+          <p className="my-1.5 flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{quoteResult.text}</span>
+          </p>
         )}
       </div>
 

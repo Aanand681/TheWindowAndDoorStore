@@ -38,6 +38,14 @@ interface DoorQuoteSummaryCardProps {
   setCustomMisc?: (val: string) => void
   customDiscount?: string
   setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
   attachedWindowQuote?: any | null
   attachedSealedUnit?: any | null
   onOpenAttachModal?: () => void
@@ -54,6 +62,10 @@ export function DoorQuoteSummaryCard({
   isFirstNation, onToggleFirstNation, hstRate, setHstRate, onSubmitQuote,
   onPrintPreview, isAdmin = false, customLabour = "", setCustomLabour,
   customMisc = "", setCustomMisc, customDiscount = "", setCustomDiscount,
+  customDiscountLabel = "", setCustomDiscountLabel,
+  discountType = "none", setDiscountType,
+  loyaltyPoints = 0, setLoyaltyPoints,
+  loyaltyGrossAmount = 0, setLoyaltyGrossAmount,
   attachedWindowQuote, attachedSealedUnit, onRemoveAttachedWindowQuote,
   onRemoveAttachedSealedUnit, onApplyDoorHardware, isReadOnly = false,
   isReviewMode = false, className,
@@ -174,6 +186,10 @@ export function DoorQuoteSummaryCard({
             combinedMisc={combinedMisc} customMisc={customMisc} defaultDoorMisc={defaultDoorMisc}
             winMisc={winMisc} suMisc={suMisc} setCustomMisc={setCustomMisc ? handleSetCustomMisc : undefined}
             customDiscount={customDiscount} setCustomDiscount={setCustomDiscount}
+            customDiscountLabel={customDiscountLabel} setCustomDiscountLabel={setCustomDiscountLabel}
+            discountType={discountType} setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints} setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount} setLoyaltyGrossAmount={setLoyaltyGrossAmount}
             defaultDoorDiscount={lineItems.reduce((acc, item) => item.category !== "storm" ? acc + item.discountAmount * item.quantity : acc, 0)}
             hasAnyAttached={hasAnyAttached} combinedSurcharge={combinedSurcharge} winDiscount={winDiscount}
             combinedSubtotal={combinedSubtotal} isFirstNation={isFirstNation} onToggleFirstNation={onToggleFirstNation}

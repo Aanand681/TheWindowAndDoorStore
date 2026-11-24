@@ -181,7 +181,9 @@ export function SealedUnitSummaryLedger({
             {winDiscount > 0 && (
               <div className="flex items-center justify-between py-0.5 text-xs font-medium text-emerald-600 sm:text-sm dark:text-emerald-400">
                 <span>
-                  Window Discount ({attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})
+                  {attachedWindowQuote?.discountLabel
+                    ? `Window Discount (${attachedWindowQuote.discountLabel})`
+                    : `Window Discount (${attachedWindowQuote?.promoName || attachedWindowQuote?.quoteResult?.promoName || "Window Promo"})`}
                 </span>
                 <span className="shrink-0 font-mono whitespace-nowrap">-${winDiscount.toFixed(2)}</span>
               </div>

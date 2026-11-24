@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings2, Save, AlertCircle, RotateCcw, History } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Settings2, Save, AlertCircle, RotateCcw, History, Percent, Award } from "lucide-react"
 import SmartBackButton from "@/components/shared/SmartBackButton"
 import { AppHeader } from "@/components/layout/AppHeader"
 import { PricingHistoryModal } from "@/components/admin/shared/PricingHistoryModal"
@@ -10,10 +11,14 @@ import { ILabourUpgradeTier } from "@/lib/promo-logic"
 import { DEFAULT_TIERS } from "@/components/admin/settings/default-tiers"
 import { SurchargeSettingsCard } from "@/components/admin/settings/SurchargeSettingsCard"
 import { LabourUpgradeTiersCard } from "@/components/admin/settings/LabourUpgradeTiersCard"
+import { AdminLoyaltyTiersTab } from "@/components/admin/settings/AdminLoyaltyTiersTab"
+import { ILoyaltyTier, DEFAULT_LOYALTY_TIERS } from "@/lib/loyalty/loyalty-engine"
 
 export default function SettingsDashboard() {
+  const [activeTab, setActiveTab] = useState<"general" | "loyalty">("general")
   const [surcharge, setSurcharge] = useState<string>("")
   const [tiers, setTiers] = useState<ILabourUpgradeTier[]>(DEFAULT_TIERS)
+  const [loyaltyTiers, setLoyaltyTiers] = useState<ILoyaltyTier[]>(DEFAULT_LOYALTY_TIERS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState({ text: "", type: "" })
@@ -26,11 +31,11 @@ export default function SettingsDashboard() {
       if (data.surchargeRate !== undefined) {
         setSurcharge(data.surchargeRate.toString())
       }
-      if (
-        Array.isArray(data.labourUpgradeTiers) &&
-        data.labourUpgradeTiers.length > 0
-      ) {
+      if (Array.isArray(data.labourUpgradeTiers) && data.labourUpgradeTiers.length > 0) {
         setTiers(data.labourUpgradeTiers)
+      }
+      if (Array.isArray(data.loyaltyTiers) && data.loyaltyTiers.length > 0) {
+        setLoyaltyTiers(data.loyaltyTiers)
       }
     } catch (err) {
       console.error(err)
@@ -44,11 +49,7 @@ export default function SettingsDashboard() {
   }, [])
 
   const handleDiscardChanges = () => {
-    if (
-      confirm(
-        "Discard all unsaved edits and reload current settings from the database?"
-      )
-    ) {
+    if (confirm("Discard all unsaved edits and reload current settings from the database?")) {
       loadSettings()
       setMessage({
         text: "Unsaved changes discarded. Reloaded active settings from database.",
@@ -57,14 +58,10 @@ export default function SettingsDashboard() {
     }
   }
 
-  const handleRestoreVersion = (
-    snapshot: Record<string, any>,
-    version: number
-  ) => {
-    if (snapshot.surchargeRate !== undefined)
-      setSurcharge(snapshot.surchargeRate.toString())
-    if (Array.isArray(snapshot.labourUpgradeTiers))
-      setTiers(snapshot.labourUpgradeTiers)
+  const handleRestoreVersion = (snapshot: Record<string, any>, version: number) => {
+    if (snapshot.surchargeRate !== undefined) setSurcharge(snapshot.surchargeRate.toString())
+    if (Array.isArray(snapshot.labourUpgradeTiers)) setTiers(snapshot.labourUpgradeTiers)
+    if (Array.isArray(snapshot.loyaltyTiers)) setLoyaltyTiers(snapshot.loyaltyTiers)
 
     setMessage({
       text: `Loaded rates from Version ${version} snapshot. Click "Save Settings" to persist.`,
@@ -72,11 +69,7 @@ export default function SettingsDashboard() {
     })
   }
 
-  const handleTierChange = (
-    index: number,
-    field: keyof ILabourUpgradeTier,
-    value: any
-  ) => {
+  const handleTierChange = (index: number, field: keyof ILabourUpgradeTier, value: any) => {
     setTiers((prev) => {
       const updated = [...prev]
       updated[index] = { ...updated[index], [field]: value }
@@ -86,9 +79,7 @@ export default function SettingsDashboard() {
 
   const handleAddTier = () => {
     const lastTier = tiers[tiers.length - 1]
-    const newMin =
-      lastTier?.maxAmount ??
-      (lastTier?.minAmount ? lastTier.minAmount + 5000 : 25000)
+    const newMin = lastTier?.maxAmount ?? (lastTier?.minAmount ? lastTier.minAmount + 5000 : 25000)
     setTiers((prev) => [
       ...prev,
       {
@@ -113,8 +104,8 @@ export default function SettingsDashboard() {
     }
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setSaving(true)
     setMessage({ text: "", type: "" })
 
@@ -125,6 +116,7 @@ export default function SettingsDashboard() {
         body: JSON.stringify({
           surchargeRate: parseFloat(surcharge),
           labourUpgradeTiers: tiers,
+          loyaltyTiers,
         }),
       })
 
@@ -158,8 +150,7 @@ export default function SettingsDashboard() {
                   Global Settings
                 </h1>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Configure global surcharge rates, pricing overrides, and labour
-                  upgrade bracket tiers.
+                  Configure global surcharge rates, labour upgrade tiers, and loyalty points redemption.
                 </p>
               </div>
             </div>
@@ -188,7 +179,7 @@ export default function SettingsDashboard() {
             </Button>
             <Button
               type="button"
-              onClick={(e) => handleSave(e as any)}
+              onClick={() => handleSave()}
               disabled={saving || loading}
               size="sm"
               className="cursor-pointer gap-1.5 shadow-md"
@@ -221,33 +212,72 @@ export default function SettingsDashboard() {
           </div>
         )}
 
-        <form onSubmit={handleSave} className="space-y-8">
-          <SurchargeSettingsCard
-            surcharge={surcharge}
-            setSurcharge={setSurcharge}
-            loading={loading}
-          />
+        {/* Tabbed Interface matching /admin/doors */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as any)}
+          className="space-y-6"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 p-1">
+            <TabsTrigger value="general" className="gap-2 text-xs sm:text-sm">
+              <Percent className="h-4 w-4" />
+              <span>General Rates &amp; Tiers</span>
+            </TabsTrigger>
+            <TabsTrigger value="loyalty" className="gap-2 text-xs sm:text-sm">
+              <Award className="h-4 w-4" />
+              <span>Loyalty Points ({loyaltyTiers.length})</span>
+            </TabsTrigger>
+          </TabsList>
 
-          <LabourUpgradeTiersCard
-            tiers={tiers}
-            loading={loading}
-            handleResetTiers={handleResetTiers}
-            handleAddTier={handleAddTier}
-            handleTierChange={handleTierChange}
-            handleRemoveTier={handleRemoveTier}
-          />
+          <TabsContent value="general" className="space-y-8">
+            <SurchargeSettingsCard
+              surcharge={surcharge}
+              setSurcharge={setSurcharge}
+              loading={loading}
+            />
 
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button
-              type="submit"
-              disabled={saving || loading}
-              className="cursor-pointer gap-2 bg-primary px-6 font-semibold text-primary-foreground shadow-lg hover:bg-primary/90"
-            >
-              <Save className="h-4 w-4" />
-              <span>{saving ? "Saving Settings..." : "Save All Settings"}</span>
-            </Button>
-          </div>
-        </form>
+            <LabourUpgradeTiersCard
+              tiers={tiers}
+              loading={loading}
+              handleResetTiers={handleResetTiers}
+              handleAddTier={handleAddTier}
+              handleTierChange={handleTierChange}
+              handleRemoveTier={handleRemoveTier}
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={saving || loading}
+                className="cursor-pointer gap-2 bg-primary px-6 font-semibold text-primary-foreground shadow-lg hover:bg-primary/90"
+              >
+                <Save className="h-4 w-4" />
+                <span>{saving ? "Saving Settings..." : "Save General Settings"}</span>
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="loyalty" className="space-y-6">
+            <AdminLoyaltyTiersTab
+              loyaltyTiers={loyaltyTiers}
+              setLoyaltyTiers={setLoyaltyTiers}
+              loading={loading}
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={saving || loading}
+                className="cursor-pointer gap-2 bg-primary px-6 font-semibold text-primary-foreground shadow-lg hover:bg-primary/90"
+              >
+                <Save className="h-4 w-4" />
+                <span>{saving ? "Saving Settings..." : "Save Loyalty Tiers"}</span>
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

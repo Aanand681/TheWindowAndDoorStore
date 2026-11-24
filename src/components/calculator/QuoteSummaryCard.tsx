@@ -278,6 +278,15 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 customMisc={customMisc}
                 customLabour={customLabour}
                 customDiscount={customDiscount}
+                customDiscountLabel={props.customDiscountLabel}
+                setCustomDiscountLabel={props.setCustomDiscountLabel}
+                discountType={props.discountType}
+                setDiscountType={props.setDiscountType}
+                loyaltyPoints={props.loyaltyPoints}
+                setLoyaltyPoints={props.setLoyaltyPoints}
+                loyaltyGrossAmount={props.loyaltyGrossAmount}
+                setLoyaltyGrossAmount={props.setLoyaltyGrossAmount}
+                combinedMaterials={combinedData ? (combinedData.windowBase + combinedData.suGlass + combinedData.doorMaterials) : ((quoteResult?.base || 0) / 100)}
                 taxJC={taxJC}
                 taxMisc={taxMisc}
                 taxLabour={taxLabour}

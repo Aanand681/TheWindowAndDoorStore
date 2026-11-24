@@ -25,7 +25,7 @@ export interface UniversalLineItem {
   label: string
   amount: number
   description?: string
-  category: "material" | "labour" | "surcharge" | "misc" | "travel"
+  category: "material" | "labour" | "surcharge" | "misc" | "travel" | "discount"
 }
 
 export interface UniversalPricingResult {
@@ -38,6 +38,7 @@ export interface UniversalPricingResult {
   jambsAndCasing: number
   customMaterials: number
   discounts: number
+  discountLabel: string
   subtotal: number
   hstRate: number
   hstAmount: number
@@ -63,6 +64,7 @@ export interface UniversalPricingResult {
   labourLineItems: UniversalLineItem[]
   surchargeLineItems: UniversalLineItem[]
   miscLineItems: UniversalLineItem[]
+  discountLineItems: UniversalLineItem[]
   travelItems: { label: string; amount: number; details?: string }[]
   taxLabel: string
 }
@@ -157,7 +159,8 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const materials = Math.round(((winNorm?.materials || 0) + (doorNorm?.materials || 0) + (suNorm?.materials || 0) + jambsAndCasing + customMaterials) * 100) / 100
   const surcharges = Math.round(((winNorm?.surcharge || 0) + (doorNorm?.surcharge || 0) + (suNorm?.surcharge || 0)) * 100) / 100
   const misc = isSupplyOnly ? 0 : Math.round(((winNorm?.misc || 0) + (doorNorm?.misc || 0) + (suNorm?.misc || 0)) * 100) / 100
-  const discounts = Math.round(((winNorm?.discount || 0) + (doorNorm?.discount || 0)) * 100) / 100
+  const discounts = Math.round(((winNorm?.discount || 0) + (doorNorm?.discount || 0) + (suNorm?.discount || 0)) * 100) / 100
+  const discountLabel = winNorm?.discountLabel || doorNorm?.discountLabel || suNorm?.discountLabel || "Discount"
 
   const subtotal = Math.round((materials + surcharges + misc + combinedLabour) * 100) / 100
   const hstBase = Math.round(subtotal * 0.13 * 100) / 100
@@ -185,16 +188,17 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const materialsLineItems = buildMaterialLineItems(winNorm, doorNorm, suNorm)
   const surchargeLineItems: UniversalLineItem[] = surcharges > 0 ? [{ label: "8% Factory glass & handling surcharge", amount: surcharges, category: "surcharge" }] : []
   const miscLineItems: UniversalLineItem[] = misc > 0 ? [{ label: "Disposal, caulking & miscellaneous", amount: misc, category: "misc" }] : []
+  const discountLineItems: UniversalLineItem[] = discounts > 0 ? [{ label: discountLabel, amount: discounts, category: "discount" }] : []
   const travelItems = effectiveTravel > 0 ? [{ label: "Site setup & travel fee", amount: effectiveTravel, details: "Highest travel charge applied" }] : []
 
   return {
     materials, surcharges, pureLabour, travelAndSetup: effectiveTravel, combinedLabour,
-    misc, jambsAndCasing, customMaterials, discounts, subtotal, hstRate, hstAmount,
+    misc, jambsAndCasing, customMaterials, discounts, discountLabel, subtotal, hstRate, hstAmount,
     hstBase, materialExemption, total, firstPayment, secondPayment,
     materialsCents: Math.round(materials * 100), surchargesCents: Math.round(surcharges * 100),
     labourCents: Math.round(combinedLabour * 100), miscCents: Math.round(misc * 100),
     subtotalCents: Math.round(subtotal * 100), taxCents: Math.round(hstAmount * 100),
     totalCents: Math.round(total * 100), winNorm, doorNorm, suNorm,
-    materialsLineItems, labourLineItems, surchargeLineItems, miscLineItems, travelItems, taxLabel,
+    materialsLineItems, labourLineItems, surchargeLineItems, miscLineItems, discountLineItems, travelItems, taxLabel,
   }
 }

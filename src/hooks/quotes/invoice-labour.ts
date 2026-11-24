@@ -139,11 +139,21 @@ function getSealedUnitLabourItems(
   const rawSuLab = isAttachedSUService
     ? Number(effectiveSUTotals.serviceLabourTotal || 0)
     : Number(
-        effectiveSUTotals.unitLabourSum ||
-          effectiveSUTotals.doorPureLabourTotal ||
-          effectiveSUTotals.pureLabourTotal ||
-          effectiveSUTotals.combinedLabourTotal ||
-          0
+        effectiveSUTotals.unitLabourSum !== undefined
+          ? effectiveSUTotals.unitLabourSum
+          : effectiveSUTotals.doorPureLabourTotal !== undefined
+            ? effectiveSUTotals.doorPureLabourTotal
+            : effectiveSUTotals.pureLabourTotal !== undefined
+              ? Math.max(0, Number(effectiveSUTotals.pureLabourTotal) - Number(effectiveSUTotals.extraLabour || 0))
+              : effectiveSUTotals.combinedLabourTotal !== undefined
+                ? Math.max(
+                    0,
+                    Number(effectiveSUTotals.combinedLabourTotal) -
+                      Number(effectiveSUTotals.baseSetupFee || 0) -
+                      Number(effectiveSUTotals.totalTravelAndSetup || 0) -
+                      Number(effectiveSUTotals.extraLabour || 0)
+                  )
+                : 0
       )
   const suLab = Math.round(rawSuLab * 100)
   if (suLab > 0) {

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney, toCents } from "@/lib/promo-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
+import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
 
 export interface CombinedLedgerSectionProps {
   combinedData: any
@@ -24,13 +25,22 @@ export interface CombinedLedgerSectionProps {
   customMisc: string
   customLabour: string
   customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
+  combinedMaterials?: number
   taxJC: number
   taxMisc: number
   taxLabour: number
   setCustomJC: (val: string) => void
   setCustomMisc: (val: string) => void
   setCustomLabour: (val: string) => void
-  setCustomDiscount?: (val: string) => void
   isSupplyOnly: boolean
   hstRate: number
   setHstRate: (val: number) => void
@@ -47,6 +57,15 @@ export function CombinedLedgerSection({
   customMisc,
   customLabour,
   customDiscount = "",
+  customDiscountLabel = "",
+  setCustomDiscountLabel,
+  discountType = "none",
+  setDiscountType,
+  loyaltyPoints = 0,
+  setLoyaltyPoints,
+  loyaltyGrossAmount = 0,
+  setLoyaltyGrossAmount,
+  combinedMaterials,
   taxJC,
   taxMisc,
   taxLabour,
@@ -235,17 +254,37 @@ export function CombinedLedgerSection({
           </span>
         </div>
 
-        {/* Promo discount (Window only) */}
-        {(combinedData.windowDiscountCents > 0 || customDiscount !== "" || setCustomDiscount) && (
-          renderEditableRow(
-            "discount",
-            customDiscount !== "" ? "Discount (window only)" : "Promo discount (window only)",
-            customDiscount !== ""
-              ? Math.round((parseFloat(customDiscount) || 0) * 100)
-              : combinedData.windowDiscountCents,
-            customDiscount,
-            combinedData.windowDiscountCents,
-            (val) => setCustomDiscount?.(val)
+        {/* Discount / Loyalty Points Program (Window) */}
+        {setCustomDiscount ? (
+          <DiscountLoyaltySelector
+            customDiscount={customDiscount}
+            setCustomDiscount={setCustomDiscount}
+            customDiscountLabel={customDiscountLabel}
+            setCustomDiscountLabel={setCustomDiscountLabel}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints}
+            setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount}
+            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+            combinedMaterials={combinedMaterials ?? (combinedData.combinedBaseTotal || 0)}
+            otherDiscounts={combinedData.doorDiscountCents / 100}
+            hstRate={hstRate}
+            isFirstNation={hstRate === 8}
+            isReadOnly={isReadOnly}
+          />
+        ) : (
+          (combinedData.windowDiscountCents > 0 || customDiscount !== "") && (
+            renderEditableRow(
+              "discount",
+              customDiscountLabel || (customDiscount !== "" ? "Discount (window only)" : "Promo discount (window only)"),
+              customDiscount !== ""
+                ? Math.round((parseFloat(customDiscount) || 0) * 100)
+                : combinedData.windowDiscountCents,
+              customDiscount,
+              combinedData.windowDiscountCents,
+              () => {}
+            )
           )
         )}
 

@@ -26,6 +26,10 @@ export function useDoorBaseQuoteState() {
   const [customLabour, setCustomLabour] = useState<string>("")
   const [customMisc, setCustomMisc] = useState<string>("")
   const [customDiscount, setCustomDiscount] = useState<string>("")
+  const [customDiscountLabel, setCustomDiscountLabel] = useState<string>("")
+  const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
+  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
+  const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
   const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null)
   const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
 
@@ -57,6 +61,14 @@ export function useDoorBaseQuoteState() {
     setCustomMisc,
     customDiscount,
     setCustomDiscount,
+    customDiscountLabel,
+    setCustomDiscountLabel,
+    discountType,
+    setDiscountType,
+    loyaltyPoints,
+    setLoyaltyPoints,
+    loyaltyGrossAmount,
+    setLoyaltyGrossAmount,
     attachedWindowQuote,
     setAttachedWindowQuote,
     attachedSealedUnit,
