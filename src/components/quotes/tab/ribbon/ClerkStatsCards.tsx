@@ -24,14 +24,14 @@ export function ClerkStatsCards({
     <>
       {/* Clerk Card 1: Pending Odoo Entry */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "odoo"
             ? "border-indigo-500/50 bg-indigo-500/10 shadow-md ring-2 ring-indigo-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("odoo")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-indigo-500 uppercase">
               <ClipboardCheck className="h-3.5 w-3.5" />
@@ -49,14 +49,14 @@ export function ClerkStatsCards({
 
       {/* Clerk Card 2: Completed in Odoo */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "odoo_completed"
             ? "border-emerald-500/50 bg-emerald-500/10 shadow-md ring-2 ring-emerald-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("odoo_completed")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-emerald-500 uppercase">
               <CheckSquare className="h-3.5 w-3.5" />
@@ -74,14 +74,14 @@ export function ClerkStatsCards({
 
       {/* Clerk Card 3: Total Assigned */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "all_assigned"
             ? "border-primary/50 bg-primary/10 shadow-md ring-2 ring-primary/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("all_assigned")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-primary uppercase">
               <FileText className="h-3.5 w-3.5" />

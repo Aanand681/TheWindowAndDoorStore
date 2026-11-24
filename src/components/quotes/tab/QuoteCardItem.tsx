@@ -40,8 +40,8 @@ export function QuoteCardItem(props: QuoteCardItemProps) {
   const isModified = quote.status === "MODIFIED"
 
   return (
-    <Card className="adaptive-card-container border-border/70 bg-card/50 shadow-sm backdrop-blur transition-all duration-200 hover:border-primary/50 hover:shadow">
-      <CardContent className="flex flex-col gap-3.5 p-4 md:p-5">
+    <Card className="adaptive-card-container border-border/70 bg-card/50 py-0 shadow-sm backdrop-blur transition-all duration-200 hover:border-primary/50 hover:shadow">
+      <CardContent className="flex flex-col gap-2.5 px-4 py-3 sm:px-5 sm:py-3.5">
         <QuoteCardHeader
           quote={quote}
           isClerk={isClerk}

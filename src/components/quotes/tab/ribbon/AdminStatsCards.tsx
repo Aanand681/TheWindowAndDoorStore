@@ -24,14 +24,14 @@ export function AdminStatsCards({
     <>
       {/* Admin Card 1: Pending Review */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "review"
             ? "border-amber-500/50 bg-amber-500/10 shadow-md ring-2 ring-amber-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("review")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-amber-500 uppercase">
               <Clock className="h-3.5 w-3.5" />
@@ -49,14 +49,14 @@ export function AdminStatsCards({
 
       {/* Admin Card 2: Odoo Entry Queue */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "odoo"
             ? "border-indigo-500/50 bg-indigo-500/10 shadow-md ring-2 ring-indigo-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("odoo")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-indigo-500 uppercase">
               <ClipboardCheck className="h-3.5 w-3.5" />
@@ -74,14 +74,14 @@ export function AdminStatsCards({
 
       {/* Admin Card 3: All Quotes Archive */}
       <Card
-        className={`cursor-pointer border transition-all duration-200 ${
+        className={`cursor-pointer border py-0 transition-all duration-200 ${
           activeTab === "all"
             ? "border-emerald-500/50 bg-emerald-500/10 shadow-md ring-2 ring-emerald-500/20"
             : "border-border/70 bg-card/40 hover:border-border"
         }`}
         onClick={() => handleTabChange("all")}
       >
-        <CardContent className="flex items-center justify-between p-4">
+        <CardContent className="flex items-center justify-between p-3 sm:p-3.5">
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-emerald-500 uppercase">
               <CheckCircle2 className="h-3.5 w-3.5" />
