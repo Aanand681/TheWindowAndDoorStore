@@ -49,6 +49,7 @@ export async function buildQuoteUpdatePayload(p: {
     "loyaltyPoints",
     "loyaltyGrossAmount",
     "loyaltyTierId",
+    "customMaterials",
     "includeJCInPromo",
     "includeMiscInPromo",
     "includeLabourInPromo",

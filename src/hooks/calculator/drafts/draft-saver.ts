@@ -56,6 +56,11 @@ export async function executeSaveDraft(p: {
 
   const calcFinancials = computeCombinedQuoteFinancials({
     quoteResult: financials.quoteResult,
+    taxTotals: workspace.taxTotals,
+    customDiscount: workspace.customDiscount,
+    customDiscountLabel: workspace.customDiscountLabel,
+    loyaltyDiscount: workspace.loyaltyDiscount,
+    loyaltyDiscountLabel: workspace.loyaltyDiscountLabel,
     afterDiscount: financials.afterDiscount,
     total: financials.total,
     attachedSealedUnit: workspace.attachedSealedUnit,
@@ -64,6 +69,7 @@ export async function executeSaveDraft(p: {
     effectiveMisc: financials.effectiveMisc,
     effectiveLabour: financials.effectiveLabour,
     hstRate: workspace.hstRate,
+    isSupplyOnly: workspace.isSupplyOnly,
   })
 
   try {
@@ -94,6 +100,14 @@ export async function executeSaveDraft(p: {
         customJC: workspace.customJC,
         customMisc: workspace.customMisc,
         customLabour: workspace.customLabour,
+        customDiscount: workspace.customDiscount,
+        customDiscountLabel: workspace.customDiscountLabel,
+        loyaltyDiscount: workspace.loyaltyDiscount,
+        loyaltyDiscountLabel: workspace.loyaltyDiscountLabel,
+        discountType: workspace.discountType,
+        loyaltyPoints: workspace.loyaltyPoints,
+        loyaltyGrossAmount: workspace.loyaltyGrossAmount,
+        customMaterials: workspace.taxTotals?.customMaterials || [],
         includeJCInPromo: workspace.includeJCInPromo,
         includeMiscInPromo: workspace.includeMiscInPromo,
         includeLabourInPromo: workspace.includeLabourInPromo,

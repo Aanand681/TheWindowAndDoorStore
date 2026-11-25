@@ -86,17 +86,22 @@ export function DoorQuoteSummaryCard({
   const hasAttachedSU = Boolean(attachedSealedUnit)
   const hasAnyAttached = hasAttachedWindow || hasAttachedSU
 
+  const resolvedHstRate = hstRate !== undefined ? hstRate : (isFirstNation ? 8 : 13)
   const universal = calculateUniversalPricing({
     doorQuote: { data: { totals, mode } },
     windowQuote: attachedWindowQuote,
     sealedUnitQuote: attachedSealedUnit,
     hostType: "door",
     isSupplyOnly: !isInstallation,
-    isFirstNation,
+    hstRate: resolvedHstRate,
+    isFirstNation: resolvedHstRate === 8 || isFirstNation,
     overrides: {
       customLabour,
       customMisc,
       customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
     },
   })
 
@@ -107,6 +112,10 @@ export function DoorQuoteSummaryCard({
     ? (attachedWindowQuote.totals?.customMaterialsList || attachedWindowQuote.taxTotals?.customMaterials || [])
     : []
   const winCustomMaterials = universal.winNorm?.customMaterials || 0
+  const suCustomMaterialsList = hasAttachedSU
+    ? (attachedSealedUnit.totals?.customMaterialsList || attachedSealedUnit.totals?.customMaterials || [])
+    : []
+  const suCustomMaterials = universal.suNorm?.customMaterials || 0
   const winDiscount = universal.winNorm?.discount || 0
   const suGlass = universal.suNorm?.materials || 0
   const winLabour = universal.winNorm?.pureLabour || 0
@@ -186,7 +195,11 @@ export function DoorQuoteSummaryCard({
             hasAttachedWindow={hasAttachedWindow} hasAttachedSU={hasAttachedSU}
             attachedWindowQuote={attachedWindowQuote} attachedWinSentence={attWinSentence} attachedSUSentence={attSUSentence}
             winBase={winBase} winJC={winJC} winJCDescription={winJCDescription}
-            winCustomMaterialsList={winCustomMaterialsList} suGlass={suGlass}
+            winCustomMaterialsList={winCustomMaterialsList}
+            suCustomMaterialsList={suCustomMaterialsList}
+            suCustomMaterials={suCustomMaterials}
+            winCustomMaterials={winCustomMaterials}
+            suGlass={suGlass}
             combinedLabour={combinedLabour} customLabour={customLabour} defaultDoorLabour={defaultDoorLabour}
             winLabour={winLabour} suLabour={suLabour} setCustomLabour={setCustomLabour ? handleSetCustomLabour : undefined}
             combinedMisc={combinedMisc} customMisc={customMisc} defaultDoorMisc={defaultDoorMisc}
@@ -209,7 +222,9 @@ export function DoorQuoteSummaryCard({
           <DoorSummaryUpgrades upgradeItems={upgradeItems} />
           <CustomOptionsSection canModifyOptions={!isReadOnly} quoteNumber={quoteNumber} />
           <DoorSummaryActions
-            isAdmin={isAdmin} canSubmit={lineItems.length > 0} isReviewMode={isReviewMode}
+            isAdmin={isAdmin}
+            canSubmit={lineItems.length > 0 || (totals.customMaterialsTotal || 0) > 0}
+            isReviewMode={isReviewMode}
             onSubmitQuote={onSubmitQuote} onPrintPreview={onPrintPreview}
           />
         </CardContent>
@@ -218,8 +233,9 @@ export function DoorQuoteSummaryCard({
         isOpen={isCompareOpen} onClose={() => setIsCompareOpen(false)} title="Door Quote Comparison"
         quoteNumber={quoteNumber} customerName={customerName} currentMode={mode === "supply_only" ? "supply" : "install"}
         currentSubtotal={combinedSubtotal} baseLabel="Door Units" baseAmount={totals.rawDoorBaseTotal + totals.stormDoorTotal}
+        materialsAmount={totals.customMaterialsTotal || 0} materialsLabel="Additional Materials"
         attachedLabel={[hasAttachedWindow ? attWinSentence : "", hasAttachedSU ? attSUSentence : ""].filter(Boolean).join(" + ") || undefined}
-        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedSU ? suGlass : 0)}
+        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedSU ? suGlass + suCustomMaterials : 0)}
         labourAmount={compareLabour} miscAmount={compareMisc} surchargeAmount={combinedSurcharge}
         surchargeLabel="Surcharge (8% on materials)" discountAmount={totals.discountTotal + (winDiscount > 0 ? winDiscount : 0)}
         discountLabel="10% Discount" hardwareAmount={totals.hardwareTotal} hardwareLabel="Lockset & Hardware"

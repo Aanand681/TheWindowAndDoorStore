@@ -25,10 +25,10 @@ export function DoorSummaryHeader({
   isReadOnly = false,
 }: DoorSummaryHeaderProps) {
   return (
-    <CardHeader className="border-b border-border/50 p-3.5 pb-2.5">
-      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-        <div className="min-w-0">
-          <CardTitle className="flex items-center gap-1.5 truncate text-base font-bold">
+    <CardHeader className="min-w-0 border-b border-border/50 p-3.5 pb-2.5">
+      <div className="flex min-w-0 w-full flex-col justify-between gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="flex min-w-0 items-center gap-1.5 truncate text-base font-bold">
             <span className="truncate">Door Quote Summary</span>
           </CardTitle>
           <p
@@ -41,7 +41,7 @@ export function DoorSummaryHeader({
         </div>
 
         {/* Action Controls: Segmented Toggle + Compare Button */}
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="flex max-w-full flex-wrap items-center gap-1.5">
           <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
             <button
               type="button"

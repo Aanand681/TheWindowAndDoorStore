@@ -127,6 +127,18 @@ export function useCalculatorSupplyMode({
               ...lastSupplySnapshotRef.current,
               isSupplyOnly: true,
               isServiceOnly: false,
+              customMaterials:
+                current.customMaterials ??
+                lastSupplySnapshotRef.current.customMaterials ??
+                [],
+              customMaterialsTotal:
+                current.customMaterialsTotal ??
+                lastSupplySnapshotRef.current.customMaterialsTotal ??
+                0,
+              customMaterialsCents:
+                current.customMaterialsCents ??
+                lastSupplySnapshotRef.current.customMaterialsCents ??
+                0,
             }
           }
           return buildDefaultSupplyTaxState(

@@ -83,12 +83,10 @@ export function CalculatorComparisonModal({
               ),
           customerName,
           quoteNumber,
-          customMaterials: isSupplyOnly
-            ? undefined
-            : taxTotals?.customMaterials,
-          customMaterialsTotalCents: isSupplyOnly
-            ? undefined
-            : taxTotals?.customMaterialsCents,
+          customMaterials: taxTotals?.customMaterials,
+          customMaterialsTotalCents:
+            taxTotals?.customMaterialsCents ??
+            Math.round((taxTotals?.customMaterialsTotal || 0) * 100),
         }
       : undefined
 

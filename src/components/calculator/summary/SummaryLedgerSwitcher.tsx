@@ -8,6 +8,7 @@ export interface SummaryLedgerSwitcherProps {
   combinedData: any
   summaryWindowGroups?: any[]
   attachedDoorQuote?: any
+  attachedSealedUnit?: any
   quoteResult?: any
   renderEditableRow: (
     field: "jc" | "labour" | "misc" | "discount",
@@ -100,6 +101,8 @@ export function SummaryLedgerSwitcher(props: SummaryLedgerSwitcherProps) {
       <CombinedLedgerSection
         combinedData={props.combinedData}
         attachedDoorQuote={props.attachedDoorQuote}
+        attachedSealedUnit={props.attachedSealedUnit}
+        taxTotals={props.taxTotals}
         {...commonProps}
       />
     )

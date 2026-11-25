@@ -46,10 +46,28 @@ interface UseDoorAutoSaveProps {
   setQuoteNotes: (notes: string) => void
   isFirstNation: boolean
   setIsFirstNation: (fn: boolean) => void
+  hstRate?: number
+  setHstRate?: (r: number) => void
   customLabour: string
   setCustomLabour: (l: string) => void
   customMisc: string
   setCustomMisc: (m: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (d: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (l: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (l: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (l: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (t: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (p: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (a: number) => void
+  customMaterials?: any[]
+  setCustomMaterials?: (m: any[]) => void
   attachedWindowQuote: any
   setAttachedWindowQuote: (q: any) => void
   attachedSealedUnit: any
@@ -86,10 +104,28 @@ export function useDoorAutoSave({
   setQuoteNotes,
   isFirstNation,
   setIsFirstNation,
+  hstRate,
+  setHstRate,
   customLabour,
   setCustomLabour,
   customMisc,
   setCustomMisc,
+  customDiscount = "",
+  setCustomDiscount,
+  customDiscountLabel = "",
+  setCustomDiscountLabel,
+  loyaltyDiscount = "",
+  setLoyaltyDiscount,
+  loyaltyDiscountLabel = "",
+  setLoyaltyDiscountLabel,
+  discountType = "none",
+  setDiscountType,
+  loyaltyPoints = 0,
+  setLoyaltyPoints,
+  loyaltyGrossAmount = 0,
+  setLoyaltyGrossAmount,
+  customMaterials = [],
+  setCustomMaterials,
   attachedWindowQuote,
   setAttachedWindowQuote,
   attachedSealedUnit,
@@ -159,9 +195,34 @@ export function useDoorAutoSave({
       if (d.crewHours !== undefined) setCrewHours(d.crewHours)
       if (d.crewSize) setCrewSize(d.crewSize)
       if (d.quoteNotes !== undefined) setQuoteNotes(d.quoteNotes)
-      if (d.isFirstNation !== undefined) setIsFirstNation(d.isFirstNation)
+      if (d.hstRate !== undefined && setHstRate) {
+        setHstRate(Number(d.hstRate))
+        setIsFirstNation(Number(d.hstRate) === 8)
+      } else if (d.isFirstNation !== undefined) {
+        setIsFirstNation(d.isFirstNation)
+      }
       if (d.customLabour !== undefined) setCustomLabour(String(d.customLabour))
       if (d.customMisc !== undefined) setCustomMisc(String(d.customMisc))
+      if (d.customDiscount !== undefined)
+        setCustomDiscount?.(String(d.customDiscount))
+      if (d.customDiscountLabel !== undefined)
+        setCustomDiscountLabel?.(d.customDiscountLabel || "")
+      if (d.loyaltyDiscount !== undefined)
+        setLoyaltyDiscount?.(String(d.loyaltyDiscount))
+      if (d.loyaltyDiscountLabel !== undefined)
+        setLoyaltyDiscountLabel?.(d.loyaltyDiscountLabel || "")
+      if (d.discountType !== undefined)
+        setDiscountType?.(d.discountType || "none")
+      if (d.loyaltyPoints !== undefined)
+        setLoyaltyPoints?.(Number(d.loyaltyPoints) || 0)
+      if (d.loyaltyGrossAmount !== undefined)
+        setLoyaltyGrossAmount?.(Number(d.loyaltyGrossAmount) || 0)
+      const mats = Array.isArray(d.customMaterials)
+        ? d.customMaterials
+        : Array.isArray(d.totals?.customMaterials)
+          ? d.totals.customMaterials
+          : []
+      if (mats.length > 0) setCustomMaterials?.(mats)
       if (d.attachedWindowQuote !== undefined)
         setAttachedWindowQuote(d.attachedWindowQuote)
       if (d.attachedSealedUnit !== undefined)
@@ -191,8 +252,17 @@ export function useDoorAutoSave({
     h: crewHours,
     s: crewSize,
     fn: isFirstNation,
+    hst: hstRate,
     l: customLabour,
     misc: customMisc,
+    cd: customDiscount,
+    cdl: customDiscountLabel,
+    ld: loyaltyDiscount,
+    ldl: loyaltyDiscountLabel,
+    dt: discountType,
+    lp: loyaltyPoints,
+    lga: loyaltyGrossAmount,
+    mats: customMaterials,
     qnNotes: quoteNotes,
     opts: optionsHash,
   })
@@ -203,6 +273,11 @@ export function useDoorAutoSave({
       mode,
       customLabour,
       customMisc,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+      hstRate,
       isFirstNation,
       attachedWindowQuote,
       attachedSealedUnit,
@@ -230,8 +305,17 @@ export function useDoorAutoSave({
         crewHours,
         crewSize,
         isFirstNation,
+        hstRate,
         customLabour,
         customMisc,
+        customDiscount,
+        customDiscountLabel,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
+        customMaterials,
         attachedWindowQuote,
         attachedSealedUnit,
         attachedInstallOption: readSessionAttachedInstallOption(),
@@ -247,6 +331,15 @@ export function useDoorAutoSave({
     mode,
     customLabour,
     customMisc,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    discountType,
+    loyaltyPoints,
+    loyaltyGrossAmount,
+    customMaterials,
+    hstRate,
     isFirstNation,
     attachedWindowQuote,
     attachedSealedUnit,
@@ -280,6 +373,7 @@ export function useDoorAutoSave({
 
     if (
       lineItems.length === 0 &&
+      customMaterials.length === 0 &&
       !attachedWindowQuote &&
       !attachedSealedUnit &&
       (!customerName || customerName === "Valued Customer")

@@ -181,6 +181,10 @@ export interface CalculatorModalsGroupProps
   wantsUpgrade: boolean
   shownUpgrade: number
   beforeTaxDiscount: number
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   includeLabourInPromo: boolean
   includeMiscInPromo: boolean
   includeJCInPromo: boolean

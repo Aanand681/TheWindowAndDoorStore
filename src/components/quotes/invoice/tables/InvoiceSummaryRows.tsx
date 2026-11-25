@@ -2,6 +2,7 @@ import React from "react"
 import { formatMoney } from "@/lib/promo-logic"
 import type { InvoiceCalculationsResult } from "../types"
 import { DoorSummaryRows } from "./DoorSummaryRows"
+import { InvoiceCustomMaterialsRows } from "./InvoiceCustomMaterialsRows"
 
 export interface InvoiceSummaryRowsProps {
   calc: InvoiceCalculationsResult
@@ -44,9 +45,24 @@ export function InvoiceSummaryRows({
     smallFs,
     activePromo,
     isWindowHost,
+    effectiveSUTotals,
     quoteResult,
     taxTotals,
   } = calc
+
+  const windowCustomMaterials = isWindowHost
+    ? taxTotals?.customMaterials
+    : attachedWindowQuote?.totals?.customMaterialsList ||
+      attachedWindowQuote?.taxTotals?.customMaterials ||
+      attachedWindowQuote?.customMaterials
+  const doorCustomMaterials =
+    effectiveDoorTotals?.customMaterialsList ||
+    effectiveDoorTotals?.customMaterials ||
+    attachedDoorQuote?.customMaterials
+  const suCustomMaterials =
+    effectiveSUTotals?.customMaterialsList ||
+    effectiveSUTotals?.customMaterials ||
+    attachedSealedUnit?.customMaterials
 
   const hasAnyAttached = Boolean(
     attachedSealedUnit || attachedDoorQuote || attachedWindowQuote
@@ -80,7 +96,7 @@ export function InvoiceSummaryRows({
   return (
     <>
       {/* Line 1: Window base glass total */}
-      {hasWindows && winMaterialsCents > 0 && (
+      {hasWindows && (totalWindowBaseCents > 0 || winMaterialsCents > 0) && (
         <tr className="border-b border-[#e2e8f0]">
           <td className={`py-1 ${textColor} font-medium capitalize`}>
             {windowSummarySentence}
@@ -154,29 +170,14 @@ export function InvoiceSummaryRows({
         </tr>
       )}
 
-      {/* Additional Materials */}
-      {taxTotals?.customMaterials &&
-        Array.isArray(taxTotals.customMaterials) &&
-        taxTotals.customMaterials.map((mat: any) => {
-          const amt = Number(mat.amount) || 0
-          if (amt <= 0 && !mat.label) return null
-          return (
-            <tr key={mat.id} className="border-b border-[#e2e8f0]">
-              <td
-                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-                className={`${textColor} font-medium`}
-              >
-                {mat.label ? `Material: ${mat.label}` : "Additional Material"}
-              </td>
-              <td
-                style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
-                className={`text-right font-mono font-bold ${textColor}`}
-              >
-                {formatMoney(Math.round(amt * 100))}
-              </td>
-            </tr>
-          )
-        })}
+      {/* Additional Materials (Windows, Doors & Sealed Units) */}
+      <InvoiceCustomMaterialsRows
+        windowMaterials={windowCustomMaterials}
+        doorMaterials={doorCustomMaterials}
+        suMaterials={suCustomMaterials}
+        textColor={textColor}
+        py={py}
+      />
 
       {/* Line 5: Misc */}
       {effectiveMiscTotalCents > 0 && (

@@ -47,6 +47,12 @@ export function useInvoiceCalculations({
   globalUpcharges = [],
   isSupplyOnly: isSupplyOnlyProp,
   primaryQuoteType,
+  customLabour,
+  customMisc,
+  customDiscount,
+  customDiscountLabel,
+  loyaltyDiscount,
+  loyaltyDiscountLabel,
 }: QuoteInvoiceProps): InvoiceCalculationsResult {
   const [currentDate, setCurrentDate] = useState<string>("")
 
@@ -220,6 +226,12 @@ export function useInvoiceCalculations({
     quoteResult, basePrice, surcharge,
     taxLabourCents, taxMiscCents, taxJCCents,
     taxDiscount: taxTotals?.discount || 0,
+    customLabour,
+    customMisc,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
     activePromo, attachedWindowQuote, effectiveSUTotals, effectiveDoorTotals,
     hstRate, afterDiscount, taxTotals, isSupplyOnly,
   })

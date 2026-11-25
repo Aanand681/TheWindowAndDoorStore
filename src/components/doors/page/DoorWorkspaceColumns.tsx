@@ -9,6 +9,7 @@ import {
   DoorOfficePricingCard,
 } from "@/components/doors"
 import { DoorCalculatorPageState } from "@/hooks/doors"
+import { CustomMaterialsCard } from "@/components/shared/materials"
 import { toast } from "sonner"
 
 export interface DoorWorkspaceColumnsProps {
@@ -49,6 +50,14 @@ export function DoorWorkspaceColumns({
           onDuplicate={page.handleDuplicateItem}
           onDelete={page.handleDeleteItem}
           isReadOnly={page.isReadOnly}
+        />
+
+        <CustomMaterialsCard
+          materials={page.customMaterials}
+          onMaterialsChange={page.setCustomMaterials}
+          isReadOnly={page.isReadOnly}
+          title="Door Additional Materials (Optional)"
+          placeholder="e.g. Sill extension, brickmould, drip cap"
         />
 
         <DoorLabourTravelCard

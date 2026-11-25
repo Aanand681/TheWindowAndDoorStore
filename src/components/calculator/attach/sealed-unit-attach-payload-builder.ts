@@ -21,9 +21,34 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     (draft as any).totals ||
     {}
 
+  const customMaterialsList = Array.isArray(rawData.customMaterials)
+    ? rawData.customMaterials
+    : Array.isArray(srcTotals.customMaterialsList)
+      ? srcTotals.customMaterialsList
+      : Array.isArray(srcTotals.customMaterials)
+        ? srcTotals.customMaterials
+        : []
+  const customMaterialsDollars = Math.round(
+    customMaterialsList.reduce((acc: number, m: any) => acc + (Number(m?.amount) || 0), 0) * 100
+  ) / 100
+  const loyaltyDiscountNum = Math.max(
+    0,
+    parseFloat(String(srcTotals.loyaltyDiscount ?? rawData.loyaltyDiscount ?? 0)) || 0
+  )
+  const loyaltyDiscountLabel = String(
+    srcTotals.loyaltyDiscountLabel ?? rawData.loyaltyDiscountLabel ?? ""
+  )
+
   const calculatedTotals =
     srcTotals.glassBefore8PercentTotal !== undefined || srcTotals.unitLabourSum !== undefined
-      ? { ...srcTotals }
+      ? {
+          ...srcTotals,
+          customMaterials: srcTotals.customMaterials ?? customMaterialsList,
+          customMaterialsList,
+          customMaterialsTotal: srcTotals.customMaterialsTotal ?? customMaterialsDollars,
+          loyaltyDiscount: loyaltyDiscountNum,
+          loyaltyDiscountLabel,
+        }
       : calculateSealedUnitTotals({
           lineItems,
           isInstallation: !isSUSupply && Boolean(rawData.isInstallation),
@@ -35,6 +60,9 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
           crewSize: "2",
           hstRate: rawData.hstRate ?? 13,
           globalUpcharges: rawData.globalUpcharges || [],
+          customMaterials: customMaterialsList,
+          loyaltyDiscount: loyaltyDiscountNum,
+          loyaltyDiscountLabel,
         })
 
   if (isSUSupply) {
@@ -93,6 +121,8 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     isInstallation: !isSUSupply && Boolean(rawData.isInstallation),
     sealedUnitMode: rawData.sealedUnitMode,
     hstRate: rawData.hstRate ?? 13,
+    loyaltyDiscount: loyaltyDiscountNum,
+    loyaltyDiscountLabel,
     globalUpcharges: rawData.globalUpcharges || calculatedTotals.globalUpcharges || [],
   }
 }

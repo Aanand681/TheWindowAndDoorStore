@@ -8,6 +8,7 @@ export function useDoorTravel() {
     regions,
     selectedRegionId,
     setSelectedRegionId,
+    resetRegionToDefault,
     selectedRegion,
     loading: regionsLoading,
   } = useSharedRegions("Fort Frances")
@@ -39,6 +40,7 @@ export function useDoorTravel() {
     regions,
     selectedRegionId,
     setSelectedRegionId,
+    resetRegionToDefault,
     selectedRegion,
     regionsLoading,
     travelFeeType,

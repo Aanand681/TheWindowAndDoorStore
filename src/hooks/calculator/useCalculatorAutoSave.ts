@@ -32,6 +32,13 @@ export interface UseCalculatorAutoSaveParams {
   customJC: string
   customMisc: string
   customLabour: string
+  customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   includeJCInPromo: boolean
   includeMiscInPromo: boolean
   includeLabourInPromo: boolean
@@ -69,6 +76,13 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     customJC,
     customMisc,
     customLabour,
+    customDiscount = "",
+    customDiscountLabel = "",
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    discountType = "none",
+    loyaltyPoints = 0,
+    loyaltyGrossAmount = 0,
     includeJCInPromo,
     includeMiscInPromo,
     includeLabourInPromo,
@@ -149,6 +163,14 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       cjc: customJC,
       cm: customMisc,
       cl: customLabour,
+      cd: customDiscount,
+      cdl: customDiscountLabel,
+      ld: loyaltyDiscount,
+      ldl: loyaltyDiscountLabel,
+      dt: discountType,
+      lp: loyaltyPoints,
+      lga: loyaltyGrossAmount,
+      mats: taxTotals?.customMaterials || [],
       ij: includeJCInPromo,
       im: includeMiscInPromo,
       il: includeLabourInPromo,
@@ -178,6 +200,14 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     customJC,
     customMisc,
     customLabour,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    discountType,
+    loyaltyPoints,
+    loyaltyGrossAmount,
+    taxTotals?.customMaterials,
     includeJCInPromo,
     includeMiscInPromo,
     includeLabourInPromo,
@@ -198,6 +228,11 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     )
     const financials = computeCombinedQuoteFinancials({
       quoteResult,
+      taxTotals,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
       afterDiscount,
       total,
       attachedSealedUnit,
@@ -206,6 +241,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
       effectiveMisc,
       effectiveLabour,
       hstRate,
+      isSupplyOnly,
     })
 
     return {
@@ -231,6 +267,14 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
         customMisc: customMisc !== "" ? parseFloat(customMisc) : undefined,
         customLabour:
           customLabour !== "" ? parseFloat(customLabour) : undefined,
+        customDiscount,
+        customDiscountLabel,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
+        customMaterials: taxTotals?.customMaterials || [],
         includeJCInPromo,
         includeMiscInPromo,
         includeLabourInPromo,
@@ -279,6 +323,13 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     customJC,
     customMisc,
     customLabour,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    discountType,
+    loyaltyPoints,
+    loyaltyGrossAmount,
     includeJCInPromo,
     includeMiscInPromo,
     includeLabourInPromo,
@@ -317,6 +368,8 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     const hasContent =
       validWindows.length > 0 ||
       hasValidAttachedQuote ||
+      (Array.isArray(taxTotals?.customMaterials) &&
+        taxTotals.customMaterials.length > 0) ||
       Boolean(customerName && customerName.trim())
 
     if (!hasContent) {

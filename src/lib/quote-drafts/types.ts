@@ -4,6 +4,7 @@ import type {
   AttachedQuoteData,
   AttachedUpgradeOption,
   QuoteResult,
+  CustomMaterialItem,
 } from "@/types/calculator"
 import type {
   CachedAttachedInstallOption,
@@ -27,6 +28,14 @@ export interface WindowQuoteDraftPayload {
   customJC?: string | number
   customMisc?: string | number
   customLabour?: string | number
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: CustomMaterialItem[]
   includeJCInPromo?: boolean
   includeMiscInPromo?: boolean
   includeLabourInPromo?: boolean
@@ -68,7 +77,16 @@ export interface SealedUnitQuoteDraftPayload {
   crewHours: string
   crewSize: "2" | "3"
   hstRate: number
+  extraLabour?: string
+  globalUpcharges?: any[]
+  customMaterials?: CustomMaterialItem[]
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   selectedRegionId?: string
+  regionName?: string
   attachedWindowQuote?: AttachedQuoteData | null
   attachedDoorQuote?: AttachedQuoteData | null
   wantsUpgrade?: boolean
@@ -93,8 +111,18 @@ export interface DoorQuoteDraftPayload {
   crewHours: string
   crewSize: "2" | "3"
   isFirstNation: boolean
+  hstRate?: number
   customLabour?: string | number
   customMisc?: string | number
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: CustomMaterialItem[]
+  taxTotals?: any
   attachedWindowQuote?: AttachedQuoteData | null
   attachedSealedUnit?: AttachedQuoteData | null
   subtotal: number

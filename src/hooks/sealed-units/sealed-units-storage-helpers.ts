@@ -24,6 +24,12 @@ export interface SealedUnitSnapshotParams {
   crewSize: "2" | "3"
   extraLabour?: string
   globalUpcharges?: SealedUnitUpcharge[]
+  customMaterials?: any[]
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -52,6 +58,12 @@ export function serializeSealedUnitSnapshot(
     crewSize: params.crewSize,
     extraLabour: params.extraLabour || "",
     globalUpcharges: params.globalUpcharges || [],
+    customMaterials: params.customMaterials || [],
+    loyaltyDiscount: params.loyaltyDiscount || "",
+    loyaltyDiscountLabel: params.loyaltyDiscountLabel || "",
+    discountType: params.discountType || "none",
+    loyaltyPoints: params.loyaltyPoints || 0,
+    loyaltyGrossAmount: params.loyaltyGrossAmount || 0,
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",
@@ -83,6 +95,12 @@ export interface WorkspaceSetters {
   setCrewSize: (val: "2" | "3") => void
   setExtraLabour?: (val: string) => void
   setGlobalUpcharges?: (val: SealedUnitUpcharge[]) => void
+  setCustomMaterials?: (val: any[]) => void
+  setLoyaltyDiscount?: (val: string) => void
+  setLoyaltyDiscountLabel?: (val: string) => void
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (val: number) => void
+  setLoyaltyGrossAmount?: (val: number) => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
   regions?: any[]
@@ -125,6 +143,37 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
       ])
     }
   }
+  const restoredMats = Array.isArray(d.customMaterials)
+    ? d.customMaterials
+    : Array.isArray(d.totals?.customMaterials)
+      ? d.totals.customMaterials
+      : []
+  setters.setCustomMaterials?.(restoredMats)
+  const restoredLoyalty =
+    d.loyaltyDiscount !== undefined
+      ? d.loyaltyDiscount
+      : d.totals?.loyaltyDiscount
+  if (restoredLoyalty !== undefined) {
+    const numLoyalty = parseFloat(String(restoredLoyalty)) || 0
+    setters.setLoyaltyDiscount?.(numLoyalty > 0 ? String(restoredLoyalty) : "")
+  } else {
+    setters.setLoyaltyDiscount?.("")
+  }
+  setters.setLoyaltyDiscountLabel?.(
+    String(d.loyaltyDiscountLabel ?? d.totals?.loyaltyDiscountLabel ?? "")
+  )
+  setters.setDiscountType?.(
+    (d.discountType ?? d.totals?.discountType ?? "none") as
+      | "none"
+      | "custom"
+      | "loyalty"
+  )
+  setters.setLoyaltyPoints?.(
+    Number(d.loyaltyPoints ?? d.totals?.loyaltyPoints ?? 0) || 0
+  )
+  setters.setLoyaltyGrossAmount?.(
+    Number(d.loyaltyGrossAmount ?? d.totals?.loyaltyGrossAmount ?? 0) || 0
+  )
   if (d.hstRate !== undefined) setters.setHstRate(d.hstRate)
   if (setters.setSelectedRegionId) {
     if (d.selectedRegionId) {
@@ -174,6 +223,12 @@ export function createDraftSavePayload(
     crewSize: params.crewSize,
     extraLabour: params.extraLabour || "",
     globalUpcharges: params.globalUpcharges || [],
+    customMaterials: params.customMaterials || [],
+    loyaltyDiscount: params.loyaltyDiscount || "",
+    loyaltyDiscountLabel: params.loyaltyDiscountLabel || "",
+    discountType: params.discountType || "none",
+    loyaltyPoints: params.loyaltyPoints || 0,
+    loyaltyGrossAmount: params.loyaltyGrossAmount || 0,
     hstRate: params.hstRate,
     selectedRegionId: params.selectedRegionId || "",
     regionName: params.regionName || "",

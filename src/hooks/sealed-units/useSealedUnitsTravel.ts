@@ -2,13 +2,16 @@
 
 import { useState, useCallback } from "react"
 import { useSharedRegions } from "@/hooks/shared/useSharedRegions"
+import { useLoyaltyDiscountState } from "@/hooks/shared/useLoyaltyDiscountState"
 import { SealedUnitUpcharge } from "@/components/sealed-units/types"
+import type { CustomMaterialItem } from "@/types/calculator"
 
 export function useSealedUnitsTravel() {
   const {
     regions,
     selectedRegionId,
     setSelectedRegionId,
+    resetRegionToDefault,
     selectedRegion,
     loading: regionsLoading,
   } = useSharedRegions("Fort Frances")
@@ -32,7 +35,9 @@ export function useSealedUnitsTravel() {
   const [crewSize, setCrewSize] = useState<"2" | "3">("3")
   const [extraLabour, setExtraLabour] = useState<string>("")
   const [globalUpcharges, setGlobalUpchargesState] = useState<SealedUnitUpcharge[]>([])
+  const [customMaterials, setCustomMaterials] = useState<CustomMaterialItem[]>([])
   const [hstRate, setHstRate] = useState<number>(13)
+  const loyalty = useLoyaltyDiscountState()
 
   const setGlobalUpcharges = useCallback((items: SealedUnitUpcharge[]) => {
     setGlobalUpchargesState(items)
@@ -53,6 +58,25 @@ export function useSealedUnitsTravel() {
     handleSetSealedUnitMode(val ? "installation" : "supply_only")
   }
 
+  const resetTravelAndMode = useCallback(() => {
+    resetRegionToDefault()
+    setSealedUnitMode("installation")
+    setServiceSqftInput("")
+    setServiceLabourRateInput("")
+    setServiceMiscRateInput("")
+    setTravelFeeType("local_std")
+    setCustomTravelFee("")
+    setShowOutTownTravel(false)
+    setTravelKm("")
+    setCrewHours("")
+    setCrewSize("3")
+    setExtraLabour("")
+    setGlobalUpchargesState([])
+    setCustomMaterials([])
+    setHstRate(13)
+    loyalty.resetLoyaltyDiscount()
+  }, [resetRegionToDefault, loyalty])
+
   const formInputs = {
     sealedUnitMode,
     isInstallation,
@@ -68,6 +92,12 @@ export function useSealedUnitsTravel() {
     crewSize,
     extraLabour,
     globalUpcharges,
+    customMaterials,
+    loyaltyDiscount: loyalty.loyaltyDiscount,
+    loyaltyDiscountLabel: loyalty.loyaltyDiscountLabel,
+    discountType: loyalty.discountType,
+    loyaltyPoints: loyalty.loyaltyPoints,
+    loyaltyGrossAmount: loyalty.loyaltyGrossAmount,
     hstRate,
     selectedRegionId,
   }
@@ -86,6 +116,14 @@ export function useSealedUnitsTravel() {
     setCrewSize,
     setExtraLabour,
     setGlobalUpcharges,
+    setCustomMaterials,
+    setLoyaltyDiscount: loyalty.setLoyaltyDiscount,
+    setLoyaltyDiscountLabel: loyalty.setLoyaltyDiscountLabel,
+    setDiscountType: loyalty.setDiscountType,
+    setLoyaltyPoints: loyalty.setLoyaltyPoints,
+    setLoyaltyGrossAmount: loyalty.setLoyaltyGrossAmount,
+    resetLoyaltyDiscount: loyalty.resetLoyaltyDiscount,
+    resetTravelAndMode,
     setHstRate,
     setSelectedRegionId,
   }
@@ -102,5 +140,7 @@ export function useSealedUnitsTravel() {
     formSetters,
     handleSetSealedUnitMode,
     setIsInstallation,
+    resetLoyaltyDiscount: loyalty.resetLoyaltyDiscount,
+    resetTravelAndMode,
   }
 }

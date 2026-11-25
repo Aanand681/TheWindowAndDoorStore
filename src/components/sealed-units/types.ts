@@ -1,3 +1,5 @@
+import type { CustomMaterialItem } from "@/types/calculator"
+
 export type SealedUnitTemplateType = "window_style" | "standard" | "production"
 
 export interface SealedUnitUpcharge {
@@ -23,7 +25,16 @@ export interface SealedUnitTotals {
   combinedLabourTotal: number
   miscTotal: number
   serviceLabourTotal?: number
+  customMaterials?: CustomMaterialItem[]
+  customMaterialsTotal?: number
+  loyaltyDiscount?: number
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   subtotalPreTax: number
+  hstBase?: number
+  materialExemption?: number
   hstAmount: number
   grandTotal: number
   effectiveLabourRate?: number

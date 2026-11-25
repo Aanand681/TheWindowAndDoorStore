@@ -1,4 +1,6 @@
 export type GlassTreatment = "annealed" | "tempered"
+import type { CustomMaterialItem } from "@/types/calculator"
+
 export type PaneType = "dual" | "triple"
 
 export interface ThicknessPrice {
@@ -161,5 +163,8 @@ export interface CalculateSealedUnitTotalsParams {
   hstRate?: number
   extraLabour?: string | number
   globalUpcharges?: any[]
+  customMaterials?: CustomMaterialItem[]
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   labourSettings?: Partial<SealedUnitLabourSettings>
 }

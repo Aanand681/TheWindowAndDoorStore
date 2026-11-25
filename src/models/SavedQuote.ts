@@ -60,6 +60,7 @@ export interface ISavedQuote extends Document {
   loyaltyPoints?: number
   loyaltyGrossAmount?: number
   loyaltyTierId?: string
+  customMaterials?: Array<{ id: string; label: string; amount: number }>
   customJC?: string | number
   customMisc?: string | number
   customLabour?: string | number
@@ -252,6 +253,10 @@ const SavedQuoteSchema = new Schema<ISavedQuote>(
     loyaltyTierId: {
       type: String,
       default: "",
+    },
+    customMaterials: {
+      type: Schema.Types.Mixed,
+      default: [],
     },
     customMisc: {
       type: Schema.Types.Mixed,

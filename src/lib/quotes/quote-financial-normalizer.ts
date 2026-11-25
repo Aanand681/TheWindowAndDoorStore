@@ -42,9 +42,21 @@ function resolvePureLabour(
   return defaultPure
 }
 
+function extractCustomMaterialsDollars(...sources: any[]): number {
+  for (const src of sources) {
+    if (Array.isArray(src)) {
+      return Math.round(src.reduce((acc: number, m: any) => acc + (Number(m?.amount) || 0), 0) * 100) / 100
+    }
+    if (typeof src === "number" && Number.isFinite(src)) {
+      return Math.round(src * 100) / 100
+    }
+  }
+  return 0
+}
+
 export function normalizeWindowQuote(
   quote: any,
-  overrides?: { customLabour?: string; customMisc?: string; customJC?: string; customDiscount?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
+  overrides?: { customLabour?: string; customMisc?: string; customJC?: string; customDiscount?: string; customDiscountLabel?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
   const taxTotals = data.taxTotals || quote?.taxTotals || {}
@@ -81,6 +93,7 @@ export function normalizeWindowQuote(
     ? parseFloat(overrides.customDiscount) || 0
     : rawDiscount
   const discountLabel =
+    overrides?.customDiscountLabel ||
     data.customDiscountLabel ||
     quote?.customDiscountLabel ||
     data.quoteResult?.promoName ||
@@ -92,6 +105,7 @@ export function normalizeWindowQuote(
       : data.loyaltyDiscount ?? quote?.totals?.loyaltyDiscount ?? quote?.loyaltyDiscount ?? 0
   )
   const loyaltyDiscountLabel =
+    overrides?.loyaltyDiscountLabel ||
     data.loyaltyDiscountLabel ||
     quote?.loyaltyDiscountLabel ||
     (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
@@ -116,7 +130,14 @@ export function normalizeWindowQuote(
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(quote?.totals?.misc ?? taxTotals?.finalMisc ?? taxTotals?.miscTotal ?? 0))
   const jambsAndCasing = overrides?.customJC !== undefined && overrides.customJC !== "" ? parseFloat(overrides.customJC) || 0 : Number(quote?.totals?.jc ?? taxTotals?.finalJC ?? taxTotals?.jcTotal ?? 0)
-  const customMaterials = Array.isArray(data.customMaterials) ? data.customMaterials.reduce((acc: number, m: any) => acc + (Number(m.amount) || 0), 0) : Number(taxTotals?.customMaterialsTotal || (quote?.totals?.customMaterialsTotal ?? 0))
+  const customMaterials = extractCustomMaterialsDollars(
+    data.customMaterials,
+    taxTotals?.customMaterials,
+    quote?.customMaterials,
+    taxTotals?.customMaterialsTotal,
+    quote?.totals?.customMaterialsTotal,
+    quote?.totals?.customMaterials
+  )
 
   return {
     type: "window", quoteNumber: quote?.quoteNumber || data.quoteNumber,
@@ -131,7 +152,7 @@ export function normalizeWindowQuote(
 
 export function normalizeDoorQuote(
   quote: any,
-  overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
+  overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string; customDiscountLabel?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
   const totals = {
@@ -149,6 +170,7 @@ export function normalizeDoorQuote(
     ? parseFloat(overrides.customDiscount) || 0
     : Number(totals.discountTotal ?? totals.discount ?? 0)
   const discountLabel =
+    overrides?.customDiscountLabel ||
     data.customDiscountLabel ||
     quote?.customDiscountLabel ||
     totals.discountLabel ||
@@ -160,6 +182,7 @@ export function normalizeDoorQuote(
       : totals.loyaltyDiscount ?? data.loyaltyDiscount ?? quote?.totals?.loyaltyDiscount ?? quote?.loyaltyDiscount ?? 0
   )
   const loyaltyDiscountLabel =
+    overrides?.loyaltyDiscountLabel ||
     data.loyaltyDiscountLabel ||
     quote?.loyaltyDiscountLabel ||
     totals.loyaltyDiscountLabel ||
@@ -188,13 +211,20 @@ export function normalizeDoorQuote(
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(totals.miscTotal ?? totals.misc ?? 0))
   const jambsAndCasing = Number(totals.suppliesTotal || 0)
+  const customMaterials = extractCustomMaterialsDollars(
+    totals.customMaterialsList,
+    totals.customMaterials,
+    data.customMaterials,
+    quote?.customMaterials,
+    totals.customMaterialsTotal
+  )
 
   return {
     type: "door", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: false,
     rawBase, discount, discountLabel, loyaltyDiscount, loyaltyDiscountLabel, materials, surcharge, pureLabour, travelAndSetup,
-    misc, jambsAndCasing, customMaterials: 0, lineItems,
+    misc, jambsAndCasing, customMaterials, lineItems,
     summarySentence: `${itemCount} door${itemCount !== 1 ? "s" : ""}`,
     upcharges: data.globalUpcharges || totals.globalUpcharges || [],
   }
@@ -202,7 +232,7 @@ export function normalizeDoorQuote(
 
 export function normalizeSealedUnitQuote(
   quote: any,
-  overrides?: { customLabour?: string; customMisc?: string }
+  overrides?: { customLabour?: string; customMisc?: string; customDiscount?: string; customDiscountLabel?: string; loyaltyDiscount?: string; loyaltyDiscountLabel?: string }
 ): NormalizedQuoteFinancials {
   const data = quote?.data || quote || {}
   const totals = {
@@ -217,7 +247,37 @@ export function normalizeSealedUnitQuote(
   const isSupply = Boolean(!isService && (data.sealedUnitMode === "supply_only" || totals?.isSupplyOnly))
 
   const rawBase = isService ? 0 : Number(totals.glassBefore8PercentTotal || totals.materialsTotal || 0)
-  const materials = rawBase
+  const discount =
+    overrides?.customDiscount !== undefined && overrides.customDiscount !== ""
+      ? parseFloat(overrides.customDiscount) || 0
+      : data.customDiscount !== undefined && String(data.customDiscount).trim() !== ""
+        ? parseFloat(String(data.customDiscount)) || 0
+        : Number(totals.discountTotal ?? totals.discount ?? 0)
+  const discountLabel =
+    overrides?.customDiscountLabel ||
+    data.customDiscountLabel ||
+    quote?.customDiscountLabel ||
+    totals.discountLabel ||
+    "Sealed Unit Discount"
+
+  const loyaltyDiscount = Number(
+    overrides?.loyaltyDiscount !== undefined && overrides.loyaltyDiscount !== ""
+      ? parseFloat(overrides.loyaltyDiscount) || 0
+      : totals.loyaltyDiscount ??
+        data.loyaltyDiscount ??
+        quote?.totals?.loyaltyDiscount ??
+        quote?.loyaltyDiscount ??
+        0
+  )
+  const loyaltyDiscountLabel =
+    overrides?.loyaltyDiscountLabel ||
+    data.loyaltyDiscountLabel ||
+    quote?.loyaltyDiscountLabel ||
+    totals.loyaltyDiscountLabel ||
+    (data.discountType === "loyalty" ? "Loyalty Points Redemption" : undefined)
+
+  const totalDiscount = discount + loyaltyDiscount
+  const materials = Math.max(0, Math.round((rawBase - totalDiscount) * 100) / 100)
   const surcharge = isService ? 0 : Number(totals.glass8PercentSurchargeTotal || 0)
 
   const travelAndSetup = isSupply ? 0 : Number(quote?.totals?.travelAndSetupFee ?? totals?.totalTravelAndSetup ?? 0)
@@ -238,13 +298,21 @@ export function normalizeSealedUnitQuote(
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 
   const misc = isSupply ? 0 : (overrides?.customMisc !== undefined && overrides.customMisc !== "" ? parseFloat(overrides.customMisc) || 0 : Number(totals.miscTotal || 0))
+  const customMaterials = extractCustomMaterialsDollars(
+    totals.customMaterialsList,
+    totals.customMaterials,
+    data.customMaterials,
+    quote?.customMaterials,
+    totals.customMaterialsTotal
+  )
 
   return {
     type: "sealed_unit", quoteNumber: quote?.quoteNumber || data.quoteNumber,
     customerName: quote?.customerName || data.customerName,
     itemCount, isSupplyOnly: isSupply, isServiceOnly: isService,
-    rawBase, discount: 0, materials, surcharge, pureLabour, travelAndSetup,
-    misc, jambsAndCasing: 0, customMaterials: 0, lineItems,
+    rawBase, discount, discountLabel, loyaltyDiscount, loyaltyDiscountLabel,
+    materials, surcharge, pureLabour, travelAndSetup,
+    misc, jambsAndCasing: 0, customMaterials, lineItems,
     summarySentence: `${itemCount} sealed unit${itemCount !== 1 ? "s" : ""}`,
     upcharges: data.globalUpcharges || totals.globalUpcharges || [],
   }

@@ -21,6 +21,7 @@ export interface QuotePreviewToolbarProps {
   onSpacingChange: (spacing: number) => void
   showNotesEditor: boolean
   setShowNotesEditor: React.Dispatch<React.SetStateAction<boolean>>
+  canEditNotes?: boolean
   quoteNotes?: string
   isSupplyOnly?: boolean
   isDualOption?: boolean
@@ -42,6 +43,7 @@ export function QuotePreviewToolbar({
   onSpacingChange,
   showNotesEditor,
   setShowNotesEditor,
+  canEditNotes = true,
   quoteNotes = "",
   isSupplyOnly = false,
   isDualOption = false,
@@ -253,19 +255,21 @@ export function QuotePreviewToolbar({
             </div>
 
             {/* Notes Editor Toggle */}
-            <Button
-              type="button"
-              variant={showNotesEditor ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowNotesEditor((prev) => !prev)}
-              className="h-7 cursor-pointer px-2.5 text-xs font-semibold"
-            >
-              {showNotesEditor
-                ? "Hide Notes"
-                : quoteNotes
-                  ? "Edit Notes (Active)"
-                  : "+ Add Notes"}
-            </Button>
+            {canEditNotes && (
+              <Button
+                type="button"
+                variant={showNotesEditor ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowNotesEditor((prev) => !prev)}
+                className="h-7 cursor-pointer px-2.5 text-xs font-semibold"
+              >
+                {showNotesEditor
+                  ? "Hide Notes"
+                  : quoteNotes
+                    ? "Edit Notes (Active)"
+                    : "+ Add Notes"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

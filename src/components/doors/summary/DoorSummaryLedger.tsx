@@ -6,6 +6,7 @@ import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { DoorSummaryEditableRow } from "./DoorSummaryEditableRow"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
+import { CustomMaterialsSummaryRows } from "@/components/shared/materials"
 
 export interface DoorSummaryLedgerProps {
   lineItems: DoorLineItem[]
@@ -20,6 +21,9 @@ export interface DoorSummaryLedgerProps {
   winJC: number
   winJCDescription: string
   winCustomMaterialsList?: any[]
+  winCustomMaterials?: number
+  suCustomMaterialsList?: any[]
+  suCustomMaterials?: number
   suGlass: number
   combinedLabour: number
   customLabour: string
@@ -72,7 +76,9 @@ export interface DoorSummaryLedgerProps {
 export function DoorSummaryLedger({
   lineItems, totals, isInstallation, hasAttachedWindow, hasAttachedSU,
   attachedWindowQuote, attachedWinSentence, attachedSUSentence, winBase,
-  winJC, winJCDescription, winCustomMaterialsList, suGlass, combinedLabour, customLabour,
+  winJC, winJCDescription, winCustomMaterialsList,
+  winCustomMaterials = 0, suCustomMaterialsList, suCustomMaterials = 0,
+  suGlass, combinedLabour, customLabour,
   defaultDoorLabour, winLabour, suLabour, setCustomLabour, combinedMisc,
   customMisc, defaultDoorMisc, winMisc, suMisc, setCustomMisc,
   customDiscount = "",
@@ -140,6 +146,9 @@ export function DoorSummaryLedger({
         </div>
       )}
 
+      {/* Door Custom / Additional Materials */}
+      <CustomMaterialsSummaryRows materials={totals.customMaterials} />
+
       {hasAttachedWindow && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="truncate font-medium text-foreground">{attachedWinSentence}</span>
@@ -154,26 +163,25 @@ export function DoorSummaryLedger({
         </div>
       )}
 
-      {hasAttachedWindow && winCustomMaterialsList && winCustomMaterialsList.length > 0 &&
-        winCustomMaterialsList.map((mat: any, idx: number) => {
-          const amt = Number(mat.amount) || 0
-          if (amt <= 0 && !mat.label) return null
-          return (
-            <div key={mat.id || idx} className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="truncate font-medium text-foreground">
-                {mat.label ? `Window Add-on: ${mat.label}` : "Window Additional Material"}
-              </span>
-              <span className="font-mono font-semibold text-foreground">+${amt.toFixed(2)}</span>
-            </div>
-          )
-        })
-      }
+      {hasAttachedWindow && (
+        <CustomMaterialsSummaryRows
+          materials={winCustomMaterialsList}
+          prefix="Window Add-on"
+        />
+      )}
 
       {hasAttachedSU && (
         <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="truncate font-medium text-foreground">{attachedSUSentence}</span>
           <span className="font-mono font-semibold text-foreground">+${suGlass.toFixed(2)}</span>
         </div>
+      )}
+
+      {hasAttachedSU && (
+        <CustomMaterialsSummaryRows
+          materials={suCustomMaterialsList}
+          prefix="Glass Add-on"
+        />
       )}
 
       {isInstallation && (
@@ -261,7 +269,16 @@ export function DoorSummaryLedger({
           setLoyaltyPoints={setLoyaltyPoints}
           loyaltyGrossAmount={loyaltyGrossAmount}
           setLoyaltyGrossAmount={setLoyaltyGrossAmount}
-          combinedMaterials={Number(((totals.rawDoorBaseTotal || 0) + (totals.stormDoorTotal || 0) + (totals.hardwareTotal || 0)) + (winBase || 0) + (suGlass || 0))}
+          combinedMaterials={Number(
+            (totals.rawDoorBaseTotal || 0) +
+              (totals.stormDoorTotal || 0) +
+              (totals.hardwareTotal || 0) +
+              (totals.customMaterialsTotal || 0) +
+              (winBase || 0) +
+              (winCustomMaterials || 0) +
+              (suGlass || 0) +
+              (suCustomMaterials || 0)
+          )}
           otherDiscounts={(totals.discountTotal || 0) + (winDiscount || 0)}
           hstRate={hstRate ?? (isFirstNation ? 8 : 13)}
           isFirstNation={isFirstNation}

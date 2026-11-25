@@ -45,6 +45,10 @@ export interface PreviewModalWrapperProps {
   effectiveJC: number
   effectiveMisc: number
   effectiveLabour: number
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   attachedUpgrade: any
   attachedSealedUnit: any
   attachedDoorQuote: any

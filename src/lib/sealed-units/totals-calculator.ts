@@ -12,8 +12,16 @@ export function calculateSealedUnitTotals({
   crewHours = 0,
   crewSize = "2",
   hstRate = 13,
+  customMaterials = [],
+  loyaltyDiscount = 0,
+  loyaltyDiscountLabel = "",
   labourSettings,
 }: CalculateSealedUnitTotalsParams) {
+  const customMaterialsList = Array.isArray(customMaterials) ? customMaterials : []
+  const customMaterialsTotal = Math.round(
+    customMaterialsList.reduce((acc, m) => acc + (Number(m?.amount) || 0), 0) * 100
+  ) / 100
+  const loyaltyDiscountAmount = Math.max(0, parseFloat(String(loyaltyDiscount || 0)) || 0)
   const labour = { ...DEFAULT_LABOUR_SETTINGS, ...labourSettings }
   const totalUnits = lineItems.reduce(
     (acc, item) => acc + (Number(item.quantity) || 1),
@@ -93,8 +101,14 @@ export function calculateSealedUnitTotals({
     ? unitLabourSum + totalTravelAndSetup
     : 0
 
-  const subtotalPreTax =
-    glassSupplyTotal + (isInstallation ? combinedLabourTotal + miscTotal : 0)
+  const grossSubtotalPreTax =
+    glassSupplyTotal +
+    customMaterialsTotal +
+    (isInstallation ? combinedLabourTotal + miscTotal : 0)
+  const subtotalPreTax = Math.max(
+    0,
+    Math.round((grossSubtotalPreTax - loyaltyDiscountAmount) * 100) / 100
+  )
 
   let hstAmount = 0
   let hstBase = 0
@@ -104,8 +118,11 @@ export function calculateSealedUnitTotals({
     hstBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
     hstAmount = hstBase
   } else if (hstRate === 8) {
-    // Pure glass is material; 8% glass surcharge is handling/surcharge!
-    const materialAmount = glassBefore8PercentTotal
+    // Pure glass & custom materials qualify; 8% glass surcharge is handling/surcharge!
+    const materialAmount = Math.max(
+      0,
+      glassBefore8PercentTotal + customMaterialsTotal - loyaltyDiscountAmount
+    )
     hstBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
     materialExemption = Math.round(materialAmount * 0.08 * 100) / 100
     hstAmount = Math.max(
@@ -128,6 +145,10 @@ export function calculateSealedUnitTotals({
     glassBefore8PercentTotal,
     glass8PercentSurchargeTotal,
     glassSupplyTotal,
+    customMaterials: customMaterialsList,
+    customMaterialsTotal,
+    loyaltyDiscount: loyaltyDiscountAmount,
+    loyaltyDiscountLabel,
     unitLabourSum,
     baseSetupFee,
     additionalFarFee,

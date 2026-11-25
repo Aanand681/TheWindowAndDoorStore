@@ -42,9 +42,17 @@ export function DoorModalsGroup({ page }: DoorModalsGroupProps) {
           preparedBy={
             page.user?.name || page.user?.username || "The Window & Door Store"
           }
+          primaryQuoteType="door"
           doors={page.lineItems}
           doorTotals={page.totals}
           quoteNotes={page.quoteNotes}
+          onQuoteNotesChange={page.isReadOnly ? undefined : page.setQuoteNotes}
+          customLabour={page.customLabour}
+          customMisc={page.customMisc}
+          customDiscount={page.customDiscount}
+          customDiscountLabel={page.customDiscountLabel}
+          loyaltyDiscount={page.loyaltyDiscount}
+          loyaltyDiscountLabel={page.loyaltyDiscountLabel}
           template={page.quoteTemplate}
           fontSize={page.quoteFontSize}
           spacing={page.quoteSpacing}

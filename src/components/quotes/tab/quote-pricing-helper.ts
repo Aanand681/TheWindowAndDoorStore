@@ -68,7 +68,9 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
       (Number(quote.taxTotals?.surchargeTotal) || 0) * 100
     )
     const discountCents = Math.round(
-      (Number(quote.taxTotals?.discountTotal) || 0) * 100
+      ((Number(quote.taxTotals?.discountTotal) || 0) +
+        (Number(quote.taxTotals?.loyaltyDiscount ?? quote.loyaltyDiscount) || 0)) *
+        100
     )
 
     const firstPayment = Math.floor(totalCents / 2)
@@ -146,6 +148,11 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
     const miscCents = Math.round(
       (Number(quote.taxTotals?.miscTotal) || 0) * 100
     )
+    const discountCents = Math.round(
+      ((Number(quote.taxTotals?.discountTotal ?? quote.taxTotals?.discount) || 0) +
+        (Number(quote.taxTotals?.loyaltyDiscount ?? quote.loyaltyDiscount) || 0)) *
+        100
+    )
 
     const firstPayment = Math.floor(totalCents / 2)
     const secondPayment = totalCents - firstPayment
@@ -153,14 +160,14 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
     return {
       basePrice: glassCents,
       surcharge: 0,
-      promoDiscount: 0,
+      promoDiscount: discountCents,
       effectiveJC: 0,
       effectiveMisc: miscCents,
       effectiveLabour: labourCents,
       includeJCInPromo: false,
       includeMiscInPromo: false,
       includeLabourInPromo: false,
-      beforeTaxDiscount: subtotalCents,
+      beforeTaxDiscount: subtotalCents + discountCents,
       afterDiscount: subtotalCents,
       hstRate:
         quote.taxTotals?.hstRate !== undefined ? quote.taxTotals.hstRate : 13,
@@ -207,21 +214,61 @@ export function computeQuotePricing(quote: any): QuotePricingResult | null {
   const includeMiscInPromo = quote.includeMiscInPromo !== false
   const includeLabourInPromo = quote.includeLabourInPromo !== false
 
+  const customMaterialsList = Array.isArray(quote.taxTotals?.customMaterials)
+    ? quote.taxTotals.customMaterials
+    : Array.isArray(quote.customMaterials)
+      ? quote.customMaterials
+      : []
+  const customMaterialsCents = Math.round(
+    (quote.taxTotals?.customMaterialsTotal !== undefined
+      ? Number(quote.taxTotals.customMaterialsTotal) || 0
+      : customMaterialsList.reduce(
+          (acc: number, m: any) => acc + (Number(m?.amount) || 0),
+          0
+        )) * 100
+  )
+
   const basePrice = quote.quoteResult?.base || 0
   const surcharge = quote.quoteResult?.surcharge || 0
-  const promoDiscount = quote.quoteResult?.promoDiscount || 0
+  const basePromoDiscount =
+    quote.customDiscount !== undefined && String(quote.customDiscount).trim() !== ""
+      ? Math.round((parseFloat(String(quote.customDiscount)) || 0) * 100)
+      : quote.quoteResult?.promoDiscount || 0
+  const loyaltyDiscount =
+    quote.loyaltyDiscount !== undefined && String(quote.loyaltyDiscount).trim() !== ""
+      ? Math.round((parseFloat(String(quote.loyaltyDiscount)) || 0) * 100)
+      : 0
+  const promoDiscount = basePromoDiscount + loyaltyDiscount
 
   const beforeTaxDiscount =
     basePrice +
-    (includeJCInPromo ? effectiveJC : 0) +
-    (includeMiscInPromo ? effectiveMisc : 0) +
-    (includeLabourInPromo ? effectiveLabour : 0) +
-    surcharge
+    effectiveJC +
+    effectiveMisc +
+    effectiveLabour +
+    surcharge +
+    customMaterialsCents
 
   const afterDiscount = Math.max(0, beforeTaxDiscount - promoDiscount)
   const hstRate =
-    quote.taxTotals?.hstRate !== undefined ? quote.taxTotals.hstRate : 13
-  const hst = hstRate > 0 ? Math.round(afterDiscount * (hstRate / 100)) : 0
+    quote.hstRate !== undefined
+      ? quote.hstRate
+      : quote.taxTotals?.hstRate !== undefined
+        ? quote.taxTotals.hstRate
+        : 13
+  let hst = 0
+  if (hstRate === 0) {
+    hst = 0
+  } else if (hstRate === 8) {
+    const materialAfterDiscount = Math.max(
+      0,
+      basePrice - promoDiscount + effectiveJC + customMaterialsCents
+    )
+    const hstBase = Math.round(afterDiscount * 0.13)
+    const materialExemption = Math.round(materialAfterDiscount * 0.08)
+    hst = Math.max(0, hstBase - materialExemption)
+  } else {
+    hst = Math.round(afterDiscount * (hstRate / 100))
+  }
 
   // Calculate window total in cents
   let calculatedTotal = afterDiscount + hst

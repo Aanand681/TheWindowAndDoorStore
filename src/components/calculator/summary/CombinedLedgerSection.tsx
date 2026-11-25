@@ -6,11 +6,14 @@ import { formatMoney, toCents } from "@/lib/promo-logic"
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
+import { CustomMaterialsSummaryRows } from "@/components/shared/materials"
 
 export interface CombinedLedgerSectionProps {
   combinedData: any
   summaryWindowGroups: any[]
   attachedDoorQuote: any | null
+  attachedSealedUnit?: any | null
+  taxTotals?: any
   renderEditableRow: (
     field: "jc" | "labour" | "misc" | "discount",
     label: string,
@@ -55,6 +58,8 @@ export function CombinedLedgerSection({
   combinedData,
   summaryWindowGroups,
   attachedDoorQuote,
+  attachedSealedUnit,
+  taxTotals,
   renderEditableRow,
   jcSummaryLabel,
   customJC,
@@ -220,6 +225,25 @@ export function CombinedLedgerSection({
             (val) => setCustomJC(val),
             "(window only)"
           )}
+
+        {/* Additional Materials (Windows + Attached Doors + Attached Sealed Units) */}
+        <CustomMaterialsSummaryRows materials={taxTotals?.customMaterials} />
+        <CustomMaterialsSummaryRows
+          materials={
+            attachedDoorQuote?.totals?.customMaterialsList ||
+            attachedDoorQuote?.totals?.customMaterials ||
+            attachedDoorQuote?.customMaterials
+          }
+          prefix="Door Add-on"
+        />
+        <CustomMaterialsSummaryRows
+          materials={
+            attachedSealedUnit?.totals?.customMaterialsList ||
+            attachedSealedUnit?.totals?.customMaterials ||
+            attachedSealedUnit?.customMaterials
+          }
+          prefix="Glass Add-on"
+        />
 
         {/* Misc (Window + Attached) - Hidden on Supply Only */}
         {!isSupplyOnly &&

@@ -77,6 +77,9 @@ interface SealedUnitsModalsGroupProps {
   isInstallation: boolean
   regionName?: string
   hstRate: number
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  isReadOnly?: boolean
 }
 
 export function SealedUnitsModalsGroup({
@@ -90,11 +93,15 @@ export function SealedUnitsModalsGroup({
   isInstallation,
   regionName,
   hstRate,
+  loyaltyDiscount = "",
+  loyaltyDiscountLabel = "",
+  isReadOnly = false,
 }: SealedUnitsModalsGroupProps) {
   const totalSealedUnits = lineItems.reduce(
     (acc, it) => acc + (it.quantity || 1),
     0
   )
+  const isSUSupplyOnly = !isInstallation && !totals?.isServiceOnly
 
   return (
     <>
@@ -159,7 +166,9 @@ export function SealedUnitsModalsGroup({
           fontSize={preview.quoteFontSize}
           spacing={preview.quoteSpacing}
           hstRate={hstRate}
-          isSupplyOnly={!isInstallation}
+          isSupplyOnly={isSUSupplyOnly}
+          loyaltyDiscount={loyaltyDiscount}
+          loyaltyDiscountLabel={loyaltyDiscountLabel}
           regionName={regionName}
           attachedWindowQuote={drafts.attachedWindowQuote}
           attachedDoorQuote={drafts.attachedDoorQuote}
@@ -180,7 +189,7 @@ export function SealedUnitsModalsGroup({
         spacing={preview.quoteSpacing}
         onSpacingChange={preview.setQuoteSpacing}
         quoteNotes={drafts.quoteNotes}
-        onQuoteNotesChange={drafts.setQuoteNotes}
+        onQuoteNotesChange={isReadOnly ? undefined : drafts.setQuoteNotes}
         primaryQuoteType="sealed_unit"
         sealedUnits={lineItems}
         sealedUnitTotals={totals}
@@ -188,7 +197,9 @@ export function SealedUnitsModalsGroup({
         quoteNumber={drafts.quoteNumber}
         preparedBy={user?.name || user?.username || ""}
         hstRate={hstRate}
-        isSupplyOnly={!isInstallation}
+        isSupplyOnly={isSUSupplyOnly}
+        loyaltyDiscount={loyaltyDiscount}
+        loyaltyDiscountLabel={loyaltyDiscountLabel}
         regionName={regionName}
         attachedWindowQuote={drafts.attachedWindowQuote}
         attachedDoorQuote={drafts.attachedDoorQuote}

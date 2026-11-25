@@ -10,6 +10,7 @@ export interface CombinedPricingParams {
     surcharge?: number
     promoDiscount?: number
   } | null
+  taxTotals?: any
   afterDiscount?: number // cents
   total?: number // cents
   attachedSealedUnit?: any | null
@@ -18,6 +19,9 @@ export interface CombinedPricingParams {
   effectiveMisc?: number // cents
   effectiveLabour?: number // cents
   customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   hstRate?: number // 13 or 8 (First Nation exempt) or 0
   isSupplyOnly?: boolean
 }
@@ -40,16 +44,20 @@ export interface CombinedPricingResult {
   windowBaseCents: number
   windowSurchargeCents: number
   windowDiscountCents: number
+  windowCustomMaterialsCents: number
+  loyaltyDiscountCents: number
 
   suGlassCents: number
   suSurchargeCents: number
   suLabourCents: number
   suMiscCents: number
+  suCustomMaterialsCents: number
 
   doorMaterialsCents: number
   doorSurchargeCents: number
   doorLabourCents: number
   doorMiscCents: number
+  doorCustomMaterialsCents: number
 
   combinedMiscCents: number
   combinedLabourCents: number
@@ -66,19 +74,48 @@ export function computeCombinedQuoteFinancials(
   params: CombinedPricingParams
 ): CombinedPricingResult {
   const {
-    quoteResult, afterDiscount = 0, total = 0, attachedSealedUnit,
-    attachedDoorQuote, effectiveJC = 0, effectiveMisc = 0,
-    effectiveLabour = 0, customDiscount = "", hstRate = 13, isSupplyOnly = false,
+    quoteResult,
+    taxTotals,
+    afterDiscount = 0,
+    total = 0,
+    attachedSealedUnit,
+    attachedDoorQuote,
+    effectiveJC = 0,
+    effectiveMisc = 0,
+    effectiveLabour = 0,
+    customDiscount = "",
+    customDiscountLabel = "",
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    hstRate = 13,
+    isSupplyOnly = false,
   } = params
 
   const isSupply = Boolean(isSupplyOnly)
 
-  const qTaxTotals = (quoteResult as any)?.taxTotals || (params as any)?.taxTotals || {}
+  const qTaxTotals = taxTotals || (quoteResult as any)?.taxTotals || {}
   const winTravel = Number(qTaxTotals?.extras ?? qTaxTotals?.totalTravelAndSetup ?? 0)
   const resolvedCustomDiscount =
     customDiscount !== undefined && String(customDiscount).trim() !== ""
       ? String(customDiscount).trim()
       : ""
+  const resolvedLoyaltyDiscount =
+    loyaltyDiscount !== undefined && String(loyaltyDiscount).trim() !== ""
+      ? String(loyaltyDiscount).trim()
+      : ""
+
+  const overrides =
+    resolvedCustomDiscount !== "" ||
+    resolvedLoyaltyDiscount !== "" ||
+    customDiscountLabel ||
+    loyaltyDiscountLabel
+      ? {
+          ...(resolvedCustomDiscount !== "" ? { customDiscount: resolvedCustomDiscount } : {}),
+          ...(customDiscountLabel ? { customDiscountLabel } : {}),
+          ...(resolvedLoyaltyDiscount !== "" ? { loyaltyDiscount: resolvedLoyaltyDiscount } : {}),
+          ...(loyaltyDiscountLabel ? { loyaltyDiscountLabel } : {}),
+        }
+      : undefined
 
   const universal = calculateUniversalPricing({
     windowQuote: {
@@ -86,6 +123,9 @@ export function computeCombinedQuoteFinancials(
         effectiveBase: (quoteResult?.base || 0) / 100,
         quoteResult,
         customDiscount: resolvedCustomDiscount,
+        customDiscountLabel,
+        loyaltyDiscount: resolvedLoyaltyDiscount,
+        loyaltyDiscountLabel,
         taxTotals: {
           ...qTaxTotals,
           extras: winTravel,
@@ -119,7 +159,7 @@ export function computeCombinedQuoteFinancials(
     isSupplyOnly: isSupply,
     hstRate,
     isFirstNation: hstRate === 8,
-    overrides: resolvedCustomDiscount !== "" ? { customDiscount: resolvedCustomDiscount } : undefined,
+    overrides,
   })
 
   const hasAnyAttached = Boolean(attachedSealedUnit || attachedDoorQuote)
@@ -146,14 +186,18 @@ export function computeCombinedQuoteFinancials(
     windowBaseCents: Math.round((universal.winNorm?.rawBase || 0) * 100),
     windowSurchargeCents: Math.round((universal.winNorm?.surcharge || 0) * 100),
     windowDiscountCents: Math.round((universal.winNorm?.discount || 0) * 100),
+    windowCustomMaterialsCents: Math.round((universal.winNorm?.customMaterials || 0) * 100),
+    loyaltyDiscountCents: Math.round(((universal.winNorm?.loyaltyDiscount || 0) + (universal.doorNorm?.loyaltyDiscount || 0) + (universal.suNorm?.loyaltyDiscount || 0)) * 100),
     suGlassCents: Math.round((universal.suNorm?.materials || 0) * 100),
     suSurchargeCents: Math.round((universal.suNorm?.surcharge || 0) * 100),
     suLabourCents: Math.round((universal.suNorm?.pureLabour || 0) * 100),
     suMiscCents: Math.round((universal.suNorm?.misc || 0) * 100),
+    suCustomMaterialsCents: Math.round((universal.suNorm?.customMaterials || 0) * 100),
     doorMaterialsCents: Math.round((universal.doorNorm?.materials || 0) * 100),
     doorSurchargeCents: Math.round((universal.doorNorm?.surcharge || 0) * 100),
     doorLabourCents: Math.round((universal.doorNorm?.pureLabour || 0) * 100),
     doorMiscCents: Math.round((universal.doorNorm?.misc || 0) * 100),
+    doorCustomMaterialsCents: Math.round((universal.doorNorm?.customMaterials || 0) * 100),
     combinedMiscCents: universal.miscCents,
     combinedLabourCents: universal.labourCents,
     combinedSurchargeCents: universal.surchargesCents,

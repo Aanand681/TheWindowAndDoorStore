@@ -42,6 +42,28 @@ export function applyDraftDataToWorkspace(
         ? String(d.customLabour)
         : ""
     )
+  if (d.customDiscount !== undefined)
+    workspace.setCustomDiscount?.(
+      d.customDiscount !== "" && d.customDiscount !== null
+        ? String(d.customDiscount)
+        : ""
+    )
+  if (d.customDiscountLabel !== undefined)
+    workspace.setCustomDiscountLabel?.(d.customDiscountLabel || "")
+  if (d.loyaltyDiscount !== undefined)
+    workspace.setLoyaltyDiscount?.(
+      d.loyaltyDiscount !== "" && d.loyaltyDiscount !== null
+        ? String(d.loyaltyDiscount)
+        : ""
+    )
+  if (d.loyaltyDiscountLabel !== undefined)
+    workspace.setLoyaltyDiscountLabel?.(d.loyaltyDiscountLabel || "")
+  if (d.discountType !== undefined)
+    workspace.setDiscountType?.(d.discountType || "none")
+  if (d.loyaltyPoints !== undefined)
+    workspace.setLoyaltyPoints?.(Number(d.loyaltyPoints) || 0)
+  if (d.loyaltyGrossAmount !== undefined)
+    workspace.setLoyaltyGrossAmount?.(Number(d.loyaltyGrossAmount) || 0)
   if (d.includeJCInPromo !== undefined)
     workspace.setIncludeJCInPromo(d.includeJCInPromo)
   if (d.includeMiscInPromo !== undefined)
@@ -64,9 +86,21 @@ export function applyDraftDataToWorkspace(
   writeSessionCustomOptions(
     Array.isArray(d.customOptions) ? d.customOptions : []
   )
-  if (d.taxTotals || d.selectedRegionId) {
+  if (d.taxTotals || d.selectedRegionId || Array.isArray(d.customMaterials)) {
+    const mats =
+      d.taxTotals?.customMaterials ??
+      (Array.isArray(d.customMaterials) ? d.customMaterials : [])
+    const matsTotal = mats.reduce(
+      (acc: number, m: any) => acc + (Number(m?.amount) || 0),
+      0
+    )
     const effectiveTaxTotals = {
       ...(d.taxTotals || {}),
+      customMaterials: mats,
+      customMaterialsTotal:
+        d.taxTotals?.customMaterialsTotal ?? Math.round(matsTotal * 100) / 100,
+      customMaterialsCents:
+        d.taxTotals?.customMaterialsCents ?? Math.round(matsTotal * 100),
       selectedRegionId: d.selectedRegionId || d.taxTotals?.selectedRegionId,
       regionName: d.regionName || d.taxTotals?.regionName,
     }

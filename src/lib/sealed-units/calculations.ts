@@ -2,6 +2,8 @@ import {
   SealedUnitLabourSettings,
   SealedUnitLineItem,
 } from "@/lib/sealed-units-logic"
+import type { CustomMaterialItem } from "@/types/calculator"
+import { computeSealedUnitTax } from "./tax-helper"
 
 export interface SealedUnitCalculationParams {
   lineItems: SealedUnitLineItem[]
@@ -18,6 +20,9 @@ export interface SealedUnitCalculationParams {
   hstRate: number
   extraLabour?: string | number
   globalUpcharges?: any[]
+  customMaterials?: CustomMaterialItem[]
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   labour: SealedUnitLabourSettings
 }
 
@@ -44,7 +49,13 @@ export interface SealedUnitTotalsResult {
   fullInstallLabour?: number
   fullInstallMisc?: number
   miscTotal: number
+  customMaterials: CustomMaterialItem[]
+  customMaterialsTotal: number
+  loyaltyDiscount: number
+  loyaltyDiscountLabel: string
   subtotalPreTax: number
+  hstBase: number
+  materialExemption: number
   hstAmount: number
   grandTotal: number
   extraLabour: number
@@ -64,7 +75,14 @@ export function calculateSealedUnitTotals(
     lineItems, sealedUnitMode, serviceSqftInput, serviceLabourRateInput,
     serviceMiscRateInput, travelFeeType, customTravelFee, showOutTownTravel,
     travelKm, crewHours, crewSize, hstRate, extraLabour = "0", labour,
+    customMaterials = [], loyaltyDiscount = 0, loyaltyDiscountLabel = "",
   } = params
+
+  const customMaterialsList = Array.isArray(customMaterials) ? customMaterials : []
+  const customMaterialsTotal = Math.round(
+    customMaterialsList.reduce((acc, m) => acc + (Number(m?.amount) || 0), 0) * 100
+  ) / 100
+  const loyaltyDiscountAmount = Math.max(0, parseFloat(String(loyaltyDiscount || 0)) || 0)
 
   const upchargesSum = Array.isArray(params.globalUpcharges)
     ? params.globalUpcharges.reduce((acc, u) => acc + Math.max(0, parseFloat(String(u.price || u.rate || u.total || 0)) || 0), 0)
@@ -234,31 +252,30 @@ export function calculateSealedUnitTotals(
         ) / 100
       : Math.round(extraLabourAmount * 100) / 100
 
-  const subtotalPreTax = isServiceOnly
-    ? Math.round((combinedLabourTotal + miscTotal) * 100) / 100
-    : Math.round(
-        (glassSupplyTotal +
-          (isInstallation || extraLabourAmount > 0
-            ? combinedLabourTotal + miscTotal
-            : 0)) *
-          100
-      ) / 100
+  const grossSubtotalPreTax = isServiceOnly
+    ? combinedLabourTotal + miscTotal + customMaterialsTotal
+    : glassSupplyTotal +
+      customMaterialsTotal +
+      (isInstallation || extraLabourAmount > 0
+        ? combinedLabourTotal + miscTotal
+        : 0)
+  const subtotalPreTax = Math.max(
+    0,
+    Math.round((grossSubtotalPreTax - loyaltyDiscountAmount) * 100) / 100
+  )
 
-  // Exact Tax: In Service Only, strictly 13% HST (no point-of-sale material rebate)
-  let hstAmount = 0
-  if (isServiceOnly) {
-    hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100
-  } else if (hstRate === 13) {
-    hstAmount = Math.round(subtotalPreTax * 0.13 * 100) / 100
-  } else if (hstRate === 8) {
-    const materialAmount = glassSupplyTotal
-    const serviceAmount = isInstallation ? combinedLabourTotal + miscTotal : 0
-    const materialTax = Math.round(materialAmount * 0.05 * 100) / 100
-    const serviceTax = Math.round(serviceAmount * 0.13 * 100) / 100
-    hstAmount = Math.round((materialTax + serviceTax) * 100) / 100
-  } else {
-    hstAmount = 0
-  }
+  const { hstAmount, hstBase, materialExemption } = computeSealedUnitTax({
+    hstRate,
+    subtotalPreTax,
+    isServiceOnly,
+    isInstallation,
+    glassSupplyTotal,
+    customMaterialsTotal,
+    combinedLabourTotal,
+    miscTotal,
+    extraLabourAmount,
+    loyaltyDiscountAmount,
+  })
 
   const grandTotal = Math.round((subtotalPreTax + hstAmount) * 100) / 100
 
@@ -285,7 +302,13 @@ export function calculateSealedUnitTotals(
     fullInstallLabour,
     fullInstallMisc,
     miscTotal,
+    customMaterials: customMaterialsList,
+    customMaterialsTotal,
+    loyaltyDiscount: loyaltyDiscountAmount,
+    loyaltyDiscountLabel,
     subtotalPreTax,
+    hstBase,
+    materialExemption,
     hstAmount,
     grandTotal,
     extraLabour: extraLabourAmount,

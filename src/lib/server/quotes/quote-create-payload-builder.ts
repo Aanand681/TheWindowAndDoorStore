@@ -42,6 +42,11 @@ export function buildQuotePayload(
     loyaltyPoints: body.loyaltyPoints,
     loyaltyGrossAmount: body.loyaltyGrossAmount,
     loyaltyTierId: body.loyaltyTierId,
+    customMaterials: Array.isArray(body.customMaterials)
+      ? body.customMaterials
+      : Array.isArray(body.taxTotals?.customMaterials)
+        ? body.taxTotals.customMaterials
+        : [],
     includeJCInPromo: body.includeJCInPromo,
     includeMiscInPromo: body.includeMiscInPromo,
     includeLabourInPromo: body.includeLabourInPromo,

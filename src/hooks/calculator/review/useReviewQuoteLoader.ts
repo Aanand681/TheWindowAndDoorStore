@@ -30,6 +30,13 @@ export interface UseReviewQuoteLoaderParams {
   setCustomJC: (val: string) => void
   setCustomMisc: (val: string) => void
   setCustomLabour: (val: string) => void
+  setCustomDiscount?: (val: string) => void
+  setCustomDiscountLabel?: (val: string) => void
+  setLoyaltyDiscount?: (val: string) => void
+  setLoyaltyDiscountLabel?: (val: string) => void
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (val: number) => void
+  setLoyaltyGrossAmount?: (val: number) => void
   setIncludeJCInPromo: (val: boolean) => void
   setIncludeMiscInPromo: (val: boolean) => void
   setIncludeLabourInPromo: (val: boolean) => void
@@ -68,6 +75,13 @@ export function useReviewQuoteLoader({
   setCustomJC,
   setCustomMisc,
   setCustomLabour,
+  setCustomDiscount,
+  setCustomDiscountLabel,
+  setLoyaltyDiscount,
+  setLoyaltyDiscountLabel,
+  setDiscountType,
+  setLoyaltyPoints,
+  setLoyaltyGrossAmount,
   setIncludeJCInPromo,
   setIncludeMiscInPromo,
   setIncludeLabourInPromo,
@@ -168,6 +182,13 @@ export function useReviewQuoteLoader({
           if (q.customJC !== undefined) setCustomJC(String(q.customJC || ""))
           if (q.customMisc !== undefined) setCustomMisc(String(q.customMisc || ""))
           if (q.customLabour !== undefined) setCustomLabour(String(q.customLabour || ""))
+          if (q.customDiscount !== undefined) setCustomDiscount?.(String(q.customDiscount ?? ""))
+          if (q.customDiscountLabel !== undefined) setCustomDiscountLabel?.(q.customDiscountLabel || "")
+          if (q.loyaltyDiscount !== undefined) setLoyaltyDiscount?.(String(q.loyaltyDiscount ?? ""))
+          if (q.loyaltyDiscountLabel !== undefined) setLoyaltyDiscountLabel?.(q.loyaltyDiscountLabel || "")
+          if (q.discountType !== undefined) setDiscountType?.(q.discountType || "none")
+          if (q.loyaltyPoints !== undefined) setLoyaltyPoints?.(Number(q.loyaltyPoints) || 0)
+          if (q.loyaltyGrossAmount !== undefined) setLoyaltyGrossAmount?.(Number(q.loyaltyGrossAmount) || 0)
           if (q.includeJCInPromo !== undefined) setIncludeJCInPromo(Boolean(q.includeJCInPromo))
           if (q.includeMiscInPromo !== undefined) setIncludeMiscInPromo(Boolean(q.includeMiscInPromo))
           if (q.includeLabourInPromo !== undefined) setIncludeLabourInPromo(Boolean(q.includeLabourInPromo))
@@ -186,9 +207,23 @@ export function useReviewQuoteLoader({
           if (setHstRate && (q.hstRate !== undefined || q.taxTotals?.hstRate !== undefined)) {
             setHstRate(Number(q.hstRate ?? q.taxTotals?.hstRate))
           }
-          if (q.taxTotals) {
+          if (q.taxTotals || Array.isArray(q.customMaterials)) {
+            const mats =
+              q.taxTotals?.customMaterials ??
+              (Array.isArray(q.customMaterials) ? q.customMaterials : [])
+            const matsTotal = mats.reduce(
+              (acc: number, m: any) => acc + (Number(m?.amount) || 0),
+              0
+            )
             setTaxTotals({
-              ...q.taxTotals,
+              ...(q.taxTotals || {}),
+              customMaterials: mats,
+              customMaterialsTotal:
+                q.taxTotals?.customMaterialsTotal ??
+                Math.round(matsTotal * 100) / 100,
+              customMaterialsCents:
+                q.taxTotals?.customMaterialsCents ??
+                Math.round(matsTotal * 100),
               _quoteId: q._id,
               _quoteNumber: q.quoteNumber,
             })
@@ -223,6 +258,13 @@ export function useReviewQuoteLoader({
     setCustomJC(String(reviewQuote.customJC || ""))
     setCustomMisc(String(reviewQuote.customMisc || ""))
     setCustomLabour(String(reviewQuote.customLabour || ""))
+    setCustomDiscount?.(String(reviewQuote.customDiscount ?? ""))
+    setCustomDiscountLabel?.(reviewQuote.customDiscountLabel || "")
+    setLoyaltyDiscount?.(String(reviewQuote.loyaltyDiscount ?? ""))
+    setLoyaltyDiscountLabel?.(reviewQuote.loyaltyDiscountLabel || "")
+    setDiscountType?.(reviewQuote.discountType || "none")
+    setLoyaltyPoints?.(Number(reviewQuote.loyaltyPoints) || 0)
+    setLoyaltyGrossAmount?.(Number(reviewQuote.loyaltyGrossAmount) || 0)
     setIncludeJCInPromo(reviewQuote.includeJCInPromo !== false)
     setIncludeMiscInPromo(reviewQuote.includeMiscInPromo !== false)
     setIncludeLabourInPromo(reviewQuote.includeLabourInPromo !== false)

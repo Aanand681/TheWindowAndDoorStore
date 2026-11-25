@@ -155,6 +155,8 @@ export function useSealedUnitsAutoSave({
       lineItems.length > 0 ||
       (isServiceOnly &&
         (serviceSqftInput.trim() !== "" || (totals.totalSqft || 0) > 0)) ||
+      (Array.isArray((currentSnapshotParams as any)?.customMaterials) &&
+        (currentSnapshotParams as any).customMaterials.length > 0) ||
       Boolean(attachedWindowQuote) ||
       Boolean(attachedDoorQuote)
 

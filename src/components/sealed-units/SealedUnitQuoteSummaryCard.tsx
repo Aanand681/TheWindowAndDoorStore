@@ -26,6 +26,16 @@ interface SealedUnitQuoteSummaryCardProps {
   hstRate: number
   setHstRate?: (rate: number) => void
   totals: any
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
   customerName?: string
   quoteNumber?: string
   quoteNotes: string
@@ -47,7 +57,11 @@ interface SealedUnitQuoteSummaryCardProps {
 
 export function SealedUnitQuoteSummaryCard({
   lineItemsCount, lineItems, mode = "installation", onModeChange, isInstallation,
-  labour, hstRate, setHstRate, totals, customerName = "Valued Customer", quoteNumber = "SU-DRAFT",
+  labour, hstRate, setHstRate, totals,
+  loyaltyDiscount = "", setLoyaltyDiscount, loyaltyDiscountLabel = "", setLoyaltyDiscountLabel,
+  discountType = "none", setDiscountType, loyaltyPoints = 0, setLoyaltyPoints,
+  loyaltyGrossAmount = 0, setLoyaltyGrossAmount,
+  customerName = "Valued Customer", quoteNumber = "SU-DRAFT",
   quoteNotes, setQuoteNotes, user, onOpenSubmitModal = () => {}, onPrint = () => {},
   attachedWindowQuote, attachedDoorQuote, onRemoveAttachedWindowQuote,
   onRemoveAttachedDoorQuote, isReadOnly = false, isReviewMode = false,
@@ -57,11 +71,16 @@ export function SealedUnitQuoteSummaryCard({
   const hasAttachedWindow = Boolean(attachedWindowQuote)
   const hasAttachedDoor = Boolean(attachedDoorQuote)
   const hasAnyAttached = hasAttachedWindow || hasAttachedDoor
-  const hasContent = isService ? (totals.totalSqft || 0) > 0 || lineItemsCount > 0 : lineItemsCount > 0 || hasAnyAttached
+  const hasCustomMaterials = (totals.customMaterialsTotal || 0) > 0 || (Array.isArray(totals.customMaterials) && totals.customMaterials.length > 0)
+  const hasContent = isService ? (totals.totalSqft || 0) > 0 || lineItemsCount > 0 || hasCustomMaterials : lineItemsCount > 0 || hasCustomMaterials || hasAnyAttached
+  const loyaltyDiscountNum = Math.max(0, parseFloat(String(loyaltyDiscount)) || 0)
 
   const winJCDescription = attachedWindowQuote?.jcLabel || "Jambs & Casing"
   const winCustomMaterialsList = hasAttachedWindow
     ? (attachedWindowQuote.totals?.customMaterialsList || attachedWindowQuote.taxTotals?.customMaterials || [])
+    : []
+  const doorCustomMaterialsList = hasAttachedDoor
+    ? (attachedDoorQuote.totals?.customMaterialsList || attachedDoorQuote.totals?.customMaterials || attachedDoorQuote.customMaterials || [])
     : []
 
   const universal = calculateUniversalPricing({
@@ -72,11 +91,16 @@ export function SealedUnitQuoteSummaryCard({
     isSupplyOnly: !isInstallation && !isService,
     hstRate,
     isFirstNation: hstRate === 8,
+    overrides: {
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+    },
   })
 
   const winBase = universal.winNorm?.rawBase || 0
   const winJC = universal.winNorm?.jambsAndCasing || 0
   const winCustomMaterials = universal.winNorm?.customMaterials || 0
+  const doorCustomMaterials = universal.doorNorm?.customMaterials || 0
   const winDiscount = universal.winNorm?.discount || 0
   const doorRawBase = universal.doorNorm?.rawBase || 0
   const doorDiscount = universal.doorNorm?.discount || 0
@@ -151,7 +175,15 @@ export function SealedUnitQuoteSummaryCard({
               hasAttachedDoor={hasAttachedDoor} hasAnyAttached={hasAnyAttached} attachedWindowQuote={attachedWindowQuote}
               attachedDoorQuote={attachedDoorQuote} attachedWinSentence={attachedWinSentence} attachedDoorSentence={attachedDoorSentence}
               winBase={winBase} winJC={winJC} winJCDescription={winJCDescription} winCustomMaterialsList={winCustomMaterialsList}
+              doorCustomMaterialsList={doorCustomMaterialsList}
               winDiscount={winDiscount} doorRawBase={doorRawBase} doorDiscount={doorDiscount} isInstallation={isInstallation}
+              winCustomMaterials={winCustomMaterials} doorCustomMaterials={doorCustomMaterials}
+              loyaltyDiscount={loyaltyDiscount} setLoyaltyDiscount={setLoyaltyDiscount}
+              loyaltyDiscountLabel={loyaltyDiscountLabel} setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
+              discountType={discountType} setDiscountType={setDiscountType}
+              loyaltyPoints={loyaltyPoints} setLoyaltyPoints={setLoyaltyPoints}
+              loyaltyGrossAmount={loyaltyGrossAmount} setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+              isReadOnly={isReadOnly}
               hstRate={hstRate} setHstRate={setHstRate}
               combinedHstBase={universal.hstBase} combinedMaterialExemption={universal.materialExemption}
             />
@@ -168,9 +200,11 @@ export function SealedUnitQuoteSummaryCard({
         quoteNumber={quoteNumber} customerName={customerName} currentMode={mode === "supply_only" ? "supply" : "install"}
         currentSubtotal={combinedSubtotal} baseLabel={isService ? "Service Total" : "Glass Units"}
         baseAmount={totals.glassBefore8PercentTotal}
+        materialsAmount={totals.customMaterialsTotal || 0} materialsLabel="Additional Materials"
         attachedLabel={[hasAttachedWindow ? attachedWinSentence : "", hasAttachedDoor ? attachedDoorSentence : ""].filter(Boolean).join(" + ") || undefined}
-        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedDoor ? doorRawBase - doorDiscount : 0)}
+        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedDoor ? doorRawBase + doorCustomMaterials - doorDiscount : 0)}
         labourAmount={compareLabour} miscAmount={compareMisc} surchargeAmount={combinedSurcharge} surchargeLabel="Surcharge"
+        discountAmount={loyaltyDiscountNum} discountLabel={loyaltyDiscountLabel || "Additional Discount"}
         hstRate={hstRate} onApplyMode={(m) => onModeChange && onModeChange(m === "supply" ? "supply_only" : "installation")}
         onToggleAttachOption={(att, c, title, hasSupplyJC) => {
           const opt = att ? { enabled: true, amountPreTaxCents: c, title, hasSupplyJC } : null

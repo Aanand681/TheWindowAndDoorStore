@@ -28,6 +28,12 @@ export interface BuildSealedUnitsUpdatePayloadParams {
   crewSize: "2" | "3"
   extraLabour?: string
   globalUpcharges?: any[]
+  customMaterials?: any[]
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   hstRate: number
   attachedWindowQuote: any
   attachedDoorQuote: any
@@ -59,12 +65,20 @@ export function buildSealedUnitsUpdatePayload(
     crewSize,
     extraLabour,
     globalUpcharges,
+    customMaterials = [],
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    discountType = "none",
+    loyaltyPoints = 0,
+    loyaltyGrossAmount = 0,
     hstRate,
     attachedWindowQuote,
     attachedDoorQuote,
     status,
     extra = {},
   } = p
+
+  const loyaltyDiscountNum = Math.max(0, parseFloat(String(loyaltyDiscount)) || 0)
 
   return {
     customerName,
@@ -74,6 +88,7 @@ export function buildSealedUnitsUpdatePayload(
     sealedUnitMode,
     windows: lineItems,
     taxTotals: {
+      ...totals,
       isSupplyOnly: !isInstallation,
       isServiceOnly,
       subtotalPreTax: totals.subtotalPreTax,
@@ -87,6 +102,11 @@ export function buildSealedUnitsUpdatePayload(
       effectiveLabourRate: totals.effectiveLabourRate,
       miscTotal: totals.miscTotal,
       effectiveMiscRate: totals.effectiveMiscRate,
+      loyaltyDiscount: loyaltyDiscountNum,
+      loyaltyDiscountLabel,
+      discountType,
+      loyaltyPoints,
+      loyaltyGrossAmount,
       isSealedUnitQuote: true,
     },
     quoteSummaryTotal: Math.round(totals.grandTotal * 100),
@@ -102,6 +122,12 @@ export function buildSealedUnitsUpdatePayload(
     crewSize,
     extraLabour,
     globalUpcharges,
+    customMaterials,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    discountType,
+    loyaltyPoints,
+    loyaltyGrossAmount,
     hstRate,
     attachedWindowQuote,
     attachedDoorQuote,

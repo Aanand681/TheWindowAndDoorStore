@@ -2,8 +2,9 @@ import * as pdfjsLib from "pdfjs-dist"
 import { ensurePdfWorker } from "./pdf-studio/pdf-init"
 import { WindowItem } from "./promo-logic"
 import { extractPdfMetadata } from "./pdf/metadata-extractor"
+import { pdfItemsToRows } from "./pdf/row-builder"
 
-export { extractPdfMetadata }
+export { extractPdfMetadata, pdfItemsToRows }
 
 export async function readPdfItems(file: File) {
   ensurePdfWorker()
@@ -20,6 +21,7 @@ export async function readPdfItems(file: File) {
       if (!t.str || !t.str.trim()) continue
       items.push({
         page: p - 1,
+        pageHeight: h,
         x: t.transform[4],
         y: h - t.transform[5],
         str: t.str,
@@ -27,71 +29,6 @@ export async function readPdfItems(file: File) {
     }
   }
   return items
-}
-
-export function pdfItemsToRows(items: any[]) {
-  const sorted = [...items].sort(
-    (a, b) => a.page - b.page || a.y - b.y || a.x - b.x
-  )
-  const rowsOut: any[] = []
-  let cur: any = null
-  for (const it of sorted) {
-    if (!String(it.str).trim()) continue
-    if (!cur || cur.page !== it.page || Math.abs(it.y - cur.y) > 3) {
-      cur = { page: it.page, y: it.y, items: [] }
-      rowsOut.push(cur)
-    }
-    cur.items.push(it)
-  }
-
-  return rowsOut
-    .map((r) => {
-      const its = r.items.sort((a: any, b: any) => a.x - b.x)
-      const money = (s: string) => Number(s.replace(/[$,]/g, ""))
-      const out: any = {
-        page: r.page,
-        y: r.y,
-        no: "",
-        qty: null as number | null,
-        label: "",
-        list: null as number | null,
-        total: null as number | null,
-        size: "",
-      }
-      const labelParts: string[] = []
-      const sizeParts: string[] = []
-
-      for (const it of its) {
-        const s = String(it.str).trim()
-        if (
-          it.x < 50 &&
-          !out.no &&
-          !labelParts.length &&
-          /^\d+(?:\.\d+)?$/.test(s)
-        ) {
-          out.no = s
-          continue
-        }
-        if (it.x >= 250 && it.x < 285 && /^\d+$/.test(s)) {
-          out.qty = Number(s)
-          continue
-        }
-        if (it.x >= 370 && /^\$[\d,]+\.\d{2}$/.test(s)) {
-          if (it.x < 445) out.list = money(s)
-          else out.total = money(s)
-          continue
-        }
-        if (it.x >= 250 && it.x <= 390 && !/^\$/.test(s)) {
-          sizeParts.push(s)
-          continue
-        }
-        if (it.x < 250 || /LINE|ITEM|TOTAL/i.test(s)) labelParts.push(s)
-      }
-      out.label = labelParts.join(" ").replace(/\s+/g, " ").trim()
-      out.size = sizeParts.join(" ").replace(/\s+/g, " ").trim()
-      return out
-    })
-    .filter((r) => r.y < 740)
 }
 
 export function parseManufacturerPdfItems(items: any[]): WindowItem[] {

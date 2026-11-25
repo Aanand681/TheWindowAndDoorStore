@@ -169,6 +169,7 @@ export default function QuotePreviewModal({
         onSpacingChange={onSpacingChange}
         showNotesEditor={showNotesEditor}
         setShowNotesEditor={setShowNotesEditor}
+        canEditNotes={Boolean(onQuoteNotesChange)}
         quoteNotes={quoteNotes}
         isSupplyOnly={isSupplyOnly}
         isDualOption={isDualOption}

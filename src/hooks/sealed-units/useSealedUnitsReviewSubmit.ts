@@ -32,6 +32,12 @@ interface UseSealedUnitsReviewSubmitProps {
   crewSize?: string
   extraLabour?: string
   globalUpcharges?: any[]
+  customMaterials?: any[]
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
 }
 
 export function useSealedUnitsReviewSubmit({
@@ -57,6 +63,12 @@ export function useSealedUnitsReviewSubmit({
   crewSize,
   extraLabour,
   globalUpcharges,
+  customMaterials = [],
+  loyaltyDiscount = "",
+  loyaltyDiscountLabel = "",
+  discountType = "none",
+  loyaltyPoints = 0,
+  loyaltyGrossAmount = 0,
 }: UseSealedUnitsReviewSubmitProps) {
   const buildSubmitPayload = useCallback(
     ({ isDirectApprove, effectiveReviewer, effectiveClerk, preparerNotes }: any) => {
@@ -105,10 +117,18 @@ export function useSealedUnitsReviewSubmit({
         crewSize,
         extraLabour: extraLabour || "",
         globalUpcharges: globalUpcharges || [],
+        customMaterials: customMaterials || [],
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
         hstRate,
         windows: effectiveLineItems,
         taxTotals: {
+          ...totals,
           isSupplyOnly: !isInstallation,
+          isServiceOnly,
           subtotalPreTax: totals.subtotalPreTax,
           grandTotal: totals.grandTotal,
           hstAmount: totals.hstAmount,
@@ -120,6 +140,11 @@ export function useSealedUnitsReviewSubmit({
           miscTotal: totals.miscTotal,
           baseSetupFee: totals.baseSetupFee,
           totalAdditionalTravel: totals.totalAdditionalTravel,
+          loyaltyDiscount: Math.max(0, parseFloat(String(loyaltyDiscount)) || 0),
+          loyaltyDiscountLabel,
+          discountType,
+          loyaltyPoints,
+          loyaltyGrossAmount,
           isSealedUnitQuote: true,
         },
         quoteResult: {
@@ -135,7 +160,9 @@ export function useSealedUnitsReviewSubmit({
       lineItems, totals, quoteNumber, customerName, user?.username, assignedReviewer,
       selectedOdooClerk, quoteNotes, attachedWindowQuote, attachedDoorQuote,
       selectedRegionId, travelFeeType, customTravelFee, showOutTownTravel, travelKm,
-      crewHours, crewSize, extraLabour, globalUpcharges, hstRate, isInstallation,
+      crewHours, crewSize, extraLabour, globalUpcharges, customMaterials,
+      loyaltyDiscount, loyaltyDiscountLabel, discountType, loyaltyPoints, loyaltyGrossAmount,
+      hstRate, isInstallation, isServiceOnly,
     ]
   )
 

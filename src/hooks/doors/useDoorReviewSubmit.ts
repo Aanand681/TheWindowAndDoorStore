@@ -26,6 +26,17 @@ interface UseDoorReviewSubmitProps {
   travelKm?: string
   crewHours?: string
   crewSize?: string
+  hstRate?: number
+  customLabour?: string
+  customMisc?: string
+  customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: any[]
 }
 
 export function useDoorReviewSubmit({
@@ -47,6 +58,17 @@ export function useDoorReviewSubmit({
   travelKm,
   crewHours,
   crewSize,
+  hstRate,
+  customLabour = "",
+  customMisc = "",
+  customDiscount = "",
+  customDiscountLabel = "",
+  loyaltyDiscount = "",
+  loyaltyDiscountLabel = "",
+  discountType = "none",
+  loyaltyPoints = 0,
+  loyaltyGrossAmount = 0,
+  customMaterials = [],
 }: UseDoorReviewSubmitProps) {
   const buildSubmitPayload = useCallback(
     ({ isDirectApprove, effectiveReviewer, effectiveClerk, preparerNotes }: any) => ({
@@ -57,6 +79,19 @@ export function useDoorReviewSubmit({
       odooAssignedTo: isDirectApprove ? effectiveClerk : undefined,
       preparerNotes,
       quoteNotes,
+      mode,
+      isFirstNation,
+      hstRate: hstRate ?? (isFirstNation ? 8 : 13),
+      customLabour,
+      customMisc,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+      discountType,
+      loyaltyPoints,
+      loyaltyGrossAmount,
+      customMaterials,
       attachedWindowQuote,
       attachedSealedUnit,
       attachedInstallOption: readSessionAttachedInstallOption(),
@@ -90,8 +125,10 @@ export function useDoorReviewSubmit({
         upgradeOption: item.upgradeOption,
       })),
       taxTotals: {
+        ...totals,
         isSupplyOnly: mode === "supply_only",
         isFirstNation,
+        hstRate: hstRate ?? (isFirstNation ? 8 : 13),
         totalPrice: totals.rawDoorBaseTotal + totals.stormDoorTotal,
         subtotal: totals.subtotalPreTax,
         combinedLabour: totals.combinedLabourTotal,
@@ -107,7 +144,10 @@ export function useDoorReviewSubmit({
     [
       customerName, quoteNumber, quoteNotes, attachedWindowQuote, attachedSealedUnit,
       selectedRegionId, travelFeeType, customTravelFee, showOutTownTravel, travelKm,
-      crewHours, crewSize, totals, lineItems, mode, isFirstNation, user?.username,
+      crewHours, crewSize, totals, lineItems, mode, isFirstNation, hstRate,
+      customLabour, customMisc, customDiscount, customDiscountLabel, loyaltyDiscount,
+      loyaltyDiscountLabel, discountType, loyaltyPoints, loyaltyGrossAmount,
+      customMaterials, user?.username,
     ]
   )
 

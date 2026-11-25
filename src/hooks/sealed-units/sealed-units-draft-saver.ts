@@ -45,6 +45,8 @@ export async function executeSaveSealedUnitDraft({
   const hasMeaningfulContent =
     lineItems.length > 0 ||
     (isServiceOnly && ((totals.totalSqft || 0) > 0 || serviceSqftInput.trim() !== "")) ||
+    (Array.isArray(currentSnapshotParams.customMaterials) &&
+      currentSnapshotParams.customMaterials.length > 0) ||
     Boolean(attachedWindowQuote) ||
     Boolean(attachedDoorQuote)
 

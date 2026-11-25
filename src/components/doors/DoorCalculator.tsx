@@ -97,6 +97,7 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
       {!page.showPreviewModal &&
         (page.lineItems.length > 0 ||
           page.totals.grandTotal > 0 ||
+          (page.totals.customMaterials?.length || 0) > 0 ||
           page.attachedWindowQuote ||
           page.attachedSealedUnit) && (
           <QuoteInvoice
@@ -105,9 +106,16 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
             preparedBy={
               page.user?.name || page.user?.username || "The Window & Door Store"
             }
+            primaryQuoteType="door"
             doors={page.lineItems}
             doorTotals={page.totals}
             quoteNotes={page.quoteNotes}
+            customLabour={page.customLabour}
+            customMisc={page.customMisc}
+            customDiscount={page.customDiscount}
+            customDiscountLabel={page.customDiscountLabel}
+            loyaltyDiscount={page.loyaltyDiscount}
+            loyaltyDiscountLabel={page.loyaltyDiscountLabel}
             template={page.quoteTemplate}
             fontSize={page.quoteFontSize}
             spacing={page.quoteSpacing}

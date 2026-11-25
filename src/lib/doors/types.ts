@@ -1,4 +1,5 @@
 import type { StormDoorCatalogItem } from "./storm-door-types"
+import type { CustomMaterialItem } from "@/types/calculator"
 
 export type DoorCategory = "entry" | "patio" | "garden" | "storm" | "custom"
 
@@ -122,8 +123,10 @@ export interface DoorCalculationParams {
   formula: DoorFormulaSettings
   logistics: DoorLogisticsSettings
   customDiscount?: string
+  customDiscountLabel?: string
   loyaltyDiscount?: string
   loyaltyDiscountLabel?: string
+  customMaterials?: CustomMaterialItem[]
 }
 
 export interface DoorQuoteTotals {
@@ -138,6 +141,8 @@ export interface DoorQuoteTotals {
   loyaltyDiscount?: number
   loyaltyDiscountLabel?: string
   totalDiscount?: number
+  customMaterials?: CustomMaterialItem[]
+  customMaterialsTotal?: number
   netDoorSupplyTotal: number
   stormDoorTotal: number
   hardwareTotal: number

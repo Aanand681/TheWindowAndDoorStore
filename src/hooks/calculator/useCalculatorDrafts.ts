@@ -89,6 +89,11 @@ export function useCalculatorDrafts({
     if (ws.attachedDoorQuote || ws.attachedSealedUnit) {
       const combined = computeCombinedQuoteFinancials({
         quoteResult: financials.quoteResult,
+        taxTotals: ws.taxTotals,
+        customDiscount: ws.customDiscount,
+        customDiscountLabel: ws.customDiscountLabel,
+        loyaltyDiscount: ws.loyaltyDiscount,
+        loyaltyDiscountLabel: ws.loyaltyDiscountLabel,
         afterDiscount: financials.afterDiscount,
         total: financials.total,
         attachedSealedUnit: ws.attachedSealedUnit,

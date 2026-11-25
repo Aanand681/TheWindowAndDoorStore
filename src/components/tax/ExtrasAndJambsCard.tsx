@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { Plus, Trash2 } from "lucide-react"
 import type { CustomMaterialItem } from "@/types/calculator"
+import { CustomMaterialsEditor } from "@/components/shared/materials"
 
 interface ExtrasAndJambsCardProps {
   readOnly?: boolean
@@ -294,93 +295,13 @@ export function ExtrasAndJambsCard({
           </div>
 
           {/* Additional Materials */}
-          <div className="space-y-2 border-t border-border/50 pt-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Additional Materials
-              </Label>
-              <span className="font-mono text-[11px] text-muted-foreground">
-                (Eligible for Material Exemption)
-              </span>
-            </div>
-
-            {customMaterials.length > 0 && (
-              <div className="space-y-2">
-                {customMaterials.map((mat, index) => (
-                  <div key={mat.id} className="flex items-center gap-2">
-                    <Input
-                      disabled={readOnly}
-                      placeholder="e.g. Jamb as stop"
-                      className="h-8 flex-1 text-xs"
-                      value={mat.label}
-                      onChange={(e) => {
-                        if (!setCustomMaterials) return
-                        const updated = [...customMaterials]
-                        updated[index] = {
-                          ...updated[index],
-                          label: e.target.value,
-                        }
-                        setCustomMaterials(updated)
-                      }}
-                    />
-                    <div className="relative w-24 shrink-0">
-                      <span className="absolute top-2 left-2 text-xs text-muted-foreground">
-                        $
-                      </span>
-                      <Input
-                        disabled={readOnly}
-                        type="number"
-                        placeholder="0.00"
-                        className="h-8 pl-5 font-mono text-xs"
-                        value={mat.amount || ""}
-                        onChange={(e) => {
-                          if (!setCustomMaterials) return
-                          const updated = [...customMaterials]
-                          updated[index] = {
-                            ...updated[index],
-                            amount: parseFloat(e.target.value) || 0,
-                          }
-                          setCustomMaterials(updated)
-                        }}
-                      />
-                    </div>
-                    {!readOnly && setCustomMaterials && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-destructive"
-                        onClick={() => {
-                          setCustomMaterials(
-                            customMaterials.filter((m) => m.id !== mat.id)
-                          )
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!readOnly && setCustomMaterials && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-1 h-8 w-full border-dashed text-xs"
-                onClick={() => {
-                  const newMat: CustomMaterialItem = {
-                    id: "mat_" + Date.now(),
-                    label: "",
-                    amount: 0,
-                  }
-                  setCustomMaterials([...customMaterials, newMat])
-                }}
-              >
-                <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Material
-              </Button>
-            )}
-          </div>
+          <CustomMaterialsEditor
+            materials={customMaterials}
+            onMaterialsChange={setCustomMaterials}
+            isReadOnly={readOnly}
+            placeholder="e.g. Jamb as stop"
+            className="border-t border-border/50 pt-3"
+          />
         </CardContent>
       </Card>
     </div>

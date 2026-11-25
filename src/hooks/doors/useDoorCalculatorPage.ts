@@ -56,6 +56,7 @@ export function useDoorCalculatorPage(
       customDiscount: base.customDiscount,
       loyaltyDiscount: base.loyaltyDiscount,
       loyaltyDiscountLabel: base.loyaltyDiscountLabel,
+      customMaterials: base.customMaterials,
     })
   }, [
     items.lineItems,
@@ -74,6 +75,7 @@ export function useDoorCalculatorPage(
     base.customDiscount,
     base.loyaltyDiscount,
     base.loyaltyDiscountLabel,
+    base.customMaterials,
   ])
 
   const sharedSyncProps = buildDoorSharedSyncProps({
@@ -82,6 +84,7 @@ export function useDoorCalculatorPage(
     setLineItems: items.setLineItems,
     selectedRegionId: travel.selectedRegionId,
     setSelectedRegionId: travel.setSelectedRegionId,
+    resetRegionToDefault: travel.resetRegionToDefault,
     travelFeeType: travel.travelFeeType,
     setTravelFeeType: travel.setTravelFeeType,
     customTravelFee: travel.customTravelFee,
@@ -131,6 +134,14 @@ export function useDoorCalculatorPage(
     hstRate: base.hstRate,
     customLabour: base.customLabour,
     customMisc: base.customMisc,
+    customDiscount: base.customDiscount,
+    customDiscountLabel: base.customDiscountLabel,
+    loyaltyDiscount: base.loyaltyDiscount,
+    loyaltyDiscountLabel: base.loyaltyDiscountLabel,
+    discountType: base.discountType,
+    loyaltyPoints: base.loyaltyPoints,
+    loyaltyGrossAmount: base.loyaltyGrossAmount,
+    customMaterials: base.customMaterials,
     presets,
     formula,
     setCustomerName: base.setCustomerName,
@@ -150,6 +161,14 @@ export function useDoorCalculatorPage(
     setHstRate: base.setHstRate,
     setCustomLabour: base.setCustomLabour,
     setCustomMisc: base.setCustomMisc,
+    setCustomDiscount: base.setCustomDiscount,
+    setCustomDiscountLabel: base.setCustomDiscountLabel,
+    setLoyaltyDiscount: base.setLoyaltyDiscount,
+    setLoyaltyDiscountLabel: base.setLoyaltyDiscountLabel,
+    setDiscountType: base.setDiscountType,
+    setLoyaltyPoints: base.setLoyaltyPoints,
+    setLoyaltyGrossAmount: base.setLoyaltyGrossAmount,
+    setCustomMaterials: base.setCustomMaterials,
     setAttachedWindowQuote: base.setAttachedWindowQuote,
     setAttachedSealedUnit: base.setAttachedSealedUnit,
     handleConfirmReset: drafts.handleConfirmReset,

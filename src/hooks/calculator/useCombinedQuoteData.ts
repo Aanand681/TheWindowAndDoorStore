@@ -18,6 +18,7 @@ export interface CombinedQuoteData {
   combinedLabour: number
   combinedSurcharge: number
   windowDiscount: number
+  totalCustomMaterials: number
   combinedSubtotal: number
   combinedTax: number
   combinedTotal: number
@@ -50,7 +51,11 @@ export interface UseCombinedQuoteDataParams {
   attachedSealedUnit?: any | null
   attachedDoorQuote?: any | null
   quoteResult?: any
+  taxTotals?: any
   customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   // Dollar decimal amounts
   effectiveMisc?: number
   effectiveLabour?: number
@@ -71,7 +76,11 @@ export function useCombinedQuoteData({
   attachedSealedUnit,
   attachedDoorQuote,
   quoteResult,
+  taxTotals,
   customDiscount,
+  customDiscountLabel,
+  loyaltyDiscount,
+  loyaltyDiscountLabel,
   effectiveMisc,
   effectiveLabour,
   effectiveJC,
@@ -99,9 +108,13 @@ export function useCombinedQuoteData({
 
     const fin = computeCombinedQuoteFinancials({
       quoteResult,
+      taxTotals,
       attachedSealedUnit,
       attachedDoorQuote,
       customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
       effectiveJC: resolvedJCCents,
       effectiveMisc: resolvedMiscCents,
       effectiveLabour: resolvedLabourCents,
@@ -150,6 +163,12 @@ export function useCombinedQuoteData({
     const combinedLabour = Math.round(fin.combinedLabourCents) / 100
     const combinedSurcharge = Math.round(fin.combinedSurchargeCents) / 100
     const windowDiscount = Math.round(fin.windowDiscountCents) / 100
+    const totalCustomMaterials =
+      Math.round(
+        (fin.windowCustomMaterialsCents +
+          fin.doorCustomMaterialsCents +
+          fin.suCustomMaterialsCents)
+      ) / 100
     const combinedSubtotal = fin.subtotalDollars
     const combinedTotal = fin.grandTotalDollars
     const combinedTax = Math.round((combinedTotal - combinedSubtotal) * 100) / 100
@@ -167,6 +186,7 @@ export function useCombinedQuoteData({
       combinedLabour,
       combinedSurcharge,
       windowDiscount,
+      totalCustomMaterials,
       combinedSubtotal,
       combinedTax,
       combinedTotal,
@@ -197,7 +217,11 @@ export function useCombinedQuoteData({
     attachedSealedUnit,
     attachedDoorQuote,
     quoteResult,
+    taxTotals,
     customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
     effectiveMisc,
     effectiveLabour,
     effectiveJC,

@@ -149,7 +149,11 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     attachedSealedUnit,
     attachedDoorQuote,
     quoteResult,
+    taxTotals,
     customDiscount,
+    customDiscountLabel: props.customDiscountLabel,
+    loyaltyDiscount: props.loyaltyDiscount,
+    loyaltyDiscountLabel: props.loyaltyDiscountLabel,
     effectiveMisc,
     effectiveLabour,
     effectiveJC,
@@ -222,6 +226,9 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
     effectiveJCCents > 0 ||
     effectiveLabourCents > 0 ||
     effectiveMiscCents > 0 ||
+    ((taxTotals as any)?.customMaterialsTotal || 0) > 0 ||
+    (Array.isArray((taxTotals as any)?.customMaterials) &&
+      (taxTotals as any).customMaterials.length > 0) ||
     attachedSealedUnit ||
     attachedDoorQuote ||
     attachedUpgrade ||
@@ -268,6 +275,7 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 combinedData={combinedData}
                 summaryWindowGroups={summaryWindowGroups}
                 attachedDoorQuote={attachedDoorQuote}
+                attachedSealedUnit={attachedSealedUnit}
                 quoteResult={quoteResult}
                 renderEditableRow={renderEditableRow}
                 jcSummaryLabel={jcSummaryLabel}
@@ -290,7 +298,15 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 setLoyaltyPoints={props.setLoyaltyPoints}
                 loyaltyGrossAmount={props.loyaltyGrossAmount}
                 setLoyaltyGrossAmount={props.setLoyaltyGrossAmount}
-                combinedMaterials={combinedData ? (combinedData.windowBase + combinedData.suGlass + combinedData.doorMaterials) : ((quoteResult?.base || 0) / 100)}
+                combinedMaterials={
+                  combinedData
+                    ? combinedData.windowBase +
+                      combinedData.suGlass +
+                      combinedData.doorMaterials +
+                      combinedData.totalCustomMaterials
+                    : (quoteResult?.base || 0) / 100 +
+                      ((taxTotals as any)?.customMaterialsTotal || 0)
+                }
                 taxJC={taxJC}
                 taxMisc={taxMisc}
                 taxLabour={taxLabour}

@@ -52,12 +52,21 @@ export function QuotePreviewModalWrapper({
     previewQuote.quoteType === "sealed_unit" ||
     Boolean(previewQuote.taxTotals?.isSealedUnitQuote)
 
-  const isSupplyOnly = Boolean(
-    previewQuote.isSupplyOnly ||
-    previewQuote.taxTotals?.isSupplyOnly ||
-    previewQuote.mode === "supply_only" ||
-    previewQuote.sealedUnitMode === "supply_only"
+  const isSUService = Boolean(
+    isSU &&
+      (previewQuote.sealedUnitMode === "service_only" ||
+        previewQuote.taxTotals?.isServiceOnly ||
+        previewQuote.isServiceOnly)
   )
+
+  const isSupplyOnly =
+    !isSUService &&
+    Boolean(
+      previewQuote.isSupplyOnly ||
+        previewQuote.taxTotals?.isSupplyOnly ||
+        previewQuote.mode === "supply_only" ||
+        previewQuote.sealedUnitMode === "supply_only"
+    )
 
   const hasAttachedInstallOption = Boolean(
     previewQuote.attachedInstallOption?.enabled
@@ -72,6 +81,7 @@ export function QuotePreviewModalWrapper({
       }}
       customerName={previewQuote.customerName}
       quoteNumber={previewQuote.quoteNumber}
+      primaryQuoteType={isDoor ? "door" : isSU ? "sealed_unit" : "window"}
       windows={previewQuote.windows || []}
       doors={isDoor ? previewQuote.windows || [] : undefined}
       sealedUnits={isSU ? previewQuote.windows || [] : undefined}
@@ -106,6 +116,10 @@ export function QuotePreviewModalWrapper({
       effectiveJC={financials.effectiveJC}
       effectiveMisc={financials.effectiveMisc}
       effectiveLabour={financials.effectiveLabour}
+      customDiscount={previewQuote.customDiscount}
+      customDiscountLabel={previewQuote.customDiscountLabel}
+      loyaltyDiscount={previewQuote.loyaltyDiscount}
+      loyaltyDiscountLabel={previewQuote.loyaltyDiscountLabel}
       isSupplyOnly={isSupplyOnly}
       isDualOption={hasAttachedInstallOption}
       attachedInstallOption={previewQuote.attachedInstallOption || null}

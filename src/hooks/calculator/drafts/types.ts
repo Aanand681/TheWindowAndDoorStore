@@ -38,6 +38,20 @@ export interface UseCalculatorDraftsWorkspace {
   setCustomMisc: (val: string) => void
   customLabour: string
   setCustomLabour: (val: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
   includeJCInPromo: boolean
   setIncludeJCInPromo: (val: boolean) => void
   includeMiscInPromo: boolean

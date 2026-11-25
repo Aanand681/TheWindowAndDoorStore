@@ -16,6 +16,12 @@ export interface InvoicePricingRollupParams {
   taxMiscCents: number
   taxJCCents: number
   taxDiscount: number
+  customLabour?: string
+  customMisc?: string
+  customDiscount?: number | string
+  customDiscountLabel?: string
+  loyaltyDiscount?: number | string
+  loyaltyDiscountLabel?: string
   activePromo: { name: string; discount: number } | null | undefined
   attachedWindowQuote: any
   effectiveSUTotals: any
@@ -41,6 +47,12 @@ export function calculateInvoicePricingRollup({
   taxMiscCents,
   taxJCCents,
   taxDiscount,
+  customLabour,
+  customMisc,
+  customDiscount,
+  customDiscountLabel,
+  loyaltyDiscount,
+  loyaltyDiscountLabel,
   activePromo,
   attachedWindowQuote,
   effectiveSUTotals,
@@ -49,7 +61,10 @@ export function calculateInvoicePricingRollup({
   taxTotals,
   isSupplyOnly = false,
 }: InvoicePricingRollupParams) {
-  const isSupply = Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
+  const isSUServiceMode = Boolean(
+    isAttachedSUService || (isSUHost && effectiveSUTotals?.isServiceOnly)
+  )
+  const isSupply = !isSUServiceMode && Boolean(isSupplyOnly || taxTotals?.isSupplyOnly)
   const promoDiscountCents = isWindowHost
     ? quoteResult?.promoDiscount || activePromo?.discount || 0
     : attachedWindowQuote?.totals?.promoDiscount
@@ -66,13 +81,64 @@ export function calculateInvoicePricingRollup({
       : basePrice
   const rawSurchargeDollars = surcharge > 1000 ? surcharge / 100 : surcharge
 
+  const hasCustomDisc =
+    customDiscount !== undefined && String(customDiscount).trim() !== ""
+  const resolvedCustomDiscountStr = hasCustomDisc
+    ? String(customDiscount).trim()
+    : isWindowHost && (promoDiscountCents > 0 || monthlyDiscountCents > 0)
+      ? ((promoDiscountCents + monthlyDiscountCents) / 100).toString()
+      : undefined
+  const resolvedLoyaltyDiscountStr =
+    loyaltyDiscount !== undefined && String(loyaltyDiscount).trim() !== ""
+      ? String(loyaltyDiscount).trim()
+      : undefined
+
+  const hasCustomLab =
+    customLabour !== undefined && String(customLabour).trim() !== ""
+  const hasCustomMisc =
+    customMisc !== undefined && String(customMisc).trim() !== ""
+
+  const overrides =
+    resolvedCustomDiscountStr !== undefined ||
+    resolvedLoyaltyDiscountStr !== undefined ||
+    Boolean(customDiscountLabel) ||
+    Boolean(loyaltyDiscountLabel) ||
+    hasCustomLab ||
+    hasCustomMisc
+      ? {
+          ...(hasCustomLab ? { customLabour: String(customLabour).trim() } : {}),
+          ...(hasCustomMisc ? { customMisc: String(customMisc).trim() } : {}),
+          ...(resolvedCustomDiscountStr !== undefined
+            ? { customDiscount: resolvedCustomDiscountStr }
+            : {}),
+          ...(customDiscountLabel ? { customDiscountLabel } : {}),
+          ...(resolvedLoyaltyDiscountStr !== undefined
+            ? { loyaltyDiscount: resolvedLoyaltyDiscountStr }
+            : {}),
+          ...(loyaltyDiscountLabel ? { loyaltyDiscountLabel } : {}),
+        }
+      : undefined
+
   const universal = calculateUniversalPricing({
     windowQuote: hasWindows
       ? isWindowHost
         ? {
             data: {
               effectiveBase: rawBaseDollars,
-              quoteResult,
+              quoteResult:
+                quoteResult ??
+                (activePromo
+                  ? {
+                      promoName: activePromo.name,
+                      promoDiscount: activePromo.discount,
+                    }
+                  : null),
+              ...(hasCustomDisc ? { customDiscount: resolvedCustomDiscountStr } : {}),
+              ...(customDiscountLabel ? { customDiscountLabel } : {}),
+              ...(resolvedLoyaltyDiscountStr !== undefined
+                ? { loyaltyDiscount: resolvedLoyaltyDiscountStr }
+                : {}),
+              ...(loyaltyDiscountLabel ? { loyaltyDiscountLabel } : {}),
               taxTotals: {
                 ...taxTotals,
                 extras: taxTotals?.extras ?? taxTotals?.totalTravelAndSetup ?? 0,
@@ -89,7 +155,20 @@ export function calculateInvoicePricingRollup({
       : undefined,
     doorQuote: hasDoors
       ? isDoorHost
-        ? { data: { totals: effectiveDoorTotals, mode: isSupply ? "supply_only" : "installation" } }
+        ? {
+            data: {
+              totals: effectiveDoorTotals,
+              mode: isSupply ? "supply_only" : "installation",
+              ...(hasCustomLab ? { customLabour: String(customLabour).trim() } : {}),
+              ...(hasCustomMisc ? { customMisc: String(customMisc).trim() } : {}),
+              ...(hasCustomDisc ? { customDiscount: resolvedCustomDiscountStr } : {}),
+              ...(customDiscountLabel ? { customDiscountLabel } : {}),
+              ...(resolvedLoyaltyDiscountStr !== undefined
+                ? { loyaltyDiscount: resolvedLoyaltyDiscountStr }
+                : {}),
+              ...(loyaltyDiscountLabel ? { loyaltyDiscountLabel } : {}),
+            },
+          }
         : { totals: effectiveDoorTotals }
       : undefined,
     sealedUnitQuote: hasSealedUnits
@@ -97,7 +176,13 @@ export function calculateInvoicePricingRollup({
         ? {
             data: {
               totals: effectiveSUTotals,
-              sealedUnitMode: isAttachedSUService ? "service_only" : isSupply ? "supply_only" : "installation",
+              sealedUnitMode: isSUServiceMode ? "service_only" : isSupply ? "supply_only" : "installation",
+              ...(hasCustomDisc ? { customDiscount: resolvedCustomDiscountStr } : {}),
+              ...(customDiscountLabel ? { customDiscountLabel } : {}),
+              ...(resolvedLoyaltyDiscountStr !== undefined
+                ? { loyaltyDiscount: resolvedLoyaltyDiscountStr }
+                : {}),
+              ...(loyaltyDiscountLabel ? { loyaltyDiscountLabel } : {}),
             },
           }
         : { totals: effectiveSUTotals }
@@ -106,9 +191,7 @@ export function calculateInvoicePricingRollup({
     isSupplyOnly: isSupply,
     hstRate,
     isFirstNation: hstRate === 8,
-    overrides: (isWindowHost && (promoDiscountCents > 0 || monthlyDiscountCents > 0))
-      ? { customDiscount: ((promoDiscountCents + monthlyDiscountCents) / 100).toString() }
-      : undefined,
+    overrides,
   })
 
   return {

@@ -50,6 +50,10 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
     effectiveJC,
     effectiveMisc,
     effectiveLabour,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
     attachedUpgrade,
     attachedSealedUnit,
     attachedDoorQuote,
@@ -104,6 +108,10 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
         effectiveJC={effectiveJC}
         effectiveMisc={effectiveMisc}
         effectiveLabour={effectiveLabour}
+        customDiscount={customDiscount}
+        customDiscountLabel={customDiscountLabel}
+        loyaltyDiscount={loyaltyDiscount}
+        loyaltyDiscountLabel={loyaltyDiscountLabel}
         attachedUpgrade={attachedUpgrade}
         attachedSealedUnit={attachedSealedUnit}
         attachedDoorQuote={attachedDoorQuote}

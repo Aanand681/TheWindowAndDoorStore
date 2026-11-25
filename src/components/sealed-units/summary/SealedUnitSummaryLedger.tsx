@@ -9,6 +9,8 @@ import {
 import { formatDoorItemHeading } from "@/lib/doors/calculations"
 import { SealedUnitSummaryDepositAndUpgrades } from "./SealedUnitSummaryDepositAndUpgrades"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
+import { CustomMaterialsSummaryRows } from "@/components/shared/materials"
+import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
 
 export interface SealedUnitSummaryLedgerProps {
   isService: boolean
@@ -35,9 +37,23 @@ export interface SealedUnitSummaryLedgerProps {
   winJC: number
   winJCDescription: string
   winCustomMaterialsList?: any[]
+  doorCustomMaterialsList?: any[]
   winDiscount: number
   doorRawBase: number
   doorDiscount: number
+  winCustomMaterials?: number
+  doorCustomMaterials?: number
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
+  isReadOnly?: boolean
   isInstallation: boolean
   hstRate: number
   setHstRate?: (rate: number) => void
@@ -51,8 +67,12 @@ export function SealedUnitSummaryLedger({
   displayGrandTotal, firstPayment, secondPayment, hasAttachedWindow,
   hasAttachedDoor, hasAnyAttached, attachedWindowQuote, attachedDoorQuote,
   attachedWinSentence, attachedDoorSentence, winBase, winJC,
-  winJCDescription, winCustomMaterialsList, winDiscount, doorRawBase,
-  doorDiscount, isInstallation, hstRate, setHstRate,
+  winJCDescription, winCustomMaterialsList, doorCustomMaterialsList, winDiscount, doorRawBase,
+  doorDiscount, winCustomMaterials = 0, doorCustomMaterials = 0,
+  loyaltyDiscount = "", setLoyaltyDiscount, loyaltyDiscountLabel = "", setLoyaltyDiscountLabel,
+  discountType = "none", setDiscountType, loyaltyPoints = 0, setLoyaltyPoints,
+  loyaltyGrossAmount = 0, setLoyaltyGrossAmount, isReadOnly = false,
+  isInstallation, hstRate, setHstRate,
   combinedHstBase, combinedMaterialExemption,
 }: SealedUnitSummaryLedgerProps) {
   return (
@@ -76,6 +96,7 @@ export function SealedUnitSummaryLedger({
                 +${combinedMisc.toFixed(2)}
               </span>
             </div>
+            <CustomMaterialsSummaryRows materials={totals.customMaterials} />
           </>
         ) : (
           <>
@@ -89,6 +110,8 @@ export function SealedUnitSummaryLedger({
                 </span>
               </div>
             )}
+
+            <CustomMaterialsSummaryRows materials={totals.customMaterials} />
 
             {hasAttachedWindow && (
               <div className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
@@ -108,20 +131,12 @@ export function SealedUnitSummaryLedger({
               </div>
             )}
 
-            {hasAttachedWindow && winCustomMaterialsList && winCustomMaterialsList.length > 0 &&
-              winCustomMaterialsList.map((mat: any, idx: number) => {
-                const amt = Number(mat.amount) || 0
-                if (amt <= 0 && !mat.label) return null
-                return (
-                  <div key={mat.id || idx} className="flex items-center justify-between gap-3 py-0.5 text-xs sm:text-sm">
-                    <span className="truncate font-medium text-foreground">
-                      {mat.label ? `Window Add-on: ${mat.label}` : "Window Additional Material"}
-                    </span>
-                    <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">+${amt.toFixed(2)}</span>
-                  </div>
-                )
-              })
-            }
+            {hasAttachedWindow && (
+              <CustomMaterialsSummaryRows
+                materials={winCustomMaterialsList}
+                prefix="Window Add-on"
+              />
+            )}
 
             {hasAttachedDoor &&
               (attachedDoorQuote?.lineItems && attachedDoorQuote.lineItems.length > 0 ? (
@@ -147,6 +162,13 @@ export function SealedUnitSummaryLedger({
                   +${Number(attachedDoorQuote.totals.hardwareTotal).toFixed(2)}
                 </span>
               </div>
+            )}
+
+            {hasAttachedDoor && (
+              <CustomMaterialsSummaryRows
+                materials={doorCustomMaterialsList}
+                prefix="Door Add-on"
+              />
             )}
 
             {(isInstallation || hasAnyAttached) && (
@@ -201,6 +223,34 @@ export function SealedUnitSummaryLedger({
               </div>
             )}
           </>
+        )}
+
+        {/* Loyalty Points / Custom Extra Discount (Works across Install, Supply & Service) */}
+        {setLoyaltyDiscount && (
+          <DiscountLoyaltySelector
+            loyaltyDiscount={loyaltyDiscount}
+            setLoyaltyDiscount={setLoyaltyDiscount}
+            loyaltyDiscountLabel={loyaltyDiscountLabel}
+            setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            loyaltyPoints={loyaltyPoints}
+            setLoyaltyPoints={setLoyaltyPoints}
+            loyaltyGrossAmount={loyaltyGrossAmount}
+            setLoyaltyGrossAmount={setLoyaltyGrossAmount}
+            combinedMaterials={Number(
+              (isService ? 0 : totals.glassBefore8PercentTotal || 0) +
+                (totals.customMaterialsTotal || 0) +
+                (winBase || 0) +
+                (winCustomMaterials || 0) +
+                (doorRawBase || 0) +
+                (doorCustomMaterials || 0)
+            )}
+            otherDiscounts={(winDiscount || 0) + (doorDiscount || 0)}
+            hstRate={hstRate}
+            isFirstNation={hstRate === 8}
+            isReadOnly={isReadOnly}
+          />
         )}
       </div>
 

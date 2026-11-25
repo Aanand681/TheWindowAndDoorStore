@@ -42,6 +42,20 @@ export interface UseCalculatorReviewActionsProps {
   setCustomMisc: (val: string) => void
   customLabour: string
   setCustomLabour: (val: string) => void
+  customDiscount?: string
+  setCustomDiscount?: (val: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (val: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (val: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (val: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (val: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (val: number) => void
   includeJCInPromo: boolean
   setIncludeJCInPromo: (val: boolean) => void
   includeMiscInPromo: boolean
@@ -103,6 +117,20 @@ export function useCalculatorReviewActions({
   setCustomMisc,
   customLabour,
   setCustomLabour,
+  customDiscount = "",
+  setCustomDiscount,
+  customDiscountLabel = "",
+  setCustomDiscountLabel,
+  loyaltyDiscount = "",
+  setLoyaltyDiscount,
+  loyaltyDiscountLabel = "",
+  setLoyaltyDiscountLabel,
+  discountType = "none",
+  setDiscountType,
+  loyaltyPoints = 0,
+  setLoyaltyPoints,
+  loyaltyGrossAmount = 0,
+  setLoyaltyGrossAmount,
   includeJCInPromo,
   setIncludeJCInPromo,
   includeMiscInPromo,
@@ -163,6 +191,13 @@ export function useCalculatorReviewActions({
     setCustomJC,
     setCustomMisc,
     setCustomLabour,
+    setCustomDiscount,
+    setCustomDiscountLabel,
+    setLoyaltyDiscount,
+    setLoyaltyDiscountLabel,
+    setDiscountType,
+    setLoyaltyPoints,
+    setLoyaltyGrossAmount,
     setIncludeJCInPromo,
     setIncludeMiscInPromo,
     setIncludeLabourInPromo,
@@ -217,6 +252,14 @@ export function useCalculatorReviewActions({
         customJC,
         customMisc,
         customLabour,
+        customDiscount,
+        customDiscountLabel,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
+        customMaterials: taxTotals?.customMaterials || [],
         includeJCInPromo,
         includeMiscInPromo,
         includeLabourInPromo,
@@ -251,6 +294,13 @@ export function useCalculatorReviewActions({
       customJC,
       customMisc,
       customLabour,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+      discountType,
+      loyaltyPoints,
+      loyaltyGrossAmount,
       includeJCInPromo,
       includeMiscInPromo,
       includeLabourInPromo,
@@ -292,6 +342,14 @@ export function useCalculatorReviewActions({
         customJC,
         customMisc,
         customLabour,
+        customDiscount,
+        customDiscountLabel,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
+        customMaterials: taxTotals?.customMaterials || [],
         includeJCInPromo,
         includeMiscInPromo,
         includeLabourInPromo,
@@ -326,6 +384,13 @@ export function useCalculatorReviewActions({
       customJC,
       customMisc,
       customLabour,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+      discountType,
+      loyaltyPoints,
+      loyaltyGrossAmount,
       includeJCInPromo,
       includeMiscInPromo,
       includeLabourInPromo,

@@ -92,6 +92,16 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
     0
   const stormDoorTotal = srcTotals.stormDoorTotal ?? 0
   const hardwareTotal = srcTotals.hardwareTotal ?? 0
+  const customMaterialsList = Array.isArray(rawData.customMaterials)
+    ? rawData.customMaterials
+    : Array.isArray(srcTotals.customMaterialsList)
+      ? srcTotals.customMaterialsList
+      : Array.isArray(srcTotals.customMaterials)
+        ? srcTotals.customMaterials
+        : []
+  const customMaterialsDollars = Math.round(
+    customMaterialsList.reduce((acc: number, m: any) => acc + (Number(m?.amount) || 0), 0) * 100
+  ) / 100
   const surchargeTotal =
     srcTotals.surchargeTotal ??
     srcTotals.surcharge ??
@@ -123,7 +133,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
   const miscTotal = isDoorSupply ? 0 : Number(srcTotals.miscTotal ?? srcTotals.misc ?? 0)
 
   const subtotalPreTax = Math.round(
-    ((rawDoorBase + stormDoorTotal + hardwareTotal) +
+    ((rawDoorBase + stormDoorTotal + hardwareTotal + customMaterialsDollars) +
       surchargeTotal +
       pureLabourTotal +
       miscTotal -
@@ -143,7 +153,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
   if (hstRate === 13) {
     tax = Math.round(subtotalPreTax * 0.13 * 100) / 100
   } else if (hstRate === 8) {
-    const mats = Math.max(0, (rawDoorBase + stormDoorTotal + hardwareTotal) - discountTotal)
+    const mats = Math.max(0, (rawDoorBase + stormDoorTotal + hardwareTotal + customMaterialsDollars) - discountTotal)
     const hBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
     const ex = Math.round(mats * 0.08 * 100) / 100
     tax = Math.max(0, Math.round((hBase - ex) * 100) / 100)
@@ -165,6 +175,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       rawData.discountLabel || (draft as any).discountLabel || "Door Discount",
     loyaltyDiscount: rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || "",
     loyaltyDiscountLabel: rawData.loyaltyDiscountLabel || (draft as any).loyaltyDiscountLabel || "",
+    customMaterials: customMaterialsList,
     totals: {
       grandTotal,
       subtotalPreTax,
@@ -172,7 +183,10 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       totalPrice: rawDoorBase + stormDoorTotal,
       stormDoorTotal,
       hardwareTotal,
-      materialsTotal: rawDoorBase + stormDoorTotal + hardwareTotal,
+      customMaterials: customMaterialsList,
+      customMaterialsList,
+      customMaterialsTotal: customMaterialsDollars,
+      materialsTotal: rawDoorBase + stormDoorTotal + hardwareTotal + customMaterialsDollars,
       combinedLabourTotal: pureLabourTotal,
       doorPureLabourTotal: pureLabourTotal,
       miscTotal,

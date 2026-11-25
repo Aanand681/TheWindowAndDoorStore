@@ -84,6 +84,9 @@ export function SealedUnitsCalculator(
             : undefined
         }
         hstRate={page.travel.hstRate}
+        loyaltyDiscount={page.travel.loyaltyDiscount}
+        loyaltyDiscountLabel={page.travel.loyaltyDiscountLabel}
+        isReadOnly={page.reviewLoader.isReadOnly}
       />
 
       {/* Review Workflow Action Dialogs */}

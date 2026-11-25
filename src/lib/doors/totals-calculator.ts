@@ -11,7 +11,7 @@ export function calculateDoorQuoteTotals(
   const {
     lineItems, mode, travelFeeType, customTravelFee, showOutTownTravel,
     travelKm, crewHours, crewSize, hstRate, logistics, customDiscount,
-    loyaltyDiscount, loyaltyDiscountLabel,
+    loyaltyDiscount, loyaltyDiscountLabel, customMaterials = [],
   } = params
 
   const isInstallation = mode === "installation"
@@ -93,9 +93,14 @@ export function calculateDoorQuoteTotals(
   const combinedLabourTotal = isInstallation ? fullInstallLabour : 0
   const activeMiscTotal = isInstallation ? fullInstallMisc : 0
 
+  const customMaterialsList = Array.isArray(customMaterials) ? customMaterials : []
+  const customMaterialsTotal = Math.round(
+    customMaterialsList.reduce((acc, m) => acc + (Number(m?.amount) || 0), 0) * 100
+  ) / 100
+
   const totalDoorBase = rawDoorBaseTotal + stormDoorTotal
   const subtotalPreTax = Math.round(
-    (totalDoorBase - combinedDiscount + surchargeTotal + combinedLabourTotal + activeMiscTotal + hardwareTotal) * 100
+    (totalDoorBase - combinedDiscount + surchargeTotal + combinedLabourTotal + activeMiscTotal + hardwareTotal + customMaterialsTotal) * 100
   ) / 100
 
   const isNoTax = hstRate === 0
@@ -105,7 +110,7 @@ export function calculateDoorQuoteTotals(
   if (isNoTax) {
     hstAmount = 0; hstBase = 0; materialExemption = 0
   } else if (isFN) {
-    const materialsBase = totalDoorBase - combinedDiscount + hardwareTotal
+    const materialsBase = Math.max(0, totalDoorBase - combinedDiscount + hardwareTotal + customMaterialsTotal)
     hstBase = Math.round(subtotalPreTax * 0.13 * 100) / 100
     materialExemption = Math.round(materialsBase * 0.08 * 100) / 100
     hstAmount = Math.max(0, Math.round((hstBase - materialExemption) * 100) / 100)
@@ -120,7 +125,9 @@ export function calculateDoorQuoteTotals(
   return {
     totalDoors, totalStormDoors, totalUnits, rawDoorBaseTotal, surchargeTotal,
     doorWithSurchargeTotal, discountTotal, loyaltyDiscount: loyaltyDiscountAmount,
-    loyaltyDiscountLabel, totalDiscount: combinedDiscount, netDoorSupplyTotal, stormDoorTotal,
+    loyaltyDiscountLabel, totalDiscount: combinedDiscount,
+    customMaterials: customMaterialsList, customMaterialsTotal,
+    netDoorSupplyTotal, stormDoorTotal,
     hardwareTotal, hardwareQty, unitLabourTotal, upchargesTotal, baseSetupFee,
     fullBaseSetupFee, additionalFarFee, vehicleTravelFee, crewTravelFee,
     totalAdditionalTravel, totalTravelAndSetup, fullInstallLabour, fullInstallMisc,
@@ -139,13 +146,18 @@ export function computeEffectiveDoorGrandTotal(p: {
   customLabour?: string
   customMisc?: string
   customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  hstRate?: number
   isFirstNation?: boolean
   attachedWindowQuote?: any
   attachedSealedUnit?: any
 }): { combinedSubtotal: number; combinedTax: number; grandTotal: number } {
   const {
     totals, mode, customLabour = "", customMisc = "", customDiscount = "",
-    isFirstNation = false, attachedWindowQuote, attachedSealedUnit,
+    customDiscountLabel = "", loyaltyDiscount = "", loyaltyDiscountLabel = "",
+    hstRate, isFirstNation = false, attachedWindowQuote, attachedSealedUnit,
   } = p
 
   const hasAnyAttached = Boolean(attachedWindowQuote || attachedSealedUnit)
@@ -157,17 +169,22 @@ export function computeEffectiveDoorGrandTotal(p: {
     }
   }
 
+  const resolvedHstRate = hstRate !== undefined ? hstRate : (isFirstNation ? 8 : 13)
   const universal = calculateUniversalPricing({
     doorQuote: { data: { totals, mode } },
     windowQuote: attachedWindowQuote,
     sealedUnitQuote: attachedSealedUnit,
     hostType: "door",
     isSupplyOnly: mode === "supply_only",
-    isFirstNation,
+    hstRate: resolvedHstRate,
+    isFirstNation: resolvedHstRate === 8 || isFirstNation,
     overrides: {
       customLabour,
       customMisc,
       customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
     },
   })
 

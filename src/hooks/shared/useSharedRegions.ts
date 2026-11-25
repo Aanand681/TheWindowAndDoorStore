@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 
 export interface SharedRegionOption {
   _id: string
@@ -40,12 +40,26 @@ export function useSharedRegions(defaultRegionName = "Fort Frances") {
       .finally(() => setLoading(false))
   }, [defaultRegionName])
 
+  const defaultRegionId = useMemo(() => {
+    if (regions.length === 0) return ""
+    const match = regions.find((r) =>
+      r.name.toLowerCase().includes(defaultRegionName.toLowerCase())
+    )
+    return (match || regions[0])._id
+  }, [regions, defaultRegionName])
+
+  const resetRegionToDefault = useCallback(() => {
+    if (defaultRegionId) setSelectedRegionId(defaultRegionId)
+  }, [defaultRegionId])
+
   const selectedRegion = regions.find((r) => r._id === selectedRegionId)
 
   return {
     regions,
     selectedRegionId,
     setSelectedRegionId,
+    defaultRegionId,
+    resetRegionToDefault,
     selectedRegion,
     loading,
   }

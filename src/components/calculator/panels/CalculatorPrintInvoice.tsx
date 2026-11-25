@@ -32,6 +32,10 @@ export interface CalculatorPrintInvoiceProps {
   effectiveJC: number
   effectiveMisc: number
   effectiveLabour: number
+  customDiscount?: string | number
+  customDiscountLabel?: string
+  loyaltyDiscount?: string | number
+  loyaltyDiscountLabel?: string
   template: QuoteTemplateType
   fontSize: number
   spacing: number
@@ -66,6 +70,10 @@ export function CalculatorPrintInvoice({
   effectiveJC,
   effectiveMisc,
   effectiveLabour,
+  customDiscount,
+  customDiscountLabel,
+  loyaltyDiscount,
+  loyaltyDiscountLabel,
   template,
   fontSize,
   spacing,
@@ -119,6 +127,10 @@ export function CalculatorPrintInvoice({
       effectiveJC={effectiveJC}
       effectiveMisc={effectiveMisc}
       effectiveLabour={effectiveLabour}
+      customDiscount={customDiscount}
+      customDiscountLabel={customDiscountLabel}
+      loyaltyDiscount={loyaltyDiscount}
+      loyaltyDiscountLabel={loyaltyDiscountLabel}
       template={template}
       fontSize={fontSize}
       spacing={spacing}

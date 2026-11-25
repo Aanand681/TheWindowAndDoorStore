@@ -61,12 +61,18 @@ export function useSealedUnitsCalculatorPage(
       isInstallation: travel.isInstallation,
       isServiceOnly: travel.isServiceOnly,
       globalUpcharges: travel.globalUpcharges,
+      discountType: travel.discountType,
+      loyaltyPoints: travel.loyaltyPoints,
+      loyaltyGrossAmount: travel.loyaltyGrossAmount,
     }
   }, [
     lineItems,
     travel.formInputs,
     travel.isInstallation,
     travel.isServiceOnly,
+    travel.discountType,
+    travel.loyaltyPoints,
+    travel.loyaltyGrossAmount,
     settings.labour,
   ])
 
@@ -146,6 +152,12 @@ export function useSealedUnitsCalculatorPage(
     crewSize: travel.crewSize,
     extraLabour: travel.extraLabour,
     globalUpcharges: travel.globalUpcharges,
+    customMaterials: travel.customMaterials,
+    loyaltyDiscount: travel.loyaltyDiscount,
+    loyaltyDiscountLabel: travel.loyaltyDiscountLabel,
+    discountType: travel.discountType,
+    loyaltyPoints: travel.loyaltyPoints,
+    loyaltyGrossAmount: travel.loyaltyGrossAmount,
     hstRate: travel.hstRate,
     attachedWindowQuote: drafts.attachedWindowQuote,
     attachedDoorQuote: drafts.attachedDoorQuote,
@@ -177,6 +189,12 @@ export function useSealedUnitsCalculatorPage(
     crewSize: travel.crewSize,
     extraLabour: travel.extraLabour,
     globalUpcharges: travel.globalUpcharges,
+    customMaterials: travel.customMaterials,
+    loyaltyDiscount: travel.loyaltyDiscount,
+    loyaltyDiscountLabel: travel.loyaltyDiscountLabel,
+    discountType: travel.discountType,
+    loyaltyPoints: travel.loyaltyPoints,
+    loyaltyGrossAmount: travel.loyaltyGrossAmount,
   })
 
   const reviewWorkflowProps = {

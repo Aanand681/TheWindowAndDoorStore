@@ -36,6 +36,12 @@ export interface SealedUnitFormInputs {
   crewSize: "2" | "3"
   extraLabour?: string
   globalUpcharges?: any[]
+  customMaterials?: any[]
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   hstRate: number
   selectedRegionId?: string
   regionName?: string
@@ -55,6 +61,13 @@ export interface SealedUnitFormSetters {
   setCrewSize: (val: "2" | "3") => void
   setExtraLabour?: (val: string) => void
   setGlobalUpcharges?: (val: any[]) => void
+  setCustomMaterials?: (val: any[]) => void
+  setLoyaltyDiscount?: (val: string) => void
+  setLoyaltyDiscountLabel?: (val: string) => void
+  setDiscountType?: (val: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (val: number) => void
+  setLoyaltyGrossAmount?: (val: number) => void
+  resetTravelAndMode?: () => void
   setHstRate: (val: number) => void
   setSelectedRegionId?: (val: string) => void
 }
@@ -100,6 +113,12 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       serviceSqftInput, serviceLabourRateInput, serviceMiscRateInput, travelFeeType,
       customTravelFee, showOutTownTravel, travelKm, crewHours, crewSize,
       extraLabour: extraLabour || "", globalUpcharges: (formInputs as any)?.globalUpcharges || [],
+      customMaterials: (formInputs as any)?.customMaterials || [],
+      loyaltyDiscount: formInputs.loyaltyDiscount || "",
+      loyaltyDiscountLabel: formInputs.loyaltyDiscountLabel || "",
+      discountType: formInputs.discountType || "none",
+      loyaltyPoints: formInputs.loyaltyPoints || 0,
+      loyaltyGrossAmount: formInputs.loyaltyGrossAmount || 0,
       hstRate, selectedRegionId: selectedRegionId || "", regionName: regionName || "",
       attachedWindowQuote, attachedDoorQuote,
     }),
@@ -164,6 +183,29 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
 
   const handleResetWorkspace = () => {
     setLineItems([])
+    if (formSetters.resetTravelAndMode) {
+      formSetters.resetTravelAndMode()
+    } else {
+      formSetters.setSealedUnitMode("installation")
+      formSetters.setServiceSqftInput("")
+      formSetters.setServiceLabourRateInput("")
+      formSetters.setServiceMiscRateInput("")
+      formSetters.setTravelFeeType("local_std")
+      formSetters.setCustomTravelFee("")
+      formSetters.setShowOutTownTravel(false)
+      formSetters.setTravelKm("")
+      formSetters.setCrewHours("")
+      formSetters.setCrewSize("3")
+      formSetters.setExtraLabour?.("")
+      formSetters.setGlobalUpcharges?.([])
+      formSetters.setCustomMaterials?.([])
+      formSetters.setLoyaltyDiscount?.("")
+      formSetters.setLoyaltyDiscountLabel?.("")
+      formSetters.setDiscountType?.("none")
+      formSetters.setLoyaltyPoints?.(0)
+      formSetters.setLoyaltyGrossAmount?.(0)
+      formSetters.setHstRate(13)
+    }
     setAttachedWindowQuote(null)
     setAttachedDoorQuote(null)
     setCustomerName("")

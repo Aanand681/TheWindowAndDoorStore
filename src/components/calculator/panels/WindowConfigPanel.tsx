@@ -5,6 +5,7 @@ import { WindowConfigurationsCard } from "@/components/calculator/WindowConfigur
 import { SupplyJambCasingCard } from "@/components/calculator/SupplyJambCasingCard"
 import { PromoComparisonGrid } from "@/components/calculator/PromoComparisonGrid"
 import { UIWindowItem } from "@/hooks/useCalculatorWindows"
+import type { CustomMaterialItem } from "@/types/calculator"
 
 export interface WindowConfigPanelProps {
   windows: UIWindowItem[]
@@ -53,6 +54,8 @@ export interface WindowConfigPanelProps {
   setSupplyCasingName: (name: string) => void
   supplyCasingRate: string
   setSupplyCasingRate: (rate: string) => void
+  supplyCustomMaterials?: CustomMaterialItem[]
+  setSupplyCustomMaterials?: (mats: CustomMaterialItem[]) => void
   onSupplyJCCalculated: (data: any) => void
 
   // Promo Grid
@@ -103,6 +106,8 @@ export function WindowConfigPanel({
   setSupplyCasingName,
   supplyCasingRate,
   setSupplyCasingRate,
+  supplyCustomMaterials,
+  setSupplyCustomMaterials,
   onSupplyJCCalculated,
   compareOptions,
   activePromoId,
@@ -158,6 +163,8 @@ export function WindowConfigPanel({
           setCasingName={setSupplyCasingName}
           casingRate={supplyCasingRate}
           setCasingRate={setSupplyCasingRate}
+          customMaterials={supplyCustomMaterials}
+          setCustomMaterials={setSupplyCustomMaterials}
           onJCCalculated={onSupplyJCCalculated}
         />
       )}

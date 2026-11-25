@@ -97,6 +97,36 @@ export function useSealedUnitsReviewLoader(
           crewSize: q.crewSize,
           extraLabour: q.extraLabour || q.data?.extraLabour || "",
           globalUpcharges: q.globalUpcharges || q.data?.globalUpcharges || [],
+          customMaterials:
+            q.customMaterials ||
+            q.taxTotals?.customMaterials ||
+            q.data?.customMaterials ||
+            [],
+          loyaltyDiscount:
+            q.loyaltyDiscount ??
+            q.taxTotals?.loyaltyDiscount ??
+            q.data?.loyaltyDiscount ??
+            "",
+          loyaltyDiscountLabel:
+            q.loyaltyDiscountLabel ??
+            q.taxTotals?.loyaltyDiscountLabel ??
+            q.data?.loyaltyDiscountLabel ??
+            "",
+          discountType:
+            q.discountType ??
+            q.taxTotals?.discountType ??
+            q.data?.discountType ??
+            "none",
+          loyaltyPoints:
+            q.loyaltyPoints ??
+            q.taxTotals?.loyaltyPoints ??
+            q.data?.loyaltyPoints ??
+            0,
+          loyaltyGrossAmount:
+            q.loyaltyGrossAmount ??
+            q.taxTotals?.loyaltyGrossAmount ??
+            q.data?.loyaltyGrossAmount ??
+            0,
           hstRate: q.hstRate ?? q.taxTotals?.hstRate ?? 13,
           selectedRegionId: q.selectedRegionId,
           regionName: q.regionName,

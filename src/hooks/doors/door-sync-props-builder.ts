@@ -1,4 +1,5 @@
 import { DoorLineItem, DoorSelectedUpcharge, DoorQuotingMode } from "@/lib/doors/types"
+import type { CustomMaterialItem } from "@/types/calculator"
 
 export interface DoorSharedSyncState {
   customerName: string
@@ -13,6 +14,7 @@ export interface DoorSharedSyncState {
   setGlobalUpcharges: React.Dispatch<React.SetStateAction<DoorSelectedUpcharge[]>>
   selectedRegionId: string
   setSelectedRegionId: (id: string) => void
+  resetRegionToDefault?: () => void
   travelFeeType: any
   setTravelFeeType: (t: any) => void
   customTravelFee: string
@@ -37,6 +39,20 @@ export interface DoorSharedSyncState {
   setCustomMisc: (m: string) => void
   customDiscount: string
   setCustomDiscount: (d: string) => void
+  customDiscountLabel?: string
+  setCustomDiscountLabel?: (l: string) => void
+  loyaltyDiscount?: string
+  setLoyaltyDiscount?: (l: string) => void
+  loyaltyDiscountLabel?: string
+  setLoyaltyDiscountLabel?: (l: string) => void
+  discountType?: "none" | "custom" | "loyalty"
+  setDiscountType?: (t: "none" | "custom" | "loyalty") => void
+  loyaltyPoints?: number
+  setLoyaltyPoints?: (p: number) => void
+  loyaltyGrossAmount?: number
+  setLoyaltyGrossAmount?: (a: number) => void
+  customMaterials?: CustomMaterialItem[]
+  setCustomMaterials?: (m: CustomMaterialItem[]) => void
   attachedWindowQuote: any
   setAttachedWindowQuote: (q: any) => void
   attachedSealedUnit: any
@@ -58,6 +74,7 @@ export function buildDoorSharedSyncProps(state: DoorSharedSyncState) {
     setGlobalUpcharges: state.setGlobalUpcharges,
     selectedRegionId: state.selectedRegionId,
     setSelectedRegionId: state.setSelectedRegionId,
+    resetRegionToDefault: state.resetRegionToDefault,
     travelFeeType: state.travelFeeType,
     setTravelFeeType: state.setTravelFeeType,
     customTravelFee: state.customTravelFee,
@@ -82,6 +99,20 @@ export function buildDoorSharedSyncProps(state: DoorSharedSyncState) {
     setCustomMisc: state.setCustomMisc,
     customDiscount: state.customDiscount,
     setCustomDiscount: state.setCustomDiscount,
+    customDiscountLabel: state.customDiscountLabel,
+    setCustomDiscountLabel: state.setCustomDiscountLabel,
+    loyaltyDiscount: state.loyaltyDiscount,
+    setLoyaltyDiscount: state.setLoyaltyDiscount,
+    loyaltyDiscountLabel: state.loyaltyDiscountLabel,
+    setLoyaltyDiscountLabel: state.setLoyaltyDiscountLabel,
+    discountType: state.discountType,
+    setDiscountType: state.setDiscountType,
+    loyaltyPoints: state.loyaltyPoints,
+    setLoyaltyPoints: state.setLoyaltyPoints,
+    loyaltyGrossAmount: state.loyaltyGrossAmount,
+    setLoyaltyGrossAmount: state.setLoyaltyGrossAmount,
+    customMaterials: state.customMaterials,
+    setCustomMaterials: state.setCustomMaterials,
     attachedWindowQuote: state.attachedWindowQuote,
     setAttachedWindowQuote: state.setAttachedWindowQuote,
     attachedSealedUnit: state.attachedSealedUnit,

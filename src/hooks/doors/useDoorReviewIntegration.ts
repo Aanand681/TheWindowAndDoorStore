@@ -29,6 +29,14 @@ export interface UseDoorReviewIntegrationParams {
   hstRate: number
   customLabour: string
   customMisc: string
+  customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: any[]
   presets: any[]
   formula: any
   setCustomerName: (v: string) => void
@@ -48,6 +56,14 @@ export interface UseDoorReviewIntegrationParams {
   setHstRate: (r: number) => void
   setCustomLabour: (l: string) => void
   setCustomMisc: (m: string) => void
+  setCustomDiscount?: (d: string) => void
+  setCustomDiscountLabel?: (l: string) => void
+  setLoyaltyDiscount?: (l: string) => void
+  setLoyaltyDiscountLabel?: (l: string) => void
+  setDiscountType?: (t: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (p: number) => void
+  setLoyaltyGrossAmount?: (a: number) => void
+  setCustomMaterials?: (m: any[]) => void
   setAttachedWindowQuote: (q: any) => void
   setAttachedSealedUnit: (u: any) => void
   handleConfirmReset: () => void
@@ -77,6 +93,17 @@ export function useDoorReviewIntegration(p: UseDoorReviewIntegrationParams) {
     travelKm: p.travelKm,
     crewHours: p.crewHours,
     crewSize: p.crewSize,
+    hstRate: p.hstRate,
+    customLabour: p.customLabour,
+    customMisc: p.customMisc,
+    customDiscount: p.customDiscount,
+    customDiscountLabel: p.customDiscountLabel,
+    loyaltyDiscount: p.loyaltyDiscount,
+    loyaltyDiscountLabel: p.loyaltyDiscountLabel,
+    discountType: p.discountType,
+    loyaltyPoints: p.loyaltyPoints,
+    loyaltyGrossAmount: p.loyaltyGrossAmount,
+    customMaterials: p.customMaterials,
   })
 
   const reviewLoader = useDoorReviewLoader({
@@ -100,6 +127,14 @@ export function useDoorReviewIntegration(p: UseDoorReviewIntegrationParams) {
     setHstRate: p.setHstRate,
     setCustomLabour: p.setCustomLabour,
     setCustomMisc: p.setCustomMisc,
+    setCustomDiscount: p.setCustomDiscount,
+    setCustomDiscountLabel: p.setCustomDiscountLabel,
+    setLoyaltyDiscount: p.setLoyaltyDiscount,
+    setLoyaltyDiscountLabel: p.setLoyaltyDiscountLabel,
+    setDiscountType: p.setDiscountType,
+    setLoyaltyPoints: p.setLoyaltyPoints,
+    setLoyaltyGrossAmount: p.setLoyaltyGrossAmount,
+    setCustomMaterials: p.setCustomMaterials,
     setAttachedWindowQuote: p.setAttachedWindowQuote,
     setAttachedSealedUnit: p.setAttachedSealedUnit,
     onConfirmReset: p.handleConfirmReset,
@@ -142,6 +177,14 @@ export function useDoorReviewIntegration(p: UseDoorReviewIntegrationParams) {
     hstRate: p.hstRate,
     customLabour: p.customLabour,
     customMisc: p.customMisc,
+    customDiscount: p.customDiscount,
+    customDiscountLabel: p.customDiscountLabel,
+    loyaltyDiscount: p.loyaltyDiscount,
+    loyaltyDiscountLabel: p.loyaltyDiscountLabel,
+    discountType: p.discountType,
+    loyaltyPoints: p.loyaltyPoints,
+    loyaltyGrossAmount: p.loyaltyGrossAmount,
+    customMaterials: p.customMaterials,
     attachedWindowQuote: p.attachedWindowQuote,
     attachedSealedUnit: p.attachedSealedUnit,
     staffList: reviewSubmit.staffList,

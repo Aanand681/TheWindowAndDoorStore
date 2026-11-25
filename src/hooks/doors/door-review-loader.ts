@@ -115,6 +115,14 @@ export interface UseDoorReviewLoaderParams {
   setHstRate: (rate: number) => void
   setCustomLabour: (l: string) => void
   setCustomMisc: (m: string) => void
+  setCustomDiscount?: (d: string) => void
+  setCustomDiscountLabel?: (l: string) => void
+  setLoyaltyDiscount?: (l: string) => void
+  setLoyaltyDiscountLabel?: (l: string) => void
+  setDiscountType?: (t: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (p: number) => void
+  setLoyaltyGrossAmount?: (a: number) => void
+  setCustomMaterials?: (m: any[]) => void
   setAttachedWindowQuote: (q: any) => void
   setAttachedSealedUnit: (u: any) => void
   onConfirmReset: () => void
@@ -129,7 +137,9 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
     setMode, setLineItems, setGlobalUpcharges, setSelectedRegionId,
     setTravelFeeType, setCustomTravelFee, setShowOutTownTravel, setTravelKm,
     setCrewHours, setCrewSize, setIsFirstNation, setHstRate, setCustomLabour,
-    setCustomMisc, setAttachedWindowQuote, setAttachedSealedUnit, onConfirmReset,
+    setCustomMisc, setCustomDiscount, setCustomDiscountLabel, setLoyaltyDiscount,
+    setLoyaltyDiscountLabel, setDiscountType, setLoyaltyPoints, setLoyaltyGrossAmount,
+    setCustomMaterials, setAttachedWindowQuote, setAttachedSealedUnit, onConfirmReset,
     initialReviewQuoteId, initialIsEditMode = false, originSubTab,
   } = p
 
@@ -192,6 +202,19 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
       }
       setCustomLabour(q.customLabour !== undefined ? String(q.customLabour) : "")
       setCustomMisc(q.customMisc !== undefined ? String(q.customMisc) : "")
+      setCustomDiscount?.(q.customDiscount !== undefined ? String(q.customDiscount) : "")
+      setCustomDiscountLabel?.(q.customDiscountLabel || "")
+      setLoyaltyDiscount?.(q.loyaltyDiscount !== undefined ? String(q.loyaltyDiscount) : "")
+      setLoyaltyDiscountLabel?.(q.loyaltyDiscountLabel || "")
+      setDiscountType?.(q.discountType || "none")
+      setLoyaltyPoints?.(Number(q.loyaltyPoints) || 0)
+      setLoyaltyGrossAmount?.(Number(q.loyaltyGrossAmount) || 0)
+      const mats = Array.isArray(q.customMaterials)
+        ? q.customMaterials
+        : Array.isArray(q.taxTotals?.customMaterials)
+          ? q.taxTotals.customMaterials
+          : []
+      setCustomMaterials?.(mats)
       setAttachedWindowQuote(q.attachedWindowQuote ?? null)
       setAttachedSealedUnit(q.attachedSealedUnit ?? null)
 
@@ -226,6 +249,14 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
       setHstRate,
       setCustomLabour,
       setCustomMisc,
+      setCustomDiscount,
+      setCustomDiscountLabel,
+      setLoyaltyDiscount,
+      setLoyaltyDiscountLabel,
+      setDiscountType,
+      setLoyaltyPoints,
+      setLoyaltyGrossAmount,
+      setCustomMaterials,
       setAttachedWindowQuote,
       setAttachedSealedUnit,
     ]

@@ -10,6 +10,7 @@ import {
   SealedUnitOfficePricingCard,
 } from "@/components/sealed-units"
 import { SealedUnitsCalculatorPageState } from "@/hooks/sealed-units"
+import { CustomMaterialsCard } from "@/components/shared/materials"
 
 export interface SealedUnitsWorkspaceColumnsProps {
   page: SealedUnitsCalculatorPageState
@@ -68,6 +69,14 @@ export function SealedUnitsWorkspaceColumns({
           isReadOnly={reviewLoader.isReadOnly}
         />
 
+        <CustomMaterialsCard
+          materials={travel.customMaterials}
+          onMaterialsChange={travel.setCustomMaterials}
+          isReadOnly={reviewLoader.isReadOnly}
+          title="Sealed Unit Additional Materials (Optional)"
+          placeholder="e.g. Specialty stops, glazing tape, custom silicone"
+        />
+
         <SealedUnitLabourTravelCard
           mode={travel.sealedUnitMode}
           setMode={travel.handleSetSealedUnitMode}
@@ -117,6 +126,16 @@ export function SealedUnitsWorkspaceColumns({
           hstRate={travel.hstRate}
           setHstRate={travel.setHstRate}
           totals={totals}
+          loyaltyDiscount={travel.loyaltyDiscount}
+          setLoyaltyDiscount={travel.setLoyaltyDiscount}
+          loyaltyDiscountLabel={travel.loyaltyDiscountLabel}
+          setLoyaltyDiscountLabel={travel.setLoyaltyDiscountLabel}
+          discountType={travel.discountType}
+          setDiscountType={travel.setDiscountType}
+          loyaltyPoints={travel.loyaltyPoints}
+          setLoyaltyPoints={travel.setLoyaltyPoints}
+          loyaltyGrossAmount={travel.loyaltyGrossAmount}
+          setLoyaltyGrossAmount={travel.setLoyaltyGrossAmount}
           customerName={drafts.customerName}
           quoteNumber={drafts.quoteNumber}
           quoteNotes={drafts.quoteNotes}

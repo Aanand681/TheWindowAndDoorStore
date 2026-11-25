@@ -17,6 +17,7 @@ export interface UniversalPricingParams {
     customLabour?: string
     customMisc?: string
     customDiscount?: string
+    customDiscountLabel?: string
     customJC?: string
     loyaltyDiscount?: string
     loyaltyDiscountLabel?: string
@@ -127,8 +128,14 @@ function buildMaterialLineItems(
   if (door && door.materials > 0) {
     items.push({ label: `Door products (${door.itemCount} unit${door.itemCount !== 1 ? "s" : ""})`, amount: door.materials, category: "material" })
   }
+  if (door && door.customMaterials > 0) {
+    items.push({ label: "Custom Materials / Door Add-ons", amount: door.customMaterials, category: "material" })
+  }
   if (su && su.materials > 0) {
     items.push({ label: `Sealed unit glass (${su.itemCount} unit${su.itemCount !== 1 ? "s" : ""})`, amount: su.materials, category: "material" })
+  }
+  if (su && su.customMaterials > 0) {
+    items.push({ label: "Custom Materials / Sealed Unit Add-ons", amount: su.customMaterials, category: "material" })
   }
   return items
 }
@@ -157,7 +164,7 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const combinedLabour = isSupplyOnly ? 0 : Math.round((pureLabour + effectiveTravel) * 100) / 100
 
   const jambsAndCasing = (winNorm?.jambsAndCasing || 0) + (doorNorm?.jambsAndCasing || 0)
-  const customMaterials = winNorm?.customMaterials || 0
+  const customMaterials = Math.round(((winNorm?.customMaterials || 0) + (doorNorm?.customMaterials || 0) + (suNorm?.customMaterials || 0)) * 100) / 100
   const materials = Math.round(((winNorm?.materials || 0) + (doorNorm?.materials || 0) + (suNorm?.materials || 0) + jambsAndCasing + customMaterials) * 100) / 100
   const surcharges = Math.round(((winNorm?.surcharge || 0) + (doorNorm?.surcharge || 0) + (suNorm?.surcharge || 0)) * 100) / 100
   const misc = isSupplyOnly ? 0 : Math.round(((winNorm?.misc || 0) + (doorNorm?.misc || 0) + (suNorm?.misc || 0)) * 100) / 100
@@ -166,7 +173,15 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   const discounts = Math.round((baseDiscounts + loyaltyDiscounts) * 100) / 100
   const discountLabel = winNorm?.discountLabel || doorNorm?.discountLabel || suNorm?.discountLabel || "Discount"
 
-  const subtotal = Math.round((materials + surcharges + misc + combinedLabour) * 100) / 100
+  // Any discount not already absorbed into rawBase -> materials (e.g. Service Only or customMaterials-heavy quotes)
+  const overflowDiscount = [winNorm, doorNorm, suNorm].reduce((acc, norm) => {
+    if (!norm) return acc
+    const normAppliedInBase = Math.max(0, norm.rawBase - norm.materials)
+    const normTotalDisc = (norm.discount || 0) + (norm.loyaltyDiscount || 0)
+    return acc + Math.max(0, Math.round((normTotalDisc - normAppliedInBase) * 100) / 100)
+  }, 0)
+
+  const subtotal = Math.max(0, Math.round((materials + surcharges + misc + combinedLabour - overflowDiscount) * 100) / 100)
   const hstBase = Math.round(subtotal * 0.13 * 100) / 100
 
   let hstAmount = 0
@@ -176,7 +191,8 @@ export function calculateUniversalPricing(params: UniversalPricingParams): Unive
   if (hstRate === 0) {
     taxLabel = "0% Tax (Exempt)"
   } else if (isFirstNation || hstRate === 8 || hstRate === 0.05) {
-    materialExemption = Math.round(materials * 0.08 * 100) / 100
+    const eligibleMaterialsAfterOverflow = Math.max(0, materials - overflowDiscount)
+    materialExemption = Math.round(eligibleMaterialsAfterOverflow * 0.08 * 100) / 100
     hstAmount = Math.max(0, Math.round((hstBase - materialExemption) * 100) / 100)
     taxLabel = "First Nation Point-of-Sale Exemption"
   } else {

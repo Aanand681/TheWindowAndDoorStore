@@ -182,5 +182,44 @@ describe("PDF Parser Engine", () => {
         /No numbered window items found in PDF/
       )
     })
+
+    it("preserves LINE ITEM TOTAL and priced rows pushed near bottom on dense pages (e.g. group 19 at y=746)", () => {
+      const items = [
+        // Print footer should always be filtered cleanly
+        { page: 0, pageHeight: 792, x: 30, y: 766, str: "11/25/2026 4:56:36 PM" },
+        { page: 0, pageHeight: 792, x: 260, y: 766, str: "25 of 29" },
+        { page: 0, pageHeight: 792, x: 550, y: 766, str: "v9" },
+
+        // Group 19 on a dense page
+        { page: 0, pageHeight: 792, x: 30, y: 420, str: "19" },
+        { page: 0, pageHeight: 792, x: 80, y: 420, str: '100P3-R 3-1/4" Casement RH' },
+        { page: 0, pageHeight: 792, x: 260, y: 420, str: "1" },
+        { page: 0, pageHeight: 792, x: 295, y: 420, str: "FR: 23 1/8 X 57" },
+        { page: 0, pageHeight: 792, x: 295, y: 432, str: "1/4" },
+        { page: 0, pageHeight: 792, x: 80, y: 480, str: "WHITE (137) - PAINTED" },
+        { page: 0, pageHeight: 792, x: 80, y: 540, str: "TRIPLE GLAZED" },
+        { page: 0, pageHeight: 792, x: 390, y: 540, str: "$97.70" },
+        { page: 0, pageHeight: 792, x: 80, y: 555, str: "SOLAR GAIN" },
+        { page: 0, pageHeight: 792, x: 390, y: 555, str: "$51.76" },
+        { page: 0, pageHeight: 792, x: 80, y: 590, str: "ARGON" },
+        { page: 0, pageHeight: 792, x: 390, y: 590, str: "$23.35" },
+        { page: 0, pageHeight: 792, x: 80, y: 740, str: "PACKAGING" },
+        { page: 0, pageHeight: 792, x: 390, y: 740, str: "$3.07" },
+        { page: 0, pageHeight: 792, x: 150, y: 746, str: "LINE ITEM TOTAL:" },
+        { page: 0, pageHeight: 792, x: 260, y: 746, str: "Area: 10 sq ft." },
+        { page: 0, pageHeight: 792, x: 390, y: 746, str: "$1,460.48" },
+        { page: 0, pageHeight: 792, x: 460, y: 746, str: "$1,395.08" },
+      ]
+
+      const windows = parseManufacturerPdfItems(items)
+      expect(windows).toHaveLength(1)
+      expect(windows[0].base).toBe(146048)
+      expect(windows[0].argon).toBe(2335)
+      expect(windows[0].solar).toBe(5176)
+      expect(windows[0].triple).toBe(9770)
+      expect(windows[0].w).toBe("23 1/8")
+      expect(windows[0].h).toBe("57 1/4")
+      expect(windows[0].color).toBe("Painted")
+    })
   })
 })

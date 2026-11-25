@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { DoorQuotingMode, DoorSelectedUpcharge } from "@/lib/doors/types"
 import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
+import type { CustomMaterialItem } from "@/types/calculator"
 
 export function useDoorBaseQuoteState() {
   const [customerName, setCustomerName] = useState<string>("")
@@ -32,6 +33,7 @@ export function useDoorBaseQuoteState() {
   const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
   const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
+  const [customMaterials, setCustomMaterials] = useState<CustomMaterialItem[]>([])
   const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null)
   const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
 
@@ -75,6 +77,8 @@ export function useDoorBaseQuoteState() {
     setLoyaltyPoints,
     loyaltyGrossAmount,
     setLoyaltyGrossAmount,
+    customMaterials,
+    setCustomMaterials,
     attachedWindowQuote,
     setAttachedWindowQuote,
     attachedSealedUnit,

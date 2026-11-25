@@ -25,6 +25,14 @@ export interface BuildDoorUpdatePayloadParams {
   hstRate: number
   customLabour: string
   customMisc: string
+  customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: any[]
   attachedWindowQuote: any
   attachedSealedUnit: any
   status?: string
@@ -51,6 +59,14 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
     hstRate,
     customLabour,
     customMisc,
+    customDiscount = "",
+    customDiscountLabel = "",
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    discountType = "none",
+    loyaltyPoints = 0,
+    loyaltyGrossAmount = 0,
+    customMaterials = [],
     attachedWindowQuote,
     attachedSealedUnit,
     status,
@@ -90,6 +106,7 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
       notes: item.notes,
     })),
     taxTotals: {
+      ...totals,
       isSupplyOnly: mode === "supply_only",
       isFirstNation,
       hstRate,
@@ -116,6 +133,14 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
     hstRate,
     customLabour,
     customMisc,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    discountType,
+    loyaltyPoints,
+    loyaltyGrossAmount,
+    customMaterials,
     attachedWindowQuote,
     attachedSealedUnit,
     attachedInstallOption: readSessionAttachedInstallOption(),

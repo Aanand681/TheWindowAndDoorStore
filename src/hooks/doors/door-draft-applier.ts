@@ -1,6 +1,7 @@
 "use client"
 
 import { QuoteDraftItem, clearActiveAutoSave } from "@/lib/quote-drafts-storage"
+import type { CustomMaterialItem } from "@/types/calculator"
 import {
   writeSessionAttachedInstallOption,
   writeSessionCustomOptions,
@@ -13,6 +14,7 @@ export interface DoorWorkspaceSetters {
   setLineItems: (items: any[]) => void
   setGlobalUpcharges: (u: any[]) => void
   setSelectedRegionId?: (id: string) => void
+  resetRegionToDefault?: () => void
   setTravelFeeType: (t: any) => void
   setCustomTravelFee: (f: string) => void
   setShowOutTownTravel: (show: boolean) => void
@@ -21,8 +23,17 @@ export interface DoorWorkspaceSetters {
   setCrewSize: (s: "2" | "3") => void
   setQuoteNotes: (notes: string) => void
   setIsFirstNation: (fn: boolean) => void
+  setHstRate?: (rate: number) => void
   setCustomLabour: (l: string) => void
   setCustomMisc: (m: string) => void
+  setCustomDiscount?: (d: string) => void
+  setCustomDiscountLabel?: (l: string) => void
+  setLoyaltyDiscount?: (l: string) => void
+  setLoyaltyDiscountLabel?: (l: string) => void
+  setDiscountType?: (t: "none" | "custom" | "loyalty") => void
+  setLoyaltyPoints?: (p: number) => void
+  setLoyaltyGrossAmount?: (a: number) => void
+  setCustomMaterials?: (m: CustomMaterialItem[]) => void
   setAttachedWindowQuote: (q: any) => void
   setAttachedSealedUnit: (u: any) => void
 }
@@ -54,13 +65,35 @@ export function applyDoorDraftToWorkspace(
   if (d.crewHours !== undefined) setters.setCrewHours(d.crewHours)
   if (d.crewSize) setters.setCrewSize(d.crewSize)
   if (d.quoteNotes !== undefined) setters.setQuoteNotes(d.quoteNotes)
-  if (d.isFirstNation !== undefined) setters.setIsFirstNation(d.isFirstNation)
+  if (d.hstRate !== undefined && setters.setHstRate) {
+    setters.setHstRate(Number(d.hstRate))
+    setters.setIsFirstNation(Number(d.hstRate) === 8)
+  } else if (d.isFirstNation !== undefined) {
+    setters.setIsFirstNation(d.isFirstNation)
+  }
   setters.setCustomLabour(
     d.customLabour !== undefined ? String(d.customLabour) : ""
   )
   setters.setCustomMisc(
     d.customMisc !== undefined ? String(d.customMisc) : ""
   )
+  setters.setCustomDiscount?.(
+    d.customDiscount !== undefined ? String(d.customDiscount) : ""
+  )
+  setters.setCustomDiscountLabel?.(d.customDiscountLabel || "")
+  setters.setLoyaltyDiscount?.(
+    d.loyaltyDiscount !== undefined ? String(d.loyaltyDiscount) : ""
+  )
+  setters.setLoyaltyDiscountLabel?.(d.loyaltyDiscountLabel || "")
+  setters.setDiscountType?.(d.discountType || "none")
+  setters.setLoyaltyPoints?.(Number(d.loyaltyPoints) || 0)
+  setters.setLoyaltyGrossAmount?.(Number(d.loyaltyGrossAmount) || 0)
+  const restoredMats = Array.isArray(d.customMaterials)
+    ? d.customMaterials
+    : Array.isArray(d.totals?.customMaterials)
+      ? d.totals.customMaterials
+      : []
+  setters.setCustomMaterials?.(restoredMats)
   setters.setAttachedWindowQuote(
     d.attachedWindowQuote !== undefined ? d.attachedWindowQuote : null
   )
@@ -89,7 +122,9 @@ export function resetDoorWorkspace({
 }: DoorResetWorkspaceParams) {
   setters.setLineItems([])
   setEditingItem(null)
+  setters.setMode("installation")
   setters.setGlobalUpcharges([])
+  setters.resetRegionToDefault?.()
   setters.setTravelFeeType("local_std")
   setters.setCustomTravelFee("")
   setters.setShowOutTownTravel(false)
@@ -100,6 +135,15 @@ export function resetDoorWorkspace({
   setters.setIsFirstNation(false)
   setters.setCustomLabour("")
   setters.setCustomMisc("")
+  setters.setCustomDiscount?.("")
+  setters.setCustomDiscountLabel?.("")
+  setters.setLoyaltyDiscount?.("")
+  setters.setLoyaltyDiscountLabel?.("")
+  setters.setDiscountType?.("none")
+  setters.setLoyaltyPoints?.(0)
+  setters.setLoyaltyGrossAmount?.(0)
+  setters.setCustomMaterials?.([])
+  setters.setHstRate?.(13)
   setters.setCustomerName("")
   setters.setQuoteNumber("")
   setters.setAttachedWindowQuote(null)

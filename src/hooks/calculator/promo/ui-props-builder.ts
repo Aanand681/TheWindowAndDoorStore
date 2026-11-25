@@ -69,6 +69,9 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
       if (base.attachedDoorQuote || base.attachedSealedUnit) {
         const combined = computeCombinedQuoteFinancials({
           quoteResult: pricing.quoteResult,
+          taxTotals: pricing.taxTotals,
+          customDiscount: pricing.customDiscount,
+          loyaltyDiscount: pricing.loyaltyDiscount,
           afterDiscount: pricing.afterDiscount,
           total: pricing.total,
           attachedSealedUnit: base.attachedSealedUnit,
@@ -144,6 +147,20 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
     setSupplyCasingName: supply.setSupplyCasingName,
     supplyCasingRate: supply.supplyCasingRate,
     setSupplyCasingRate: supply.setSupplyCasingRate,
+    supplyCustomMaterials: Array.isArray(pricing.taxTotals?.customMaterials)
+      ? pricing.taxTotals.customMaterials
+      : [],
+    setSupplyCustomMaterials: (mats: any[]) => {
+      const matCents = Math.round(
+        mats.reduce((acc, m) => acc + (Number(m?.amount) || 0), 0) * 100
+      )
+      pricing.setTaxTotals((prev: any) => ({
+        ...(prev || {}),
+        customMaterials: mats,
+        customMaterialsTotal: matCents / 100,
+        customMaterialsCents: matCents,
+      }))
+    },
     onSupplyJCCalculated: supply.handleSupplyJCCalculated,
     compareOptions: pricing.compareOptions,
     activePromoId: pricing.activePromoId,

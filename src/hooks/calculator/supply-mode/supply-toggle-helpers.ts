@@ -64,6 +64,11 @@ export function buildInstallTaxState(
       ...snapshot,
       isSupplyOnly: false,
       isServiceOnly: false,
+      customMaterials: current.customMaterials ?? snapshot.customMaterials ?? [],
+      customMaterialsTotal:
+        current.customMaterialsTotal ?? snapshot.customMaterialsTotal ?? 0,
+      customMaterialsCents:
+        current.customMaterialsCents ?? snapshot.customMaterialsCents ?? 0,
       jambId:
         snapshot.jambId && snapshot.jambId !== "none"
           ? snapshot.jambId

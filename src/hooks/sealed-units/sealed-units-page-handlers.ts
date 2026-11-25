@@ -11,6 +11,7 @@ export function validateAndOpenPrint(
   if (
     lineItems.length === 0 &&
     !(travel.isServiceOnly && (totals.totalSqft || 0) > 0) &&
+    !(Array.isArray(totals.customMaterials) && totals.customMaterials.length > 0) &&
     !drafts.attachedWindowQuote &&
     !drafts.attachedDoorQuote
   ) {
@@ -39,10 +40,11 @@ export function validateAndOpenSubmit(
   }
   if (
     lineItems.length === 0 &&
-    !(travel.isServiceOnly && (totals.totalSqft || 0) > 0)
+    !(travel.isServiceOnly && (totals.totalSqft || 0) > 0) &&
+    !(Array.isArray(totals.customMaterials) && totals.customMaterials.length > 0)
   ) {
     toast.error(
-      "Add at least one line item or enter service sq ft before submitting!"
+      "Add at least one line item, custom material, or enter service sq ft before submitting!"
     )
     return
   }

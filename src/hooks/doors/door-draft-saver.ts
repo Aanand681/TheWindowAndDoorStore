@@ -31,8 +31,17 @@ export interface ExecuteSaveDoorDraftParams {
   crewHours: string
   crewSize: "2" | "3"
   isFirstNation: boolean
+  hstRate?: number
   customLabour: string
   customMisc: string
+  customDiscount?: string
+  customDiscountLabel?: string
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
+  customMaterials?: any[]
   quoteNotes: string
 }
 
@@ -56,8 +65,17 @@ export async function executeSaveDoorDraft(
     crewHours,
     crewSize,
     isFirstNation,
+    hstRate,
     customLabour,
     customMisc,
+    customDiscount = "",
+    customDiscountLabel = "",
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    discountType = "none",
+    loyaltyPoints = 0,
+    loyaltyGrossAmount = 0,
+    customMaterials = [],
     quoteNotes,
   } = params
 
@@ -74,6 +92,7 @@ export async function executeSaveDoorDraft(
 
     if (
       lineItems.length === 0 &&
+      customMaterials.length === 0 &&
       !attachedWindowQuote &&
       !attachedSealedUnit
     ) {
@@ -89,6 +108,11 @@ export async function executeSaveDoorDraft(
       mode,
       customLabour,
       customMisc,
+      customDiscount,
+      customDiscountLabel,
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+      hstRate,
       isFirstNation,
       attachedWindowQuote,
       attachedSealedUnit,
@@ -117,8 +141,17 @@ export async function executeSaveDoorDraft(
         crewHours,
         crewSize,
         isFirstNation,
+        hstRate,
         customLabour,
         customMisc,
+        customDiscount,
+        customDiscountLabel,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        discountType,
+        loyaltyPoints,
+        loyaltyGrossAmount,
+        customMaterials,
         attachedWindowQuote,
         attachedSealedUnit,
         attachedInstallOption: readSessionAttachedInstallOption(),

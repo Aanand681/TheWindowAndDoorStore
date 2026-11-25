@@ -39,6 +39,15 @@ export interface QuoteInvoiceProps {
   effectiveJC?: number // cents (custom or calculated)
   effectiveMisc?: number // cents (custom or calculated)
   effectiveLabour?: number // cents (custom or calculated)
+  customLabour?: string
+  customMisc?: string
+  customDiscount?: number | string
+  customDiscountLabel?: string
+  loyaltyDiscount?: number | string
+  loyaltyDiscountLabel?: string
+  discountType?: "none" | "custom" | "loyalty"
+  loyaltyPoints?: number
+  loyaltyGrossAmount?: number
   template?: QuoteTemplateType
   fontSize?: number // px, default 11.5
   spacing?: number // multiplier, default 1.0

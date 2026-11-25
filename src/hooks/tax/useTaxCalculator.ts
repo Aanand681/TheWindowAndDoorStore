@@ -305,8 +305,27 @@ export function useTaxCalculator({
     onCalculatedRef.current = onCalculated
   })
 
+  const lastEmittedMatsSigRef = useRef<string>(
+    JSON.stringify(customMaterials || [])
+  )
+
+  useEffect(() => {
+    if (!Array.isArray(savedTaxTotals?.customMaterials)) return
+    const incomingSig = JSON.stringify(savedTaxTotals.customMaterials)
+    if (
+      incomingSig !== lastEmittedMatsSigRef.current &&
+      incomingSig !== JSON.stringify(customMaterials)
+    ) {
+      lastEmittedMatsSigRef.current = incomingSig
+      setCustomMaterials(savedTaxTotals.customMaterials)
+    }
+  }, [savedTaxTotals?.customMaterials])
+
   useEffect(() => {
     if (onCalculatedRef.current && calculatedTotals) {
+      lastEmittedMatsSigRef.current = JSON.stringify(
+        calculatedTotals.customMaterials || []
+      )
       onCalculatedRef.current(calculatedTotals)
     }
   }, [calculatedTotals])

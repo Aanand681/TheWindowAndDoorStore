@@ -5,6 +5,7 @@ import { Info } from "lucide-react"
 import { formatMoney } from "@/lib/promo-logic"
 import { UnifiedTaxAndDeposit } from "@/components/shared/summary/UnifiedTaxAndDeposit"
 import { DiscountLoyaltySelector } from "@/components/shared/discount/DiscountLoyaltySelector"
+import { CustomMaterialsSummaryRows } from "@/components/shared/materials"
 
 export interface StandardLedgerSectionProps {
   summaryWindowGroups: any[]
@@ -146,25 +147,7 @@ export function StandardLedgerSection({
           )}
 
         {/* Additional Materials */}
-        {taxTotals?.customMaterials &&
-          Array.isArray(taxTotals.customMaterials) &&
-          taxTotals.customMaterials.map((mat: any) => {
-            const amt = Number(mat.amount) || 0
-            if (amt <= 0 && !mat.label) return null
-            return (
-              <div
-                key={mat.id}
-                className="flex items-center justify-between py-0.5 text-xs sm:text-sm"
-              >
-                <span className="font-medium text-foreground">
-                  {mat.label ? `${mat.label}` : "Additional Material"}
-                </span>
-                <span className="shrink-0 font-mono font-semibold whitespace-nowrap text-foreground">
-                  +{formatMoney(Math.round(amt * 100))}
-                </span>
-              </div>
-            )
-          })}
+        <CustomMaterialsSummaryRows materials={taxTotals?.customMaterials} />
 
         {/* Miscellaneous - Completely hidden on Supply Only */}
         {!isSupplyOnly &&

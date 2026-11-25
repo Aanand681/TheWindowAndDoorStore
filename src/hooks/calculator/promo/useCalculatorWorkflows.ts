@@ -105,6 +105,11 @@ export function useCalculatorWorkflows(p: {
     }
     const combined = computeCombinedQuoteFinancials({
       quoteResult: pricing.quoteResult,
+      taxTotals: pricing.taxTotals,
+      customDiscount: pricing.customDiscount,
+      customDiscountLabel: pricing.customDiscountLabel,
+      loyaltyDiscount: pricing.loyaltyDiscount,
+      loyaltyDiscountLabel: pricing.loyaltyDiscountLabel,
       total: pricing.total,
       afterDiscount: pricing.afterDiscount,
       attachedSealedUnit: base.attachedSealedUnit,
@@ -113,6 +118,7 @@ export function useCalculatorWorkflows(p: {
       effectiveMisc: pricing.effectiveMiscCents,
       effectiveLabour: pricing.effectiveLabourCents,
       hstRate: pricing.hstRate,
+      isSupplyOnly: supply.isSupplyOnly,
     })
     return combined.combinedTotalCents
   }, [
@@ -121,10 +127,16 @@ export function useCalculatorWorkflows(p: {
     pricing.total,
     pricing.afterDiscount,
     pricing.quoteResult,
+    pricing.taxTotals,
+    pricing.customDiscount,
+    pricing.customDiscountLabel,
+    pricing.loyaltyDiscount,
+    pricing.loyaltyDiscountLabel,
     pricing.effectiveJCCents,
     pricing.effectiveMiscCents,
     pricing.effectiveLabourCents,
     pricing.hstRate,
+    supply.isSupplyOnly,
   ])
 
   const review = useCalculatorReviewActions({
@@ -153,6 +165,20 @@ export function useCalculatorWorkflows(p: {
     setCustomMisc: pricing.setCustomMisc,
     customLabour: pricing.customLabour,
     setCustomLabour: pricing.setCustomLabour,
+    customDiscount: pricing.customDiscount,
+    setCustomDiscount: pricing.setCustomDiscount,
+    customDiscountLabel: pricing.customDiscountLabel,
+    setCustomDiscountLabel: pricing.setCustomDiscountLabel,
+    loyaltyDiscount: pricing.loyaltyDiscount,
+    setLoyaltyDiscount: pricing.setLoyaltyDiscount,
+    loyaltyDiscountLabel: pricing.loyaltyDiscountLabel,
+    setLoyaltyDiscountLabel: pricing.setLoyaltyDiscountLabel,
+    discountType: pricing.discountType,
+    setDiscountType: pricing.setDiscountType,
+    loyaltyPoints: pricing.loyaltyPoints,
+    setLoyaltyPoints: pricing.setLoyaltyPoints,
+    loyaltyGrossAmount: pricing.loyaltyGrossAmount,
+    setLoyaltyGrossAmount: pricing.setLoyaltyGrossAmount,
     includeJCInPromo: pricing.includeJCInPromo,
     setIncludeJCInPromo: pricing.setIncludeJCInPromo,
     includeMiscInPromo: pricing.includeMiscInPromo,
