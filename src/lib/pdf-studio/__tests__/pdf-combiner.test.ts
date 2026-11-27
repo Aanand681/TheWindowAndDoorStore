@@ -3,18 +3,28 @@ import { PDFDocument } from "pdf-lib"
 import {
   buildCombinedPdfFileName,
   combineWindowAndDoorPdfs,
-  sanitizeFileNamePart,
 } from "../pdf-combiner"
+import { buildStandardQuotePdfFileName } from "@/lib/quotes/pdf-filename"
 
 describe("pdf-combiner", () => {
   describe("buildCombinedPdfFileName", () => {
-    it("formats filename according to '( Name windowQuoteNo. & doorQuoteNo )' pattern", () => {
+    it("formats combined filename with # prefixes: 'Name #winNo & #doorNo.pdf'", () => {
       const fileName = buildCombinedPdfFileName({
         customerName: "John Smith",
         windowQuoteNo: "WQ-1024",
         doorQuoteNo: "DQ-502",
       })
-      expect(fileName).toBe("John Smith WQ-1024 & DQ-502.pdf")
+      expect(fileName).toBe("John Smith #WQ-1024 & #DQ-502.pdf")
+    })
+
+    it("formats 3 attached quote numbers cleanly with 'for #quote3'", () => {
+      const fileName = buildCombinedPdfFileName({
+        customerName: "John Smith",
+        windowQuoteNo: "83546",
+        doorQuoteNo: "83547",
+        sealedUnitQuoteNo: "83548",
+      })
+      expect(fileName).toBe("John Smith #83546 & #83547 for #83548.pdf")
     })
 
     it("sanitizes forbidden characters from customer name and quote numbers", () => {
@@ -23,12 +33,28 @@ describe("pdf-combiner", () => {
         windowQuoteNo: "WQ/2026*01",
         doorQuoteNo: "DQ<99>",
       })
-      expect(fileName).toBe("ACME CorpSpecialProject WQ202601 & DQ99.pdf")
+      expect(fileName).toBe("ACME CorpSpecialProject #WQ202601 & #DQ99.pdf")
     })
 
     it("provides safe fallbacks when values are omitted", () => {
       const fileName = buildCombinedPdfFileName({})
-      expect(fileName).toBe("Customer WindowQuote & DoorQuote.pdf")
+      expect(fileName).toBe("Customer #WindowQuote & #DoorQuote.pdf")
+    })
+
+    it("formats single quote without duplicating existing # prefix", () => {
+      expect(
+        buildStandardQuotePdfFileName({
+          customerName: "John Smith",
+          quoteNumbers: ["#83546"],
+        })
+      ).toBe("John Smith #83546.pdf")
+      expect(
+        buildStandardQuotePdfFileName({
+          customerName: "Jane Doe",
+          quoteNumbers: ["83546"],
+          withExtension: false,
+        })
+      ).toBe("Jane Doe #83546")
     })
   })
 

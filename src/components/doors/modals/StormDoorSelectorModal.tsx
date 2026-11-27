@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { X, Check, DoorClosed, PlusCircle, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import {
   StormDoorStyle,
   StormDoorProfile,

@@ -2,14 +2,16 @@
 
 import React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Sliders, FileText, Compass, Check } from "lucide-react"
+import { Sliders, FileText, Compass, Check, RotateCcw } from "lucide-react"
+import type { SavedQuoteLayout } from "@/lib/quotes/invoice-layout-engine"
 
 interface QuotingDefaultsCardProps {
   defaultQuotingMode: "installation" | "supply_only"
   setDefaultQuotingMode: (mode: "installation" | "supply_only") => void
-  favoriteTemplate: string
-  setFavoriteTemplate: (tpl: string) => void
+  savedQuoteLayout: SavedQuoteLayout | null
+  onResetSavedLayout: () => void
   landingPage: string
   setLandingPage: (page: string) => void
   role?: string
@@ -18,8 +20,8 @@ interface QuotingDefaultsCardProps {
 export function QuotingDefaultsCard({
   defaultQuotingMode,
   setDefaultQuotingMode,
-  favoriteTemplate,
-  setFavoriteTemplate,
+  savedQuoteLayout,
+  onResetSavedLayout,
   landingPage,
   setLandingPage,
   role,
@@ -77,29 +79,44 @@ export function QuotingDefaultsCard({
           </p>
         </div>
 
-        {/* Favorite PDF Template */}
+        {/* Universal PDF Saved Layout */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="favoriteTemplate" className="text-sm font-semibold">
-              Favorite Customer PDF Template
+            <Label className="text-sm font-semibold">
+              Universal Quote PDF Layout
             </Label>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </div>
-          <select
-            id="favoriteTemplate"
-            value={favoriteTemplate}
-            onChange={(e) => setFavoriteTemplate(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <option value="cards">Cards (Visual Card Layout)</option>
-            <option value="modern">Modern Detailed</option>
-            <option value="executive">Executive Classic</option>
-            <option value="compact">Compact Table</option>
-            <option value="breakdown">Breakdown (Line Items)</option>
-          </select>
-          <p className="text-xs text-muted-foreground">
-            Default invoice style applied when opening quote previews and generating customer PDFs.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background/80 p-3">
+            <div className="space-y-0.5">
+              <div className="text-sm font-semibold text-foreground">
+                {savedQuoteLayout
+                  ? "Custom Composer Layout Active"
+                  : "Smart 1-Page Auto-Fit (Default)"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {savedQuoteLayout
+                  ? `${savedQuoteLayout.rows.length} layout row(s)${
+                      savedQuoteLayout.fontSize
+                        ? ` · ${savedQuoteLayout.fontSize.toFixed(1)}px font`
+                        : ""
+                    } — applied to all your future quotes.`
+                  : "Open any Quote Preview to drag cards, resize widths, and click Save as My Default."}
+              </div>
+            </div>
+            {savedQuoteLayout && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onResetSavedLayout}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset to Auto-Fit</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Default Landing Page */}

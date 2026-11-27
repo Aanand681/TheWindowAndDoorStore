@@ -5,6 +5,36 @@ export const SESSION_INSTALL_KEY = "vwd_quote_install_custom_state"
 
 import type { DoorHardwareSelection } from "@/components/shared/compare/DoorHardwareCompareSection"
 
+export type QuoteOptionScope = "window" | "door" | "sealed_unit"
+
+const ALL_QUOTE_OPTION_SCOPES: QuoteOptionScope[] = [
+  "window",
+  "door",
+  "sealed_unit",
+]
+
+/**
+ * Infers the active quote scope from the browser URL pathname when explicit
+ * scope isn't provided, keeping window/door/sealed-unit storage isolated.
+ */
+export function resolveQuoteOptionScope(scope?: QuoteOptionScope): QuoteOptionScope {
+  if (scope) return scope
+  if (typeof window !== "undefined") {
+    const path = window.location?.pathname || ""
+    if (path.startsWith("/doors")) return "door"
+    if (path.startsWith("/sealed-units")) return "sealed_unit"
+  }
+  return "window"
+}
+
+function getScopedAttachedInstallKey(scope?: QuoteOptionScope): string {
+  return `${SESSION_ATTACHED_INSTALL_OPTION_KEY}_${resolveQuoteOptionScope(scope)}`
+}
+
+function getScopedCustomOptionsKey(scope?: QuoteOptionScope): string {
+  return `${SESSION_CUSTOM_OPTIONS_KEY}_${resolveQuoteOptionScope(scope)}`
+}
+
 export interface CachedSupplyState {
   jambId: string
   jambName: string
@@ -115,10 +145,14 @@ export interface CachedAttachedInstallOption {
   hardwareBreakdown?: DoorHardwareSelection[]
 }
 
-export function readSessionAttachedInstallOption(): CachedAttachedInstallOption | null {
+export function readSessionAttachedInstallOption(
+  scope?: QuoteOptionScope
+): CachedAttachedInstallOption | null {
   if (typeof window === "undefined") return null
   try {
-    const raw = sessionStorage.getItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
+    // Drop legacy un-scoped key so old cross-page entries never bleed between calculators
+    sessionStorage.removeItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
+    const raw = sessionStorage.getItem(getScopedAttachedInstallKey(scope))
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -128,17 +162,19 @@ export function readSessionAttachedInstallOption(): CachedAttachedInstallOption 
 export const ATTACHED_INSTALL_CHANGE_EVENT = "vwd_attached_install_changed"
 
 export function writeSessionAttachedInstallOption(
-  option: CachedAttachedInstallOption | null
+  option: CachedAttachedInstallOption | null,
+  scope?: QuoteOptionScope
 ) {
   if (typeof window === "undefined") return
   try {
-    if (!option) sessionStorage.removeItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
-    else
-      sessionStorage.setItem(
-        SESSION_ATTACHED_INSTALL_OPTION_KEY,
-        JSON.stringify(option)
-      )
-    window.dispatchEvent(new CustomEvent(ATTACHED_INSTALL_CHANGE_EVENT))
+    const resolved = resolveQuoteOptionScope(scope)
+    const key = getScopedAttachedInstallKey(resolved)
+    sessionStorage.removeItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
+    if (!option) sessionStorage.removeItem(key)
+    else sessionStorage.setItem(key, JSON.stringify(option))
+    window.dispatchEvent(
+      new CustomEvent(ATTACHED_INSTALL_CHANGE_EVENT, { detail: { scope: resolved } })
+    )
   } catch {}
 }
 
@@ -150,10 +186,14 @@ export interface CustomQuoteOption {
   amountPreTaxCents: number
 }
 
-export function readSessionCustomOptions(): CustomQuoteOption[] {
+export function readSessionCustomOptions(
+  scope?: QuoteOptionScope
+): CustomQuoteOption[] {
   if (typeof window === "undefined") return []
   try {
-    const raw = sessionStorage.getItem(SESSION_CUSTOM_OPTIONS_KEY)
+    // Drop legacy un-scoped key so old cross-page entries never bleed between calculators
+    sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
+    const raw = sessionStorage.getItem(getScopedCustomOptionsKey(scope))
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
@@ -162,32 +202,44 @@ export function readSessionCustomOptions(): CustomQuoteOption[] {
 
 export const CUSTOM_OPTIONS_CHANGE_EVENT = "vwd_custom_options_changed"
 
-export function writeSessionCustomOptions(options: CustomQuoteOption[]) {
+export function writeSessionCustomOptions(
+  options: CustomQuoteOption[],
+  scope?: QuoteOptionScope
+) {
   if (typeof window === "undefined") return
   try {
-    if (!options || options.length === 0)
-      sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
-    else
-      sessionStorage.setItem(
-        SESSION_CUSTOM_OPTIONS_KEY,
-        JSON.stringify(options)
-      )
-    window.dispatchEvent(new CustomEvent(CUSTOM_OPTIONS_CHANGE_EVENT))
+    const resolved = resolveQuoteOptionScope(scope)
+    const key = getScopedCustomOptionsKey(resolved)
+    sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
+    if (!options || options.length === 0) sessionStorage.removeItem(key)
+    else sessionStorage.setItem(key, JSON.stringify(options))
+    window.dispatchEvent(
+      new CustomEvent(CUSTOM_OPTIONS_CHANGE_EVENT, { detail: { scope: resolved } })
+    )
   } catch {}
 }
 
 /**
- * Completely purges all quote-related session storage.
+ * Purges quote-related session storage for one scope (when given) or across all scopes.
  * Call when importing a new PDF, resetting a quote, or switching to an independent workspace.
  */
-export function clearAllQuoteSessionState() {
+export function clearAllQuoteSessionState(scope?: QuoteOptionScope) {
   if (typeof window === "undefined") return
   try {
     sessionStorage.removeItem(SESSION_ATTACHED_INSTALL_OPTION_KEY)
     sessionStorage.removeItem(SESSION_CUSTOM_OPTIONS_KEY)
-    sessionStorage.removeItem(SESSION_DOOR_HARDWARE_CONFIG_KEY)
-    sessionStorage.removeItem(SESSION_SUPPLY_KEY)
-    sessionStorage.removeItem(SESSION_INSTALL_KEY)
+    const targetScopes = scope ? [scope] : ALL_QUOTE_OPTION_SCOPES
+    for (const s of targetScopes) {
+      sessionStorage.removeItem(getScopedAttachedInstallKey(s))
+      sessionStorage.removeItem(getScopedCustomOptionsKey(s))
+    }
+    if (!scope || scope === "door") {
+      sessionStorage.removeItem(SESSION_DOOR_HARDWARE_CONFIG_KEY)
+    }
+    if (!scope || scope === "window") {
+      sessionStorage.removeItem(SESSION_SUPPLY_KEY)
+      sessionStorage.removeItem(SESSION_INSTALL_KEY)
+    }
   } catch {}
 }
 

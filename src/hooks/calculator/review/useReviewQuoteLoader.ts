@@ -202,8 +202,11 @@ export function useReviewQuoteLoader({
           if (setSupplyJambRate && q.supplyJambRate !== undefined) setSupplyJambRate(q.supplyJambRate)
           if (setSupplyCasingId && q.supplyCasingId !== undefined) setSupplyCasingId(q.supplyCasingId)
           if (setSupplyCasingRate && q.supplyCasingRate !== undefined) setSupplyCasingRate(q.supplyCasingRate)
-          writeSessionAttachedInstallOption(q.attachedInstallOption ?? null)
-          writeSessionCustomOptions(Array.isArray(q.customOptions) ? q.customOptions : [])
+          writeSessionAttachedInstallOption(q.attachedInstallOption ?? null, "window")
+          writeSessionCustomOptions(
+            Array.isArray(q.customOptions) ? q.customOptions : [],
+            "window"
+          )
           if (setHstRate && (q.hstRate !== undefined || q.taxTotals?.hstRate !== undefined)) {
             setHstRate(Number(q.hstRate ?? q.taxTotals?.hstRate))
           }
@@ -278,8 +281,14 @@ export function useReviewQuoteLoader({
     if (setSupplyJambRate && reviewQuote.supplyJambRate !== undefined) setSupplyJambRate(reviewQuote.supplyJambRate)
     if (setSupplyCasingId && reviewQuote.supplyCasingId !== undefined) setSupplyCasingId(reviewQuote.supplyCasingId)
     if (setSupplyCasingRate && reviewQuote.supplyCasingRate !== undefined) setSupplyCasingRate(reviewQuote.supplyCasingRate)
-    writeSessionAttachedInstallOption(reviewQuote.attachedInstallOption ?? null)
-    writeSessionCustomOptions(Array.isArray(reviewQuote.customOptions) ? reviewQuote.customOptions : [])
+    writeSessionAttachedInstallOption(
+      reviewQuote.attachedInstallOption ?? null,
+      "window"
+    )
+    writeSessionCustomOptions(
+      Array.isArray(reviewQuote.customOptions) ? reviewQuote.customOptions : [],
+      "window"
+    )
     if (setHstRate && (reviewQuote.hstRate !== undefined || reviewQuote.taxTotals?.hstRate !== undefined)) {
       setHstRate(Number(reviewQuote.hstRate ?? reviewQuote.taxTotals?.hstRate))
     }

@@ -106,9 +106,24 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
     srcTotals.surchargeTotal ??
     srcTotals.surcharge ??
     Math.round((rawDoorBase + stormDoorTotal) * 0.08 * 100) / 100
-  const discountTotal = srcTotals.discountTotal ?? srcTotals.discount ?? 0
+  const hasCustomDoorDiscount =
+    rawData.customDiscount !== undefined &&
+    String(rawData.customDiscount).trim() !== ""
+  const discountTotal = hasCustomDoorDiscount
+    ? Math.max(0, parseFloat(String(rawData.customDiscount)) || 0)
+    : (srcTotals.discountTotal ?? srcTotals.discount ?? 0)
 
   const doorTravel = isDoorSupply ? 0 : Number(srcTotals.totalTravelAndSetup || 0)
+  const resolvedHardwareQty =
+    Number(srcTotals.hardwareQty) ||
+    lineItems.reduce((acc: number, item: any) => {
+      const q = Math.max(1, Number(item.quantity || item.qty) || 1)
+      const hasHw =
+        (item.hardwareType && item.hardwareType !== "none") ||
+        Number(item.lineHardwareTotal || 0) > 0 ||
+        Number(item.hardwarePrice || 0) > 0
+      return acc + (hasHw ? q : 0)
+    }, 0)
 
   // Deduplicate setup and travel: attached door labour is strictly unitLabour + upcharges (0 in supply mode)
   const rawPureLabour =
@@ -119,8 +134,7 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
         : Math.max(
             0,
             Number(srcTotals.combinedLabourTotal ?? srcTotals.combinedLabour ?? 0) -
-              Number(srcTotals.baseSetupFee || 0) -
-              Number(srcTotals.totalTravelAndSetup || 0)
+              Number(srcTotals.totalTravelAndSetup || srcTotals.baseSetupFee || 0)
           )
 
   let pureLabourTotal = isDoorSupply ? 0 : rawPureLabour
@@ -172,7 +186,13 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
     summaryLabel: doorSentence,
     summarySentence: doorSentence,
     discountLabel:
-      rawData.discountLabel || (draft as any).discountLabel || "Door Discount",
+      (hasCustomDoorDiscount
+        ? rawData.customDiscountLabel || (draft as any).customDiscountLabel
+        : "") ||
+      rawData.discountLabel ||
+      (draft as any).discountLabel ||
+      srcTotals.discountLabel ||
+      "Door Discount",
     loyaltyDiscount: rawData.loyaltyDiscount || (draft as any).loyaltyDiscount || "",
     loyaltyDiscountLabel: rawData.loyaltyDiscountLabel || (draft as any).loyaltyDiscountLabel || "",
     customMaterials: customMaterialsList,
@@ -183,12 +203,16 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       totalPrice: rawDoorBase + stormDoorTotal,
       stormDoorTotal,
       hardwareTotal,
+      hardwareQty: resolvedHardwareQty,
       customMaterials: customMaterialsList,
       customMaterialsList,
       customMaterialsTotal: customMaterialsDollars,
       materialsTotal: rawDoorBase + stormDoorTotal + hardwareTotal + customMaterialsDollars,
       combinedLabourTotal: pureLabourTotal,
       doorPureLabourTotal: pureLabourTotal,
+      fullInstallLabour: Number(srcTotals.fullInstallLabour ?? (rawPureLabour + Number(srcTotals.totalTravelAndSetup || 0))),
+      fullInstallMisc: Number(srcTotals.fullInstallMisc ?? srcTotals.miscTotal ?? srcTotals.misc ?? 0),
+      fullTravelAndSetup: Number(srcTotals.totalTravelAndSetup || 0),
       miscTotal,
       surchargeTotal,
       discountTotal,
@@ -201,15 +225,24 @@ export function buildDoorAttachPayload(draft: QuoteDraftItem) {
       baseSetupFee: 0,
       totalTravelAndSetup: 0,
       travelAndSetupFee: doorTravel,
+      travelBaseSetupFee: isDoorSupply ? 0 : Number(srcTotals.baseSetupFee ?? (doorTravel > 0 ? 140 : 0)),
+      travelAdditionalFarFee: isDoorSupply ? 0 : Number(srcTotals.additionalFarFee || 0),
+      travelVehicleFee: isDoorSupply ? 0 : Number(srcTotals.vehicleTravelFee || 0),
+      travelCrewFee: isDoorSupply ? 0 : Number(srcTotals.crewTravelFee || 0),
     },
     taxTotals: {
       ...srcTotals,
+      hardwareQty: resolvedHardwareQty,
       subtotalPreTax,
       grandTotal,
       combinedLabourTotal: pureLabourTotal,
       baseSetupFee: 0,
       totalTravelAndSetup: 0,
       travelAndSetupFee: doorTravel,
+      travelBaseSetupFee: isDoorSupply ? 0 : Number(srcTotals.baseSetupFee ?? (doorTravel > 0 ? 140 : 0)),
+      travelAdditionalFarFee: isDoorSupply ? 0 : Number(srcTotals.additionalFarFee || 0),
+      travelVehicleFee: isDoorSupply ? 0 : Number(srcTotals.vehicleTravelFee || 0),
+      travelCrewFee: isDoorSupply ? 0 : Number(srcTotals.crewTravelFee || 0),
     },
     isInstallation: !isDoorSupply,
     globalUpcharges: rawData.globalUpcharges || [],

@@ -3,6 +3,7 @@
 import React from "react"
 import { Tabs } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { WORKSPACE_TWO_COLUMN_GRID_CLASS } from "@/components/shared/summary/layout-classes"
 
 // App shell and tab components
 import { AppHeader } from "@/components/layout/AppHeader"
@@ -71,8 +72,8 @@ export function PromoCalculator(props: PromoCalculatorProps = {}) {
               activeTab !== "promo" && "hidden"
             )}
           >
-            <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-8">
+            <div className={WORKSPACE_TWO_COLUMN_GRID_CLASS}>
+              <div className="min-w-0">
                 <WindowConfigPanel {...windowConfigProps} />
               </div>
               <CalculatorSummaryPanel {...summaryProps} />

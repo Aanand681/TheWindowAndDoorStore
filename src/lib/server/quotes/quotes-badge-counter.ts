@@ -1,7 +1,7 @@
 import SavedQuote from "@/models/SavedQuote"
-import Department from "@/models/Department"
 import dbConnect from "@/lib/mongodb"
 import { cacheGet, cacheSet } from "@/lib/redis"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export async function getQuotesBadgeCounts(session: any, currentUser: string) {
   const cacheKey = `quotes:badge:${currentUser || "anon"}`
@@ -15,11 +15,13 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
   const userRole = session.user.role
   const isSuperAdmin = userRole === "SUPERADMIN"
 
+  const currentUserRegex = exactCaseInsensitiveRegex(currentUser)
+
   // Pending reviews specifically assigned to this user (visible to assigned admin only)
   const pendingReviewCount = await SavedQuote.countDocuments({
     status: "PENDING_REVIEW",
     $or: [
-      { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+      { assignedTo: { $regex: currentUserRegex } },
       ...(currentUser?.toLowerCase() === "admin"
         ? [
             { assignedTo: "Admin" },
@@ -35,12 +37,12 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
     ? await SavedQuote.countDocuments({ odooStatus: "PENDING_ENTRY" })
     : await SavedQuote.countDocuments({
         odooStatus: "PENDING_ENTRY",
-        odooAssignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") },
+        odooAssignedTo: { $regex: currentUserRegex },
       })
 
   // Recent approved/modified quotes prepared by this user
   const myUpdatesCount = await SavedQuote.countDocuments({
-    preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") },
+    preparedBy: { $regex: currentUserRegex },
     status: { $in: ["APPROVED", "MODIFIED", "RETURNED"] },
     updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   })
@@ -48,7 +50,7 @@ export async function getQuotesBadgeCounts(session: any, currentUser: string) {
   // Returned quotes prepared by this user that require revision
   const returnedCount = await SavedQuote.countDocuments({
     status: "RETURNED",
-    preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") },
+    preparedBy: { $regex: currentUserRegex },
   })
 
   const totalActionableCount =

@@ -116,15 +116,24 @@ export function QuotePreviewModalWrapper({
       effectiveJC={financials.effectiveJC}
       effectiveMisc={financials.effectiveMisc}
       effectiveLabour={financials.effectiveLabour}
+      customLabour={isDoor || isSU ? previewQuote.customLabour : undefined}
+      customMisc={isDoor || isSU ? previewQuote.customMisc : undefined}
       customDiscount={previewQuote.customDiscount}
       customDiscountLabel={previewQuote.customDiscountLabel}
       loyaltyDiscount={previewQuote.loyaltyDiscount}
       loyaltyDiscountLabel={previewQuote.loyaltyDiscountLabel}
       isSupplyOnly={isSupplyOnly}
+      globalUpcharges={
+        previewQuote.globalUpcharges || previewQuote.taxTotals?.globalUpcharges || []
+      }
       isDualOption={hasAttachedInstallOption}
       attachedInstallOption={previewQuote.attachedInstallOption || null}
       customOptions={previewQuote.customOptions || []}
-      attachedUpgrade={previewQuote.attachedUpgrade || null}
+      attachedUpgrade={
+        previewQuote.attachedUpgrade ||
+        previewQuote.attachedWindowQuote?.attachedUpgrade ||
+        null
+      }
       attachedDoorQuote={previewQuote.attachedDoorQuote || null}
       attachedSealedUnit={previewQuote.attachedSealedUnit || null}
       attachedWindowQuote={previewQuote.attachedWindowQuote || null}

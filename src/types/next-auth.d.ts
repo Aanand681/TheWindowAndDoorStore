@@ -12,7 +12,7 @@ declare module "next-auth" {
     canAccessAdmin?: boolean
     username?: string
     defaultQuotingMode?: "installation" | "supply_only"
-    favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
+    favoriteTemplate?: "universal" | "modern" | "executive" | "cards" | "compact" | "breakdown"
   }
 
   interface Session {
@@ -25,7 +25,7 @@ declare module "next-auth" {
       canAccessAdmin?: boolean
       username?: string
       defaultQuotingMode?: "installation" | "supply_only"
-      favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
+      favoriteTemplate?: "universal" | "modern" | "executive" | "cards" | "compact" | "breakdown"
     } & DefaultSession["user"]
   }
 }
@@ -41,7 +41,7 @@ declare module "next-auth/jwt" {
     canAccessAdmin?: boolean
     username?: string
     defaultQuotingMode?: "installation" | "supply_only"
-    favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
+    favoriteTemplate?: "universal" | "modern" | "executive" | "cards" | "compact" | "breakdown"
     authTime?: number
   }
 }

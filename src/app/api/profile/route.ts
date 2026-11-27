@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { cacheSet } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
+import { sanitizeSavedQuoteLayout } from "@/lib/quotes/invoice-layout-engine"
 import bcrypt from "bcryptjs"
 
 export async function GET() {
@@ -156,11 +157,24 @@ export async function PUT(request: Request) {
 
     if (
       body.favoriteTemplate &&
-      ["modern", "executive", "cards", "compact", "breakdown"].includes(
+      ["universal", "modern", "executive", "cards", "compact", "breakdown"].includes(
         body.favoriteTemplate
       )
     ) {
       user.favoriteTemplate = body.favoriteTemplate
+    }
+
+    if (body.savedQuoteLayout === null) {
+      user.savedQuoteLayout = null
+    } else if (body.savedQuoteLayout !== undefined) {
+      const sanitizedLayout = sanitizeSavedQuoteLayout(body.savedQuoteLayout)
+      if (!sanitizedLayout) {
+        return NextResponse.json(
+          { error: "Invalid savedQuoteLayout configuration" },
+          { status: 400 }
+        )
+      }
+      user.savedQuoteLayout = sanitizedLayout
     }
 
     await user.save()
@@ -173,6 +187,7 @@ export async function PUT(request: Request) {
       landingPage: user.landingPage,
       defaultQuotingMode: user.defaultQuotingMode,
       favoriteTemplate: user.favoriteTemplate,
+      savedQuoteLayout: user.savedQuoteLayout ?? null,
       receiveQuoteEmails: user.receiveQuoteEmails,
       muteNotifications: user.muteNotifications,
     })

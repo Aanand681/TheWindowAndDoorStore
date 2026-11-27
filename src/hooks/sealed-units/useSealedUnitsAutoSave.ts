@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import {
-  saveActiveAutoSave,
   getActiveAutoSave,
   clearActiveAutoSave,
   getSavedDrafts,
@@ -15,6 +14,7 @@ import {
   getSealedUnitServiceSummaryLabel,
 } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
+import { computeEffectiveSealedUnitGrandTotal } from "@/lib/sealed-units/totals-calculator"
 import {
   serializeSealedUnitSnapshot,
   applyDraftDataToWorkspace,
@@ -23,11 +23,9 @@ import {
   WorkspaceSetters,
 } from "./sealed-units-storage-helpers"
 import {
-  readSessionAttachedInstallOption,
-  readSessionCustomOptions,
-  CUSTOM_OPTIONS_CHANGE_EVENT,
-  ATTACHED_INSTALL_CHANGE_EVENT,
-} from "@/hooks/calculator/supply-mode/supply-session-storage"
+  useSessionOptionsHash,
+  useUniversalAutoSave,
+} from "@/hooks/shared/useUniversalAutoSave"
 
 interface UseSealedUnitsAutoSaveProps {
   currentSnapshotParams: SealedUnitSnapshotParams
@@ -56,36 +54,83 @@ export function useSealedUnitsAutoSave({
   loadDraftIntoWorkspace,
   onConflictDetected,
 }: UseSealedUnitsAutoSaveProps) {
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
-  const [optionsHash, setOptionsHash] = useState(() =>
-    JSON.stringify({
-      c: readSessionCustomOptions(),
-      a: readSessionAttachedInstallOption(),
-    })
-  )
-  const lastSavedSnapshotRef = useRef<string>("")
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const currentPayloadRef = useRef<any>(null)
+  const optionsHash = useSessionOptionsHash("sealed_unit")
   const initialLoadDone = useRef(false)
 
-  useEffect(() => {
-    const updateHash = () => {
-      setOptionsHash(
-        JSON.stringify({
-          c: readSessionCustomOptions(),
-          a: readSessionAttachedInstallOption(),
-        })
-      )
+  const hasContent =
+    lineItems.length > 0 ||
+    (isServiceOnly &&
+      (serviceSqftInput.trim() !== "" || (totals.totalSqft || 0) > 0)) ||
+    (Array.isArray((currentSnapshotParams as any)?.customMaterials) &&
+      (currentSnapshotParams as any).customMaterials.length > 0) ||
+    Boolean(attachedWindowQuote) ||
+    Boolean(attachedDoorQuote)
+
+  const currentSnapshot = serializeSealedUnitSnapshot({
+    ...currentSnapshotParams,
+    optionsHash,
+  })
+
+  const buildPayload = useCallback(() => {
+    const summaryLabel = isServiceOnly
+      ? getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)
+      : `${lineItems.length} Sealed Units`
+
+    const payloadData = createDraftSavePayload({
+      ...currentSnapshotParams,
+      quoteNotes,
+      totals,
+    })
+
+    const effectiveTotals = computeEffectiveSealedUnitGrandTotal({
+      totals,
+      sealedUnitMode: currentSnapshotParams.sealedUnitMode,
+      isInstallation: currentSnapshotParams.isInstallation,
+      isServiceOnly,
+      loyaltyDiscount: currentSnapshotParams.loyaltyDiscount,
+      loyaltyDiscountLabel: currentSnapshotParams.loyaltyDiscountLabel,
+      hstRate: currentSnapshotParams.hstRate,
+      attachedWindowQuote,
+      attachedDoorQuote,
+    })
+
+    return {
+      type: "sealed_unit" as const,
+      quoteNumber: currentSnapshotParams.quoteNumber || "Draft",
+      customerName: currentSnapshotParams.customerName || "",
+      itemCount: isServiceOnly
+        ? (totals.totalSqft || 0) > 0
+          ? 1
+          : 0
+        : lineItems.length,
+      grandTotal: effectiveTotals.grandTotal || 0,
+      summaryLabel,
+      data: payloadData,
     }
-    window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
-    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
-    window.addEventListener("storage", updateHash)
-    return () => {
-      window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
-      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
-      window.removeEventListener("storage", updateHash)
-    }
-  }, [])
+  }, [
+    isServiceOnly,
+    lineItems,
+    totals,
+    currentSnapshotParams,
+    quoteNotes,
+    attachedWindowQuote,
+    attachedDoorQuote,
+  ])
+
+  const {
+    lastSavedAt,
+    setLastSavedAt,
+    clearAutoSaveTimer,
+    markFingerprintSaved,
+  } = useUniversalAutoSave({
+    quoteType: "sealed_unit",
+    enabled: true,
+    enabledRef: initialLoadDone,
+    hasContent,
+    fingerprint: currentSnapshot,
+    buildPayload,
+    debounceMs: 1200,
+  })
 
   const restoreAutoSaveIntoWorkspace = useCallback(
     (recovered: any) => {
@@ -102,8 +147,21 @@ export function useSealedUnitsAutoSave({
         )
       }
     },
-    [setters]
+    [setters, setLastSavedAt]
   )
+
+  const mountCallbacksRef = useRef({
+    restoreAutoSaveIntoWorkspace,
+    loadDraftIntoWorkspace,
+    onConflictDetected,
+  })
+  useEffect(() => {
+    mountCallbacksRef.current = {
+      restoreAutoSaveIntoWorkspace,
+      loadDraftIntoWorkspace,
+      onConflictDetected,
+    }
+  })
 
   // Check URL query param and auto-save strictly once on mount
   useEffect(() => {
@@ -124,10 +182,10 @@ export function useSealedUnitsAutoSave({
             isDraftMeaningful("sealed_unit", recovered)
 
           if (isUnsaved) {
-            restoreAutoSaveIntoWorkspace(recovered)
-            onConflictDetected?.(match)
+            mountCallbacksRef.current.restoreAutoSaveIntoWorkspace(recovered)
+            mountCallbacksRef.current.onConflictDetected?.(match)
           } else {
-            loadDraftIntoWorkspace(match)
+            mountCallbacksRef.current.loadDraftIntoWorkspace(match)
             const url = new URL(window.location.href)
             url.searchParams.delete("loadDraftId")
             window.history.replaceState({}, "", url.toString())
@@ -143,101 +201,18 @@ export function useSealedUnitsAutoSave({
       recovered.data &&
       (recovered.itemCount > 0 || recovered.customerName)
     ) {
-      restoreAutoSaveIntoWorkspace(recovered)
+      mountCallbacksRef.current.restoreAutoSaveIntoWorkspace(recovered)
     }
   }, [])
 
-  // Debounced auto-save effect
-  useEffect(() => {
-    if (!initialLoadDone.current) return
-
-    const hasMeaningfulContent =
-      lineItems.length > 0 ||
-      (isServiceOnly &&
-        (serviceSqftInput.trim() !== "" || (totals.totalSqft || 0) > 0)) ||
-      (Array.isArray((currentSnapshotParams as any)?.customMaterials) &&
-        (currentSnapshotParams as any).customMaterials.length > 0) ||
-      Boolean(attachedWindowQuote) ||
-      Boolean(attachedDoorQuote)
-
-    if (!hasMeaningfulContent) {
+  const clearTimerAndSaveSnapshot = useCallback(
+    (snapshotString: string) => {
+      clearAutoSaveTimer()
       clearActiveAutoSave("sealed_unit")
-      return
-    }
-
-    const currentSnapshot = serializeSealedUnitSnapshot({
-      ...currentSnapshotParams,
-      optionsHash,
-    })
-    if (currentSnapshot === lastSavedSnapshotRef.current) {
-      return
-    }
-
-    const summaryLabel = isServiceOnly
-      ? getSealedUnitServiceSummaryLabel(lineItems, totals.totalSqft)
-      : `${lineItems.length} Sealed Units`
-
-    const payloadData = createDraftSavePayload({
-      ...currentSnapshotParams,
-      quoteNotes,
-      totals,
-    })
-
-    const fullPayload = {
-      type: "sealed_unit" as const,
-      quoteNumber: currentSnapshotParams.quoteNumber || "Draft",
-      customerName: currentSnapshotParams.customerName || "",
-      itemCount: isServiceOnly
-        ? (totals.totalSqft || 0) > 0
-          ? 1
-          : 0
-        : lineItems.length,
-      grandTotal: totals.grandTotal || 0,
-      summaryLabel,
-      data: payloadData,
-    }
-    currentPayloadRef.current = fullPayload
-
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-    }
-
-    autoSaveTimerRef.current = setTimeout(() => {
-      saveActiveAutoSave("sealed_unit", fullPayload)
-      lastSavedSnapshotRef.current = currentSnapshot
-      setLastSavedAt(
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      )
-    }, 1200)
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [
-    lineItems,
-    isServiceOnly,
-    serviceSqftInput,
-    totals,
-    attachedWindowQuote,
-    attachedDoorQuote,
-    currentSnapshotParams,
-    quoteNotes,
-    optionsHash,
-  ])
-
-  const clearTimerAndSaveSnapshot = (snapshotString: string) => {
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-      autoSaveTimerRef.current = null
-    }
-    clearActiveAutoSave("sealed_unit")
-    lastSavedSnapshotRef.current = snapshotString
-  }
+      markFingerprintSaved(snapshotString)
+    },
+    [clearAutoSaveTimer, markFingerprintSaved]
+  )
 
   return {
     lastSavedAt,

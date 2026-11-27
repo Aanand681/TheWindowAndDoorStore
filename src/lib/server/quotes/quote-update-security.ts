@@ -7,6 +7,76 @@ export interface QuoteSecurityCheckResult {
   canEditApprovedQuote?: boolean
 }
 
+function getNormalizedUsername(session: any): string {
+  return (session?.user?.username || session?.user?.name || "")
+    .trim()
+    .toLowerCase()
+}
+
+function checkPendingReviewIsolation(
+  session: any,
+  existingQuote: any,
+  actionDescription: string
+): { allowed: true; isAssigned: boolean; isPreparer: boolean } | { allowed: false; error: string } {
+  const currentUser = getNormalizedUsername(session)
+  const assigned = existingQuote.assignedTo?.trim().toLowerCase() || ""
+  const preparer = existingQuote.preparedBy?.trim().toLowerCase() || ""
+
+  const isAssigned =
+    Boolean(assigned && currentUser) &&
+    (assigned === currentUser || (currentUser === "admin" && assigned === "admin"))
+  const isPreparer = Boolean(preparer && currentUser && preparer === currentUser)
+
+  if (existingQuote.status === "PENDING_REVIEW" && assigned && currentUser) {
+    if (!isAssigned && !isPreparer) {
+      return {
+        allowed: false,
+        error: `Quote #${existingQuote.quoteNumber || ""} is assigned to @${existingQuote.assignedTo} and can only be ${actionDescription} by them.`,
+      }
+    }
+  }
+
+  return { allowed: true, isAssigned, isPreparer }
+}
+
+/**
+ * Authorize star/unstar toggles while enforcing PENDING_REVIEW reviewer isolation
+ * and ownership/assignment boundaries.
+ */
+export function canToggleQuoteStar(
+  session: any,
+  existingQuote: any
+): { allowed: true } | { allowed: false; error: string } {
+  const reviewCheck = checkPendingReviewIsolation(
+    session,
+    existingQuote,
+    "reviewed or modified"
+  )
+  if (!reviewCheck.allowed) return reviewCheck
+
+  const role = session?.user?.role
+  const currentUser = getNormalizedUsername(session)
+  const odooAssignee = existingQuote.odooAssignedTo?.trim().toLowerCase() || ""
+  const isAdmin = role === "SUPERADMIN" || role === "ADMIN"
+  const isOdooAssignee = Boolean(
+    odooAssignee && currentUser && odooAssignee === currentUser
+  )
+
+  if (
+    !isAdmin &&
+    !reviewCheck.isPreparer &&
+    !reviewCheck.isAssigned &&
+    !isOdooAssignee
+  ) {
+    return {
+      allowed: false,
+      error: "You do not have permission to star or unstar this quote.",
+    }
+  }
+
+  return { allowed: true }
+}
+
 export async function checkQuoteUpdateSecurity(p: {
   session: any
   existingQuote: any
@@ -45,28 +115,16 @@ export async function checkQuoteUpdateSecurity(p: {
   // Strict Reviewer Isolation on updates:
   // If a quote in PENDING_REVIEW is assigned to a specific admin/reviewer,
   // only that assigned reviewer or the preparer who created it can update or approve it.
-  if (existingQuote.status === "PENDING_REVIEW") {
-    const currentUser = (
-      session?.user?.username ||
-      session?.user?.name ||
-      ""
-    ).toLowerCase()
-    const assigned = existingQuote.assignedTo?.toLowerCase()?.trim()
-    const preparer = existingQuote.preparedBy?.toLowerCase()?.trim()
-
-    if (assigned && currentUser) {
-      const isAssigned =
-        assigned === currentUser ||
-        (currentUser === "admin" && assigned === "admin")
-      const isPreparer = preparer ? preparer === currentUser : false
-
-      if (!isAssigned && !isPreparer) {
-        return {
-          allowed: false,
-          error: `Quote #${existingQuote.quoteNumber || ""} is assigned to @${existingQuote.assignedTo} and can only be reviewed or modified by them.`,
-          statusCode: 403,
-        }
-      }
+  const reviewCheck = checkPendingReviewIsolation(
+    session,
+    existingQuote,
+    "reviewed or modified"
+  )
+  if (!reviewCheck.allowed) {
+    return {
+      allowed: false,
+      error: reviewCheck.error,
+      statusCode: 403,
     }
   }
 

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest"
 import {
   calculateLoyaltyPreTaxDiscount,
   checkLoyaltyQualification,
+  recalculateActiveLoyaltyDiscount,
+  resolveLoyaltyDiscountForTaxChange,
   DEFAULT_LOYALTY_TIERS,
 } from "../loyalty-engine"
 
@@ -80,5 +82,116 @@ describe("Loyalty Engine Calculations", () => {
     expect(res2.isQualified).toBe(false)
     expect(res2.qualifyingBase).toBe(400)
     expect(res2.shortage).toBe(17.5)
+  })
+
+  it("recalculates pre-tax loyalty discount when tax mode changes and leaves custom discounts untouched", () => {
+    expect(
+      recalculateActiveLoyaltyDiscount({
+        discountType: "loyalty",
+        loyaltyGrossAmount: 50,
+        hstRate: 13,
+        isFirstNation: false,
+      })
+    ).toBe("44.25")
+
+    expect(
+      recalculateActiveLoyaltyDiscount({
+        discountType: "loyalty",
+        loyaltyGrossAmount: 50,
+        hstRate: 8,
+        isFirstNation: true,
+      })
+    ).toBe("47.62")
+
+    expect(
+      recalculateActiveLoyaltyDiscount({
+        discountType: "loyalty",
+        loyaltyGrossAmount: 50,
+        hstRate: 0,
+        isFirstNation: false,
+      })
+    ).toBe("50.00")
+
+    expect(
+      recalculateActiveLoyaltyDiscount({
+        discountType: "custom",
+        loyaltyGrossAmount: 0,
+        currentDiscount: "75.00",
+        hstRate: 8,
+      })
+    ).toBe("75.00")
+  })
+
+  it("auto-syncs active loyalty discount only on real tax-mode transitions after selection", () => {
+    // 1. Initial mount: never recompute
+    const mountRes = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "none",
+      prevLoyaltyGrossAmount: 0,
+      prevTaxKey: "",
+      discountType: "none",
+      loyaltyGrossAmount: 0,
+      hstRate: 13,
+    })
+    expect(mountRes).toEqual({ nextTaxKey: "13:false", nextDiscount: null })
+
+    // 2. Restoring a saved quote from none -> loyalty: preserve loaded discount
+    const hydrateRes = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "none",
+      prevLoyaltyGrossAmount: 0,
+      prevTaxKey: "13:false",
+      discountType: "loyalty",
+      loyaltyGrossAmount: 50,
+      hstRate: 8,
+      isFirstNation: true,
+    })
+    expect(hydrateRes).toEqual({ nextTaxKey: "8:true", nextDiscount: null })
+
+    // 3. User has $50 loyalty active at 13% HST and switches to 8% First Nation POS
+    const toFn = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "loyalty",
+      prevLoyaltyGrossAmount: 50,
+      prevTaxKey: "13:false",
+      discountType: "loyalty",
+      loyaltyGrossAmount: 50,
+      hstRate: 8,
+      isFirstNation: true,
+    })
+    expect(toFn).toEqual({ nextTaxKey: "8:true", nextDiscount: "47.62" })
+
+    // 4. User switches from 8% First Nation POS to 0% Tax Exempt
+    const toExempt = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "loyalty",
+      prevLoyaltyGrossAmount: 50,
+      prevTaxKey: "8:true",
+      discountType: "loyalty",
+      loyaltyGrossAmount: 50,
+      hstRate: 0,
+      isFirstNation: false,
+    })
+    expect(toExempt).toEqual({ nextTaxKey: "0:false", nextDiscount: "50.00" })
+
+    // 5. User switches back to 13% HST
+    const toHst = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "loyalty",
+      prevLoyaltyGrossAmount: 50,
+      prevTaxKey: "0:false",
+      discountType: "loyalty",
+      loyaltyGrossAmount: 50,
+      hstRate: 13,
+      isFirstNation: false,
+    })
+    expect(toHst).toEqual({ nextTaxKey: "13:false", nextDiscount: "44.25" })
+
+    // 6. Custom discount stays unchanged across tax changes
+    const customRes = resolveLoyaltyDiscountForTaxChange({
+      prevDiscountType: "custom",
+      prevLoyaltyGrossAmount: 0,
+      prevTaxKey: "13:false",
+      discountType: "custom",
+      loyaltyGrossAmount: 0,
+      hstRate: 8,
+      currentDiscount: "60.00",
+    })
+    expect(customRes).toEqual({ nextTaxKey: "8:true", nextDiscount: null })
   })
 })

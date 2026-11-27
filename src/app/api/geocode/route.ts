@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
-const cache = new Map()
+const MAX_GEOCODE_CACHE_SIZE = 500
+const cache = new Map<string, any>()
+
+function setCachedGeocode(key: string, value: any) {
+  if (cache.has(key)) {
+    cache.delete(key)
+  } else if (cache.size >= MAX_GEOCODE_CACHE_SIZE) {
+    const oldestKey = cache.keys().next().value
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey)
+    }
+  }
+  cache.set(key, value)
+}
 
 function isInNorthwesternOntario(lat: number, lon: number) {
   return lat >= 48.0 && lat <= 54.5 && lon >= -95.5 && lon <= -89.0
@@ -8,6 +23,11 @@ function isInNorthwesternOntario(lat: number, lon: number) {
 
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const text = (searchParams.get("text") || "").trim()
 
@@ -148,7 +168,7 @@ export async function GET(request: Request) {
       },
     ]
 
-    cache.set(cacheKey, results)
+    setCachedGeocode(cacheKey, results)
     return NextResponse.json(
       { results },
       {

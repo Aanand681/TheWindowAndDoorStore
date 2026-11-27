@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import {
   recordPricingSnapshot,
   getPricingHistory,
   deletePricingSnapshot,
 } from "../service"
-import PricingHistory from "@/models/PricingHistory"
 
 vi.mock("@/lib/mongodb", () => ({
   default: vi.fn().mockResolvedValue(true),

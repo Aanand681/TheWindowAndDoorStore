@@ -1,5 +1,3 @@
-import { DoorQuotingMode, DoorLineItem } from "@/lib/doors/types"
-import { QuoteDraftItem } from "@/lib/quote-drafts-storage"
 import type { CustomMaterialItem } from "@/types/calculator"
 
 export interface UseDoorDraftsProps {

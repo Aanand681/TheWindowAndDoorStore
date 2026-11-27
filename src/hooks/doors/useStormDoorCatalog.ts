@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import {
-  DEFAULT_STORM_DOORS_DATA,
   YORK_STORM_DOORS,
   YORK_STORM_ADDONS,
   DEFAULT_STORM_DOOR_RULES,

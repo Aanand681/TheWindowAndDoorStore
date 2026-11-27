@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { StudioQuoteData, StudioWindowItem } from "@/lib/pdf-studio/types"
 import { extractSupplierQuote, rough } from "@/lib/pdf-studio/extractor"
 import { generateStudioPdf } from "@/lib/pdf-studio/generator"
+import { buildStandardQuotePdfFileName } from "@/lib/quotes/pdf-filename"
 import { cachedFetch, getCachedData } from "@/lib/client-cache"
 import { toast } from "sonner"
 
@@ -61,12 +62,13 @@ export function useQuotePdfStudio() {
     }
   }, [pdfUrl])
 
-  // Generate clean filename format: (firstname lastname quote#) with spaces and no hyphens
+  // Generate clean filename format: "Full Name #83546.pdf"
   const getCleanPdfFileName = (data: StudioQuoteData) => {
-    const cust = (data.customerName || "Customer").trim()
-    const quote = (data.quoteNumber || "").trim()
-    const parts = [cust, quote].filter(Boolean)
-    return `${parts.join(" ")}.pdf`
+    return buildStandardQuotePdfFileName({
+      customerName: data.customerName || "Customer",
+      quoteNumbers: data.quoteNumber ? [data.quoteNumber] : [],
+      withExtension: true,
+    })
   }
 
   // Handle PDF file upload & extraction

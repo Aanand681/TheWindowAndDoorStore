@@ -51,7 +51,7 @@ export function TaxSummarySidebar({
   const c = calculatedTotals
 
   return (
-    <div className="sticky top-8 h-fit space-y-6 pb-12 lg:col-span-4">
+    <div className="sticky top-8 h-fit min-w-0 space-y-6 pb-12">
       <Card className="border-border bg-card/80 shadow-xl backdrop-blur-xl">
         <CardHeader className="pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">

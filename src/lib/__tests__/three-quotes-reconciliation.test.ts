@@ -5,6 +5,7 @@ import {
   buildSealedUnitAttachPayload,
 } from "@/components/calculator/attach/attach-payload-builders"
 import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
+import { getInvoiceTravelItems } from "@/hooks/quotes/invoice-logistics"
 
 describe("Three Quotes Database Reconciliation (404043, 437657, 83917)", () => {
   // SavedQuote 404043 (Window - Hannah Land)
@@ -186,7 +187,6 @@ describe("Three Quotes Database Reconciliation (404043, 437657, 83917)", () => {
 
   it("selects max travel fee ($867.50) when hosted from Sealed Unit with Window & Door attached", () => {
     const winPayload = buildWindowAttachPayload(windowDraft as any)
-    const doorPayload = buildDoorAttachPayload(doorDraft as any)
 
     const effective = computeEffectiveDoorGrandTotal({
       totals: doorDraft.data.taxTotals as any,
@@ -228,5 +228,30 @@ describe("Three Quotes Database Reconciliation (404043, 437657, 83917)", () => {
 
     expect(effective.combinedSubtotal).toBe(16900.42) // exactly +0.01
     expect(effective.grandTotal).toBe(19097.47) // exactly +0.01
+  })
+
+  it("displays single max travel breakdown ($140 + $727.50) even when host has smaller travel ($503.50) and preserves door hardwareQty", () => {
+    const suPayload = buildSealedUnitAttachPayload(sealedUnitDraft as any)
+    const doorPayload = buildDoorAttachPayload(doorDraft as any)
+    expect(doorPayload.totals.hardwareQty).toBe(3)
+
+    // Window host has small travel ($140 + $363.50 = $503.50), attached door has $140 + $727.50 = $867.50
+    const travelItems = getInvoiceTravelItems({
+      isWindowHost: true,
+      taxTotals: { fixedSetupFee: 140, setup: 363.5, extras: 503.5, regionName: "Dryden" },
+      regionName: "Dryden",
+      isDoorHost: false,
+      effectiveDoorTotals: doorPayload.totals,
+      isSUHost: false,
+      effectiveSUTotals: suPayload.totals,
+      isSupplyOnly: false,
+      attachedDoorQuote: doorPayload,
+      attachedSealedUnit: suPayload,
+    })
+
+    const totalShownCents = travelItems.reduce((acc, item) => acc + item.amount, 0)
+    expect(totalShownCents).toBe(86750)
+    expect(travelItems.some((item) => item.amount === 14000)).toBe(true)
+    expect(travelItems.some((item) => item.amount === 72750)).toBe(true)
   })
 })

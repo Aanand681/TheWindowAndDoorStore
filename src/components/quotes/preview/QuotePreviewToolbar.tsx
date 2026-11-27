@@ -2,19 +2,37 @@
 
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { Printer, X, FileText, CheckCircle2, Star, Scale } from "lucide-react"
-import { QuoteTemplateType } from "../QuoteInvoice"
-import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  Printer,
+  Download,
+  X,
+  FileText,
+  CheckCircle2,
+  BookmarkCheck,
+  Save,
+  Scale,
+  Undo2,
+  Redo2,
+  RotateCcw,
+} from "lucide-react"
+import {
+  writeSessionAttachedInstallOption,
+  type QuoteOptionScope,
+} from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface QuotePreviewToolbarProps {
   onPrint: () => void
+  onDownloadPdf: () => void
+  isDownloadingPdf?: boolean
   onClose: () => void
-  template: QuoteTemplateType
-  onTemplateChange: (t: QuoteTemplateType) => void
-  defaultTemplate: QuoteTemplateType | null
-  handleSetDefaultTemplate: () => void
-  orientation: "portrait" | "landscape"
-  setOrientation: (o: "portrait" | "landscape") => void
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void
+  onRedo: () => void
+  onResetAutoFit: () => void
+  onSaveDefaultLayout: () => void
+  hasSavedDefaultLayout: boolean
+  isSavingLayout?: boolean
   fontSize: number
   onFontSizeChange: (size: number) => void
   spacing: number
@@ -26,17 +44,22 @@ export interface QuotePreviewToolbarProps {
   isSupplyOnly?: boolean
   isDualOption?: boolean
   setIsDualOption?: (val: boolean) => void
+  optionScope?: QuoteOptionScope
 }
 
 export function QuotePreviewToolbar({
   onPrint,
+  onDownloadPdf,
+  isDownloadingPdf = false,
   onClose,
-  template,
-  onTemplateChange,
-  defaultTemplate,
-  handleSetDefaultTemplate,
-  orientation,
-  setOrientation,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onResetAutoFit,
+  onSaveDefaultLayout,
+  hasSavedDefaultLayout,
+  isSavingLayout = false,
   fontSize,
   onFontSizeChange,
   spacing,
@@ -48,6 +71,7 @@ export function QuotePreviewToolbar({
   isSupplyOnly = false,
   isDualOption = false,
   setIsDualOption,
+  optionScope,
 }: QuotePreviewToolbarProps) {
   return (
     <div className="sticky top-0 z-10 w-full border-b border-border bg-card/95 px-4 py-2 shadow-sm backdrop-blur print:hidden">
@@ -58,7 +82,7 @@ export function QuotePreviewToolbar({
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="text-sm font-bold tracking-wide text-foreground">
-                Print Preview
+                Universal Quote Composer
               </span>
             </div>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600">
@@ -70,10 +94,21 @@ export function QuotePreviewToolbar({
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              onClick={onPrint}
-              className="h-8 cursor-pointer gap-1.5 px-3.5 font-semibold shadow-sm"
+              onClick={onDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="h-8 cursor-pointer gap-1.5 bg-emerald-600 px-3.5 font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
-              <Printer className="h-3.5 w-3.5" /> Print / Export PDF
+              <Download className="h-3.5 w-3.5" />{" "}
+              {isDownloadingPdf ? "Downloading..." : "Download PDF"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onPrint}
+              className="h-8 cursor-pointer gap-1.5 px-3 font-semibold"
+              title="Print quote on paper"
+            >
+              <Printer className="h-3.5 w-3.5" /> Print
             </Button>
             <Button
               variant="ghost"
@@ -86,67 +121,69 @@ export function QuotePreviewToolbar({
           </div>
         </div>
 
-        {/* Row 2: Document Tools */}
+        {/* Row 2: Composer History, Layout Saving & Typography Tools */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
-          {/* Left: Template Switcher & Set Default */}
+          {/* Left: Undo / Redo / Auto-Fit / Save My Default Layout / Dual Option */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-              <button
+            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
+              <Button
                 type="button"
-                onClick={() => onTemplateChange("modern")}
-                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                  template === "modern"
-                    ? "bg-background font-semibold text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="ghost"
+                size="sm"
+                disabled={!canUndo}
+                onClick={onUndo}
+                title="Undo layout change (Ctrl/Cmd+Z)"
+                className="h-7 cursor-pointer gap-1 px-2 text-[11px] font-semibold"
               >
-                Modern Detailed
-              </button>
-              <button
+                <Undo2 className="h-3.5 w-3.5" />
+                <span>Undo</span>
+              </Button>
+              <Button
                 type="button"
-                onClick={() => onTemplateChange("executive")}
-                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                  template === "executive"
-                    ? "bg-background font-semibold text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="ghost"
+                size="sm"
+                disabled={!canRedo}
+                onClick={onRedo}
+                title="Redo layout change (Ctrl/Cmd+Shift+Z)"
+                className="h-7 cursor-pointer gap-1 px-2 text-[11px] font-semibold"
               >
-                Executive Ledger
-              </button>
-              <button
-                type="button"
-                onClick={() => onTemplateChange("cards")}
-                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                  template === "cards"
-                    ? "bg-background font-semibold text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Specification Sheet
-              </button>
+                <Redo2 className="h-3.5 w-3.5" />
+                <span>Redo</span>
+              </Button>
             </div>
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={handleSetDefaultTemplate}
-              title={
-                template === defaultTemplate
-                  ? "Current default template"
-                  : "Set this as your default invoice template"
-              }
-              className={`h-7 cursor-pointer gap-1 px-2 text-[11px] transition-all ${
-                template === defaultTemplate
-                  ? "bg-amber-500/10 font-bold text-amber-500 hover:bg-amber-500/20"
-                  : "text-muted-foreground hover:text-amber-400"
-              }`}
+              onClick={onResetAutoFit}
+              title="Reset cards to Smart 1-Page Auto-Fit order and recommended font size"
+              className="h-7 cursor-pointer gap-1 px-2.5 text-[11px] font-semibold"
             >
-              <Star
-                className={`h-3.5 w-3.5 ${template === defaultTemplate ? "fill-amber-400 text-amber-400" : ""}`}
-              />
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset Auto-Fit</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant={hasSavedDefaultLayout ? "secondary" : "default"}
+              size="sm"
+              disabled={isSavingLayout}
+              onClick={onSaveDefaultLayout}
+              title="Save this arrangement & font settings for all your future quotes"
+              className="h-7 cursor-pointer gap-1.5 px-2.5 text-[11px] font-semibold"
+            >
+              {hasSavedDefaultLayout ? (
+                <BookmarkCheck className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
               <span>
-                {template === defaultTemplate ? "Default" : "Set Default"}
+                {isSavingLayout
+                  ? "Saving..."
+                  : hasSavedDefaultLayout
+                    ? "Update Saved Layout"
+                    : "Save as My Default"}
               </span>
             </Button>
 
@@ -165,7 +202,8 @@ export function QuotePreviewToolbar({
                           amountPreTaxCents: 0,
                           mode: isSupplyOnly ? "supply" : "install",
                         }
-                      : null
+                      : null,
+                    optionScope
                   )
                 }}
                 title={
@@ -189,33 +227,8 @@ export function QuotePreviewToolbar({
             )}
           </div>
 
-          {/* Right: Orientation, Font Slider, Spacing Slider, Notes */}
+          {/* Right: Font Slider, Spacing Slider, Notes */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
-              <button
-                type="button"
-                onClick={() => setOrientation("portrait")}
-                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                  orientation === "portrait"
-                    ? "bg-background font-semibold text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Portrait
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrientation("landscape")}
-                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                  orientation === "landscape"
-                    ? "bg-background font-semibold text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Landscape
-              </button>
-            </div>
-
             {/* Font Size Slider */}
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2 py-1">
               <span className="text-[11px] font-medium text-muted-foreground">

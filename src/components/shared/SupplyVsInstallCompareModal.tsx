@@ -15,6 +15,7 @@ import { useCompareModalHardware } from "./compare/useCompareModalHardware"
 import {
   writeSessionAttachedInstallOption,
   type DoorInstallHardwareConfig,
+  type QuoteOptionScope,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface SupplyVsInstallCompareProps {
@@ -132,6 +133,14 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
         : "Option for Supply Only"
       : "Option for Installation"
 
+  const optionScope: QuoteOptionScope = doorItems
+    ? "door"
+    : title.toLowerCase().includes("sealed unit")
+      ? "sealed_unit"
+      : title.toLowerCase().includes("door")
+        ? "door"
+        : "window"
+
   const {
     totalDoorCount,
     hardwareConfig,
@@ -141,8 +150,6 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     supplyHardwareLabel,
     installHardwareTotal,
     installHardwareLabel,
-    supplyHardwareCents,
-    installHardwareCents,
     handleHardwareConfigChange,
   } = useCompareModalHardware({
     doorItems,
@@ -163,6 +170,7 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     hasSupplyJC,
     onToggleAttachOption,
     isOpen,
+    optionScope,
   })
 
   if (!mounted || !isOpen) return null
@@ -171,6 +179,7 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
     currentMode,
     currentSubtotal,
     baseAmount,
+    materialsAmount,
     attachedAmount: attachedAmount || 0,
     surchargeAmount,
     discountAmount,
@@ -201,7 +210,8 @@ export function SupplyVsInstallCompareModal(props: SupplyVsInstallCompareProps) 
             hardwareQty: hardwareConfig.totalQty,
             hardwareConfig,
           }
-        : null
+        : null,
+      optionScope
     )
     if (onToggleAttachOption) {
       onToggleAttachOption(

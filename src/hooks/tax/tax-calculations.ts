@@ -345,6 +345,7 @@ export function calculateTaxTotals(p: CalculateTaxParams) {
     miscLabourCents: Math.round((finalMisc || 0) * 100),
     standardLabourCents: Math.round((finalLabour || 0) * 100),
     fullInstallLabourCents: Math.round(fullInstallLabour * 100),
+    fullInstallExtrasCents: Math.round(rawExtras * 100),
     fullInstallMiscCents: Math.round(fullInstallMisc * 100),
     fullInstallJCCents: Math.round(fullInstallJC * 100),
     jcTotal: finalJC,

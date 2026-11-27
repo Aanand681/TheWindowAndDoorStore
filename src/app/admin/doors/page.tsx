@@ -23,8 +23,6 @@ export default function AdminDoorsPage() {
     setFormula,
     logistics,
     setLogistics,
-    stormDoors,
-    handleUpdateStormDoor,
     loading,
     saving,
     activeTab,

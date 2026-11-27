@@ -48,7 +48,7 @@ export function useQuoteSummaryComparison({
 
   React.useEffect(() => {
     const sync = () =>
-      setAttachedInstallOption(readSessionAttachedInstallOption())
+      setAttachedInstallOption(readSessionAttachedInstallOption("window"))
     sync()
     window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
     window.addEventListener("storage", sync)
@@ -157,7 +157,7 @@ export function useQuoteSummaryComparison({
 
   React.useEffect(() => {
     if (attachedInstallOption?.enabled && dynamicInstallDeltaCents > 0) {
-      const current = readSessionAttachedInstallOption()
+      const current = readSessionAttachedInstallOption("window")
       const isSupplyJCPresent = supplyJCAmount > 0
       if (
         current?.enabled &&
@@ -170,7 +170,7 @@ export function useQuoteSummaryComparison({
           amountPreTaxCents: dynamicInstallDeltaCents,
           hasSupplyJC: isSupplyJCPresent,
         }
-        writeSessionAttachedInstallOption(updated)
+        writeSessionAttachedInstallOption(updated, "window")
         setAttachedInstallOption(updated)
       }
     }

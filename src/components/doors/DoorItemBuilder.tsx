@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,7 @@ import {
   DoorQuotingMode,
   DoorCategory,
 } from "@/lib/doors/types"
-import { Plus, DoorClosed, CheckCircle2, RotateCcw } from "lucide-react"
+import { Plus, DoorClosed, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   DoorHardwareSection,

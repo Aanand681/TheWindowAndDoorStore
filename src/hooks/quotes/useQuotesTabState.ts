@@ -15,6 +15,17 @@ export interface UseQuotesTabStateParams {
   onQuotesCountChange?: (count: number) => void
 }
 
+const VALID_SUB_TABS: QuotesSubTabType[] = [
+  "review",
+  "assigned",
+  "odoo",
+  "my",
+  "all",
+  "odoo_completed",
+  "all_assigned",
+  "returned",
+]
+
 export function useQuotesTabState({
   currentUser,
   initialSubTab,
@@ -73,10 +84,6 @@ export function useQuotesTabState({
   useEffect(() => {
     onQuotesCountChangeRef.current = onQuotesCountChange
   })
-
-  const VALID_SUB_TABS: QuotesSubTabType[] = [
-    "review", "assigned", "odoo", "my", "all", "odoo_completed", "all_assigned", "returned"
-  ]
 
   useEffect(() => {
     if (initialSubTab && VALID_SUB_TABS.includes(initialSubTab)) {
@@ -182,14 +189,7 @@ export function useQuotesTabState({
   })
 
   const handlePreviewQuote = useCallback((quote: any) => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(
-        "defaultQuoteTemplate"
-      ) as QuoteTemplateType | null
-      if (saved && ["modern", "executive", "cards"].includes(saved)) {
-        setPreviewTemplate(saved)
-      }
-    }
+    setPreviewTemplate("universal")
     setPreviewQuote(quote)
     setPreviewNotes(quote.quoteNotes || "")
     setIsPreviewOpen(true)

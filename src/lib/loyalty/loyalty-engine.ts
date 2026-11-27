@@ -91,6 +91,81 @@ export function calculateLoyaltyPreTaxDiscount(
 }
 
 /**
+ * Recomputes the pre-tax loyalty discount string whenever tax mode changes,
+ * leaving custom discounts or entries without a positive gross reward untouched.
+ */
+export function recalculateActiveLoyaltyDiscount(params: {
+  discountType?: string
+  loyaltyGrossAmount?: number
+  currentDiscount?: string
+  hstRate: number
+  isFirstNation?: boolean
+}): string {
+  const {
+    discountType,
+    loyaltyGrossAmount = 0,
+    currentDiscount = "",
+    hstRate,
+    isFirstNation = hstRate === 8,
+  } = params
+
+  if (discountType !== "loyalty" || loyaltyGrossAmount <= 0) {
+    return currentDiscount
+  }
+
+  return calculateLoyaltyPreTaxDiscount(
+    loyaltyGrossAmount,
+    true,
+    hstRate,
+    isFirstNation
+  ).toFixed(2)
+}
+
+export interface LoyaltyTaxTransitionInput {
+  prevDiscountType: string
+  prevLoyaltyGrossAmount: number
+  prevTaxKey: string
+  discountType: string
+  loyaltyGrossAmount: number
+  hstRate: number
+  isFirstNation?: boolean
+  currentDiscount?: string
+}
+
+/**
+ * Resolves whether an active tax-inclusive loyalty discount must be recomputed
+ * after a tax rate/mode transition, while leaving initial quote hydration and
+ * custom discounts untouched.
+ */
+export function resolveLoyaltyDiscountForTaxChange(
+  input: LoyaltyTaxTransitionInput
+): { nextTaxKey: string; nextDiscount: string | null } {
+  const isFirstNation = input.isFirstNation ?? input.hstRate === 8
+  const nextTaxKey = `${input.hstRate}:${Boolean(isFirstNation)}`
+
+  const taxChangedWhileLoyaltyActive =
+    input.prevTaxKey !== "" &&
+    input.prevTaxKey !== nextTaxKey &&
+    input.prevDiscountType === "loyalty" &&
+    input.prevLoyaltyGrossAmount > 0 &&
+    input.discountType === "loyalty" &&
+    input.loyaltyGrossAmount > 0
+
+  if (!taxChangedWhileLoyaltyActive) {
+    return { nextTaxKey, nextDiscount: null }
+  }
+
+  const nextDiscount = recalculateActiveLoyaltyDiscount({
+    discountType: input.discountType,
+    loyaltyGrossAmount: input.loyaltyGrossAmount,
+    currentDiscount: input.currentDiscount,
+    hstRate: input.hstRate,
+    isFirstNation,
+  })
+  return { nextTaxKey, nextDiscount }
+}
+
+/**
  * Checks whether the combined materials base qualifies for a loyalty tier.
  * Qualifying Base = Combined Materials - Other Discounts.
  */

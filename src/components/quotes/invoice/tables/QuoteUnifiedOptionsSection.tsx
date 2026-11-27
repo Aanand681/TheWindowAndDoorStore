@@ -9,6 +9,7 @@ import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
   type CustomQuoteOption,
+  type QuoteOptionScope,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface QuoteOptionEntry {
@@ -16,6 +17,48 @@ export interface QuoteOptionEntry {
   title: string
   isDeduct: boolean
   amountCents: number
+}
+
+export interface QuoteOptionsCheckInput {
+  isSupplyOnly?: boolean
+  isDualOption?: boolean
+  wantsUpgrade?: boolean
+  shownUpgrade?: number
+  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null
+  doorUpgradeItems?: any[]
+  customOptions?: CustomQuoteOption[]
+  optionScope?: QuoteOptionScope
+}
+
+/**
+ * Shared predicate determining whether the Options card has any active selectable items.
+ */
+export function hasQuoteOptionEntries({
+  isSupplyOnly = false,
+  isDualOption = false,
+  wantsUpgrade = false,
+  shownUpgrade = 0,
+  attachedUpgrade = null,
+  doorUpgradeItems = [],
+  customOptions,
+  optionScope,
+}: QuoteOptionsCheckInput): boolean {
+  if (attachedUpgrade && attachedUpgrade.amountPreTaxCents !== 0) return true
+  if (isDualOption) return true
+  if (
+    doorUpgradeItems.some(
+      (item: any) =>
+        (item?.upgradeOption?.subtotalDifference || 0) * (item?.quantity || 1) !== 0
+    )
+  ) {
+    return true
+  }
+  if (wantsUpgrade && shownUpgrade > 0 && !isSupplyOnly) return true
+  const effectiveCustom =
+    Array.isArray(customOptions) && customOptions.length > 0
+      ? customOptions
+      : readSessionCustomOptions(optionScope)
+  return effectiveCustom.some((opt) => Boolean(opt.title && opt.amountPreTaxCents !== 0))
 }
 
 export interface QuoteUnifiedOptionsSectionProps {
@@ -37,6 +80,7 @@ export interface QuoteUnifiedOptionsSectionProps {
   doorUpgradeItems?: any[]
   customOptions?: CustomQuoteOption[]
   fontSize?: number
+  variant?: "card" | "universal"
 }
 
 export function QuoteUnifiedOptionsSection({
@@ -49,83 +93,97 @@ export function QuoteUnifiedOptionsSection({
   doorUpgradeItems = [],
   customOptions,
   fontSize,
+  variant = "card",
 }: QuoteUnifiedOptionsSectionProps) {
   const isSupplyOnly = Boolean(calc.isSupplyOnly)
   const smallFs = fontSize ? fontSize * 0.95 : calc.smallFs || 10
   const microFs = fontSize ? fontSize * 0.85 : calc.microFs || 9
 
+  const calcScope = calc.isDoorHost
+    ? ("door" as const)
+    : calc.isSUHost
+      ? ("sealed_unit" as const)
+      : ("window" as const)
+
   // 1. Dynamic calculation for Dual Option (Supply on Install / Install on Supply)
-  const [dualOptionCents, setDualOptionCents] = React.useState<number>(85000)
+  const dualOptionCents = React.useMemo(() => {
+    if (!isDualOption) return 0
 
-  React.useEffect(() => {
-    if (!isDualOption) return
-
-    const sessionOpt = readSessionAttachedInstallOption()
+    const sessionOpt = readSessionAttachedInstallOption(calcScope)
     if (
       attachedInstallOption?.amountPreTaxCents &&
       attachedInstallOption.amountPreTaxCents > 0
     ) {
-      setDualOptionCents(attachedInstallOption.amountPreTaxCents)
-      return
+      return attachedInstallOption.amountPreTaxCents
     }
     if (sessionOpt?.amountPreTaxCents && sessionOpt.amountPreTaxCents > 0) {
-      setDualOptionCents(sessionOpt.amountPreTaxCents)
-      return
+      return sessionOpt.amountPreTaxCents
     }
+
+    const dedupLabCents = calc.compareInstallLabourCents || 0
+    const dedupMiscCents = calc.compareInstallMiscCents || 0
+    const dedupJCCents = calc.compareInstallJCCents || 0
+    const winJCCents = calc.jcItems.reduce(
+      (acc: number, curr: { label: string; amount: number }) => acc + curr.amount,
+      0
+    )
 
     if (isSupplyOnly) {
       const cachedInstall = readSessionInstallState()
-      const installLabour =
-        cachedInstall?.installLabourAmount ||
-        (cachedInstall?.customLabour
-          ? parseFloat(cachedInstall.customLabour) || 0
-          : 0)
-      const installMisc =
-        cachedInstall?.installMiscAmount ||
-        (cachedInstall?.customMisc
-          ? parseFloat(cachedInstall.customMisc) || 0
-          : 0)
-      const winJCCents = calc.jcItems.reduce(
-        (acc: number, curr: { label: string; amount: number }) =>
-          acc + curr.amount,
-        0
-      )
-      const supplyJC = calc.isLooseSupplyJC ? winJCCents / 100 : 0
-      const installJC =
-        cachedInstall?.installJCAmount ||
-        (cachedInstall?.customJC ? parseFloat(cachedInstall.customJC) || 0 : 0)
-      const extraJC = Math.max(0, installJC - supplyJC)
-      const extraPreTax = Math.round(
-        (extraJC + installLabour + installMisc) * 100
-      )
-      setDualOptionCents(extraPreTax > 0 ? extraPreTax : 85000)
-    } else {
-      // In Installation mode: difference to supply is labour + misc + extra JC
-      const cachedSupply = readSessionSupplyState()
-      const winJCCents = calc.jcItems.reduce(
-        (acc: number, curr: { label: string; amount: number }) =>
-          acc + curr.amount,
-        0
-      )
-      const installJC = !calc.isLooseSupplyJC ? winJCCents / 100 : 0
-      const supplyJC = cachedSupply?.customJC
+      const installLabCents =
+        dedupLabCents > 0
+          ? dedupLabCents
+          : Math.round(
+              (cachedInstall?.installLabourAmount ||
+                (cachedInstall?.customLabour
+                  ? parseFloat(cachedInstall.customLabour) || 0
+                  : 0)) * 100
+            )
+      const installMiscCents =
+        dedupMiscCents > 0
+          ? dedupMiscCents
+          : Math.round(
+              (cachedInstall?.installMiscAmount ||
+                (cachedInstall?.customMisc
+                  ? parseFloat(cachedInstall.customMisc) || 0
+                  : 0)) * 100
+            )
+      const supplyJCCents = calc.isLooseSupplyJC ? winJCCents : 0
+      const installJCCents =
+        dedupJCCents > 0
+          ? dedupJCCents
+          : Math.round(
+              (cachedInstall?.installJCAmount ||
+                (cachedInstall?.customJC ? parseFloat(cachedInstall.customJC) || 0 : 0)) *
+                100
+            )
+      const extraJCCents = Math.max(0, installJCCents - supplyJCCents)
+      const totalCents = installLabCents + installMiscCents + extraJCCents
+      return totalCents > 0 ? totalCents : 85000
+    }
+
+    const cachedSupply = readSessionSupplyState()
+    const installJCCents = !calc.isLooseSupplyJC ? winJCCents : 0
+    const supplyJCCents = Math.round(
+      (cachedSupply?.customJC
         ? parseFloat(cachedSupply.customJC) || 0
         : cachedSupply?.supplyJCAmount !== undefined
           ? cachedSupply.supplyJCAmount
-          : 0
-      const extraJC = Math.max(0, installJC - supplyJC)
-      const totalLabourMiscCents =
-        (calc.effectiveLabourTotalCents || 0) +
-        (calc.effectiveMiscTotalCents || 0) +
-        Math.round(extraJC * 100)
-      setDualOptionCents(
-        totalLabourMiscCents > 0 ? totalLabourMiscCents : 85000
-      )
-    }
+          : 0) * 100
+    )
+    const extraJCCents = Math.max(0, installJCCents - supplyJCCents)
+    const labCents = calc.effectiveLabourTotalCents || dedupLabCents
+    const miscCents = calc.effectiveMiscTotalCents || dedupMiscCents
+    const totalLabourMiscCents = labCents + miscCents + extraJCCents
+    return totalLabourMiscCents > 0 ? totalLabourMiscCents : 85000
   }, [
+    calcScope,
     isDualOption,
     isSupplyOnly,
     attachedInstallOption,
+    calc.compareInstallLabourCents,
+    calc.compareInstallMiscCents,
+    calc.compareInstallJCCents,
     calc.jcItems,
     calc.isLooseSupplyJC,
     calc.effectiveLabourTotalCents,
@@ -248,11 +306,11 @@ export function QuoteUnifiedOptionsSection({
     })
   }
 
-  // Option E: Custom User Options (from props or session storage)
+  // Option E: Custom User Options (from props or scoped session storage)
   const effectiveCustomOptions =
     Array.isArray(customOptions) && customOptions.length > 0
       ? customOptions
-      : readSessionCustomOptions()
+      : readSessionCustomOptions(calcScope)
   effectiveCustomOptions.forEach((cOpt) => {
     if (cOpt.title && cOpt.amountPreTaxCents !== 0) {
       entries.push({
@@ -265,6 +323,39 @@ export function QuoteUnifiedOptionsSection({
   })
 
   if (entries.length === 0) return null
+
+  if (variant === "universal") {
+    return (
+      <div className="divide-y divide-[#e2e8f0] overflow-hidden rounded border border-[#cbd5e1] bg-white">
+        {entries.map((opt) => (
+          <div
+            key={opt.id}
+            style={{ padding: `${Math.max(2, calc.rowPy)}px 7px` }}
+            className="flex items-center justify-between gap-2 bg-[#fffbeb] text-[#78350f]"
+          >
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div className="h-2.5 w-2.5 shrink-0 rounded-[2px] border border-[#92400e] bg-white" />
+              <span
+                style={{ fontSize: `${smallFs}px` }}
+                className="font-semibold text-[#78350f]"
+              >
+                {opt.title}
+              </span>
+            </div>
+            <span
+              style={{ fontSize: `${smallFs}px` }}
+              className={`shrink-0 font-mono font-bold ${
+                opt.isDeduct ? "text-[#0284c7]" : "text-[#78350f]"
+              }`}
+            >
+              {opt.isDeduct ? "-" : "+"}
+              {formatMoney(opt.amountCents)}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="rounded border border-[#cbd5e1] bg-white p-2 text-[#0f172a] shadow-2xs">

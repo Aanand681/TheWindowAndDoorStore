@@ -161,7 +161,15 @@ export function computeEffectiveDoorGrandTotal(p: {
   } = p
 
   const hasAnyAttached = Boolean(attachedWindowQuote || attachedSealedUnit)
-  if (!hasAnyAttached && customLabour === "" && customMisc === "" && customDiscount === "") {
+  const hasMissingLoyalty =
+    loyaltyDiscount.trim() !== "" && (totals.loyaltyDiscount || 0) <= 0
+  if (
+    !hasAnyAttached &&
+    customLabour.trim() === "" &&
+    customMisc.trim() === "" &&
+    customDiscount.trim() === "" &&
+    !hasMissingLoyalty
+  ) {
     return {
       combinedSubtotal: totals.subtotalPreTax,
       combinedTax: totals.hstAmount,

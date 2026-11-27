@@ -134,7 +134,6 @@ export function useUniversalWorkspaceDrafts({
     if (saved) {
       applyDraftToWorkspace(pendingDraftToLoad)
       clearActiveAutoSave(quoteType)
-      const label = quoteTypeLabel || pendingDraftToLoad.type
       toast.success(
         `Saved previous quote and loaded #${pendingDraftToLoad.quoteNumber}`
       )
@@ -147,7 +146,6 @@ export function useUniversalWorkspaceDrafts({
     handleSaveDraft,
     applyDraftToWorkspace,
     quoteType,
-    quoteTypeLabel,
     cleanUrlLoadDraftId,
   ])
 
@@ -155,7 +153,6 @@ export function useUniversalWorkspaceDrafts({
     if (!pendingDraftToLoad) return
     clearActiveAutoSave(quoteType)
     applyDraftToWorkspace(pendingDraftToLoad)
-    const label = quoteTypeLabel || pendingDraftToLoad.type
     toast.info(
       `Loaded #${pendingDraftToLoad.quoteNumber} (discarded previous unsaved edits)`
     )
@@ -166,7 +163,6 @@ export function useUniversalWorkspaceDrafts({
     pendingDraftToLoad,
     applyDraftToWorkspace,
     quoteType,
-    quoteTypeLabel,
     cleanUrlLoadDraftId,
   ])
 

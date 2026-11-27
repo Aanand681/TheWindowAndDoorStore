@@ -9,6 +9,7 @@ import { WindowsSizesLabourCard } from "./WindowsSizesLabourCard"
 import { TravelSetupCard } from "./TravelSetupCard"
 import { ExtrasAndJambsCard } from "./ExtrasAndJambsCard"
 import { TaxSummarySidebar } from "./TaxSummarySidebar"
+import { WORKSPACE_TWO_COLUMN_GRID_CLASS } from "@/components/shared/summary/layout-classes"
 
 export default function TaxCalculatorTab({
   windows,
@@ -74,9 +75,9 @@ export default function TaxCalculatorTab({
   if (!region) return <div>Loading region data...</div>
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
+    <div className={WORKSPACE_TWO_COLUMN_GRID_CLASS}>
       {readOnly && (
-        <div className="flex animate-in items-center gap-2.5 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 fade-in lg:col-span-12 dark:text-amber-300">
+        <div className="flex animate-in items-center gap-2.5 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 p-3 text-xs font-semibold text-amber-700 fade-in lg:col-span-full dark:text-amber-300">
           <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
             Tax &amp; Labour Calculator is in Read-Only Mode. Values and extras
@@ -85,7 +86,7 @@ export default function TaxCalculatorTab({
         </div>
       )}
 
-      <div className="space-y-4 sm:space-y-5 lg:col-span-8">
+      <div className="min-w-0 space-y-4 sm:space-y-5">
         <RegionProfileCard
           region={region}
           regions={regions}

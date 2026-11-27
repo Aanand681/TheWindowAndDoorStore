@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { toast } from "sonner"
 import {
   getSavedDrafts,
@@ -44,10 +44,10 @@ export function useAttachQuoteDrafts({
   >("all")
   const [searchQuery, setSearchQuery] = useState("")
 
-  const loadDrafts = () => {
+  const loadDrafts = useCallback(() => {
     const all = getSavedDrafts()
     setDrafts(all.filter((d) => d.type !== currentQuoteType))
-  }
+  }, [currentQuoteType])
 
   useEffect(() => {
     if (isOpen) {
@@ -58,12 +58,12 @@ export function useAttachQuoteDrafts({
       setSearchQuery("")
       setActiveTab("all")
     }
-  }, [isOpen, currentQuoteType])
+  }, [isOpen, loadDrafts])
 
   useEffect(() => {
     window.addEventListener(DRAFT_CHANGE_EVENT, loadDrafts)
     return () => window.removeEventListener(DRAFT_CHANGE_EVENT, loadDrafts)
-  }, [currentQuoteType])
+  }, [loadDrafts])
 
   const filteredDrafts = useMemo(() => {
     let list = drafts

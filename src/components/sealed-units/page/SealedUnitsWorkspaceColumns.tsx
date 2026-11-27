@@ -11,6 +11,7 @@ import {
 } from "@/components/sealed-units"
 import { SealedUnitsCalculatorPageState } from "@/hooks/sealed-units"
 import { CustomMaterialsCard } from "@/components/shared/materials"
+import { WORKSPACE_TWO_COLUMN_GRID_CLASS } from "@/components/shared/summary/layout-classes"
 
 export interface SealedUnitsWorkspaceColumnsProps {
   page: SealedUnitsCalculatorPageState
@@ -34,9 +35,9 @@ export function SealedUnitsWorkspaceColumns({
   } = page
 
   return (
-    <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12">
-      {/* Left Column (7 cols): Builder, Table, Travel */}
-      <div className="space-y-3.5 lg:col-span-7">
+    <div className={WORKSPACE_TWO_COLUMN_GRID_CLASS}>
+      {/* Left Column: Builder, Table, Travel */}
+      <div className="min-w-0 space-y-3.5">
         <SealedUnitItemBuilder
           customerName={drafts.customerName}
           setCustomerName={drafts.setCustomerName}
@@ -114,8 +115,8 @@ export function SealedUnitsWorkspaceColumns({
         />
       </div>
 
-      {/* Right Column (5 cols, sticky): Quote Summary */}
-      <div className="space-y-3.5 lg:sticky lg:top-4 lg:col-span-5">
+      {/* Right Column (sticky): Quote Summary */}
+      <div className="min-w-0 space-y-3.5 lg:sticky lg:top-4">
         <SealedUnitQuoteSummaryCard
           lineItems={lineItems}
           lineItemsCount={lineItems.length}

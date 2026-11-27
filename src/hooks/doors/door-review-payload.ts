@@ -5,6 +5,7 @@ import {
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { DoorLineItem, DoorQuoteTotals } from "@/lib/doors/types"
+import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
 
 export interface BuildDoorUpdatePayloadParams {
   customerName: string
@@ -73,6 +74,21 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
     extra = {},
   } = p
 
+  const effectiveTotals = computeEffectiveDoorGrandTotal({
+    totals,
+    mode,
+    customLabour,
+    customMisc,
+    customDiscount,
+    customDiscountLabel,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    hstRate,
+    isFirstNation,
+    attachedWindowQuote,
+    attachedSealedUnit,
+  })
+
   return {
     customerName,
     quoteNumber,
@@ -120,7 +136,7 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
       grandTotal: totals.grandTotal,
       depositAmount: totals.depositAmount,
     },
-    quoteSummaryTotal: Math.round(totals.grandTotal * 100),
+    quoteSummaryTotal: Math.round(effectiveTotals.grandTotal * 100),
     globalUpcharges,
     selectedRegionId,
     travelFeeType,
@@ -143,8 +159,8 @@ export function buildDoorUpdatePayload(p: BuildDoorUpdatePayloadParams) {
     customMaterials,
     attachedWindowQuote,
     attachedSealedUnit,
-    attachedInstallOption: readSessionAttachedInstallOption(),
-    customOptions: readSessionCustomOptions(),
+    attachedInstallOption: readSessionAttachedInstallOption("door"),
+    customOptions: readSessionCustomOptions("door"),
     ...(status ? { status } : {}),
     ...extra,
   }

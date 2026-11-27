@@ -1,332 +1,291 @@
 import type { QuotePricingResult } from "./types"
+import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
+
+type PricingHostType = "window" | "door" | "sealed_unit"
+
+function detectQuoteHostType(quote: any): PricingHostType {
+  if (
+    quote.quoteType === "door" ||
+    (Array.isArray(quote.windows) &&
+      quote.windows.some((w: any) => Boolean(w.doorPresetId)))
+  ) {
+    return "door"
+  }
+  if (
+    quote.quoteType === "sealed_unit" ||
+    Boolean(quote.taxTotals?.isSealedUnitQuote)
+  ) {
+    return "sealed_unit"
+  }
+  return "window"
+}
+
+function buildPricingOverrides(quote: any): Record<string, string> | undefined {
+  const fields = [
+    "customLabour",
+    "customMisc",
+    "customJC",
+    "customDiscount",
+    "customDiscountLabel",
+    "loyaltyDiscount",
+    "loyaltyDiscountLabel",
+  ] as const
+
+  const overrides: Record<string, string> = {}
+  for (const key of fields) {
+    const val = quote?.[key]
+    if (val !== undefined && val !== null && String(val).trim() !== "") {
+      overrides[key] = String(val).trim()
+    }
+  }
+  return Object.keys(overrides).length > 0 ? overrides : undefined
+}
+
+function resolveQuoteHstRate(quote: any): number {
+  if (quote.hstRate !== undefined) return Number(quote.hstRate)
+  if (quote.taxTotals?.hstRate !== undefined)
+    return Number(quote.taxTotals.hstRate)
+  if (quote.isFirstNation || quote.taxTotals?.isFirstNation) return 8
+  return 13
+}
+
+function toStoredSummaryTotalCents(val: unknown): number {
+  const n = Number(val)
+  if (!Number.isFinite(n) || n <= 0) return 0
+  // SavedQuote.quoteSummaryTotal is stored in integer cents, while legacy corrupted snapshots stored decimal dollars.
+  return Number.isInteger(n) ? n : Math.round(n * 100)
+}
+
+function recoverLegacyTotalCents(
+  quote: any,
+  hostType: PricingHostType,
+  hstRate: number
+): number {
+  const rootTaxGrand = Number(quote.taxTotals?.grandTotal)
+  if (Number.isFinite(rootTaxGrand) && rootTaxGrand > 0) {
+    return Math.round(rootTaxGrand * 100)
+  }
+
+  const rootSummaryCents = toStoredSummaryTotalCents(quote.quoteSummaryTotal)
+  if (rootSummaryCents > 0) return rootSummaryCents
+
+  const snapshotTaxGrand = Number(quote.initialSnapshot?.taxTotals?.grandTotal)
+  if (Number.isFinite(snapshotTaxGrand) && snapshotTaxGrand > 0) {
+    return Math.round(snapshotTaxGrand * 100)
+  }
+
+  const snapshotSummaryCents = toStoredSummaryTotalCents(
+    quote.initialSnapshot?.quoteSummaryTotal
+  )
+  if (snapshotSummaryCents > 0) return snapshotSummaryCents
+
+  if (Array.isArray(quote.windows) && quote.windows.length > 0) {
+    const lineSum = quote.windows.reduce((sum: number, w: any) => {
+      const qty = Math.max(1, Number(w.quantity || w.qty) || 1)
+      const fallbackUnit =
+        hostType === "door"
+          ? Number(w.finalUnitPrice || w.inksterBasePrice || 0)
+          : hostType === "sealed_unit"
+            ? Number(w.finalUnitPrice || 0)
+            : Number(w.base || 0) +
+              Number(w.argon || 0) +
+              Number(w.solar || 0) +
+              Number(w.triple || 0)
+      return sum + (Number(w.lineTotal) || fallbackUnit * qty)
+    }, 0)
+
+    if (lineSum > 0) {
+      return Math.round(lineSum * (1 + hstRate / 100) * 100)
+    }
+  }
+
+  return 0
+}
+
+function prepareWindowHostInput(quote: any, isSupplyOnly: boolean) {
+  const taxTotals = quote.taxTotals || {}
+  const resolvedCustomMaterials =
+    Array.isArray(quote.customMaterials) && quote.customMaterials.length > 0
+      ? quote.customMaterials
+      : taxTotals.customMaterials
+
+  const hasCustomLabour =
+    quote.customLabour !== undefined &&
+    String(quote.customLabour).trim() !== ""
+  const rawExtras = Number(
+    taxTotals.extras ?? taxTotals.totalTravelAndSetup ?? 0
+  )
+  const customLabNum = hasCustomLabour
+    ? parseFloat(String(quote.customLabour)) || 0
+    : undefined
+
+  return {
+    ...quote,
+    isSupplyOnly,
+    ...(resolvedCustomMaterials !== undefined
+      ? { customMaterials: resolvedCustomMaterials }
+      : {}),
+    taxTotals: {
+      ...taxTotals,
+      isSupplyOnly,
+      ...(customLabNum !== undefined && !isSupplyOnly
+        ? {
+            extras: Math.min(rawExtras, customLabNum),
+            finalLabour: customLabNum,
+          }
+        : {}),
+    },
+  }
+}
+
+function buildRecoveredLegacyResult(
+  quote: any,
+  hostType: PricingHostType,
+  hstRate: number,
+  totalCents: number
+): QuotePricingResult {
+  const tax = quote.taxTotals || {}
+  const snapTax = quote.initialSnapshot?.taxTotals || {}
+  const rawSubtotal =
+    Number(tax.subtotalPreTax) ||
+    Number(tax.subtotal) ||
+    Number(snapTax.subtotalPreTax) ||
+    Number(snapTax.subtotal) ||
+    0
+  const subtotalCents = Math.round(rawSubtotal * 100)
+  const hstCents = Math.max(0, totalCents - subtotalCents)
+  const baseCents = Math.round(
+    (Number(tax.totalPrice ?? tax.glassSupplyTotal ?? snapTax.totalPrice) ||
+      0) * 100
+  )
+  const labourCents = Math.round(
+    (Number(tax.combinedLabour ?? tax.combinedLabourTotal ?? tax.finalLabour) ||
+      0) * 100
+  )
+  const miscCents = Math.round((Number(tax.miscTotal ?? tax.finalMisc) || 0) * 100)
+  const surchargeCents = Math.round(
+    (Number(tax.surchargeTotal ?? tax.glass8PercentSurchargeTotal) || 0) * 100
+  )
+  const discountCents = Math.round(
+    ((Number(tax.discountTotal ?? tax.discount) || 0) +
+      (Number(tax.loyaltyDiscount ?? quote.loyaltyDiscount) || 0)) *
+      100
+  )
+
+  const firstPayment = Math.floor(totalCents / 2)
+  return {
+    basePrice: baseCents,
+    surcharge: surchargeCents,
+    promoDiscount: discountCents,
+    effectiveJC: 0,
+    effectiveMisc: miscCents,
+    effectiveLabour: labourCents,
+    includeJCInPromo: hostType === "window" ? quote.includeJCInPromo !== false : false,
+    includeMiscInPromo:
+      hostType === "window" ? quote.includeMiscInPromo !== false : false,
+    includeLabourInPromo:
+      hostType === "window" ? quote.includeLabourInPromo !== false : false,
+    beforeTaxDiscount: subtotalCents + discountCents,
+    afterDiscount: subtotalCents,
+    hstRate,
+    hst: hstCents,
+    total: totalCents,
+    firstPayment,
+    secondPayment: totalCents - firstPayment,
+  }
+}
 
 export function computeQuotePricing(quote: any): QuotePricingResult | null {
   if (!quote) return null
 
-  const isDoorQuote =
-    quote.quoteType === "door" ||
-    (Array.isArray(quote.windows) &&
-      quote.windows.some((w: any) => Boolean(w.doorPresetId)))
-
-  const isSealedUnitQuote =
-    quote.quoteType === "sealed_unit" ||
-    Boolean(quote.taxTotals?.isSealedUnitQuote)
-
-  // 1. Door Quote Handling
-  if (isDoorQuote) {
-    let rawGrandTotal =
-      Number(quote.taxTotals?.grandTotal) ||
-      Number(quote.quoteSummaryTotal) ||
-      0
-
-    if (rawGrandTotal <= 0) {
-      rawGrandTotal =
-        Number(quote.initialSnapshot?.taxTotals?.grandTotal) ||
-        Number(quote.initialSnapshot?.quoteSummaryTotal) ||
-        0
-    }
-
-    if (
-      rawGrandTotal <= 0 &&
-      Array.isArray(quote.windows) &&
-      quote.windows.length > 0
-    ) {
-      const lineSum = quote.windows.reduce(
-        (sum: number, w: any) =>
-          sum +
-          (Number(w.lineTotal) ||
-            Number(w.finalUnitPrice || w.inksterBasePrice || 0) *
-              (w.quantity || 1)),
-        0
-      )
-      if (lineSum > 0) {
-        rawGrandTotal = Math.round(lineSum * 1.13 * 100) / 100
-      }
-    }
-
-    const totalCents =
-      rawGrandTotal > 0 && rawGrandTotal < 100000
-        ? Math.round(rawGrandTotal * 100)
-        : Math.round(rawGrandTotal)
-
-    const rawSubtotal =
-      Number(quote.taxTotals?.subtotalPreTax) ||
-      Number(quote.taxTotals?.subtotal) ||
-      0
-    const subtotalCents = Math.round(rawSubtotal * 100)
-    const hstCents = Math.max(0, totalCents - subtotalCents)
-    const baseCents = Math.round(
-      (Number(quote.taxTotals?.totalPrice) || 0) * 100
-    )
-    const labourCents = Math.round(
-      (Number(quote.taxTotals?.combinedLabour) || 0) * 100
-    )
-    const miscCents = Math.round(
-      (Number(quote.taxTotals?.miscTotal) || 0) * 100
-    )
-    const surchargeCents = Math.round(
-      (Number(quote.taxTotals?.surchargeTotal) || 0) * 100
-    )
-    const discountCents = Math.round(
-      ((Number(quote.taxTotals?.discountTotal) || 0) +
-        (Number(quote.taxTotals?.loyaltyDiscount ?? quote.loyaltyDiscount) || 0)) *
-        100
-    )
-
-    const firstPayment = Math.floor(totalCents / 2)
-    const secondPayment = totalCents - firstPayment
-
-    return {
-      basePrice: baseCents,
-      surcharge: surchargeCents,
-      promoDiscount: discountCents,
-      effectiveJC: 0,
-      effectiveMisc: miscCents,
-      effectiveLabour: labourCents,
-      includeJCInPromo: false,
-      includeMiscInPromo: false,
-      includeLabourInPromo: false,
-      beforeTaxDiscount: subtotalCents + discountCents,
-      afterDiscount: subtotalCents,
-      hstRate:
-        quote.taxTotals?.hstRate !== undefined ? quote.taxTotals.hstRate : 13,
-      hst: hstCents,
-      total: totalCents,
-      firstPayment,
-      secondPayment,
-    }
-  }
-
-  // 2. Sealed Unit Quote Handling
-  if (isSealedUnitQuote) {
-    let rawGrandTotal =
-      Number(quote.taxTotals?.grandTotal) ||
-      Number(quote.quoteSummaryTotal) ||
-      0
-
-    if (rawGrandTotal <= 0) {
-      rawGrandTotal =
-        Number(quote.initialSnapshot?.taxTotals?.grandTotal) ||
-        Number(quote.initialSnapshot?.quoteSummaryTotal) ||
-        0
-    }
-
-    if (
-      rawGrandTotal <= 0 &&
-      Array.isArray(quote.windows) &&
-      quote.windows.length > 0
-    ) {
-      const lineSum = quote.windows.reduce(
-        (sum: number, w: any) =>
-          sum +
-          (Number(w.lineTotal) ||
-            Number(w.finalUnitPrice || 0) * (w.quantity || 1)),
-        0
-      )
-      if (lineSum > 0) {
-        rawGrandTotal = Math.round(lineSum * 1.13 * 100) / 100
-      }
-    }
-
-    const totalCents =
-      rawGrandTotal > 0 && rawGrandTotal < 100000
-        ? Math.round(rawGrandTotal * 100)
-        : Math.round(rawGrandTotal)
-
-    const rawSubtotal =
-      Number(quote.taxTotals?.subtotalPreTax) ||
-      Number(quote.taxTotals?.subtotal) ||
-      0
-    const subtotalCents = Math.round(rawSubtotal * 100)
-    const hstCents = Math.max(0, totalCents - subtotalCents)
-    const glassCents = Math.round(
-      (Number(quote.taxTotals?.glassSupplyTotal) || 0) * 100
-    )
-    const labourCents = Math.round(
-      (Number(quote.taxTotals?.combinedLabourTotal) || 0) * 100
-    )
-    const miscCents = Math.round(
-      (Number(quote.taxTotals?.miscTotal) || 0) * 100
-    )
-    const discountCents = Math.round(
-      ((Number(quote.taxTotals?.discountTotal ?? quote.taxTotals?.discount) || 0) +
-        (Number(quote.taxTotals?.loyaltyDiscount ?? quote.loyaltyDiscount) || 0)) *
-        100
-    )
-
-    const firstPayment = Math.floor(totalCents / 2)
-    const secondPayment = totalCents - firstPayment
-
-    return {
-      basePrice: glassCents,
-      surcharge: 0,
-      promoDiscount: discountCents,
-      effectiveJC: 0,
-      effectiveMisc: miscCents,
-      effectiveLabour: labourCents,
-      includeJCInPromo: false,
-      includeMiscInPromo: false,
-      includeLabourInPromo: false,
-      beforeTaxDiscount: subtotalCents + discountCents,
-      afterDiscount: subtotalCents,
-      hstRate:
-        quote.taxTotals?.hstRate !== undefined ? quote.taxTotals.hstRate : 13,
-      hst: hstCents,
-      total: totalCents,
-      firstPayment,
-      secondPayment,
-    }
-  }
-
-  // 3. Window Quote Handling (Standard or Combined)
-  const taxJC = quote.taxTotals
-    ? Math.round(
-        (quote.taxTotals.finalJC ?? quote.taxTotals.jcTotal ?? 0) * 100
-      )
-    : 0
-  const taxMisc = quote.taxTotals
-    ? Math.round(
-        (quote.taxTotals.finalMisc ?? quote.taxTotals.miscTotal ?? 0) * 100
-      )
-    : 0
-  const taxLabour = quote.taxTotals
-    ? Math.round(
-        (quote.taxTotals.finalLabour ?? quote.taxTotals.labourTotal ?? 0) * 100
-      )
-    : 0
-
-  const effectiveJC =
-    quote.customJC !== undefined && String(quote.customJC).trim() !== ""
-      ? Math.round(Number(quote.customJC) * 100)
-      : taxJC
-
-  const effectiveMisc =
-    quote.customMisc !== undefined && String(quote.customMisc).trim() !== ""
-      ? Math.round(Number(quote.customMisc) * 100)
-      : taxMisc
-
-  const effectiveLabour =
-    quote.customLabour !== undefined && String(quote.customLabour).trim() !== ""
-      ? Math.round(Number(quote.customLabour) * 100)
-      : taxLabour
-
-  const includeJCInPromo = quote.includeJCInPromo !== false
-  const includeMiscInPromo = quote.includeMiscInPromo !== false
-  const includeLabourInPromo = quote.includeLabourInPromo !== false
-
-  const customMaterialsList = Array.isArray(quote.taxTotals?.customMaterials)
-    ? quote.taxTotals.customMaterials
-    : Array.isArray(quote.customMaterials)
-      ? quote.customMaterials
-      : []
-  const customMaterialsCents = Math.round(
-    (quote.taxTotals?.customMaterialsTotal !== undefined
-      ? Number(quote.taxTotals.customMaterialsTotal) || 0
-      : customMaterialsList.reduce(
-          (acc: number, m: any) => acc + (Number(m?.amount) || 0),
-          0
-        )) * 100
+  const hostType = detectQuoteHostType(quote)
+  const hstRate = resolveQuoteHstRate(quote)
+  const isFirstNation =
+    hstRate === 8 || Boolean(quote.isFirstNation || quote.taxTotals?.isFirstNation)
+  const isServiceOnly = Boolean(
+    hostType === "sealed_unit" &&
+      (quote.sealedUnitMode === "service_only" ||
+        quote.taxTotals?.isServiceOnly ||
+        quote.isServiceOnly)
   )
-
-  const basePrice = quote.quoteResult?.base || 0
-  const surcharge = quote.quoteResult?.surcharge || 0
-  const basePromoDiscount =
-    quote.customDiscount !== undefined && String(quote.customDiscount).trim() !== ""
-      ? Math.round((parseFloat(String(quote.customDiscount)) || 0) * 100)
-      : quote.quoteResult?.promoDiscount || 0
-  const loyaltyDiscount =
-    quote.loyaltyDiscount !== undefined && String(quote.loyaltyDiscount).trim() !== ""
-      ? Math.round((parseFloat(String(quote.loyaltyDiscount)) || 0) * 100)
-      : 0
-  const promoDiscount = basePromoDiscount + loyaltyDiscount
-
-  const beforeTaxDiscount =
-    basePrice +
-    effectiveJC +
-    effectiveMisc +
-    effectiveLabour +
-    surcharge +
-    customMaterialsCents
-
-  const afterDiscount = Math.max(0, beforeTaxDiscount - promoDiscount)
-  const hstRate =
-    quote.hstRate !== undefined
-      ? quote.hstRate
-      : quote.taxTotals?.hstRate !== undefined
-        ? quote.taxTotals.hstRate
-        : 13
-  let hst = 0
-  if (hstRate === 0) {
-    hst = 0
-  } else if (hstRate === 8) {
-    const materialAfterDiscount = Math.max(
-      0,
-      basePrice - promoDiscount + effectiveJC + customMaterialsCents
+  const isSupplyOnly =
+    !isServiceOnly &&
+    Boolean(
+      quote.isSupplyOnly ||
+        quote.taxTotals?.isSupplyOnly ||
+        quote.mode === "supply_only" ||
+        quote.sealedUnitMode === "supply_only"
     )
-    const hstBase = Math.round(afterDiscount * 0.13)
-    const materialExemption = Math.round(materialAfterDiscount * 0.08)
-    hst = Math.max(0, hstBase - materialExemption)
-  } else {
-    hst = Math.round(afterDiscount * (hstRate / 100))
-  }
 
-  // Calculate window total in cents
-  let calculatedTotal = afterDiscount + hst
+  const overrides = buildPricingOverrides(quote)
+  const windowQuote =
+    hostType === "window"
+      ? prepareWindowHostInput(quote, isSupplyOnly)
+      : quote.attachedWindowQuote || undefined
+  const doorQuote =
+    hostType === "door" ? quote : quote.attachedDoorQuote || undefined
+  const sealedUnitQuote =
+    hostType === "sealed_unit" ? quote : quote.attachedSealedUnit || undefined
 
-  // Add attached Door Quote if present
-  if (quote.attachedDoorQuote) {
-    const doorGrandTotal =
-      Number(quote.attachedDoorQuote.totals?.grandTotal) ||
-      Number(quote.attachedDoorQuote.grandTotal) ||
-      0
-    if (doorGrandTotal > 0) {
-      calculatedTotal += Math.round(doorGrandTotal * 100)
+  const universal = calculateUniversalPricing({
+    windowQuote,
+    doorQuote,
+    sealedUnitQuote,
+    hostType,
+    isSupplyOnly,
+    hstRate,
+    isFirstNation,
+    overrides,
+  })
+
+  if (universal.totalCents <= 0) {
+    const recoveredTotal = recoverLegacyTotalCents(quote, hostType, hstRate)
+    if (recoveredTotal > 0 || hostType !== "window") {
+      return buildRecoveredLegacyResult(quote, hostType, hstRate, recoveredTotal)
     }
   }
 
-  // Add attached Sealed Unit Quote if present
-  if (quote.attachedSealedUnit) {
-    const suGrandTotal =
-      Number(quote.attachedSealedUnit.totals?.grandTotal) ||
-      Number(quote.attachedSealedUnit.grandTotal) ||
-      0
-    if (suGrandTotal > 0) {
-      calculatedTotal += Math.round(suGrandTotal * 100)
-    }
-  }
+  const hostNorm =
+    hostType === "door"
+      ? universal.doorNorm
+      : hostType === "sealed_unit"
+        ? universal.suNorm
+        : universal.winNorm
 
-  // Fallback if line items were empty or calculation is zero
-  let total = calculatedTotal
-  if (total === 0) {
-    const rawTotal =
-      Number(quote.taxTotals?.grandTotal) ||
-      Number(quote.quoteSummaryTotal) ||
-      0
-    total =
-      rawTotal > 0 && rawTotal < 100000
-        ? Math.round(rawTotal * 100)
-        : Math.round(rawTotal)
-  }
-
+  const promoDiscount = Math.round(
+    ((hostNorm?.discount || 0) + (hostNorm?.loyaltyDiscount || 0)) * 100
+  )
+  const total = universal.totalCents
   const firstPayment = Math.floor(total / 2)
-  const secondPayment = total - firstPayment
 
   return {
-    basePrice,
-    surcharge,
+    basePrice: Math.round((hostNorm?.rawBase || 0) * 100),
+    surcharge: Math.round((hostNorm?.surcharge || 0) * 100),
     promoDiscount,
-    effectiveJC,
-    effectiveMisc,
-    effectiveLabour,
-    includeJCInPromo,
-    includeMiscInPromo,
-    includeLabourInPromo,
-    beforeTaxDiscount,
-    afterDiscount,
-    hstRate,
-    hst,
+    effectiveJC: Math.round((hostNorm?.jambsAndCasing || 0) * 100),
+    effectiveMisc:
+      isSupplyOnly && !isServiceOnly
+        ? 0
+        : Math.round((hostNorm?.misc || 0) * 100),
+    effectiveLabour:
+      isSupplyOnly && !isServiceOnly
+        ? 0
+        : Math.round(
+            ((hostNorm?.pureLabour || 0) + (hostNorm?.travelAndSetup || 0)) * 100
+          ),
+    includeJCInPromo:
+      hostType === "window" ? quote.includeJCInPromo !== false : false,
+    includeMiscInPromo:
+      hostType === "window" ? quote.includeMiscInPromo !== false : false,
+    includeLabourInPromo:
+      hostType === "window" ? quote.includeLabourInPromo !== false : false,
+    beforeTaxDiscount:
+      universal.subtotalCents + Math.round(universal.discounts * 100),
+    afterDiscount: universal.subtotalCents,
+    hstRate: universal.hstRate,
+    hst: universal.taxCents,
     total,
     firstPayment,
-    secondPayment,
+    secondPayment: total - firstPayment,
   }
 }

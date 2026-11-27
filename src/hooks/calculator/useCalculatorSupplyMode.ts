@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   buildDefaultSupplyTaxState,
   buildInstallTaxState,
@@ -62,7 +62,6 @@ export function useCalculatorSupplyMode({
     lastSupplyJambIdRef,
     lastSupplyCasingIdRef,
     lastSupplySnapshotRef,
-    lastSupplyCustomJCRef,
     setSupplyJCAmount,
     resetAllSupplyRefs,
   } = refs
@@ -196,6 +195,7 @@ export function useCalculatorSupplyMode({
       setSupplyJCAmount,
       setTaxTotals,
       isSupplyOnly,
+      taxTotals,
     ]
   )
 
@@ -276,11 +276,17 @@ export function useCalculatorSupplyMode({
     [isSupplyOnly, lastSupplySnapshotRef, setSupplyJCAmount, setTaxTotals]
   )
 
+  const lastSyncedSupplyQuoteIdRef = useRef<string | null>(null)
   useEffect(() => {
-    if (taxTotals?._quoteId && taxTotals?.isSupplyOnly) {
+    if (
+      taxTotals?._quoteId &&
+      taxTotals?.isSupplyOnly &&
+      lastSyncedSupplyQuoteIdRef.current !== taxTotals._quoteId
+    ) {
+      lastSyncedSupplyQuoteIdRef.current = taxTotals._quoteId
       syncTaxTotalsToSupplyRefs(taxTotals, refs, setAttachedUpgrade)
     }
-  }, [taxTotals?._quoteId])
+  }, [taxTotals, refs, setAttachedUpgrade])
 
   const resetSupplyMode = useCallback(() => {
     setIsSupplyOnly(false)

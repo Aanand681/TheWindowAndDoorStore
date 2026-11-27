@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 import { cacheGet, cacheSet } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
 
@@ -13,6 +15,11 @@ const ROUTE_CACHE_HEADERS = {
 
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const lon = Number(searchParams.get("lon"))
     const lat = Number(searchParams.get("lat"))

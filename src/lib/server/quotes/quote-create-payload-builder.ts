@@ -1,4 +1,5 @@
 import SavedQuote from "@/models/SavedQuote"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export function determineQuoteType(body: any): "window" | "door" | "sealed_unit" {
   if (body.quoteType) return body.quoteType
@@ -118,11 +119,9 @@ export async function purgeAbsorbedDrafts(
     }
 
     await SavedQuote.deleteMany({
-      preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      preparedBy: { $regex: exactCaseInsensitiveRegex(currentUsername) },
       quoteNumber: {
-        $in: quoteNumbersToPurge.map(
-          (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-        ),
+        $in: quoteNumbersToPurge.map((n) => exactCaseInsensitiveRegex(n)),
       },
       status: "DRAFT",
       _id: { $ne: createdQuoteId },

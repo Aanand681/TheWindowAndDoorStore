@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { DoorQuotingMode, DoorSelectedUpcharge } from "@/lib/doors/types"
 import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
+import { useLoyaltyDiscountState } from "@/hooks/shared/useLoyaltyDiscountState"
 import type { CustomMaterialItem } from "@/types/calculator"
 
 export function useDoorBaseQuoteState() {
@@ -28,16 +29,12 @@ export function useDoorBaseQuoteState() {
   const [customMisc, setCustomMisc] = useState<string>("")
   const [customDiscount, setCustomDiscount] = useState<string>("")
   const [customDiscountLabel, setCustomDiscountLabel] = useState<string>("")
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState<string>("")
-  const [loyaltyDiscountLabel, setLoyaltyDiscountLabel] = useState<string>("")
-  const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
-  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
-  const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
+  const loyalty = useLoyaltyDiscountState({ hstRate, isFirstNation })
   const [customMaterials, setCustomMaterials] = useState<CustomMaterialItem[]>([])
   const [attachedWindowQuote, setAttachedWindowQuote] = useState<any | null>(null)
   const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
 
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("cards")
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("universal")
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5)
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0)
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false)
@@ -67,16 +64,7 @@ export function useDoorBaseQuoteState() {
     setCustomDiscount,
     customDiscountLabel,
     setCustomDiscountLabel,
-    loyaltyDiscount,
-    setLoyaltyDiscount,
-    loyaltyDiscountLabel,
-    setLoyaltyDiscountLabel,
-    discountType,
-    setDiscountType,
-    loyaltyPoints,
-    setLoyaltyPoints,
-    loyaltyGrossAmount,
-    setLoyaltyGrossAmount,
+    ...loyalty,
     customMaterials,
     setCustomMaterials,
     attachedWindowQuote,

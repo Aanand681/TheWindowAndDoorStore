@@ -16,10 +16,13 @@ export function useSealedUnitInstallOption(p: {
 }) {
   const { mode, quoteNumber, compareLabour, compareMisc } = p
   const [attachedInstallOption, setAttachedInstallOption] =
-    useState<CachedAttachedInstallOption | null>(() => readSessionAttachedInstallOption())
+    useState<CachedAttachedInstallOption | null>(() =>
+      readSessionAttachedInstallOption("sealed_unit")
+    )
 
   useEffect(() => {
-    const sync = () => setAttachedInstallOption(readSessionAttachedInstallOption())
+    const sync = () =>
+      setAttachedInstallOption(readSessionAttachedInstallOption("sealed_unit"))
     sync()
     window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
     window.addEventListener("storage", sync)
@@ -35,14 +38,14 @@ export function useSealedUnitInstallOption(p: {
 
   useEffect(() => {
     if (attachedInstallOption?.enabled && dynamicInstallDeltaDollars > 0) {
-      const current = readSessionAttachedInstallOption()
+      const current = readSessionAttachedInstallOption("sealed_unit")
       const newCents = Math.round(dynamicInstallDeltaDollars * 100)
       if (current?.enabled && current.amountPreTaxCents !== newCents) {
         const updated = {
           ...current,
           amountPreTaxCents: newCents,
         }
-        writeSessionAttachedInstallOption(updated)
+        writeSessionAttachedInstallOption(updated, "sealed_unit")
         setAttachedInstallOption(updated)
       }
     }

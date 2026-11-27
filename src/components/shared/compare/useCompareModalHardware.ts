@@ -8,6 +8,7 @@ import {
   writeSessionAttachedInstallOption,
   readSessionDoorHardwareConfig,
   writeSessionDoorHardwareConfig,
+  type QuoteOptionScope,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { calculateCompareTotals } from "./compare-math"
 
@@ -37,6 +38,7 @@ export interface UseCompareModalHardwareParams {
     hardwareTotal: number
   ) => void
   isOpen: boolean
+  optionScope?: QuoteOptionScope
 }
 
 export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
@@ -59,6 +61,7 @@ export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
     hasSupplyJC,
     onToggleAttachOption,
     isOpen,
+    optionScope,
   } = params
 
   const [isOptionAttached, setIsOptionAttached] = useState(false)
@@ -77,7 +80,7 @@ export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
     useState<DoorInstallHardwareConfig>(() => {
       const saved = readSessionDoorHardwareConfig()
       if (saved) return saved
-      const attached = readSessionAttachedInstallOption()
+      const attached = readSessionAttachedInstallOption(optionScope)
       if (attached?.hardwareConfig) return attached.hardwareConfig
       if (doorItems && doorItems.length > 0) {
         let std = 0
@@ -130,7 +133,7 @@ export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
 
   useEffect(() => {
     if (isOpen) {
-      const cached = readSessionAttachedInstallOption()
+      const cached = readSessionAttachedInstallOption(optionScope)
       setIsOptionAttached(Boolean(cached?.enabled))
 
       const saved = readSessionDoorHardwareConfig()
@@ -174,7 +177,7 @@ export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
         }
       }
     }
-  }, [isOpen, doorItems, standardHardwarePrice, totalDoorCount])
+  }, [isOpen, doorItems, standardHardwarePrice, totalDoorCount, optionScope])
 
   const supplyHardwareTotal = useMemo(() => {
     return doorItems && doorItems.length > 0
@@ -233,16 +236,19 @@ export function useCompareModalHardware(params: UseCompareModalHardwareParams) {
         hstRate,
       })
 
-      writeSessionAttachedInstallOption({
-        enabled: true,
-        amountPreTaxCents: newTotals.extraSubtotalCents,
-        mode: currentMode,
-        title: attachTitle,
-        hasSupplyJC,
-        hardwareTotal: newConfig.totalPrice,
-        hardwareQty: newConfig.totalQty,
-        hardwareConfig: newConfig,
-      })
+      writeSessionAttachedInstallOption(
+        {
+          enabled: true,
+          amountPreTaxCents: newTotals.extraSubtotalCents,
+          mode: currentMode,
+          title: attachTitle,
+          hasSupplyJC,
+          hardwareTotal: newConfig.totalPrice,
+          hardwareQty: newConfig.totalQty,
+          hardwareConfig: newConfig,
+        },
+        optionScope
+      )
 
       if (onToggleAttachOption) {
         onToggleAttachOption(

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest"
 import {
   QuoteDraftItem,
   SAVED_DRAFTS_STORAGE_KEY,
-  DRAFT_CHANGE_EVENT,
 } from "@/lib/quote-drafts-storage"
 import {
   buildDoorAttachPayload,

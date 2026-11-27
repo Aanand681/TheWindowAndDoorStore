@@ -3,7 +3,7 @@ import { env } from "@/env"
 
 let redisInstance: Redis | null = null
 
-export function getRedisClient(): Redis | null {
+function getRedisClient(): Redis | null {
   if (redisInstance) return redisInstance
 
   const url = env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_URL
@@ -95,25 +95,4 @@ export async function cacheDelPattern(pattern: string): Promise<boolean> {
     console.warn(`[Redis] cacheDelPattern failed for "${pattern}":`, err)
     return false
   }
-}
-
-/**
- * Helper to get cached data or compute and cache it if absent.
- */
-export async function getOrSetCache<T>(
-  key: string,
-  fetchFn: () => Promise<T>,
-  ttlSeconds: number = 3600
-): Promise<T> {
-  const cached = await cacheGet<T>(key)
-  if (cached !== null && cached !== undefined) {
-    return cached
-  }
-
-  const fresh = await fetchFn()
-  if (fresh !== null && fresh !== undefined) {
-    // Non-blocking set
-    cacheSet(key, fresh, ttlSeconds).catch(() => {})
-  }
-  return fresh
 }

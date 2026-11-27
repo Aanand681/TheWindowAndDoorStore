@@ -1,10 +1,14 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { cachedFetch } from "@/lib/client-cache"
 import { toast } from "sonner"
 import { DBPromo, ILabourUpgradeTier } from "@/lib/promo-logic"
 import { QuoteTemplateType } from "@/components/quotes/QuoteInvoice"
+import {
+  sanitizeSavedQuoteLayout,
+  writeLocalSavedQuoteLayout,
+} from "@/lib/quotes/invoice-layout-engine"
 
 export interface UseCalculatorDataSyncProps {
   initialReviewQuoteId?: string
@@ -90,17 +94,29 @@ export function useCalculatorDataSync({
     }
   }, [settingsData, setSurchargeRate, setDbLabourUpgradeTiers])
 
+  const initialReviewRef = useRef({
+    quoteId: initialReviewQuoteId,
+    isEdit: initialIsEditMode,
+    openQuote: handleOpenQuoteFromTab,
+  })
+  useEffect(() => {
+    initialReviewRef.current = {
+      quoteId: initialReviewQuoteId,
+      isEdit: initialIsEditMode,
+      openQuote: handleOpenQuoteFromTab,
+    }
+  })
+
   // Initial Data Fetching (User Profile & Reviewer/Clerk lists)
   useEffect(() => {
     cachedFetch<any>("/api/profile")
       .then((data) => {
         if (data) {
           setUser(data)
-          if (
-            data.favoriteTemplate &&
-            ["modern", "executive", "cards"].includes(data.favoriteTemplate)
-          ) {
-            setQuoteTemplate(data.favoriteTemplate)
+          setQuoteTemplate("universal")
+          const savedLayout = sanitizeSavedQuoteLayout(data.savedQuoteLayout)
+          if (savedLayout) {
+            writeLocalSavedQuoteLayout(savedLayout, data._id || data.id || null)
           }
         }
       })
@@ -146,10 +162,24 @@ export function useCalculatorDataSync({
       })
       .catch(console.error)
 
-    if (initialReviewQuoteId) {
-      handleOpenQuoteFromTab(initialReviewQuoteId, initialIsEditMode)
+    if (initialReviewRef.current.quoteId) {
+      initialReviewRef.current.openQuote(
+        initialReviewRef.current.quoteId,
+        initialReviewRef.current.isEdit
+      )
     }
+  }, [
+    router,
+    setUser,
+    setQuoteTemplate,
+    setStaffList,
+    setAssignedReviewer,
+    setReassignTo,
+    setClerkList,
+    setSelectedOdooClerk,
+  ])
 
+  useEffect(() => {
     const handleQuoteDeleted = (e: any) => {
       if (e.detail?.quoteId && reviewQuoteId === e.detail.quoteId) {
         toast.warning(`Quote #${e.detail?.quoteNumber || ""} was deleted.`)
@@ -157,7 +187,10 @@ export function useCalculatorDataSync({
       }
     }
     window.addEventListener("quote-deleted", handleQuoteDeleted)
+    return () => window.removeEventListener("quote-deleted", handleQuoteDeleted)
+  }, [reviewQuoteId, handleExitReview])
 
+  useEffect(() => {
     const refreshPendingCount = () => {
       fetch("/api/quotes?countOnly=true")
         .then((res) => res.json())
@@ -172,9 +205,8 @@ export function useCalculatorDataSync({
     refreshPendingCount()
 
     return () => {
-      window.removeEventListener("quote-deleted", handleQuoteDeleted)
       window.removeEventListener("quote-count-updated", refreshPendingCount)
       window.removeEventListener("focus", refreshPendingCount)
     }
-  }, [])
+  }, [setPendingReviewCount])
 }

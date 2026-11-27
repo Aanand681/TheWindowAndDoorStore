@@ -1,5 +1,8 @@
 export interface InvoiceLabourItemsParams {
   isSupplyOnly?: boolean
+  isWinSupply?: boolean
+  isDoorSupply?: boolean
+  isSUSupply?: boolean
   hasWindows: boolean
   winLabourCents: number
   effectiveWindows?: any[]
@@ -116,8 +119,9 @@ function getDoorLabourItems(
         : Math.max(
             0,
             (effectiveDoorTotals.combinedLabourTotal || 0) -
-              (effectiveDoorTotals.baseSetupFee || 0) -
-              (effectiveDoorTotals.totalTravelAndSetup || 0)
+              (effectiveDoorTotals.totalTravelAndSetup ||
+                effectiveDoorTotals.baseSetupFee ||
+                0)
           )) * 100
     )
     if (pureDoor > 0) {
@@ -149,8 +153,11 @@ function getSealedUnitLabourItems(
                 ? Math.max(
                     0,
                     Number(effectiveSUTotals.combinedLabourTotal) -
-                      Number(effectiveSUTotals.baseSetupFee || 0) -
-                      Number(effectiveSUTotals.totalTravelAndSetup || 0) -
+                      Number(
+                        effectiveSUTotals.totalTravelAndSetup ||
+                          effectiveSUTotals.baseSetupFee ||
+                          0
+                      ) -
                       Number(effectiveSUTotals.extraLabour || 0)
                   )
                 : 0
@@ -170,13 +177,16 @@ function getSealedUnitLabourItems(
         ? effectiveSUTotals.globalUpcharges
         : []
 
+  let suUpchargesAdded = false
   effectiveSUUp.forEach((up: any) => {
     const amt = Math.round(
       Number(up.total ?? up.price ?? up.rate ?? 0) * 100
     )
     if (amt > 0) {
+      suUpchargesAdded = true
+      const upLabel = String(up.label || "").trim()
       items.push({
-        label: `Sealed unit ${up.label || "extra labour"}`,
+        label: upLabel ? `Sealed unit ${upLabel}` : "Sealed unit extra labour",
         amount: amt,
       })
     }
@@ -184,8 +194,7 @@ function getSealedUnitLabourItems(
 
   // Include extraLabour if defined on effectiveSUTotals and not already itemized via upcharges
   const extraLabourCents = Math.round(Number(effectiveSUTotals.extraLabour || 0) * 100)
-  const hasExtraLabourInUpcharges = effectiveSUUp.length > 0
-  if (extraLabourCents > 0 && !hasExtraLabourInUpcharges) {
+  if (extraLabourCents > 0 && !suUpchargesAdded) {
     items.push({
       label: "Sealed unit extra labour",
       amount: extraLabourCents,
@@ -197,6 +206,9 @@ function getSealedUnitLabourItems(
 
 export function getInvoiceLabourItems({
   isSupplyOnly = false,
+  isWinSupply = false,
+  isDoorSupply = false,
+  isSUSupply = false,
   hasWindows,
   winLabourCents,
   effectiveWindows = [],
@@ -212,8 +224,14 @@ export function getInvoiceLabourItems({
 }: InvoiceLabourItemsParams): { label: string; amount: number }[] {
   if (isSupplyOnly) return []
   return [
-    ...getWindowLabourItems(hasWindows, winLabourCents, effectiveWindows, taxTotals),
-    ...getDoorLabourItems(hasDoors, effectiveDoors, effectiveDoorTotals, doorUpcharges),
-    ...getSealedUnitLabourItems(hasSealedUnits, effectiveSUTotals, isAttachedSUService, suUpcharges),
+    ...(isWinSupply
+      ? []
+      : getWindowLabourItems(hasWindows, winLabourCents, effectiveWindows, taxTotals)),
+    ...(isDoorSupply
+      ? []
+      : getDoorLabourItems(hasDoors, effectiveDoors, effectiveDoorTotals, doorUpcharges)),
+    ...(isSUSupply
+      ? []
+      : getSealedUnitLabourItems(hasSealedUnits, effectiveSUTotals, isAttachedSUService, suUpcharges)),
   ]
 }

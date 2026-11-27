@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { resolveColorHex } from "../storm/storm-door-colors"
-import { Palette, Check } from "lucide-react"
+import { Palette } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 export interface StormDoorColorPickerProps {

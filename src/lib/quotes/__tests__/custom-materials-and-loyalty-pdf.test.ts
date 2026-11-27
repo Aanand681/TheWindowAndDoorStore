@@ -9,6 +9,11 @@ import {
   buildSealedUnitAttachPayload,
 } from "@/components/calculator/attach/attach-payload-builders"
 import { computeEffectiveDoorGrandTotal } from "@/lib/doors/totals-calculator"
+import { getInvoiceLabourItems } from "@/hooks/quotes/invoice-labour"
+import {
+  getInvoiceTravelItems,
+  getInvoiceDetailedExtrasList,
+} from "@/hooks/quotes/invoice-logistics"
 
 function createFixtures(withMaterials: boolean) {
   const winMats = withMaterials
@@ -355,5 +360,69 @@ describe("Custom Materials & Loyalty Discounts Across PDF, Combined Engine & Quo
     expect(p1.total - p0.total).toBe(10500)
     // Subtracting $94.25 stacked discounts on subtotal
     expect(p2.total).toBeLessThan(p1.total)
+  })
+
+  it("getInvoiceLabourItems & invoice-logistics preserve Window/Door/SU labours, upcharges, add-ons & travel fallbacks", () => {
+    const labour = getInvoiceLabourItems({
+      isSupplyOnly: false,
+      isWinSupply: false,
+      isDoorSupply: false,
+      isSUSupply: false,
+      hasWindows: true,
+      winLabourCents: 35000,
+      effectiveWindows: [{ id: "w1" }],
+      taxTotals: { wLab: 350 },
+      hasDoors: true,
+      effectiveDoors: [{ id: "d1" }],
+      effectiveDoorTotals: { unitLabourTotal: 200 },
+      doorUpcharges: [{ upchargeId: "custom_1", label: "Storm Removal", qty: 1, total: 60 }],
+      hasSealedUnits: true,
+      effectiveSUTotals: { serviceLabourTotal: 150, extraLabour: 90 },
+      suUpcharges: [{ id: "su_u1", label: "High Ladder", price: 90 }],
+      isAttachedSUService: true,
+    })
+
+    expect(labour.map((l) => l.label)).toEqual([
+      "Window installation labour (1 unit)",
+      "Door installation labour (1 unit)",
+      "Door Storm Removal",
+      "Sealed unit service labour",
+      "Sealed unit High Ladder",
+    ])
+    expect(labour.map((l) => l.amount)).toEqual([35000, 20000, 6000, 15000, 9000])
+
+    // Supply-only attached door does not leak upcharges into Install host
+    const supplyDoorExcluded = getInvoiceLabourItems({
+      isSupplyOnly: false,
+      isDoorSupply: true,
+      hasWindows: false,
+      winLabourCents: 0,
+      hasDoors: true,
+      effectiveDoors: [{ id: "d1" }],
+      effectiveDoorTotals: { unitLabourTotal: 0 },
+      doorUpcharges: [{ upchargeId: "custom_1", label: "Storm Removal", qty: 1, total: 60 }],
+      hasSealedUnits: false,
+    })
+    expect(supplyDoorExcluded).toEqual([])
+
+    const extras = getInvoiceDetailedExtrasList([
+      { id: "a1", label: "Exterior Capping", qty: 2, lab: 40, misc: 25 },
+    ])
+    expect(extras).toHaveLength(2)
+    expect(extras[0].label).toBe("Exterior Capping — Labour")
+    expect(extras[1].label).toBe("Exterior Capping — Materials / Misc")
+
+    const attachedDoorTravel = getInvoiceTravelItems({
+      isWindowHost: false,
+      taxTotals: undefined,
+      isDoorHost: false,
+      effectiveDoorTotals: { travelAndSetupFee: 320 },
+      isSUHost: true,
+      effectiveSUTotals: { totalTravelAndSetup: 140 },
+      attachedDoorQuote: { totals: { travelAndSetupFee: 320 } },
+    })
+    expect(attachedDoorTravel).toEqual([
+      { label: "Job set-up & travel fee (door quote)", amount: 32000 },
+    ])
   })
 })

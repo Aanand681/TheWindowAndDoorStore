@@ -212,6 +212,9 @@ export function useCombinedQuoteData({
       combinedTotalCents: fin.combinedTotalCents,
       combinedFirstPayment,
       combinedSecondPayment,
+      winNorm: fin.winNorm,
+      doorNorm: fin.doorNorm,
+      suNorm: fin.suNorm,
     }
   }, [
     attachedSealedUnit,

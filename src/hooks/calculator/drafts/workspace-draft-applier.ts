@@ -82,9 +82,10 @@ export function applyDraftDataToWorkspace(
   else workspace.setAttachedDoorQuote(null)
   if (d.wantsUpgrade !== undefined)
     workspace.setWantsUpgrade(Boolean(d.wantsUpgrade))
-  writeSessionAttachedInstallOption(d.attachedInstallOption ?? null)
+  writeSessionAttachedInstallOption(d.attachedInstallOption ?? null, "window")
   writeSessionCustomOptions(
-    Array.isArray(d.customOptions) ? d.customOptions : []
+    Array.isArray(d.customOptions) ? d.customOptions : [],
+    "window"
   )
   if (d.taxTotals || d.selectedRegionId || Array.isArray(d.customMaterials)) {
     const mats =

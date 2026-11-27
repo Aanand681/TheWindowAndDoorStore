@@ -6,6 +6,7 @@ import {
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
+import { computeEffectiveSealedUnitGrandTotal } from "@/lib/sealed-units/totals-calculator"
 
 export interface BuildSealedUnitsUpdatePayloadParams {
   customerName: string
@@ -79,6 +80,17 @@ export function buildSealedUnitsUpdatePayload(
   } = p
 
   const loyaltyDiscountNum = Math.max(0, parseFloat(String(loyaltyDiscount)) || 0)
+  const effectiveTotals = computeEffectiveSealedUnitGrandTotal({
+    totals,
+    sealedUnitMode,
+    isInstallation,
+    isServiceOnly,
+    loyaltyDiscount: String(loyaltyDiscount || ""),
+    loyaltyDiscountLabel,
+    hstRate,
+    attachedWindowQuote,
+    attachedDoorQuote,
+  })
 
   return {
     customerName,
@@ -109,7 +121,7 @@ export function buildSealedUnitsUpdatePayload(
       loyaltyGrossAmount,
       isSealedUnitQuote: true,
     },
-    quoteSummaryTotal: Math.round(totals.grandTotal * 100),
+    quoteSummaryTotal: Math.round(effectiveTotals.grandTotal * 100),
     serviceSqftInput,
     serviceLabourRateInput,
     serviceMiscRateInput,
@@ -131,8 +143,8 @@ export function buildSealedUnitsUpdatePayload(
     hstRate,
     attachedWindowQuote,
     attachedDoorQuote,
-    attachedInstallOption: readSessionAttachedInstallOption(),
-    customOptions: readSessionCustomOptions(),
+    attachedInstallOption: readSessionAttachedInstallOption("sealed_unit"),
+    customOptions: readSessionCustomOptions("sealed_unit"),
     ...(status ? { status } : {}),
     ...extra,
   }

@@ -37,7 +37,10 @@ export function useSealedUnitsTravel() {
   const [globalUpcharges, setGlobalUpchargesState] = useState<SealedUnitUpcharge[]>([])
   const [customMaterials, setCustomMaterials] = useState<CustomMaterialItem[]>([])
   const [hstRate, setHstRate] = useState<number>(13)
-  const loyalty = useLoyaltyDiscountState()
+  const loyalty = useLoyaltyDiscountState({
+    hstRate,
+    isFirstNation: hstRate === 8,
+  })
 
   const setGlobalUpcharges = useCallback((items: SealedUnitUpcharge[]) => {
     setGlobalUpchargesState(items)
@@ -58,6 +61,7 @@ export function useSealedUnitsTravel() {
     handleSetSealedUnitMode(val ? "installation" : "supply_only")
   }
 
+  const { resetLoyaltyDiscount } = loyalty
   const resetTravelAndMode = useCallback(() => {
     resetRegionToDefault()
     setSealedUnitMode("installation")
@@ -74,8 +78,8 @@ export function useSealedUnitsTravel() {
     setGlobalUpchargesState([])
     setCustomMaterials([])
     setHstRate(13)
-    loyalty.resetLoyaltyDiscount()
-  }, [resetRegionToDefault, loyalty])
+    resetLoyaltyDiscount()
+  }, [resetRegionToDefault, resetLoyaltyDiscount])
 
   const formInputs = {
     sealedUnitMode,

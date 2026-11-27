@@ -58,7 +58,16 @@ export default withAuth(
       signIn: "/login",
     },
     callbacks: {
-      authorized: ({ token }) => !!token, // Strictly require valid session token
+      authorized: ({ req, token }) => {
+        const authHeader = req.headers.get("authorization")
+        if (
+          req.nextUrl.pathname === "/api/quotes/reminders" &&
+          authHeader?.startsWith("Bearer ")
+        ) {
+          return true // Verified strictly against CRON_SECRET inside the route handler
+        }
+        return !!token // Strictly require valid session token
+      },
     },
   }
 )

@@ -74,21 +74,44 @@ export function DiscountLoyaltySelector({
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    if (!isEditing) return
+    if (discountType === "custom") {
+      setTab("custom")
+      setCustomAmount(loyaltyDiscount || "")
+      setCustomLabel(loyaltyDiscountLabel || "Special Courtesy Discount")
+    } else if (discountType === "loyalty") {
+      setTab("loyalty")
+      if (loyaltyGrossAmount > 0) {
+        setCustomLoyaltyGross(loyaltyGrossAmount.toString())
+      }
+    }
+  }, [
+    isEditing,
+    discountType,
+    loyaltyDiscount,
+    loyaltyDiscountLabel,
+    loyaltyGrossAmount,
+  ])
+
   const currentPreTax = parseFloat(loyaltyDiscount) || 0
   const qualifyingBase = Math.max(0, Math.round((combinedMaterials - (otherDiscounts || 0)) * 100) / 100)
   const qualifiedTiers = tiers.filter((t) => t.isActive !== false && qualifyingBase >= t.minPurchase)
 
   const handleSelectTier = (tier: ILoyaltyTier) => {
+    const isTaxInclusive = tier.isTaxInclusive !== false
     const preTax = calculateLoyaltyPreTaxDiscount(
       tier.rewardAmount,
-      tier.isTaxInclusive !== false,
+      isTaxInclusive,
       hstRate,
       isFirstNation
     )
     setDiscountType?.("loyalty")
     setLoyaltyPoints?.(tier.points)
-    setLoyaltyGrossAmount?.(tier.rewardAmount)
-    setLoyaltyDiscountLabel?.(`Loyalty Points (${tier.points.toLocaleString()} pts — $${tier.rewardAmount.toFixed(2)} incl. tax)`)
+    setLoyaltyGrossAmount?.(isTaxInclusive ? tier.rewardAmount : 0)
+    setLoyaltyDiscountLabel?.(
+      `Loyalty Points (${tier.points.toLocaleString()} pts — $${tier.rewardAmount.toFixed(2)} ${isTaxInclusive ? "incl. tax" : "pre-tax"})`
+    )
     setLoyaltyDiscount(preTax.toFixed(2))
     setIsEditing(false)
   }
@@ -115,6 +138,8 @@ export function DiscountLoyaltySelector({
       return
     }
     setDiscountType?.("custom")
+    setLoyaltyPoints?.(0)
+    setLoyaltyGrossAmount?.(0)
     setLoyaltyDiscountLabel?.(customLabel.trim() || "Additional Discount")
     setLoyaltyDiscount(val.toFixed(2))
     setIsEditing(false)

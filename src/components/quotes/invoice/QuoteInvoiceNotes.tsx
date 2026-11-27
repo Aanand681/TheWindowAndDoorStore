@@ -1,17 +1,67 @@
 import React from "react"
+import { FileText } from "lucide-react"
 
 export interface QuoteInvoiceNotesProps {
   notes?: string
   noteFs?: number
+  rowPy?: number
+  variant?: "default" | "paper-rows"
+}
+
+function parseFormattedNoteLine(cleanText: string): React.ReactNode {
+  const parts = cleanText.split(
+    /(\*\*[^*]+\*\*|<b>.*?<\/b>|<strong>.*?<\/strong>)/gi
+  )
+  return parts.map((part, pIdx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong
+          key={pIdx}
+          className="font-bold text-[#0f172a] print:text-black"
+        >
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    if (
+      part.toLowerCase().startsWith("<b>") &&
+      part.toLowerCase().endsWith("</b>")
+    ) {
+      return (
+        <strong
+          key={pIdx}
+          className="font-bold text-[#0f172a] print:text-black"
+        >
+          {part.slice(3, -4)}
+        </strong>
+      )
+    }
+    if (
+      part.toLowerCase().startsWith("<strong>") &&
+      part.toLowerCase().endsWith("</strong>")
+    ) {
+      return (
+        <strong
+          key={pIdx}
+          className="font-bold text-[#0f172a] print:text-black"
+        >
+          {part.slice(8, -9)}
+        </strong>
+      )
+    }
+    return <span key={pIdx}>{part}</span>
+  })
 }
 
 export function QuoteInvoiceNotes({
   notes,
   noteFs = 9.5,
+  rowPy = 3,
+  variant = "default",
 }: QuoteInvoiceNotesProps) {
   if (!notes || !notes.trim()) return null
 
-  // 1. Normalize line breaks across HTML tags:
+  // 1. Normalize line breaks across HTML tags
   const cleaned = notes
     .replace(/<br\s*\/?>\s*<\/(div|p|li)>/gi, "</$1>")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -20,10 +70,8 @@ export function QuoteInvoiceNotes({
     .replace(/<(div|p|li)[^>]*>/gi, "")
     .replace(/&nbsp;/gi, " ")
 
-  // 2. Split by newlines and preserve intentional blank lines (spacing between paragraphs)
   const rawLines = cleaned.split("\n")
 
-  // Strip leading and trailing blank lines
   let start = 0
   while (start < rawLines.length && !rawLines[start].trim()) {
     start++
@@ -40,6 +88,44 @@ export function QuoteInvoiceNotes({
 
   if (lines.length === 0) return null
 
+  if (variant === "paper-rows") {
+    const renderedRows = lines
+      .map((line, idx) => {
+        if (!line) return null
+        const stripped = line.replace(/<(?!\/?(b|strong)\b)[^>]+>/gi, "").trim()
+        if (!stripped) return null
+        // Strip legacy bullet tokens (including inside leading <b>/<strong> tags) cleanly
+        const withoutLeadingBullet = stripped
+          .replace(/^((?:<b>|<strong>)\s*)(?:•|-|\*)\s*/i, "$1")
+          .replace(/^(?:•|-|\*)\s*/, "")
+          .trim()
+        if (!withoutLeadingBullet || withoutLeadingBullet === "<b></b>" || withoutLeadingBullet === "<strong></strong>") {
+          return null
+        }
+
+        return (
+          <div
+            key={idx}
+            style={{ fontSize: `${noteFs}px`, padding: `${Math.max(2, rowPy)}px 7px` }}
+            className="flex items-start gap-1.5 bg-[#f8fafc] leading-snug text-[#334155]"
+          >
+            <FileText className="mt-0.5 h-3 w-3 shrink-0 text-[#475569]" />
+            <div className="min-w-0 flex-1 italic leading-snug">
+              {parseFormattedNoteLine(withoutLeadingBullet)}
+            </div>
+          </div>
+        )
+      })
+      .filter(Boolean)
+
+    if (renderedRows.length === 0) return null
+    return (
+      <div className="divide-y divide-[#e2e8f0] overflow-hidden rounded border border-[#cbd5e1] bg-[#f8fafc]">
+        {renderedRows}
+      </div>
+    )
+  }
+
   return (
     <div
       className="space-y-0.5 font-sans leading-snug text-[#0f172a]"
@@ -50,11 +136,9 @@ export function QuoteInvoiceNotes({
           return <div key={idx} className="h-1.5" />
         }
 
-        // Strip any lingering HTML tags except <b> and <strong>
         const stripped = line.replace(/<(?!\/?(b|strong)\b)[^>]+>/gi, "").trim()
         if (!stripped) return null
 
-        // Check for bullet point at the start (even if wrapped in <b> or <strong>)
         const isBullet = /^(<b>|<strong>)?\s*(•|-|\*)\s*/i.test(stripped)
         let cleanText = stripped
         if (isBullet) {
@@ -62,49 +146,7 @@ export function QuoteInvoiceNotes({
           cleanText = cleanText.replace(/^(•|-|\*)\s*/, "")
         }
 
-        // Parse **bold text**, <b>bold text</b>, and <strong>bold text</strong>
-        const parts = cleanText.split(
-          /(\*\*[^*]+\*\*|<b>.*?<\/b>|<strong>.*?<\/strong>)/gi
-        )
-        const parsedContent = parts.map((part, pIdx) => {
-          if (part.startsWith("**") && part.endsWith("**")) {
-            return (
-              <strong
-                key={pIdx}
-                className="font-bold text-[#0f172a] print:text-black"
-              >
-                {part.slice(2, -2)}
-              </strong>
-            )
-          }
-          if (
-            part.toLowerCase().startsWith("<b>") &&
-            part.toLowerCase().endsWith("</b>")
-          ) {
-            return (
-              <strong
-                key={pIdx}
-                className="font-bold text-[#0f172a] print:text-black"
-              >
-                {part.slice(3, -4)}
-              </strong>
-            )
-          }
-          if (
-            part.toLowerCase().startsWith("<strong>") &&
-            part.toLowerCase().endsWith("</strong>")
-          ) {
-            return (
-              <strong
-                key={pIdx}
-                className="font-bold text-[#0f172a] print:text-black"
-              >
-                {part.slice(8, -9)}
-              </strong>
-            )
-          }
-          return <span key={pIdx}>{part}</span>
-        })
+        const parsedContent = parseFormattedNoteLine(cleanText)
 
         if (isBullet) {
           return (

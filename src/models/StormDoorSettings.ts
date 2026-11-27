@@ -6,8 +6,6 @@ import {
 } from "@/lib/doors/storm-door-types"
 import {
   DEFAULT_STORM_DOOR_RULES,
-  YORK_STORM_DOORS,
-  YORK_STORM_ADDONS,
 } from "@/lib/doors/storm-door-catalog"
 
 export interface IStormDoorSettings extends Document {

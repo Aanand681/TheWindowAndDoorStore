@@ -1,11 +1,15 @@
 "use client"
 
-import React from "react"
+import React, { useCallback, useSyncExternalStore } from "react"
 import type { QuoteTemplateType, QuoteInvoiceProps } from "./invoice/types"
 import { useInvoiceCalculations } from "@/hooks/quotes/useInvoiceCalculations"
-import { ModernInvoiceTemplate } from "./invoice/templates/ModernInvoiceTemplate"
-import { ExecutiveInvoiceTemplate } from "./invoice/templates/ExecutiveInvoiceTemplate"
-import { CardsInvoiceTemplate } from "./invoice/templates/CardsInvoiceTemplate"
+import { UniversalInvoiceTemplate } from "./invoice/templates/UniversalInvoiceTemplate"
+import {
+  computeSmartAutoLayout,
+  getSavedQuoteLayoutSnapshot,
+  subscribeSavedQuoteLayout,
+} from "@/lib/quotes/invoice-layout-engine"
+import { deriveSmartLayoutInput } from "./invoice/composer/useInvoiceComposerState"
 
 export type { QuoteTemplateType, QuoteInvoiceProps }
 
@@ -13,12 +17,11 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
   const {
     customerName,
     quoteNumber,
-    template = "modern",
     fontSize = 11.5,
+    spacing = 1.0,
     isInteractivePreview = false,
     quoteNotes = "",
     preparedBy = "",
-    orientation = "portrait",
     attachedUpgrade = null,
     wantsUpgrade = false,
     shownUpgrade = 0,
@@ -38,12 +41,57 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
     isDualOption = false,
     attachedInstallOption = null,
     customOptions = null,
+    savedLayout,
+    composer = null,
   } = props
 
-  // 1. Perform consolidated invoice calculations (must be called unconditionally)
-  const calc = useInvoiceCalculations(props)
+  const getLocalSnapshot = useCallback(() => getSavedQuoteLayoutSnapshot(), [])
+  const localSavedLayout = useSyncExternalStore(
+    subscribeSavedQuoteLayout,
+    getLocalSnapshot,
+    () => null
+  )
+  const effectiveSavedLayout = savedLayout !== undefined ? savedLayout : localSavedLayout
 
-  // 2. Early return guard: if no product data exists at all
+  // Compute baseline calculations first so we can check sparse auto-fit typography cleanly when printing directly
+  const baseCalc = useInvoiceCalculations({
+    ...props,
+    template: "cards",
+    fontSize,
+    spacing,
+  })
+
+  const resolvedPrintFontSize = isInteractivePreview
+    ? fontSize
+    : effectiveSavedLayout?.fontSize ??
+      (() => {
+        const smart = computeSmartAutoLayout(
+          deriveSmartLayoutInput(baseCalc, {
+            isDualOption,
+            wantsUpgrade,
+            shownUpgrade,
+            attachedUpgrade,
+            customOptions,
+            quoteNotes,
+          })
+        )
+        return smart.mode === "spacious" &&
+          (Math.abs(fontSize - 11.5) < 0.01 || Math.abs(fontSize - 8.5) < 0.01)
+          ? smart.suggestedFontSize
+          : fontSize
+      })()
+
+  const resolvedPrintSpacing = isInteractivePreview
+    ? spacing
+    : effectiveSavedLayout?.spacing ?? spacing
+
+  const calc = useInvoiceCalculations({
+    ...props,
+    template: "cards",
+    fontSize: resolvedPrintFontSize,
+    spacing: resolvedPrintSpacing,
+  })
+
   const hasWindows =
     windows.length > 0 ||
     basePrice > 0 ||
@@ -77,45 +125,26 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
     return null
   }
 
-  const isLandscape = orientation === "landscape"
-
-  // 3. Outer container classes
   const containerClass = isInteractivePreview
-    ? `w-full ${isLandscape ? "max-w-[10.5in]" : "max-w-[8in]"} mx-auto bg-white text-[#1c2430] p-4 shadow-xl border border-border/40 select-none print:shadow-none print:border-none print:p-0 print:m-0`
-    : `background-quote-invoice hidden print:block w-full ${isLandscape ? "max-w-[10.5in]" : "max-w-[8in]"} mx-auto bg-white text-[#1c2430] p-4 text-[11.5px] leading-tight select-none`
-
-  const templateProps = {
-    calc,
-    customerName,
-    quoteNumber,
-    regionName,
-    preparedBy,
-    wantsUpgrade,
-    shownUpgrade,
-    attachedUpgrade,
-    quoteNotes,
-    globalUpcharges,
-    isDualOption,
-    attachedInstallOption,
-    customOptions,
-  }
+    ? "w-full max-w-[8in] mx-auto bg-white text-[#1c2430] p-4 shadow-xl border border-border/40 select-none print:shadow-none print:border-none print:p-0 print:m-0"
+    : "background-quote-invoice hidden print:block w-full max-w-[8in] mx-auto bg-white text-[#1c2430] p-4 text-[11.5px] leading-tight select-none"
 
   return (
     <div
       id="printable-invoice"
       className={containerClass}
-      style={{ fontSize: `${fontSize}px` }}
+      style={{ fontSize: `${resolvedPrintFontSize}px` }}
     >
       <style
         dangerouslySetInnerHTML={{
           __html: `
         @media print {
           @page {
-            size: letter ${isLandscape ? "landscape" : "portrait"};
+            size: letter portrait;
             margin: 0.25in;
           }
           html, body {
-            width: ${isLandscape ? "11in" : "8.5in"} !important;
+            width: 8.5in !important;
             height: auto !important;
             min-height: 100% !important;
             margin: 0 !important;
@@ -128,8 +157,8 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
             display: block !important;
             visibility: visible !important;
             position: static !important;
-            width: ${isLandscape ? "10.5in" : "8in"} !important;
-            max-width: ${isLandscape ? "10.5in" : "8in"} !important;
+            width: 8in !important;
+            max-width: 8in !important;
             height: auto !important;
             margin: 0 auto !important;
             padding: 0 !important;
@@ -139,6 +168,9 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
           }
           #printable-invoice * {
             visibility: visible !important;
+          }
+          .no-print {
+            display: none !important;
           }
           #printable-invoice table {
             page-break-inside: auto;
@@ -156,11 +188,24 @@ export default function QuoteInvoice(props: QuoteInvoiceProps) {
         }}
       />
 
-      {template === "modern" && <ModernInvoiceTemplate {...templateProps} />}
-      {template === "executive" && (
-        <ExecutiveInvoiceTemplate {...templateProps} />
-      )}
-      {template === "cards" && <CardsInvoiceTemplate {...templateProps} />}
+      <UniversalInvoiceTemplate
+        calc={calc}
+        customerName={customerName}
+        quoteNumber={quoteNumber}
+        regionName={regionName}
+        preparedBy={preparedBy}
+        wantsUpgrade={wantsUpgrade}
+        shownUpgrade={shownUpgrade}
+        attachedUpgrade={attachedUpgrade}
+        quoteNotes={quoteNotes}
+        globalUpcharges={globalUpcharges}
+        isDualOption={isDualOption}
+        attachedInstallOption={attachedInstallOption}
+        customOptions={customOptions}
+        isInteractivePreview={isInteractivePreview}
+        savedLayout={effectiveSavedLayout}
+        composer={composer}
+      />
     </div>
   )
 }

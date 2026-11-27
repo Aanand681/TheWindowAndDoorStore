@@ -74,6 +74,7 @@ interface SealedUnitsModalsGroupProps {
   preview: SealedUnitsPrintPreviewState
   lineItems: SealedUnitLineItem[]
   totals: SealedUnitTotals
+  globalUpcharges?: any[]
   isInstallation: boolean
   regionName?: string
   hstRate: number
@@ -90,6 +91,7 @@ export function SealedUnitsModalsGroup({
   preview,
   lineItems,
   totals,
+  globalUpcharges = [],
   isInstallation,
   regionName,
   hstRate,
@@ -161,6 +163,7 @@ export function SealedUnitsModalsGroup({
           primaryQuoteType="sealed_unit"
           sealedUnits={lineItems}
           sealedUnitTotals={totals}
+          globalUpcharges={globalUpcharges}
           quoteNotes={drafts.quoteNotes}
           template={preview.quoteTemplate as any}
           fontSize={preview.quoteFontSize}
@@ -170,11 +173,12 @@ export function SealedUnitsModalsGroup({
           loyaltyDiscount={loyaltyDiscount}
           loyaltyDiscountLabel={loyaltyDiscountLabel}
           regionName={regionName}
+          attachedUpgrade={drafts.attachedWindowQuote?.attachedUpgrade || null}
           attachedWindowQuote={drafts.attachedWindowQuote}
           attachedDoorQuote={drafts.attachedDoorQuote}
-          isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-          attachedInstallOption={readSessionAttachedInstallOption()}
-          customOptions={readSessionCustomOptions()}
+          isDualOption={Boolean(readSessionAttachedInstallOption("sealed_unit")?.enabled)}
+          attachedInstallOption={readSessionAttachedInstallOption("sealed_unit")}
+          customOptions={readSessionCustomOptions("sealed_unit")}
         />
       )}
 
@@ -193,6 +197,7 @@ export function SealedUnitsModalsGroup({
         primaryQuoteType="sealed_unit"
         sealedUnits={lineItems}
         sealedUnitTotals={totals}
+        globalUpcharges={globalUpcharges}
         customerName={drafts.customerName}
         quoteNumber={drafts.quoteNumber}
         preparedBy={user?.name || user?.username || ""}
@@ -201,11 +206,12 @@ export function SealedUnitsModalsGroup({
         loyaltyDiscount={loyaltyDiscount}
         loyaltyDiscountLabel={loyaltyDiscountLabel}
         regionName={regionName}
+        attachedUpgrade={drafts.attachedWindowQuote?.attachedUpgrade || null}
         attachedWindowQuote={drafts.attachedWindowQuote}
         attachedDoorQuote={drafts.attachedDoorQuote}
-        isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-        attachedInstallOption={readSessionAttachedInstallOption()}
-        customOptions={readSessionCustomOptions()}
+        isDualOption={Boolean(readSessionAttachedInstallOption("sealed_unit")?.enabled)}
+        attachedInstallOption={readSessionAttachedInstallOption("sealed_unit")}
+        customOptions={readSessionCustomOptions("sealed_unit")}
       />
 
       {/* Saved Quotes & Drafts Modal */}

@@ -10,6 +10,7 @@ import {
 } from "@/components/doors"
 import { DoorCalculatorPageState } from "@/hooks/doors"
 import { CustomMaterialsCard } from "@/components/shared/materials"
+import { WORKSPACE_TWO_COLUMN_GRID_CLASS } from "@/components/shared/summary/layout-classes"
 import { toast } from "sonner"
 
 export interface DoorWorkspaceColumnsProps {
@@ -24,9 +25,9 @@ export function DoorWorkspaceColumns({
   onApplyDoorHardware,
 }: DoorWorkspaceColumnsProps) {
   return (
-    <div className="grid grid-cols-1 items-start gap-5 sm:gap-6 lg:grid-cols-12">
-      {/* Left Column: Item Builder, Items Table, Labour/Travel (8 cols) */}
-      <div className="space-y-5 lg:col-span-8">
+    <div className={WORKSPACE_TWO_COLUMN_GRID_CLASS}>
+      {/* Left Column: Item Builder, Items Table, Labour/Travel */}
+      <div className="min-w-0 space-y-5">
         <DoorItemBuilder
           customerName={page.customerName}
           setCustomerName={page.setCustomerName}
@@ -80,8 +81,8 @@ export function DoorWorkspaceColumns({
         />
       </div>
 
-      {/* Right Column: Quote Summary & Office Reference (4 cols) */}
-      <div className="space-y-5 lg:sticky lg:top-5 lg:col-span-4">
+      {/* Right Column: Quote Summary & Office Reference */}
+      <div className="min-w-0 space-y-5 lg:sticky lg:top-5">
         <DoorQuoteSummaryCard
           customerName={page.customerName}
           quoteNumber={page.quoteNumber}

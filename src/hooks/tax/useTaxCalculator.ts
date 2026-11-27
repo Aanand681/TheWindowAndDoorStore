@@ -85,9 +85,16 @@ export function useTaxCalculator({
     )
 
   const travel = useTaxTravelRoute(region)
+  const {
+    setupFee: travelSetupFee,
+    setSetupFee: setTravelSetupFee,
+    setCoords: setTravelCoords,
+    setManualKm: setTravelManualKm,
+    setManualHours: setTravelManualHours,
+  } = travel
   useEffect(() => {
-    regionStateRef.current.setupFeeSetter = travel.setSetupFee
-  }, [travel.setSetupFee])
+    regionStateRef.current.setupFeeSetter = setTravelSetupFee
+  }, [setTravelSetupFee])
 
   // Reactive auto-sync: Ensure Dryden / Sioux Lookout remote fee is enforced immediately on mount/load
   useEffect(() => {
@@ -96,15 +103,15 @@ export function useTaxCalculator({
       region.name?.toLowerCase().includes("dryden") ||
       region.name?.toLowerCase().includes("sioux")
     if (isDrydenOrRemote) {
-      const currentFeeNum = parseFloat(travel.setupFee) || 0
+      const currentFeeNum = parseFloat(travelSetupFee) || 0
       if (currentFeeNum === 0) {
         const std = region.setupFeeOptions?.find(
           (o: any) => Math.abs(o.value - 727.5) < 0.01
         )
-        travel.setSetupFee(std ? String(std.value) : "727.5")
+        setTravelSetupFee(std ? String(std.value) : "727.5")
       }
     }
-  }, [region, effectiveIsSupplyOnly, travel.setupFee, travel.setSetupFee])
+  }, [region, effectiveIsSupplyOnly, travelSetupFee, setTravelSetupFee])
 
   const handleRegionSelect = (regId: string, currentRegions = regions) => {
     setSelectedRegionId(regId)
@@ -150,11 +157,11 @@ export function useTaxCalculator({
       setCasingName,
       setCasingRate,
       setCustomMaterials,
-      setCoords: travel.setCoords,
-      setManualKm: travel.setManualKm,
-      setManualHours: travel.setManualHours,
+      setCoords: setTravelCoords,
+      setManualKm: setTravelManualKm,
+      setManualHours: setTravelManualHours,
       setCrew,
-      setSetupFee: travel.setSetupFee,
+      setSetupFee: setTravelSetupFee,
       setDiscount,
       setHstOn,
       setIncludeLabour,
@@ -162,10 +169,12 @@ export function useTaxCalculator({
       setIncludeJC,
     }),
     [
-      travel.setCoords,
-      travel.setManualKm,
-      travel.setManualHours,
-      travel.setSetupFee,
+      setDbAddons,
+      setSelectedRegionId,
+      setTravelCoords,
+      setTravelManualKm,
+      setTravelManualHours,
+      setTravelSetupFee,
     ]
   )
 
@@ -216,18 +225,24 @@ export function useTaxCalculator({
 
   const lastInstallJambIdRef = useRef<string>("j3")
   const lastInstallCasingIdRef = useRef<string>("vinyl")
+  const jambIdRef = useRef(jambId)
+  const casingIdRef = useRef(casingId)
+  useEffect(() => {
+    jambIdRef.current = jambId
+    casingIdRef.current = casingId
+  })
 
   useEffect(() => {
     if (effectiveIsSupplyOnly) {
-      if (jambId !== "none") lastInstallJambIdRef.current = jambId
-      if (casingId !== "none") lastInstallCasingIdRef.current = casingId
+      if (jambIdRef.current !== "none") lastInstallJambIdRef.current = jambIdRef.current
+      if (casingIdRef.current !== "none") lastInstallCasingIdRef.current = casingIdRef.current
       setJambId("none")
       setCasingId("none")
     } else {
-      if (jambId === "none") {
+      if (jambIdRef.current === "none") {
         setJambId(lastInstallJambIdRef.current || "j3")
       }
-      if (casingId === "none") {
+      if (casingIdRef.current === "none") {
         setCasingId(lastInstallCasingIdRef.current || "vinyl")
       }
     }
@@ -291,7 +306,6 @@ export function useTaxCalculator({
       dbCasings,
       dbVehicleRate,
       dbCrewRates,
-      isSupplyOnly,
       effectiveIsSupplyOnly,
       selectedRegionId,
       travel.coords,
@@ -309,12 +323,17 @@ export function useTaxCalculator({
     JSON.stringify(customMaterials || [])
   )
 
+  const customMaterialsRef = useRef(customMaterials)
+  useEffect(() => {
+    customMaterialsRef.current = customMaterials
+  })
+
   useEffect(() => {
     if (!Array.isArray(savedTaxTotals?.customMaterials)) return
     const incomingSig = JSON.stringify(savedTaxTotals.customMaterials)
     if (
       incomingSig !== lastEmittedMatsSigRef.current &&
-      incomingSig !== JSON.stringify(customMaterials)
+      incomingSig !== JSON.stringify(customMaterialsRef.current)
     ) {
       lastEmittedMatsSigRef.current = incomingSig
       setCustomMaterials(savedTaxTotals.customMaterials)

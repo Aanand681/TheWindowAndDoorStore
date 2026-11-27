@@ -101,9 +101,10 @@ export function applyDoorDraftToWorkspace(
     d.attachedSealedUnit !== undefined ? d.attachedSealedUnit : null
   )
 
-  writeSessionAttachedInstallOption(d.attachedInstallOption ?? null)
+  writeSessionAttachedInstallOption(d.attachedInstallOption ?? null, "door")
   writeSessionCustomOptions(
-    Array.isArray(d.customOptions) ? d.customOptions : []
+    Array.isArray(d.customOptions) ? d.customOptions : [],
+    "door"
   )
 }
 
@@ -148,8 +149,8 @@ export function resetDoorWorkspace({
   setters.setQuoteNumber("")
   setters.setAttachedWindowQuote(null)
   setters.setAttachedSealedUnit(null)
-  writeSessionAttachedInstallOption(null)
-  writeSessionCustomOptions([])
+  writeSessionAttachedInstallOption(null, "door")
+  writeSessionCustomOptions([], "door")
   clearActiveAutoSave("door")
   setLastSavedAt(null)
   setShowResetModal(false)

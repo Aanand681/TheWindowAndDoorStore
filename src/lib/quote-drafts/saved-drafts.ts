@@ -204,14 +204,6 @@ export function clearAllQuoteDrafts(type?: QuoteType | "all"): void {
 }
 
 /**
- * Get a saved quote draft by ID.
- */
-export function getQuoteDraftById(id: string): QuoteDraftItem | null {
-  const existing = getSavedDrafts()
-  return existing.find((d) => d.id === id) || null
-}
-
-/**
  * Direct awaited save to MongoDB: uploads to MongoDB first, then upon confirmation
  * updates the persistent saved drafts registry in localStorage and notifies listeners.
  * If the database request fails, throws an error so the quote is NOT saved into the

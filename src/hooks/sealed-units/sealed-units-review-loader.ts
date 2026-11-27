@@ -7,7 +7,6 @@ import {
   writeSessionAttachedInstallOption,
   writeSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
-import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { useReviewPermissions } from "@/hooks/calculator/review/useReviewPermissions"
 import { navigateExitReview } from "@/hooks/quotes/review/review-navigation"
 import {
@@ -138,8 +137,14 @@ export function useSealedUnitsReviewLoader(
         setters
       )
 
-      writeSessionAttachedInstallOption(q.attachedInstallOption ?? null)
-      writeSessionCustomOptions(Array.isArray(q.customOptions) ? q.customOptions : [])
+      writeSessionAttachedInstallOption(
+        q.attachedInstallOption ?? null,
+        "sealed_unit"
+      )
+      writeSessionCustomOptions(
+        Array.isArray(q.customOptions) ? q.customOptions : [],
+        "sealed_unit"
+      )
 
       toast.info(
         allowEdit
@@ -147,7 +152,7 @@ export function useSealedUnitsReviewLoader(
           : `Loaded Sealed Unit Quote #${q.quoteNumber} in Review Mode`
       )
     },
-    [perms.canEditApprovedQuote, perms.isOdooClerk, setters]
+    [perms.canEditApprovedQuote, perms.isOdooClerk, perms.isReviewerOrAdmin, user, setters]
   )
 
   const handleOpenQuote = useCallback(

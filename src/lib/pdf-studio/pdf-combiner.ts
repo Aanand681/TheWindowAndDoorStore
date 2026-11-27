@@ -1,30 +1,41 @@
 import { PDFDocument } from "pdf-lib"
+import {
+  buildStandardQuotePdfFileName,
+  sanitizePdfFileNamePart,
+} from "@/lib/quotes/pdf-filename"
 
 export interface CombinedPdfMetadata {
   customerName?: string
   windowQuoteNo?: string
   doorQuoteNo?: string
+  sealedUnitQuoteNo?: string
 }
 
 /**
  * Sanitizes a string for safe usage in file system and browser download file names.
  */
 export function sanitizeFileNamePart(str: string): string {
-  return str.replace(/[/\\?%*:|"<>]/g, "").trim()
+  return sanitizePdfFileNamePart(str)
 }
 
 /**
- * Generates the clean download file name according to user specification:
- * "( Name windowQuoteNo. & doorQuoteNo )" -> e.g., "John Smith WQ-1024 & DQ-502.pdf"
+ * Generates clean quote download file names:
+ * - 1 quote:  "John Smith #WQ-1024.pdf"
+ * - 2 quotes: "John Smith #WQ-1024 & #DQ-502.pdf"
+ * - 3 quotes: "John Smith #WQ-1024 & #DQ-502 for #SU-301.pdf"
  */
 export function buildCombinedPdfFileName(params: CombinedPdfMetadata): string {
-  const rawName = (params.customerName || "Customer").trim()
-  const name = sanitizeFileNamePart(rawName) || "Customer"
-
-  const winNo = sanitizeFileNamePart(params.windowQuoteNo || "WindowQuote")
-  const doorNo = sanitizeFileNamePart(params.doorQuoteNo || "DoorQuote")
-
-  return `${name} ${winNo} & ${doorNo}.pdf`
+  const winNo = sanitizePdfFileNamePart(params.windowQuoteNo || "WindowQuote") || "WindowQuote"
+  const doorNo = sanitizePdfFileNamePart(params.doorQuoteNo || "DoorQuote") || "DoorQuote"
+  const nums = [winNo, doorNo]
+  if (params.sealedUnitQuoteNo) {
+    nums.push(params.sealedUnitQuoteNo)
+  }
+  return buildStandardQuotePdfFileName({
+    customerName: params.customerName || "Customer",
+    quoteNumbers: nums,
+    withExtension: true,
+  })
 }
 
 /**

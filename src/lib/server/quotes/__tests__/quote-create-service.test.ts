@@ -227,7 +227,7 @@ describe("createQuoteService Security & Self-Submission Rules", () => {
     }
 
     const res = await createQuoteService(request, session, body, dummyHeaders)
-    const json = await res.json()
+    await res.json()
 
     expect(res.status).toBe(201)
     expect(mockDraftDoc.save).toHaveBeenCalled()

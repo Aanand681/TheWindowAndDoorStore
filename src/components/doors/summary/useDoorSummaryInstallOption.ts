@@ -29,7 +29,7 @@ export function useDoorSummaryInstallOption(p: {
   } | null>(null)
 
   useEffect(() => {
-    const sync = () => setAttachedInstallOption(readSessionAttachedInstallOption())
+    const sync = () => setAttachedInstallOption(readSessionAttachedInstallOption("door"))
     sync()
     window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, sync)
     window.addEventListener("storage", sync)
@@ -78,11 +78,11 @@ export function useDoorSummaryInstallOption(p: {
 
   useEffect(() => {
     if (attachedInstallOption?.enabled && dynamicInstallDeltaDollars > 0) {
-      const current = readSessionAttachedInstallOption()
+      const current = readSessionAttachedInstallOption("door")
       const newCents = Math.round(dynamicInstallDeltaDollars * 100)
       if (current?.enabled && current.amountPreTaxCents !== newCents) {
         const updated = { ...current, amountPreTaxCents: newCents }
-        writeSessionAttachedInstallOption(updated)
+        writeSessionAttachedInstallOption(updated, "door")
         setAttachedInstallOption(updated)
       }
     }

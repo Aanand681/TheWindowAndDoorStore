@@ -1,12 +1,50 @@
+import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 import dbConnect from "@/lib/mongodb"
 import SavedQuote from "@/models/SavedQuote"
 import User from "@/models/User"
 import { sendQuoteReminderEmail } from "@/lib/email"
 import { handleApiError } from "@/lib/api-error"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
-export async function GET() {
+function hasValidCronSecret(request: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+
+  const authHeader = request.headers.get("authorization") || ""
+  if (!authHeader.startsWith("Bearer ")) return false
+
+  const provided = authHeader.slice("Bearer ".length)
+  if (provided.length !== cronSecret.length) return false
+
+  return timingSafeEqual(Buffer.from(provided), Buffer.from(cronSecret))
+}
+
+async function authorizeRemindersRequest(
+  request: Request
+): Promise<NextResponse | null> {
+  if (hasValidCronSecret(request)) return null
+
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const role = session.user.role
+  if (role !== "SUPERADMIN" && role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  return null
+}
+
+export async function GET(request: Request) {
   try {
+    const authError = await authorizeRemindersRequest(request)
+    if (authError) return authError
+
     await dbConnect()
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
@@ -43,7 +81,7 @@ export async function GET() {
     for (const [reviewerName, quotes] of Object.entries(groupedByReviewer)) {
       // Find reviewer's email
       const user = await User.findOne({
-        username: { $regex: new RegExp(`^${reviewerName}$`, "i") },
+        username: { $regex: exactCaseInsensitiveRegex(reviewerName) },
       })
       const targetEmail = user?.email || quotes[0].assignedToEmail
 

@@ -23,6 +23,17 @@ export function DoorSummaryRows({
 }: DoorSummaryRowsProps) {
   if (!hasDoors) return null
 
+  const computedHardwareQty = effectiveDoors.reduce((acc: number, d: any) => {
+    const qty = Math.max(1, Number(d?.quantity || d?.qty) || 1)
+    const hasHardware =
+      (d?.hardwareType && d.hardwareType !== "none") ||
+      Number(d?.lineHardwareTotal || 0) > 0 ||
+      Number(d?.hardwarePrice || 0) > 0
+    return acc + (hasHardware ? qty : 0)
+  }, 0)
+  const resolvedHardwareQty =
+    Number(effectiveDoorTotals?.hardwareQty) || computedHardwareQty
+
   return (
     <>
       {effectiveDoors.length > 0 ? (
@@ -83,7 +94,9 @@ export function DoorSummaryRows({
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}
             className={`${textColor} font-medium`}
           >
-            Door Lockset &amp; Hardware
+            {resolvedHardwareQty > 0
+              ? `Door Lockset & Hardware (${resolvedHardwareQty})`
+              : "Door Lockset & Hardware"}
           </td>
           <td
             style={{ paddingTop: `${py}px`, paddingBottom: `${py}px` }}

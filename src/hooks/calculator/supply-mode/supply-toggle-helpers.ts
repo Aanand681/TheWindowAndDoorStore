@@ -1,26 +1,5 @@
 "use client"
 
-import {
-  readSessionSupplyState,
-  readSessionInstallState,
-} from "./supply-session-storage"
-
-export function hasSupplyLooseJC(taxTotals: any): boolean {
-  if (!taxTotals?.isSupplyOnly) return true
-  return Boolean(
-    (taxTotals?.selectedJamb &&
-      taxTotals.selectedJamb.id !== "none" &&
-      Number(taxTotals.selectedJamb.total || taxTotals.selectedJamb.rate || 0) >
-        0) ||
-    (taxTotals?.selectedCasing &&
-      taxTotals.selectedCasing.id !== "none" &&
-      Number(
-        taxTotals.selectedCasing.total || taxTotals.selectedCasing.rate || 0
-      ) > 0) ||
-    (taxTotals?.jcLabourCents && taxTotals.jcLabourCents > 0)
-  )
-}
-
 export function buildDefaultSupplyTaxState(
   current: any,
   targetJambId: string,

@@ -48,7 +48,7 @@ export function useStormDoorBuilderActions({
     onSelect({ basePrice: calculationTotalPrice, description: fullDesc })
 
     if (optionAddonIds.length > 0) {
-      const existingOpts = readSessionCustomOptions()
+      const existingOpts = readSessionCustomOptions("door")
       const newOpts: CustomQuoteOption[] = optionAddonIds.map((id) => {
         const ad = addons.find((a) => a.id === id)
         const label = ad?.label || "Upgrade"
@@ -59,7 +59,7 @@ export function useStormDoorBuilderActions({
           amountPreTaxCents: Math.round((ad?.price || 0) * 100),
         }
       })
-      writeSessionCustomOptions([...existingOpts, ...newOpts])
+      writeSessionCustomOptions([...existingOpts, ...newOpts], "door")
       toast.success(`Door added + registered ${newOpts.length} quote option(s)!`)
     } else {
       toast.success("Applied storm door to quote")
@@ -68,7 +68,7 @@ export function useStormDoorBuilderActions({
   }
 
   const handleAddAsQuoteOption = () => {
-    const existingOpts = readSessionCustomOptions()
+    const existingOpts = readSessionCustomOptions("door")
     const optTitle = buildStormDoorOptionLabel(
       currentItem,
       { ventType, swing, selectedAddonIds: selectedAddons },
@@ -79,7 +79,7 @@ export function useStormDoorBuilderActions({
       title: optTitle,
       amountPreTaxCents: Math.round(fullCalculationTotalPrice * 100),
     }
-    writeSessionCustomOptions([...existingOpts, newOpt])
+    writeSessionCustomOptions([...existingOpts, newOpt], "door")
     toast.success(`Added quote option: ${optTitle}`)
     onClose()
   }

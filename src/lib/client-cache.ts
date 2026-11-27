@@ -21,21 +21,6 @@ export function getCachedData<T>(key: string, maxAgeMs = 120_000): T | null {
   return entry.data
 }
 
-export function setCachedData<T>(key: string, data: T) {
-  if (typeof window === "undefined") return
-  cache.set(key, { data, timestamp: Date.now() })
-}
-
-export function invalidateCache(keyPrefix?: string) {
-  if (!keyPrefix) {
-    cache.clear()
-    return
-  }
-  for (const k of cache.keys()) {
-    if (k.startsWith(keyPrefix)) cache.delete(k)
-  }
-}
-
 /**
  * Fetch with automatic request deduplication and in-memory caching.
  * Concurrent requests for the same URL share a single HTTP flight.

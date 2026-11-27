@@ -84,12 +84,3 @@ export function handleApiError(
     { status: 500, headers }
   )
 }
-
-export function createApiResponse<T>(data: T, status = 200) {
-  return NextResponse.json(data, {
-    status,
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-    },
-  })
-}

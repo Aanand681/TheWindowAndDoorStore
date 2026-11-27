@@ -140,10 +140,10 @@ export function CalculatorPrintInvoice({
       attachedSealedUnit={attachedSealedUnit}
       attachedDoorQuote={attachedDoorQuote}
       isSupplyOnly={isSupplyOnly}
-      customOptions={mounted ? readSessionCustomOptions() : undefined}
+      customOptions={mounted ? readSessionCustomOptions("window") : undefined}
       isDualOption={Boolean(
         mounted &&
-        readSessionAttachedInstallOption()?.enabled
+        readSessionAttachedInstallOption("window")?.enabled
       )}
     />
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ADDONS } from "@/components/tax/types"
 
 interface UseTaxInitialDataProps {
@@ -10,6 +10,10 @@ interface UseTaxInitialDataProps {
 export function useTaxInitialData({
   onSetupFeeDefault,
 }: UseTaxInitialDataProps = {}) {
+  const onSetupFeeDefaultRef = useRef(onSetupFeeDefault)
+  useEffect(() => {
+    onSetupFeeDefaultRef.current = onSetupFeeDefault
+  })
   const [regions, setRegions] = useState<any[]>([])
   const [selectedRegionId, setSelectedRegionId] = useState<string>("")
 
@@ -60,8 +64,8 @@ export function useTaxInitialData({
                 const std = initial.setupFeeOptions?.find(
                   (o: any) => Math.abs(o.value - 727.5) < 0.01
                 )
-                if (onSetupFeeDefault) {
-                  onSetupFeeDefault(std ? String(std.value) : "727.5")
+                if (onSetupFeeDefaultRef.current) {
+                  onSetupFeeDefaultRef.current(std ? String(std.value) : "727.5")
                 }
               }
               return initial._id

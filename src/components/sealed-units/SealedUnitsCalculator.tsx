@@ -77,6 +77,7 @@ export function SealedUnitsCalculator(
         }}
         lineItems={page.lineItems}
         totals={page.totals}
+        globalUpcharges={page.travel.globalUpcharges}
         isInstallation={page.travel.isInstallation}
         regionName={
           page.travel.isInstallation

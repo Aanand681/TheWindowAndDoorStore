@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { UIWindowItem } from "@/hooks/useCalculatorWindows"
 import { formatMoney } from "@/lib/promo-logic"
 import {
   QuoteComparisonModalProps,

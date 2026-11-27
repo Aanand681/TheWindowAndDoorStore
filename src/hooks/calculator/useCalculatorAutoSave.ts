@@ -1,18 +1,16 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import {
-  saveActiveAutoSave,
-  clearActiveAutoSave,
-} from "@/lib/quote-drafts-storage"
+import { useMemo, useCallback } from "react"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
 import { computeCombinedQuoteFinancials } from "@/lib/calculator/pricing-engine"
 import {
   readSessionAttachedInstallOption,
   readSessionCustomOptions,
-  CUSTOM_OPTIONS_CHANGE_EVENT,
-  ATTACHED_INSTALL_CHANGE_EVENT,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
+import {
+  useSessionOptionsHash,
+  useUniversalAutoSave,
+} from "@/hooks/shared/useUniversalAutoSave"
 
 export interface UseCalculatorAutoSaveParams {
   initialReviewQuoteId?: string | null
@@ -104,36 +102,7 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
   const inReview = Boolean(
     isReviewMode || reviewQuoteId || initialReviewQuoteId
   )
-
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
-  const [optionsHash, setOptionsHash] = useState(() =>
-    JSON.stringify({
-      c: readSessionCustomOptions(),
-      a: readSessionAttachedInstallOption(),
-    })
-  )
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const lastSavedFingerprintRef = useRef<string | null>(null)
-  const currentPayloadRef = useRef<any>(null)
-
-  useEffect(() => {
-    const updateHash = () => {
-      setOptionsHash(
-        JSON.stringify({
-          c: readSessionCustomOptions(),
-          a: readSessionAttachedInstallOption(),
-        })
-      )
-    }
-    window.addEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
-    window.addEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
-    window.addEventListener("storage", updateHash)
-    return () => {
-      window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, updateHash)
-      window.removeEventListener(ATTACHED_INSTALL_CHANGE_EVENT, updateHash)
-      window.removeEventListener("storage", updateHash)
-    }
-  }, [])
+  const optionsHash = useSessionOptionsHash("window")
 
   // Compute a deterministic fingerprint of user inputs to avoid re-arming auto-save
   // on ephemeral re-renders or internal calculation reference updates
@@ -280,8 +249,8 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
         includeLabourInPromo,
         hstRate,
         attachedUpgrade,
-        attachedInstallOption: readSessionAttachedInstallOption(),
-        customOptions: readSessionCustomOptions(),
+        attachedInstallOption: readSessionAttachedInstallOption("window"),
+        customOptions: readSessionCustomOptions("window"),
         selectedRegionId: taxTotals?.selectedRegionId,
         regionName: taxTotals?.regionName,
         attachedSealedUnit,
@@ -336,21 +305,15 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
     attachedUpgrade,
     wantsUpgrade,
     taxTotals,
-    optionsHash,
   ])
-
-  useEffect(() => {
-    currentPayloadRef.current = buildPayload()
-  }, [buildPayload])
 
   const flushToServer = useCallback(() => {
     // Explicit saves to MongoDB are performed when user clicks "Save Draft".
     // Auto-save strictly maintains local crash recovery without cluttering the database.
   }, [])
 
-  useEffect(() => {
-    if (!enabled || inReview) return
-
+  const customMaterials = taxTotals?.customMaterials
+  const hasContent = useMemo(() => {
     const validWindows = windows.filter(
       (w) =>
         (w.base && parseFloat(w.base) > 0) ||
@@ -365,69 +328,33 @@ export function useCalculatorAutoSave(params: UseCalculatorAutoSaveParams) {
         ((attachedDoorQuote.itemCount || 0) > 0 ||
           (attachedDoorQuote.totals?.grandTotal || 0) > 0))
     )
-    const hasContent =
+    return (
       validWindows.length > 0 ||
       hasValidAttachedQuote ||
-      (Array.isArray(taxTotals?.customMaterials) &&
-        taxTotals.customMaterials.length > 0) ||
+      (Array.isArray(customMaterials) && customMaterials.length > 0) ||
       Boolean(customerName && customerName.trim())
+    )
+  }, [windows, attachedSealedUnit, attachedDoorQuote, customMaterials, customerName])
 
-    if (!hasContent) {
-      clearActiveAutoSave("window")
-      lastSavedFingerprintRef.current = null
-      return
-    }
-
-    // Skip if user inputs haven't actually changed since the last auto-save
-    if (lastSavedFingerprintRef.current === inputFingerprint) {
-      return
-    }
-
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-    }
-
-    // Local Storage debounced at 800ms for instant crash recovery (clean & offline)
-    autoSaveTimerRef.current = setTimeout(() => {
-      const payload = buildPayload()
-      saveActiveAutoSave("window", payload)
-      lastSavedFingerprintRef.current = inputFingerprint
-      setLastSavedAt(
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      )
-    }, 800)
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-      }
-    }
-  }, [
-    enabled,
-    inReview,
-    inputFingerprint,
-    windows,
-    customerName,
-    attachedSealedUnit,
-    attachedDoorQuote,
+  const {
+    lastSavedAt,
+    setLastSavedAt,
+    clearAutoSaveTimer,
+    markFingerprintSaved,
+  } = useUniversalAutoSave({
+    quoteType: "window",
+    enabled: enabled && !inReview,
+    hasContent,
+    fingerprint: inputFingerprint,
     buildPayload,
-  ])
+    debounceMs: 800,
+  })
 
   return {
     lastSavedAt,
     setLastSavedAt,
     flushToServer,
-    clearAutoSaveTimer: () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-        autoSaveTimerRef.current = null
-      }
-    },
-    markFingerprintSaved: (newFingerprint?: string) => {
-      lastSavedFingerprintRef.current = newFingerprint || inputFingerprint
-    },
+    clearAutoSaveTimer,
+    markFingerprintSaved,
   }
 }

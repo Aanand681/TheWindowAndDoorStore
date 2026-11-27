@@ -82,16 +82,31 @@ export function usePromoCalculator({
     draftsRef.current = drafts
   }, [drafts])
 
-  useEffect(() => {
-    pricing.setTaxTotals((prev: any) => {
-      if (!prev) return prev
-      if ((prev.attachedUpgrade ?? null) === (base.attachedUpgrade ?? null))
-        return prev
-      return { ...prev, attachedUpgrade: base.attachedUpgrade ?? null }
-    })
-  }, [base.attachedUpgrade, pricing.setTaxTotals])
+  const {
+    calculateQuote,
+    setQuoteResult,
+    setCompareOptions,
+    setTaxTotals,
+    setHstRate,
+  } = pricing
+  const { attachedUpgrade, surchargeRate, setIsPreviewOpen } = base
+  const {
+    isSupplyOnly,
+    isServiceOnly,
+    setIsServiceOnly,
+    setIsSupplyOnly,
+    handleModeChange,
+  } = supply
 
-  const { calculateQuote, setQuoteResult, setCompareOptions } = pricing
+  useEffect(() => {
+    setTaxTotals((prev: any) => {
+      if (!prev) return prev
+      if ((prev.attachedUpgrade ?? null) === (attachedUpgrade ?? null))
+        return prev
+      return { ...prev, attachedUpgrade: attachedUpgrade ?? null }
+    })
+  }, [attachedUpgrade, setTaxTotals])
+
   useEffect(() => {
     if (windows.some((w) => toCents(w.base) > 0)) {
       calculateQuote(windows)
@@ -101,7 +116,7 @@ export function usePromoCalculator({
     }
   }, [
     windows,
-    base.surchargeRate,
+    surchargeRate,
     calculateQuote,
     setQuoteResult,
     setCompareOptions,
@@ -210,9 +225,9 @@ export function usePromoCalculator({
   const handleTaxCalculated = useCallback(
     (totals: any) => {
       if (!totals) return
-      pricing.setTaxTotals((prev: any) => {
+      setTaxTotals((prev: any) => {
         const effectiveTotals =
-          prev && (supply.isSupplyOnly || totals.isSupplyOnly)
+          prev && (isSupplyOnly || totals.isSupplyOnly)
             ? {
                 ...totals,
                 isSupplyOnly: true,
@@ -255,30 +270,29 @@ export function usePromoCalculator({
               effectiveTotals.customMaterialsCents &&
             JSON.stringify(prev.customMaterials) ===
               JSON.stringify(effectiveTotals.customMaterials) &&
-            (prev.attachedUpgrade ?? null) === (base.attachedUpgrade ?? null)
+            (prev.attachedUpgrade ?? null) === (attachedUpgrade ?? null)
           if (isSame) return prev
         }
         return {
           ...effectiveTotals,
-          attachedUpgrade:
-            prev?.attachedUpgrade ?? base.attachedUpgrade ?? null,
+          attachedUpgrade: prev?.attachedUpgrade ?? attachedUpgrade ?? null,
         }
       })
 
-      if (totals?.isServiceOnly && !supply.isServiceOnly) {
-        supply.setIsServiceOnly(true)
-        supply.setIsSupplyOnly(false)
-        pricing.setHstRate(13)
+      if (totals?.isServiceOnly && !isServiceOnly) {
+        setIsServiceOnly(true)
+        setIsSupplyOnly(false)
+        setHstRate(13)
       }
     },
     [
-      pricing.setTaxTotals,
-      pricing.setHstRate,
-      supply.isSupplyOnly,
-      supply.isServiceOnly,
-      supply.setIsServiceOnly,
-      supply.setIsSupplyOnly,
-      base.attachedUpgrade,
+      setTaxTotals,
+      setHstRate,
+      isSupplyOnly,
+      isServiceOnly,
+      setIsServiceOnly,
+      setIsSupplyOnly,
+      attachedUpgrade,
     ]
   )
 
@@ -292,10 +306,10 @@ export function usePromoCalculator({
         drafts.loadedDraftTaxTotals ||
         null,
       readOnly: review.isReadOnly,
-      onOpenPreview: () => base.setIsPreviewOpen(true),
-      isSupplyOnly: supply.isSupplyOnly,
-      isServiceOnly: supply.isServiceOnly,
-      onModeChange: supply.handleModeChange,
+      onOpenPreview: () => setIsPreviewOpen(true),
+      isSupplyOnly,
+      isServiceOnly,
+      onModeChange: handleModeChange,
     }),
     [
       windows,
@@ -304,10 +318,10 @@ export function usePromoCalculator({
       review.reviewQuote?.taxTotals,
       drafts.loadedDraftTaxTotals,
       review.isReadOnly,
-      base.setIsPreviewOpen,
-      supply.isSupplyOnly,
-      supply.isServiceOnly,
-      supply.handleModeChange,
+      setIsPreviewOpen,
+      isSupplyOnly,
+      isServiceOnly,
+      handleModeChange,
     ]
   )
 

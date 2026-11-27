@@ -41,7 +41,6 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
   const { base, pricing, windowsContext, supply, drafts, review } = ctx
   return {
     windows: windowsContext.windows,
-    surchargeRate: base.surchargeRate,
     quoteNumber: base.quoteNumber,
     setQuoteNumber: base.setQuoteNumber,
     customerName: base.customerName,
@@ -114,27 +113,6 @@ export function buildWindowConfigProps(ctx: CalculatorPropsContext) {
       windowsContext.handleAddWindow(() => pricing.setLockedPromoId(null)),
     windowEndRef: windowsContext.windowEndRef,
     isSupplyOnly: supply.isSupplyOnly,
-    setIsSupplyOnly: supply.handleToggleSupplyOnly,
-    onOpenCompareModal: () => base.setIsCompareModalOpen(true),
-    attachedUpgrade: base.attachedUpgrade,
-    onRemoveAttachedUpgrade: () => {
-      base.setAttachedUpgrade(null)
-      toast.info("Removed optional upgrade offer from quote.")
-    },
-    attachedSealedUnit: base.attachedSealedUnit,
-    attachedDoorQuote: base.attachedDoorQuote,
-    onOpenAttachSealedUnitModal: () => base.setIsAttachModalOpen(true),
-    onRemoveAttachedSealedUnit: () => {
-      base.setAttachedSealedUnit(null)
-      toast.info("Detached sealed units from quote.")
-    },
-    onRemoveAttachedDoorQuote: () => {
-      base.setAttachedDoorQuote(null)
-      toast.info("Detached door quote from quote.")
-    },
-    onSaveDraft: drafts.handleSaveDraft,
-    onOpenSavedQuotes: () => drafts.setIsSavedQuotesOpen(true),
-    savedDraftsCount: drafts.savedDraftsCount,
     supplyJambId: supply.supplyJambId,
     setSupplyJambId: supply.setSupplyJambId,
     supplyJambName: supply.supplyJambName,
@@ -266,7 +244,6 @@ export function buildSummaryProps(ctx: CalculatorPropsContext) {
     attachedSealedUnit: base.attachedSealedUnit,
     attachedDoorQuote: base.attachedDoorQuote,
     attachedUpgrade: base.attachedUpgrade,
-    onOpenAttachSealedUnitModal: () => base.setIsAttachModalOpen(true),
     onRemoveAttachedSealedUnit: () => {
       base.setAttachedSealedUnit(null)
       toast.info("Detached sealed units from quote.")

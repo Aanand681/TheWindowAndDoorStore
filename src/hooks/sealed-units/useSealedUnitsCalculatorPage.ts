@@ -15,7 +15,7 @@ import {
   useSealedUnitsReviewActions,
   WorkspaceSetters,
 } from "@/hooks/sealed-units"
-import { useSealedUnitsAttachedSync } from "@/hooks/sealed-units/useSealedUnitsAttachedSync"
+import { useUniversalAttachedSync } from "@/hooks/quotes/useUniversalAttachedSync"
 import { createWorkspaceSetters } from "./sealed-units-workspace-setters"
 import {
   validateAndOpenPrint,
@@ -70,6 +70,7 @@ export function useSealedUnitsCalculatorPage(
     travel.formInputs,
     travel.isInstallation,
     travel.isServiceOnly,
+    travel.globalUpcharges,
     travel.discountType,
     travel.loyaltyPoints,
     travel.loyaltyGrossAmount,
@@ -116,7 +117,8 @@ export function useSealedUnitsCalculatorPage(
   })
 
   // Auto-sync attached child quotes (windows & doors) when edited in other tabs
-  useSealedUnitsAttachedSync({
+  useUniversalAttachedSync({
+    hostType: "sealed_unit",
     attachedWindowQuote: drafts.attachedWindowQuote,
     setAttachedWindowQuote: drafts.setAttachedWindowQuote,
     attachedDoorQuote: drafts.attachedDoorQuote,

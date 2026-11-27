@@ -79,26 +79,58 @@ export function QuoteCardActions({
     currentUser?.role === "SUPERADMIN"
   )
 
+  const normalizedMe = (
+    myUsername ||
+    currentUser?.username ||
+    currentUser?.name ||
+    ""
+  )
+    .trim()
+    .toLowerCase()
+  const assignedReviewer = quote.assignedTo?.trim().toLowerCase() || ""
+  const preparerName = quote.preparedBy?.trim().toLowerCase() || ""
+  const odooAssignee = quote.odooAssignedTo?.trim().toLowerCase() || ""
+  const isPreparer = Boolean(normalizedMe && preparerName === normalizedMe)
+  const isOdooAssignee = Boolean(
+    normalizedMe && odooAssignee === normalizedMe
+  )
+  const blockedByPendingIsolation =
+    isPending &&
+    Boolean(assignedReviewer) &&
+    !isAssignedToMe &&
+    !(normalizedMe === "admin" && assignedReviewer === "admin") &&
+    !isPreparer
+  const canToggleStar =
+    !blockedByPendingIsolation &&
+    (isAdmin ||
+      currentUser?.role === "SUPERADMIN" ||
+      currentUser?.role === "ADMIN" ||
+      isPreparer ||
+      isAssignedToMe ||
+      isOdooAssignee)
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2.5">
       <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => handleToggleStar(quote._id, Boolean(quote.isStarred))}
-          className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-amber-400"
-          title={
-            quote.isStarred
-              ? "Starred (Keep permanently)"
-              : "Star to keep permanently"
-          }
-        >
-          <Star
-            className={`h-4 w-4 ${quote.isStarred ? "fill-amber-400 text-amber-400" : ""}`}
-          />
-        </Button>
+        {canToggleStar && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleToggleStar(quote._id, Boolean(quote.isStarred))}
+            className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-amber-400"
+            title={
+              quote.isStarred
+                ? "Starred (Keep permanently)"
+                : "Star to keep permanently"
+            }
+          >
+            <Star
+              className={`h-4 w-4 ${quote.isStarred ? "fill-amber-400 text-amber-400" : ""}`}
+            />
+          </Button>
+        )}
 
-        {(isAdmin || quote.preparedBy === currentUser?.username) &&
+        {(isAdmin || isPreparer) &&
           !isClerk && (
             <Button
               variant="ghost"

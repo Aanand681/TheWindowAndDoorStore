@@ -3,8 +3,8 @@
 import React from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { X, Sparkles, Pencil, Check } from "lucide-react"
-import { formatMoney } from "@/lib/promo-logic"
+import { X, Pencil, Check } from "lucide-react"
+import { QuoteOptionCard } from "@/components/shared/summary/QuoteOptionCard"
 import type { CustomQuoteOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CustomOptionItemRowProps {
@@ -85,43 +85,24 @@ export function CustomOptionItemRow({
           </div>
         </div>
       ) : (
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-2.5">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <div className="space-y-0.5">
-              <div className="font-semibold text-foreground">{opt.title}</div>
-              <p className="text-[10px] text-muted-foreground">
-                Optional Quote Option • Not added to base total
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs sm:text-sm font-bold text-foreground">
-              {opt.amountPreTaxCents < 0 ? "-" : "+"}
-              {formatMoney(Math.abs(opt.amountPreTaxCents))}
-            </span>
-            {canModifyOptions && (
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => onStartEdit(opt)}
-                  title="Edit option"
-                  className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoveOption(opt.id)}
-                  title="Remove option"
-                  className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <QuoteOptionCard
+          title={opt.title}
+          amountPreTaxCents={opt.amountPreTaxCents}
+          onRemove={canModifyOptions ? () => onRemoveOption(opt.id) : undefined}
+          removeTitle="Remove option"
+          extraActions={
+            canModifyOptions ? (
+              <button
+                type="button"
+                onClick={() => onStartEdit(opt)}
+                title="Edit option"
+                className="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            ) : undefined
+          }
+        />
       )}
     </div>
   )

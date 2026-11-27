@@ -11,6 +11,7 @@ import {
   purgeAbsorbedDrafts,
 } from "./quote-create-payload-builder"
 import { dispatchQuoteNotifications } from "./quote-create-notifications"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export async function createQuoteService(
   request: Request,
@@ -27,14 +28,17 @@ export async function createQuoteService(
     body.taxTotals?.grandTotal
   )
 
-  const safeRegex = (str: string) =>
-    new RegExp(`^${str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-
   // Look up emails for preparer, assigned reviewer, and odoo clerk
   const [preparerUser, reviewerUser, clerkUser] = await Promise.all([
-    currentUsername ? User.findOne({ username: safeRegex(currentUsername) }) : null,
-    assignedTo ? User.findOne({ username: safeRegex(assignedTo) }) : null,
-    odooAssignedTo ? User.findOne({ username: safeRegex(odooAssignedTo) }) : null,
+    currentUsername
+      ? User.findOne({ username: exactCaseInsensitiveRegex(currentUsername) })
+      : null,
+    assignedTo
+      ? User.findOne({ username: exactCaseInsensitiveRegex(assignedTo) })
+      : null,
+    odooAssignedTo
+      ? User.findOne({ username: exactCaseInsensitiveRegex(odooAssignedTo) })
+      : null,
   ])
 
   const validation = validateQuoteCreateInput(
@@ -59,7 +63,7 @@ export async function createQuoteService(
   // Check if an existing DRAFT, PENDING_REVIEW, or RETURNED quote exists for this user and quoteNumber to update in-place
   const existingQuote = await SavedQuote.findOne(
     {
-      preparedBy: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      preparedBy: { $regex: exactCaseInsensitiveRegex(currentUsername) },
       quoteNumber: cleanQuoteNumber,
       status: { $in: ["DRAFT", "PENDING_REVIEW", "RETURNED"] },
     },

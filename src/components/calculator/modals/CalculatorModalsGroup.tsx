@@ -116,9 +116,9 @@ export function CalculatorModalsGroup(props: CalculatorModalsGroupProps) {
         attachedSealedUnit={attachedSealedUnit}
         attachedDoorQuote={attachedDoorQuote}
         isSupplyOnly={isSupplyOnly}
-        isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-        attachedInstallOption={readSessionAttachedInstallOption()}
-        customOptions={readSessionCustomOptions()}
+        isDualOption={Boolean(readSessionAttachedInstallOption("window")?.enabled)}
+        attachedInstallOption={readSessionAttachedInstallOption("window")}
+        customOptions={readSessionCustomOptions("window")}
       />
 
       <CalculatorReviewModals {...props} />

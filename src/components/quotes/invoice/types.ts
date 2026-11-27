@@ -5,8 +5,10 @@ import type {
   AttachedUpgradeOption,
   QuoteResult,
 } from "@/types/calculator"
+import type { SavedQuoteLayout } from "@/lib/quotes/invoice-layout-engine"
+import type { InvoiceComposerController } from "./composer/useInvoiceComposerState"
 
-export type QuoteTemplateType = "modern" | "executive" | "cards"
+export type QuoteTemplateType = "universal" | "cards" | "modern" | "executive"
 
 export type { AttachedUpgradeOption }
 
@@ -54,7 +56,6 @@ export interface QuoteInvoiceProps {
   isInteractivePreview?: boolean
   quoteNotes?: string
   preparedBy?: string
-  orientation?: "portrait" | "landscape"
   attachedUpgrade?: AttachedUpgradeOption | null
   attachedSealedUnit?: AttachedQuoteData | null
   attachedDoorQuote?: AttachedQuoteData | null
@@ -64,6 +65,8 @@ export interface QuoteInvoiceProps {
   isDualOption?: boolean
   attachedInstallOption?: any | null
   customOptions?: any[] | null
+  savedLayout?: SavedQuoteLayout | null
+  composer?: InvoiceComposerController | null
 }
 
 export interface InvoiceCalculationsResult {
@@ -147,4 +150,7 @@ export interface InvoiceCalculationsResult {
   surchargeRate: number
   isSingleLineMergedItem: boolean
   discountLineItems?: { label: string; amount: number; category?: string }[]
+  compareInstallLabourCents?: number
+  compareInstallMiscCents?: number
+  compareInstallJCCents?: number
 }

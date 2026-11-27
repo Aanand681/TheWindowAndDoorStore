@@ -12,7 +12,6 @@ export function executeBold(
 
   const range = sel.getRangeAt(0)
 
-  // If no text is selected (cursor only on line), select the current block/line
   if (range.collapsed) {
     let node: Node | null = range.startContainer
     while (node && node.parentNode !== editor && node !== editor) {
@@ -30,85 +29,55 @@ export function executeBold(
   emitChange()
 }
 
-function normalizeLines(editor: HTMLDivElement): HTMLElement[] {
-  const childNodes = Array.from(editor.childNodes)
-  if (childNodes.length === 0) {
-    const div = document.createElement("div")
-    div.innerHTML = "<br>"
-    editor.appendChild(div)
-    return [div]
+function findLineBlock(editor: HTMLDivElement, node: Node | null): HTMLElement | null {
+  let curr = node
+  while (curr && curr.parentNode !== editor && curr !== editor) {
+    curr = curr.parentNode
   }
-
-  for (const child of childNodes) {
-    if (
-      child instanceof HTMLElement &&
-      (child.tagName === "DIV" || child.tagName === "P")
-    ) {
-      continue
-    }
-    const div = document.createElement("div")
-    editor.insertBefore(div, child)
-    div.appendChild(child)
+  if (!curr || curr === editor) return null
+  if (curr.nodeType === Node.TEXT_NODE) {
+    const wrapperDiv = document.createElement("div")
+    editor.insertBefore(wrapperDiv, curr)
+    wrapperDiv.appendChild(curr)
+    return wrapperDiv
   }
-
-  return Array.from(editor.children) as HTMLElement[]
+  return curr instanceof HTMLElement ? curr : null
 }
 
-function getSelectedLineElements(
-  editor: HTMLDivElement,
-  range: Range
-): HTMLElement[] {
-  const lines = normalizeLines(editor)
-  if (lines.length === 0) return []
+function normalizeEmptyLineHtml(el: HTMLElement): void {
+  const hasText = (el.textContent || "").replace(/\u200B/g, "").length > 0
+  if (!hasText) {
+    el.innerHTML = "<br>"
+  }
+}
 
-  if (range.collapsed) {
-    let node: Node | null = range.startContainer
-    while (node && node.parentElement !== editor && node !== editor) {
-      node = node.parentElement
+function moveCaretToStart(sel: Selection, target: HTMLElement): void {
+  const newRange = document.createRange()
+  const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT)
+  const firstText = walker.nextNode()
+  if (firstText) {
+    newRange.setStart(firstText, 0)
+  } else {
+    newRange.setStart(target, 0)
+  }
+  newRange.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(newRange)
+}
+
+function stripLeadingBulletFromElement(el: HTMLElement): void {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  let textNode = walker.nextNode() as Text | null
+  while (textNode) {
+    const val = textNode.nodeValue || ""
+    if (!val.trim()) {
+      textNode = walker.nextNode() as Text | null
+      continue
     }
-    if (node instanceof HTMLElement && node !== editor) {
-      return [node]
-    }
-    return [lines[0]]
+    textNode.nodeValue = val.replace(/^\s*(?:•|-|\*)\s*\u00A0*\s*/, "")
+    break
   }
-
-  let startLine: HTMLElement | null = null
-  let node: Node | null = range.startContainer
-  while (node && node.parentElement !== editor && node !== editor) {
-    node = node.parentElement
-  }
-  if (node instanceof HTMLElement && node !== editor) {
-    startLine = node
-  }
-
-  let endLine: HTMLElement | null = null
-  node = range.endContainer
-  while (node && node.parentElement !== editor && node !== editor) {
-    node = node.parentElement
-  }
-  if (node instanceof HTMLElement && node !== editor) {
-    endLine = node
-  }
-
-  if (startLine && endLine) {
-    const sIdx = lines.indexOf(startLine)
-    const eIdx = lines.indexOf(endLine)
-    if (sIdx !== -1 && eIdx !== -1) {
-      const min = Math.min(sIdx, eIdx)
-      const max = Math.max(sIdx, eIdx)
-      return lines.slice(min, max + 1)
-    }
-  }
-
-  const intersected = lines.filter((line) => {
-    try {
-      return range.intersectsNode(line)
-    } catch {
-      return false
-    }
-  })
-
-  return intersected.length > 0 ? intersected : lines
+  normalizeEmptyLineHtml(el)
 }
 
 export function executeBullet(
@@ -121,54 +90,12 @@ export function executeBullet(
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) return
 
-  const range = sel.getRangeAt(0)
-  const selectedLines = getSelectedLineElements(editor, range)
-  if (selectedLines.length === 0) return
-
-  // Check if ALL non-empty selected lines already have a bullet
-  const nonEmpties = selectedLines.filter(
-    (l) => (l.textContent || "").trim().length > 0
-  )
-  const allBulleted =
-    nonEmpties.length > 0 &&
-    nonEmpties.every((l) => (l.textContent || "").trim().startsWith("•"))
-
-  for (const line of selectedLines) {
-    const text = (line.textContent || "").trim()
-    if (allBulleted) {
-      line.innerHTML = line.innerHTML.replace(/^•(&nbsp;|\s)*/, "")
-      if (!line.innerHTML.trim()) {
-        line.innerHTML = "<br>"
-      }
-    } else {
-      if (!text.startsWith("•")) {
-        const inner = line.innerHTML.replace(/^<br\s*\/?>$/i, "")
-        line.innerHTML = `• &nbsp;${inner}`
-      }
+  const lines = Array.from(editor.children) as HTMLElement[]
+  for (const line of lines) {
+    if (/^\s*•/.test(line.textContent || "")) {
+      stripLeadingBulletFromElement(line)
     }
   }
-
-  if (range.collapsed) {
-    const target = selectedLines[0]
-    if (target) {
-      const newRange = document.createRange()
-      newRange.selectNodeContents(target)
-      newRange.collapse(false)
-      sel.removeAllRanges()
-      sel.addRange(newRange)
-    }
-  } else {
-    const first = selectedLines[0]
-    const last = selectedLines[selectedLines.length - 1]
-    if (first && last) {
-      const newRange = document.createRange()
-      newRange.setStart(first, 0)
-      newRange.setEnd(last, last.childNodes.length)
-      sel.removeAllRanges()
-      sel.addRange(newRange)
-    }
-  }
-
   emitChange()
 }
 
@@ -178,93 +105,60 @@ export function handleEditorKeyDown(
   emitChange: () => void,
   scrollToBottom: () => void
 ) {
-  if (e.key === "Enter") {
-    const sel = window.getSelection()
-    if (!sel || sel.rangeCount === 0 || !editor) return
+  if (e.key !== "Enter") return
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0 || !editor) return
 
-    const range = sel.getRangeAt(0)
-    let node: Node | null = range.startContainer
-    while (node && node.parentNode !== editor && node !== editor) {
-      node = node.parentNode
-    }
+  e.preventDefault()
 
-    if (node && node !== editor) {
-      // If root text node, wrap in div for clean structure
-      if (node.nodeType === Node.TEXT_NODE && node.parentNode === editor) {
-        const wrapperDiv = document.createElement("div")
-        editor.insertBefore(wrapperDiv, node)
-        wrapperDiv.appendChild(node)
-        node = wrapperDiv
-      }
+  const range = sel.getRangeAt(0)
+  if (!range.collapsed) {
+    range.deleteContents()
+  }
 
-      const text = (node.textContent || "").trim()
-      // If on an empty bullet line, exit bullet mode cleanly
-      if (text === "•" || text === "• " || text === "•\u00A0") {
-        e.preventDefault()
-        if (node instanceof HTMLElement) {
-          node.innerHTML = "<br>"
-        } else {
-          node.textContent = ""
-        }
-        const newRange = document.createRange()
-        newRange.selectNodeContents(node)
-        newRange.collapse(false)
-        sel.removeAllRanges()
-        sel.addRange(newRange)
-        emitChange()
-        return
-      }
-
-      // If on an active bullet line, insert bullet point on the next line
-      if (text.startsWith("•")) {
-        e.preventDefault()
-        const newDiv = document.createElement("div")
-        newDiv.innerHTML = "• &nbsp;"
-        if (node.nextSibling) {
-          editor.insertBefore(newDiv, node.nextSibling)
-        } else {
-          editor.appendChild(newDiv)
-        }
-        const newRange = document.createRange()
-        newRange.selectNodeContents(newDiv)
-        newRange.collapse(false)
-        sel.removeAllRanges()
-        sel.addRange(newRange)
-        emitChange()
-        scrollToBottom()
-        return
-      }
-
-      // Normal line: insert a single line break without skipping any line
-      e.preventDefault()
-      const newDiv = document.createElement("div")
-      newDiv.innerHTML = "<br>"
-      if (node.nextSibling) {
-        editor.insertBefore(newDiv, node.nextSibling)
-      } else {
-        editor.appendChild(newDiv)
-      }
-      const newRange = document.createRange()
-      newRange.setStart(newDiv, 0)
-      newRange.collapse(true)
-      sel.removeAllRanges()
-      sel.addRange(newRange)
-      emitChange()
-      scrollToBottom()
-      return
-    }
-
-    // Root level Enter
-    e.preventDefault()
+  let lineEl = findLineBlock(editor, range.startContainer)
+  if (!lineEl) {
     const newDiv = document.createElement("div")
     newDiv.innerHTML = "<br>"
     editor.appendChild(newDiv)
-    const newRange = document.createRange()
-    newRange.setStart(newDiv, 0)
-    newRange.collapse(true)
-    sel.removeAllRanges()
-    sel.addRange(newRange)
+    moveCaretToStart(sel, newDiv)
     emitChange()
+    scrollToBottom()
+    return
+  }
+
+  // Extract trailing HTML/text from cursor position to end of current line block
+  const tailRange = document.createRange()
+  try {
+    tailRange.setStart(range.startContainer, range.startOffset)
+    tailRange.setEnd(lineEl, lineEl.childNodes.length)
+  } catch {
+    lineEl = findLineBlock(editor, editor.lastChild) || lineEl
+    tailRange.selectNodeContents(lineEl)
+    tailRange.collapse(false)
+  }
+
+  const trailingFragment = tailRange.extractContents()
+  const newDiv = document.createElement("div")
+  newDiv.appendChild(trailingFragment)
+
+  // Clean stray BRs when non-empty text follows or normalize blank lines
+  if ((newDiv.textContent || "").length > 0) {
+    newDiv.querySelectorAll("br").forEach((br) => br.remove())
+  }
+  normalizeEmptyLineHtml(lineEl)
+  normalizeEmptyLineHtml(newDiv)
+
+  const wasLastLine = !lineEl.nextSibling
+  if (lineEl.nextSibling) {
+    editor.insertBefore(newDiv, lineEl.nextSibling)
+  } else {
+    editor.appendChild(newDiv)
+  }
+
+  moveCaretToStart(sel, newDiv)
+  emitChange()
+  if (wasLastLine) {
     scrollToBottom()
   }
 }

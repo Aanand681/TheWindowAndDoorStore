@@ -6,6 +6,7 @@ import {
   StudioDoorLine,
 } from "@/lib/pdf-studio/door-types"
 import { extractDoorQuoteFromPdf } from "@/lib/pdf-studio/door-extractor"
+import { buildStandardQuotePdfFileName } from "@/lib/quotes/pdf-filename"
 import { generateStudioDoorPdf } from "@/lib/pdf-studio/door-generator"
 import {
   recropDoorLineDrawing,
@@ -50,9 +51,11 @@ export function useDoorPdfStudio() {
   }, [pdfUrl])
 
   const getCleanPdfFileName = useCallback((data: StudioDoorQuoteData) => {
-    const cust = (data.customerName || "Customer").trim()
-    const quote = (data.quoteNumber || "").trim()
-    return `${[cust, quote ? `Door Quote ${quote}` : "Door Quote"].filter(Boolean).join(" ")}.pdf`
+    return buildStandardQuotePdfFileName({
+      customerName: data.customerName || "Customer",
+      quoteNumbers: data.quoteNumber ? [data.quoteNumber] : [],
+      withExtension: true,
+    })
   }, [])
 
   const updateLineAt = (

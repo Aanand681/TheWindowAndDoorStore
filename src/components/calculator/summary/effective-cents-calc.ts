@@ -1,4 +1,4 @@
-import { toCents, toDollars } from "@/lib/promo-logic"
+import { toDollars } from "@/lib/promo-logic"
 
 export function computeEffectiveDollars(
   isSupply: boolean,
@@ -85,26 +85,4 @@ export function computeEffectiveDollars(
     effectiveMiscCents: Math.round(effectiveMisc * 100),
     effectiveLabourCents: Math.round(effectiveLabour * 100),
   }
-}
-
-export function computeEffectiveCents(
-  isSupply: boolean,
-  taxTotals: any,
-  taxJC?: number,
-  taxMisc?: number,
-  taxLabour?: number,
-  customJC = "",
-  customMisc = "",
-  customLabour = ""
-) {
-  return computeEffectiveDollars(
-    isSupply,
-    taxTotals,
-    taxJC,
-    taxMisc,
-    taxLabour,
-    customJC,
-    customMisc,
-    customLabour
-  )
 }

@@ -5,17 +5,19 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getJcSummaryLabel } from "@/lib/promo-logic"
 import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useCombinedQuoteData } from "@/hooks/calculator/useCombinedQuoteData"
-import { QuoteSummaryHeader } from "./summary/QuoteSummaryHeader"
-import { AttachedQuoteBadges } from "./summary/AttachedQuoteBadges"
-import { EditableLedgerRow } from "./summary/EditableLedgerRow"
-import { SummaryUpgradeCard } from "./summary/SummaryUpgradeCard"
+import { UnifiedSummaryHeader } from "@/components/shared/summary/UnifiedSummaryHeader"
+import { UnifiedAttachedBadges } from "@/components/shared/summary/UnifiedAttachedBadges"
+import { EditableLedgerRow } from "@/components/shared/summary/EditableLedgerRow"
+import { UnifiedUpgradeCallouts } from "@/components/shared/summary/UnifiedUpgradeCallouts"
+import { CustomOptionsSection } from "./summary/CustomOptionsSection"
 import { SummaryReviewActions } from "./summary/SummaryReviewActions"
 import { ReviewerRevisionAlert } from "./summary/ReviewerRevisionAlert"
 import { useQuoteSummaryComparison } from "./summary/useQuoteSummaryComparison"
 import { SummaryCompareModalWrapper } from "./summary/SummaryCompareModalWrapper"
-import { SummaryLedgerSwitcher } from "./summary/SummaryLedgerSwitcher"
+import { CombinedLedgerSection } from "./summary/CombinedLedgerSection"
 import { computeEffectiveDollars } from "./summary/effective-cents-calc"
 import type { QuoteSummaryCardProps } from "./summary/types"
+import { computeDeduplicatedInstallCompareAmounts } from "@/lib/quotes/supply-install-delta"
 
 export type { QuoteSummaryCardProps }
 
@@ -126,9 +128,10 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
       key={field}
       field={field}
       label={label}
-      amountCents={amountCents}
+      amount={amountCents}
       customVal={customVal}
-      defaultCents={defaultCents}
+      defaultAmount={defaultCents}
+      unit="cents"
       setter={setter}
       suffix={suffix}
       isReadOnly={isReadOnly}
@@ -184,41 +187,47 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
         .join(" + ") || undefined
     : undefined
 
-  const doorInstallLabour = attachedDoorQuote
-    ? Number(
-        attachedDoorQuote.totals?.fullInstallLabour ??
-          attachedDoorQuote.totals?.combinedLabourTotal ??
-          attachedDoorQuote.totals?.doorPureLabourTotal ??
-          0
-      )
-    : 0
-  const suInstallLabour = attachedSealedUnit
-    ? Number(
-        attachedSealedUnit.totals?.fullInstallLabour ??
-          attachedSealedUnit.totals?.combinedLabourTotal ??
-          attachedSealedUnit.totals?.pureLabour ??
-          0
-      )
-    : 0
-  const effectiveCompareLabour =
-    compareLabourAmount + doorInstallLabour + suInstallLabour
+  const dedupCompare = React.useMemo(
+    () =>
+      computeDeduplicatedInstallCompareAmounts({
+        hasWindows: true,
+        isWinSupplyOnly: isSupply,
+        winTaxTotals: taxTotals,
+        winOverrideLabourDollars:
+          isSupply || customLabour === ""
+            ? undefined
+            : parseFloat(customLabour) || 0,
+        winOverrideMiscDollars:
+          isSupply || customMisc === "" ? undefined : parseFloat(customMisc) || 0,
+        hasDoors: Boolean(attachedDoorQuote),
+        isDoorSupplyOnly: Boolean(
+          attachedDoorQuote?.mode === "supply_only" ||
+            attachedDoorQuote?.isSupplyOnly ||
+            attachedDoorQuote?.totals?.isSupplyOnly
+        ),
+        doorTotals: attachedDoorQuote?.totals,
+        attachedDoorQuote,
+        hasSealedUnits: Boolean(attachedSealedUnit),
+        isSUSupplyOnly: Boolean(
+          attachedSealedUnit?.sealedUnitMode === "supply_only" ||
+            attachedSealedUnit?.isSupplyOnly ||
+            attachedSealedUnit?.totals?.isSupplyOnly
+        ),
+        suTotals: attachedSealedUnit?.totals,
+        attachedSealedUnit,
+      }),
+    [
+      isSupply,
+      taxTotals,
+      customLabour,
+      customMisc,
+      attachedDoorQuote,
+      attachedSealedUnit,
+    ]
+  )
 
-  const doorInstallMisc = attachedDoorQuote
-    ? Number(
-        attachedDoorQuote.totals?.fullInstallMisc ??
-          attachedDoorQuote.totals?.miscTotal ??
-          0
-      )
-    : 0
-  const suInstallMisc = attachedSealedUnit
-    ? Number(
-        attachedSealedUnit.totals?.fullInstallMisc ??
-          attachedSealedUnit.totals?.miscTotal ??
-          0
-      )
-    : 0
-  const effectiveCompareMisc =
-    compareMiscAmount + doorInstallMisc + suInstallMisc
+  const effectiveCompareLabour = dedupCompare.compareLabourAmount || compareLabourAmount
+  const effectiveCompareMisc = dedupCompare.compareMiscAmount || compareMiscAmount
 
   const hasActiveQuoteData = Boolean(
     (quoteResult &&
@@ -238,42 +247,43 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
   )
 
   return (
-    <div className="sticky top-8 h-fit space-y-6 pb-12 lg:col-span-4">
+    <div className="sticky top-8 h-fit min-w-0 space-y-6 pb-12">
       <Card className="relative gap-0 overflow-hidden border-border bg-card/80 py-0 shadow-xl backdrop-blur-xl [--card-spacing:0px]">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-primary/50" />
-        <QuoteSummaryHeader
-          quoteResult={quoteResult}
-          quoteNumber={quoteNumber}
-          customerName={customerName}
-          isSupplyOnly={isSupplyOnly}
-          setIsSupplyOnly={setIsSupplyOnly}
+        <UnifiedSummaryHeader
+          mode={isSupplyOnly ? "supply_only" : "installation"}
+          showModeToggle={Boolean(setIsSupplyOnly)}
+          onModeChange={
+            setIsSupplyOnly
+              ? (m) => setIsSupplyOnly(m === "supply_only")
+              : undefined
+          }
           isReadOnly={isReadOnly}
           onOpenCompare={() => setIsCompareOpen(true)}
         />
         <CardContent className="space-y-4 px-5 pt-3.5 pb-5 sm:px-6">
           {hasActiveQuoteData ? (
             <>
-              <AttachedQuoteBadges
+              <UnifiedAttachedBadges
+                hostType="window"
                 attachedSealedUnit={attachedSealedUnit}
                 onRemoveAttachedSealedUnit={onRemoveAttachedSealedUnit}
                 attachedDoorQuote={attachedDoorQuote}
                 onRemoveAttachedDoorQuote={onRemoveAttachedDoorQuote}
-                attachedUpgrade={attachedUpgrade}
-                onRemoveAttachedUpgrade={onRemoveAttachedUpgrade}
                 attachedInstallOption={attachedInstallOption}
                 isSupply={isSupply}
                 hasSupplyJC={supplyJCAmount > 0}
                 onRemoveAttachedInstallOption={() => {
-                  writeSessionAttachedInstallOption(null)
+                  writeSessionAttachedInstallOption(null, "window")
                   setAttachedInstallOption(null)
                 }}
                 dynamicInstallDeltaCents={dynamicInstallDeltaCents}
               />
 
               {/* FINANCIAL LEDGER */}
-              <SummaryLedgerSwitcher
+              <CombinedLedgerSection
                 combinedData={combinedData}
-                summaryWindowGroups={summaryWindowGroups}
+                summaryWindowGroups={summaryWindowGroups || []}
                 attachedDoorQuote={attachedDoorQuote}
                 attachedSealedUnit={attachedSealedUnit}
                 quoteResult={quoteResult}
@@ -301,10 +311,12 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 combinedMaterials={
                   combinedData
                     ? combinedData.windowBase +
+                      (combinedData.effectiveJCCents || 0) / 100 +
                       combinedData.suGlass +
                       combinedData.doorMaterials +
                       combinedData.totalCustomMaterials
                     : (quoteResult?.base || 0) / 100 +
+                      effectiveJC +
                       ((taxTotals as any)?.customMaterialsTotal || 0)
                 }
                 taxJC={taxJC}
@@ -328,20 +340,29 @@ export function QuoteSummaryCard(props: QuoteSummaryCardProps) {
                 isReadOnly={isReadOnly}
               />
 
-              {/* 5-Year Free Labour Upgrade & Attached Window/Door Options */}
-              <SummaryUpgradeCard
-                wantsUpgrade={wantsUpgrade}
-                setWantsUpgrade={setWantsUpgrade}
-                isReadOnly={isReadOnly}
-                isReviewerOrAdmin={props.isReviewerOrAdmin}
-                isOdooCompleted={props.isOdooCompleted}
-                upgrade={upgrade}
-                shownUpgrade={shownUpgrade}
-                attachedDoorQuote={attachedDoorQuote}
-                attachedUpgrade={attachedUpgrade}
-                reviewQuote={reviewQuote}
-                quoteNumber={quoteNumber}
-              />
+              {/* 5-Year Free Labour Upgrade, Window Comparison Option & Attached Door Upgrades + Custom Options */}
+              <div className="mt-3 space-y-2.5">
+                <UnifiedUpgradeCallouts
+                  showLabourUpgradeCheckbox={true}
+                  wantsUpgrade={wantsUpgrade}
+                  setWantsUpgrade={setWantsUpgrade}
+                  upgrade={upgrade}
+                  shownUpgrade={shownUpgrade}
+                  isReadOnly={isReadOnly}
+                  attachedUpgrade={attachedUpgrade}
+                  onRemoveAttachedUpgrade={onRemoveAttachedUpgrade}
+                  attachedDoorQuote={attachedDoorQuote}
+                />
+                <CustomOptionsSection
+                  scope="window"
+                  canModifyOptions={
+                    !isReadOnly ||
+                    Boolean(props.isReviewerOrAdmin && !props.isOdooCompleted)
+                  }
+                  reviewQuote={reviewQuote}
+                  quoteNumber={quoteNumber}
+                />
+              </div>
 
               {/* Reviewer Revision Instructions (if returned) */}
               {reviewQuote?.status === "RETURNED" && (

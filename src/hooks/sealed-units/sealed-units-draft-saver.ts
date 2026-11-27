@@ -5,6 +5,7 @@ import {
 } from "@/lib/quote-drafts-storage"
 import { getSealedUnitServiceSummaryLabel, SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
+import { computeEffectiveSealedUnitGrandTotal } from "@/lib/sealed-units/totals-calculator"
 import {
   serializeSealedUnitSnapshot,
   createDraftSavePayload,
@@ -83,13 +84,25 @@ export async function executeSaveSealedUnitDraft({
   })
 
   try {
+    const effectiveTotals = computeEffectiveSealedUnitGrandTotal({
+      totals,
+      sealedUnitMode: currentSnapshotParams.sealedUnitMode,
+      isInstallation: currentSnapshotParams.isInstallation,
+      isServiceOnly,
+      loyaltyDiscount: currentSnapshotParams.loyaltyDiscount,
+      loyaltyDiscountLabel: currentSnapshotParams.loyaltyDiscountLabel,
+      hstRate: currentSnapshotParams.hstRate,
+      attachedWindowQuote,
+      attachedDoorQuote,
+    })
+
     const saved = await saveQuoteDraftDirectly({
       type: "sealed_unit",
       quoteNumber: effectiveQuoteNumber,
       customerName: customerName.trim() || "Unnamed Customer",
       itemCount: isServiceOnly && lineItems.length === 0 ? 1 : lineItems.reduce((acc, it) => acc + it.quantity, 0),
-      subtotal: totals.subtotalPreTax || 0,
-      grandTotal: totals.grandTotal || 0,
+      subtotal: effectiveTotals.combinedSubtotal || 0,
+      grandTotal: effectiveTotals.grandTotal || 0,
       summaryLabel: summaryTypeDesc,
       data: payload,
     })

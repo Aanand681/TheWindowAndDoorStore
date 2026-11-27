@@ -14,6 +14,11 @@ export const revalidate = 0
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const cacheKey = "settings:global"
     const headers = {
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

@@ -6,12 +6,16 @@ export interface DoorsScheduleTableProps {
   theme: QuoteTemplateType
   calc: InvoiceCalculationsResult
   globalUpcharges?: any[]
+  universal?: boolean
+  compactSide?: boolean
 }
 
 export function DoorsScheduleTable({
   theme,
   calc,
   globalUpcharges: _globalUpcharges = [],
+  universal = false,
+  compactSide = false,
 }: DoorsScheduleTableProps) {
   const {
     hasDoors,
@@ -21,53 +25,58 @@ export function DoorsScheduleTable({
     h2Fs,
     microFs,
     bodyFs,
+    thFs,
     rowPy,
   } = calc
 
   if (!hasDoors || effectiveDoors.length === 0) return null
 
-  const isModern = theme === "modern"
-  const isExecutive = theme === "executive"
-  const isCards = theme === "cards"
+  const isModern = !universal && theme === "modern"
+  const isExecutive = !universal && theme === "executive"
+  const isCards = universal || theme === "cards"
 
   return (
     <div
       className={
-        isCards
-          ? "mb-4 overflow-hidden rounded border border-[#cbd5e1] bg-white shadow-sm"
-          : "mb-4"
+        universal
+          ? "overflow-hidden rounded border border-[#cbd5e1] bg-white"
+          : isCards
+            ? "mb-4 overflow-hidden rounded border border-[#cbd5e1] bg-white shadow-sm"
+            : "mb-4"
       }
     >
-      <div
-        className={`flex items-center justify-between ${
-          isCards
-            ? "border-b border-[#cbd5e1] bg-[#f8fafc] p-2"
-            : "mb-1 border-b-[1.5px] border-[#0f172a] pb-1"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span
-            style={{ fontSize: `${h2Fs}px` }}
-            className="font-bold tracking-wider text-[#0f172a] uppercase"
-          >
-            Configured Doors
-          </span>
-          {!isDoorHost && attachedDoorQuote?.quoteNumber && (
-            <span
-              style={{ fontSize: `${microFs}px` }}
-              className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-[#334155]"
-            >
-              #{attachedDoorQuote.quoteNumber}
-            </span>
-          )}
-        </div>
-        <span
-          style={{ fontSize: `${microFs}px` }}
-          className="font-medium text-[#64748b]"
+      {!universal && (
+        <div
+          className={`flex items-center justify-between ${
+            isCards
+              ? "border-b border-[#cbd5e1] bg-[#f8fafc] p-2"
+              : "mb-1 border-b-[1.5px] border-[#0f172a] pb-1"
+          }`}
         >
-          {effectiveDoors.length} item{effectiveDoors.length > 1 ? "s" : ""}
-        </span>
-      </div>
+          <div className="flex items-center gap-2">
+            <span
+              style={{ fontSize: `${h2Fs}px` }}
+              className="font-bold tracking-wider text-[#0f172a] uppercase"
+            >
+              Configured Doors
+            </span>
+            {!isDoorHost && attachedDoorQuote?.quoteNumber && (
+              <span
+                style={{ fontSize: `${microFs}px` }}
+                className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-[#334155]"
+              >
+                #{attachedDoorQuote.quoteNumber}
+              </span>
+            )}
+          </div>
+          <span
+            style={{ fontSize: `${microFs}px` }}
+            className="font-medium text-[#64748b]"
+          >
+            {effectiveDoors.length} item{effectiveDoors.length > 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
 
       <table
         className="w-full border-collapse"
@@ -76,22 +85,30 @@ export function DoorsScheduleTable({
         <thead>
           <tr
             className={
-              isModern
+              isModern || isExecutive
                 ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                : isExecutive
-                  ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                  : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"
+                : "border-b border-[#cbd5e1] bg-[#f8fafc] font-semibold text-[#0f172a] uppercase"
             }
+            style={{ fontSize: `${thFs}px` }}
           >
-            <th className="w-[5%] px-1.5 py-1 text-left font-bold">#</th>
-            <th className="w-[45%] px-1.5 py-1 text-left font-bold">
-              Door Specifications
+            <th className="w-[6%] px-1.5 py-1 text-left font-bold">#</th>
+            <th
+              className={`px-1.5 py-1 text-left font-bold ${compactSide ? "w-[62%]" : "w-[68%]"}`}
+            >
+              <span>Configured Doors</span>
+              {universal && !isDoorHost && attachedDoorQuote?.quoteNumber && (
+                <span
+                  style={{ fontSize: `${microFs}px` }}
+                  className="ml-1.5 font-mono font-normal text-[#64748b]"
+                >
+                  #{attachedDoorQuote.quoteNumber}
+                </span>
+              )}
             </th>
-            <th className="w-[25%] px-1.5 py-1 text-left font-bold">
-              Hardware &amp; Options
-            </th>
-            <th className="w-[10%] px-1.5 py-1 text-center font-bold">Qty</th>
-            <th className="w-[15%] px-1.5 py-1 text-right font-mono font-bold">
+            <th className="w-[9%] px-1.5 py-1 text-center font-bold">Qty</th>
+            <th
+              className={`px-1.5 py-1 text-right font-mono font-bold ${compactSide ? "w-[23%]" : "w-[17%]"}`}
+            >
               Price
             </th>
           </tr>
@@ -105,14 +122,14 @@ export function DoorsScheduleTable({
             return (
               <tr
                 key={item.id || idx}
-                className="border-b border-[#cbd5e1] bg-white"
+                className="border-b border-[#e2e8f0] bg-white last:border-b-0"
               >
                 <td
                   style={{
                     paddingTop: `${rowPy}px`,
                     paddingBottom: `${rowPy}px`,
                   }}
-                  className="px-1.5 font-semibold text-[#334155]"
+                  className="px-1.5 font-mono font-semibold text-[#64748b]"
                 >
                   {idx + 1}
                 </td>
@@ -125,7 +142,10 @@ export function DoorsScheduleTable({
                 >
                   <div>{item.customDescription || item.presetLabel}</div>
                   {item.notes && (
-                    <div className="text-[10px] font-normal text-[#64748b]">
+                    <div
+                      style={{ fontSize: `${microFs}px` }}
+                      className="font-normal text-[#64748b]"
+                    >
                       {item.notes}
                     </div>
                   )}
@@ -135,33 +155,7 @@ export function DoorsScheduleTable({
                     paddingTop: `${rowPy}px`,
                     paddingBottom: `${rowPy}px`,
                   }}
-                  className="px-1.5 text-[#1e293b]"
-                >
-                  <div className="capitalize">
-                    {item.hardwareType === "standard"
-                      ? "Standard Lockset"
-                      : item.hardwareType === "customer"
-                        ? "Customer Supplied"
-                        : item.customHardwareName || "None"}
-                  </div>
-                  {item.upgradeOption?.enabled && (
-                    <div className="text-[10px] font-semibold text-amber-700">
-                      Option: {item.upgradeOption.title} (+
-                      {formatMoney(
-                        Math.round(
-                          (item.upgradeOption.subtotalDifference || 0) * 100
-                        )
-                      )}
-                      )
-                    </div>
-                  )}
-                </td>
-                <td
-                  style={{
-                    paddingTop: `${rowPy}px`,
-                    paddingBottom: `${rowPy}px`,
-                  }}
-                  className="px-1.5 text-center font-bold text-[#0f172a]"
+                  className="px-1.5 text-center font-mono font-bold text-[#0f172a]"
                 >
                   {qty}
                 </td>

@@ -125,11 +125,12 @@ export function DoorCalculator(props: DoorCalculatorProps = {}) {
               page.mode === "supply_only" ? undefined : page.selectedRegion?.name
             }
             globalUpcharges={page.globalUpcharges}
+            attachedUpgrade={page.attachedWindowQuote?.attachedUpgrade || null}
             attachedWindowQuote={page.attachedWindowQuote}
             attachedSealedUnit={page.attachedSealedUnit}
-            isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-            attachedInstallOption={readSessionAttachedInstallOption()}
-            customOptions={readSessionCustomOptions()}
+            isDualOption={Boolean(readSessionAttachedInstallOption("door")?.enabled)}
+            attachedInstallOption={readSessionAttachedInstallOption("door")}
+            customOptions={readSessionCustomOptions("door")}
           />
         )}
 

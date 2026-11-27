@@ -9,7 +9,6 @@ import type { CustomMaterialItem } from "@/types/calculator"
 
 export interface WindowConfigPanelProps {
   windows: UIWindowItem[]
-  surchargeRate: number
   quoteNumber: string
   setQuoteNumber: (num: string) => void
   customerName: string
@@ -28,18 +27,6 @@ export interface WindowConfigPanelProps {
   handleAddWindow: () => void
   windowEndRef: React.RefObject<HTMLDivElement | null>
   isSupplyOnly: boolean
-  setIsSupplyOnly: (val: boolean) => void
-  onOpenCompareModal: () => void
-  attachedUpgrade: any
-  onRemoveAttachedUpgrade: () => void
-  attachedSealedUnit: any
-  attachedDoorQuote: any
-  onOpenAttachSealedUnitModal: () => void
-  onRemoveAttachedSealedUnit: () => void
-  onRemoveAttachedDoorQuote: () => void
-  onSaveDraft: () => void
-  onOpenSavedQuotes: () => void
-  savedDraftsCount?: number
 
   // Supply only options
   supplyJambId: string
@@ -67,7 +54,6 @@ export interface WindowConfigPanelProps {
 
 export function WindowConfigPanel({
   windows,
-  surchargeRate,
   quoteNumber,
   setQuoteNumber,
   customerName,
@@ -82,18 +68,6 @@ export function WindowConfigPanel({
   handleAddWindow,
   windowEndRef,
   isSupplyOnly,
-  setIsSupplyOnly,
-  onOpenCompareModal,
-  attachedUpgrade,
-  onRemoveAttachedUpgrade,
-  attachedSealedUnit,
-  attachedDoorQuote,
-  onOpenAttachSealedUnitModal,
-  onRemoveAttachedSealedUnit,
-  onRemoveAttachedDoorQuote,
-  onSaveDraft,
-  onOpenSavedQuotes,
-  savedDraftsCount,
   supplyJambId,
   setSupplyJambId,
   supplyJambName,
@@ -118,7 +92,6 @@ export function WindowConfigPanel({
     <div className="space-y-4 sm:space-y-5">
       <WindowConfigurationsCard
         windows={windows}
-        surchargeRate={surchargeRate}
         quoteNumber={quoteNumber}
         setQuoteNumber={setQuoteNumber}
         customerName={customerName}
@@ -132,19 +105,6 @@ export function WindowConfigPanel({
         handleRemoveWindow={handleRemoveWindow}
         handleAddWindow={handleAddWindow}
         windowEndRef={windowEndRef}
-        isSupplyOnly={isSupplyOnly}
-        setIsSupplyOnly={setIsSupplyOnly}
-        onOpenCompareModal={onOpenCompareModal}
-        attachedUpgrade={attachedUpgrade}
-        onRemoveAttachedUpgrade={onRemoveAttachedUpgrade}
-        attachedSealedUnit={attachedSealedUnit}
-        attachedDoorQuote={attachedDoorQuote}
-        onOpenAttachSealedUnitModal={onOpenAttachSealedUnitModal}
-        onRemoveAttachedSealedUnit={onRemoveAttachedSealedUnit}
-        onRemoveAttachedDoorQuote={onRemoveAttachedDoorQuote}
-        onSaveDraft={onSaveDraft}
-        onOpenSavedQuotes={onOpenSavedQuotes}
-        savedDraftsCount={savedDraftsCount}
       />
 
       {isSupplyOnly && (

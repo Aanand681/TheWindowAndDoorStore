@@ -204,8 +204,7 @@ export function normalizeDoorQuote(
           : Math.max(
               0,
               Number(totals.combinedLabourTotal ?? totals.combinedLabour ?? 0) -
-                Number(totals.baseSetupFee || 0) -
-                Number(totals.totalTravelAndSetup || 0)
+                Number(totals.totalTravelAndSetup || totals.baseSetupFee || 0)
             )
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 
@@ -292,8 +291,7 @@ export function normalizeSealedUnitQuote(
           : Math.max(
               0,
               Number(totals.combinedLabourTotal || 0) -
-                Number(totals.baseSetupFee || 0) -
-                Number(totals.totalTravelAndSetup || 0)
+                Number(totals.totalTravelAndSetup || totals.baseSetupFee || 0)
             )
   const pureLabour = isSupply ? 0 : resolvePureLabour(overrides?.customLabour ?? data.customLabour, defaultPure, travelAndSetup)
 

@@ -65,6 +65,19 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
           loyaltyDiscountLabel,
         })
 
+  const preservedFullUnitLabour = Number(
+    srcTotals.fullUnitLabourSum ?? srcTotals.unitLabourSum ?? calculatedTotals.unitLabourSum ?? 0
+  )
+  const preservedFullTravel = Number(
+    srcTotals.fullTravelAndSetup ?? srcTotals.totalTravelAndSetup ?? calculatedTotals.fullTravelAndSetup ?? 0
+  )
+  const preservedFullInstallLabour = Number(
+    srcTotals.fullInstallLabour ?? calculatedTotals.fullInstallLabour ?? (preservedFullUnitLabour + preservedFullTravel)
+  )
+  const preservedFullInstallMisc = Number(
+    srcTotals.fullInstallMisc ?? srcTotals.miscTotal ?? calculatedTotals.fullInstallMisc ?? 0
+  )
+
   if (isSUSupply) {
     calculatedTotals.unitLabourSum = 0
     calculatedTotals.serviceLabourTotal = 0
@@ -73,6 +86,10 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
     calculatedTotals.baseSetupFee = 0
     calculatedTotals.totalTravelAndSetup = 0
   }
+  calculatedTotals.fullUnitLabourSum = preservedFullUnitLabour
+  calculatedTotals.fullTravelAndSetup = preservedFullTravel
+  calculatedTotals.fullInstallLabour = preservedFullInstallLabour
+  calculatedTotals.fullInstallMisc = preservedFullInstallMisc
 
   const suExtraLabour = Number(
     calculatedTotals.extraLabour ??
@@ -98,6 +115,10 @@ export function buildSealedUnitAttachPayload(draft: QuoteDraftItem) {
   )
   const suTravel = isSUSupply ? 0 : Number(srcTotals.totalTravelAndSetup || calculatedTotals.totalTravelAndSetup || 0)
   calculatedTotals.travelAndSetupFee = suTravel
+  calculatedTotals.travelBaseSetupFee = isSUSupply ? 0 : Number(srcTotals.baseSetupFee ?? calculatedTotals.baseSetupFee ?? (suTravel > 0 ? 140 : 0))
+  calculatedTotals.travelAdditionalFarFee = isSUSupply ? 0 : Number(srcTotals.additionalFarFee ?? calculatedTotals.additionalFarFee ?? 0)
+  calculatedTotals.travelVehicleFee = isSUSupply ? 0 : Number(srcTotals.vehicleTravelFee ?? calculatedTotals.vehicleTravelFee ?? 0)
+  calculatedTotals.travelCrewFee = isSUSupply ? 0 : Number(srcTotals.crewTravelFee ?? calculatedTotals.crewTravelFee ?? 0)
 
   let pureLabourTotal = isSUSupply ? 0 : pureUnitLabour + suExtraLabour
   if (!isSUSupply && rawData.customLabour !== undefined && String(rawData.customLabour).trim() !== "") {

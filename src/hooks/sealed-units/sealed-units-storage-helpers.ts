@@ -190,11 +190,15 @@ export function applyDraftDataToWorkspace(d: any, setters: WorkspaceSetters) {
   if (d.attachedDoorQuote !== undefined)
     setters.setAttachedDoorQuote(d.attachedDoorQuote)
   if (d.attachedInstallOption !== undefined) {
-    writeSessionAttachedInstallOption(d.attachedInstallOption ?? null)
+    writeSessionAttachedInstallOption(
+      d.attachedInstallOption ?? null,
+      "sealed_unit"
+    )
   }
   if (d.customOptions !== undefined) {
     writeSessionCustomOptions(
-      Array.isArray(d.customOptions) ? d.customOptions : []
+      Array.isArray(d.customOptions) ? d.customOptions : [],
+      "sealed_unit"
     )
   }
 }
@@ -234,8 +238,8 @@ export function createDraftSavePayload(
     regionName: params.regionName || "",
     attachedWindowQuote: params.attachedWindowQuote || null,
     attachedDoorQuote: params.attachedDoorQuote || null,
-    attachedInstallOption: readSessionAttachedInstallOption(),
-    customOptions: readSessionCustomOptions(),
+    attachedInstallOption: readSessionAttachedInstallOption("sealed_unit"),
+    customOptions: readSessionCustomOptions("sealed_unit"),
     subtotal: params.totals.subtotalPreTax || 0,
     grandTotal: params.totals.grandTotal || 0,
     itemCount: params.lineItems.length,

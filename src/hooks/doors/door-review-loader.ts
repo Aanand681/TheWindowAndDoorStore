@@ -6,8 +6,6 @@ import {
   clearAllQuoteSessionState,
   writeSessionAttachedInstallOption,
   writeSessionCustomOptions,
-  readSessionAttachedInstallOption,
-  readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import {
   DoorLineItem,
@@ -140,7 +138,7 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
     setCustomMisc, setCustomDiscount, setCustomDiscountLabel, setLoyaltyDiscount,
     setLoyaltyDiscountLabel, setDiscountType, setLoyaltyPoints, setLoyaltyGrossAmount,
     setCustomMaterials, setAttachedWindowQuote, setAttachedSealedUnit, onConfirmReset,
-    initialReviewQuoteId, initialIsEditMode = false, originSubTab,
+    initialReviewQuoteId, initialIsEditMode = false,
   } = p
 
   const [reviewQuoteId, setReviewQuoteId] = useState<string | null>(
@@ -218,8 +216,11 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
       setAttachedWindowQuote(q.attachedWindowQuote ?? null)
       setAttachedSealedUnit(q.attachedSealedUnit ?? null)
 
-      writeSessionAttachedInstallOption(q.attachedInstallOption ?? null)
-      writeSessionCustomOptions(Array.isArray(q.customOptions) ? q.customOptions : [])
+      writeSessionAttachedInstallOption(q.attachedInstallOption ?? null, "door")
+      writeSessionCustomOptions(
+        Array.isArray(q.customOptions) ? q.customOptions : [],
+        "door"
+      )
 
       toast.info(
         allowEdit
@@ -230,6 +231,8 @@ export function useDoorReviewLoader(p: UseDoorReviewLoaderParams) {
     [
       perms.canEditApprovedQuote,
       perms.isOdooClerk,
+      perms.isReviewerOrAdmin,
+      user,
       presets,
       formula,
       setCustomerName,

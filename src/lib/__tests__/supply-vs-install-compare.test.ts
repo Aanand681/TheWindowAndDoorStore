@@ -34,7 +34,6 @@ describe("Supply vs Installation Comparison Logic", () => {
     const hardwareAmount = 80
     const labourAmount = 640
     const miscAmount = 180
-    const hstRate = 13
 
     const supplySubtotal =
       Math.round(
@@ -71,11 +70,11 @@ describe("Supply vs Installation Comparison Logic", () => {
     const labourTotal = 500
     const hstRate = 5
 
-    const supplySubtotal = 2500
+    const supplySubtotal = materialsSubtotal
     const supplyHst = Math.round(supplySubtotal * (hstRate / 100) * 100) / 100
     const supplyTotal = supplySubtotal + supplyHst
 
-    const installSubtotal = 3000
+    const installSubtotal = materialsSubtotal + labourTotal
     const installHst = Math.round(installSubtotal * (hstRate / 100) * 100) / 100
     const installTotal = installSubtotal + installHst
 

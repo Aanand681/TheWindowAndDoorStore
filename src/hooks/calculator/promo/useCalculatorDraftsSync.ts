@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react"
 import { useCalculatorDrafts } from "@/hooks/calculator/useCalculatorDrafts"
 import { useCalculatorAutoSave } from "@/hooks/calculator/useCalculatorAutoSave"
-import { useWindowAttachedSync } from "@/hooks/calculator/attach/useWindowAttachedSync"
+import { useUniversalAttachedSync } from "@/hooks/quotes/useUniversalAttachedSync"
 
 export function useCalculatorDraftsSync(p: {
   initialReviewQuoteId?: string
@@ -151,7 +151,8 @@ export function useCalculatorDraftsSync(p: {
   })
 
   // Auto-sync attached child quotes (doors & sealed units) when edited in other tabs
-  useWindowAttachedSync({
+  useUniversalAttachedSync({
+    hostType: "window",
     attachedDoorQuote: base.attachedDoorQuote,
     setAttachedDoorQuote: base.setAttachedDoorQuote,
     attachedSealedUnit: base.attachedSealedUnit,

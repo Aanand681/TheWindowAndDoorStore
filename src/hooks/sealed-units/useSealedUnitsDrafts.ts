@@ -9,6 +9,7 @@ import {
 } from "@/lib/quote-drafts-storage"
 import { SealedUnitLineItem } from "@/lib/sealed-units-logic"
 import { SealedUnitTotals } from "@/components/sealed-units/types"
+import { computeEffectiveSealedUnitGrandTotal } from "@/lib/sealed-units/totals-calculator"
 import {
   applyDraftDataToWorkspace,
   WorkspaceSetters,
@@ -131,11 +132,23 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
   )
 
   const isCurrentWorkspaceDirty = useCallback(() => {
+    const effectiveTotals = computeEffectiveSealedUnitGrandTotal({
+      totals,
+      sealedUnitMode,
+      isInstallation,
+      isServiceOnly,
+      loyaltyDiscount: formInputs.loyaltyDiscount || "",
+      loyaltyDiscountLabel: formInputs.loyaltyDiscountLabel || "",
+      hstRate,
+      attachedWindowQuote,
+      attachedDoorQuote,
+    })
+
     return isWorkspaceDirtyOrUnsaved("sealed_unit", {
-      quoteNumber, customerName, itemCount: lineItems.length, grandTotal: totals.grandTotal,
+      quoteNumber, customerName, itemCount: lineItems.length, grandTotal: effectiveTotals.grandTotal,
       data: { lineItems, attachedWindowQuote, attachedDoorQuote },
     })
-  }, [quoteNumber, customerName, lineItems.length, totals.grandTotal, attachedWindowQuote, attachedDoorQuote])
+  }, [quoteNumber, customerName, lineItems, totals, sealedUnitMode, isInstallation, isServiceOnly, formInputs.loyaltyDiscount, formInputs.loyaltyDiscountLabel, hstRate, attachedWindowQuote, attachedDoorQuote])
 
   const applyDraftToWorkspace = useCallback(
     (draft: QuoteDraftItem) => {
@@ -155,7 +168,6 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
       quoteNotes, currentSnapshotParams,
       clearTimerAndSaveSnapshot: (snap: string) => autoSaveRef.current?.clearTimerAndSaveSnapshot(snap),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [lineItems, isServiceOnly, totals, serviceSqftInput, attachedWindowQuote, attachedDoorQuote, customerName, quoteNumber, quoteNotes, currentSnapshotParams]
   )
 
@@ -211,8 +223,8 @@ export function useSealedUnitsDrafts(props: UseSealedUnitsDraftsProps) {
     setCustomerName("")
     setQuoteNumber(generateQuoteNumber())
     setQuoteNotes("")
-    writeSessionAttachedInstallOption(null)
-    writeSessionCustomOptions([])
+    writeSessionAttachedInstallOption(null, "sealed_unit")
+    writeSessionCustomOptions([], "sealed_unit")
     universalDrafts.setShowResetModal(false)
     clearActiveAutoSave("sealed_unit")
     autoSave.clearTimerAndSaveSnapshot("")

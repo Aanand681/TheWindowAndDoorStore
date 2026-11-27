@@ -10,6 +10,7 @@ export interface SealedUnitScheduleRowProps {
   miscR: number
   rowPy: number
   microFs: number
+  compactSide?: boolean
 }
 
 export function SealedUnitScheduleRow({
@@ -22,6 +23,7 @@ export function SealedUnitScheduleRow({
   miscR,
   rowPy,
   microFs,
+  compactSide = false,
 }: SealedUnitScheduleRowProps) {
   const qty = Math.max(1, Number(item.quantity) || 1)
   const sqft = Number(item.actualSqft) || 0
@@ -77,8 +79,51 @@ export function SealedUnitScheduleRow({
   const glassSpec =
     item.combinationName || `${paneLabel} · ${item.treatment || "Cardinal 366"}`
 
+  if (compactSide) {
+    const combinedTotal =
+      (isService ? 0 : totalBasePrice) +
+      (isService ? totalServiceLabour : isInstallation ? totalInstallLabour : 0) +
+      (isService ? totalServiceMisc : isInstallation ? totalInstallMisc : 0)
+
+    return (
+      <tr key={item.id || idx} className="border-b border-[#e2e8f0] bg-white last:border-b-0">
+        <td
+          style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }}
+          className="px-1.5 font-mono font-semibold text-[#64748b]"
+        >
+          {idx + 1}
+        </td>
+        <td
+          style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }}
+          className="px-1.5 text-[#0f172a]"
+        >
+          <div className="font-bold">
+            {isService ? dimText : `${dimText} · ${glassSpec}`}
+          </div>
+          {!isService && hasGrill && (
+            <div style={{ fontSize: `${microFs}px` }} className="text-[#475569]">
+              {grillDimText ? `${grillDimText} ` : ""}{grillColorText}
+            </div>
+          )}
+        </td>
+        <td
+          style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }}
+          className="px-1.5 text-center font-mono font-bold text-[#0f172a]"
+        >
+          {qty}
+        </td>
+        <td
+          style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }}
+          className="px-1.5 text-right font-mono font-bold text-[#0f172a]"
+        >
+          ${combinedTotal.toFixed(2)}
+        </td>
+      </tr>
+    )
+  }
+
   return (
-    <tr key={item.id || idx} className="border-b border-[#cbd5e1] bg-white">
+    <tr key={item.id || idx} className="border-b border-[#e2e8f0] bg-white last:border-b-0">
       <td
         style={{ paddingTop: `${rowPy}px`, paddingBottom: `${rowPy}px` }}
         className="px-1.5 font-semibold text-[#334155]"
@@ -91,13 +136,7 @@ export function SealedUnitScheduleRow({
         className="px-1.5 text-[#1e293b]"
       >
         {!isService ? (
-          <>
-            <div className="font-bold text-[#0f172a]">{glassSpec}</div>
-            <div className="text-[10px] text-[#64748b] capitalize">
-              {item.treatment || "Cardinal"} · {paneLabel}{" "}
-              {item.thicknessMm ? `· ${item.thicknessMm}mm` : ""}
-            </div>
-          </>
+          <div className="font-bold text-[#0f172a]">{glassSpec}</div>
         ) : (
           <span className="font-mono text-[#94a3b8]">—</span>
         )}

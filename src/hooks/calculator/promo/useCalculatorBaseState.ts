@@ -31,7 +31,7 @@ export function useCalculatorBaseState() {
   const [attachedSealedUnit, setAttachedSealedUnit] = useState<any | null>(null)
   const [attachedDoorQuote, setAttachedDoorQuote] = useState<any | null>(null)
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false)
-  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("cards")
+  const [quoteTemplate, setQuoteTemplate] = useState<QuoteTemplateType>("universal")
   const [quoteFontSize, setQuoteFontSize] = useState<number>(11.5)
   const [quoteSpacing, setQuoteSpacing] = useState<number>(1.0)
   const [showResetModal, setShowResetModal] = useState<boolean>(false)

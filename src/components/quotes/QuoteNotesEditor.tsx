@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useRef, useEffect } from "react"
-import { Bold, List } from "lucide-react"
+import { Bold } from "lucide-react"
 import {
   executeBold,
-  executeBullet,
   handleEditorKeyDown,
 } from "./notes/notes-editor-helpers"
 
@@ -107,18 +106,6 @@ export default function QuoteNotesEditor({
               <Bold className="h-3 w-3 cursor-pointer" />
               <span className="cursor-pointer">Bold</span>
             </button>
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                executeBullet(editorRef.current, emitChange)
-              }}
-              title="Add or toggle bullet point (• line)"
-              className="inline-flex cursor-pointer items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground transition-colors select-none hover:bg-primary/10 hover:text-primary"
-            >
-              <List className="h-3 w-3 cursor-pointer" />
-              <span className="cursor-pointer">Bullet</span>
-            </button>
           </div>
         )}
       </div>
@@ -155,10 +142,8 @@ export default function QuoteNotesEditor({
 
       {!readOnly && (
         <div className="text-[10px] text-muted-foreground">
-          Tip: Click <strong className="text-foreground">Bold</strong> to make
-          the line bold (no asterisks). Click{" "}
-          <strong className="text-foreground">Bullet</strong> for lists. Scrolls
-          after 5–6 lines.
+          Tip: Click <strong className="text-foreground">Bold</strong> to emphasize
+          text. Press <strong className="text-foreground">Enter</strong> to split or add lines — each line prints with its own note icon.
         </div>
       )}
     </div>

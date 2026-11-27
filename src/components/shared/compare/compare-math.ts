@@ -2,6 +2,7 @@ export interface CalculateCompareOptionsParams {
   currentMode: "supply" | "install"
   currentSubtotal?: number
   baseAmount: number
+  materialsAmount?: number
   attachedAmount?: number
   surchargeAmount?: number
   discountAmount?: number
@@ -22,18 +23,20 @@ export interface CalculateCompareOptionsParams {
   hstRate: number
 }
 
-export function computeTaxDollars(subtotal: number, hstRate: number): number {
-  if (hstRate === 13) return Math.round(subtotal * 0.13 * 100) / 100
-  if (hstRate === 8 || hstRate === 5) return Math.round(subtotal * 0.05 * 100) / 100
+export function computeTaxDollars(
+  subtotal: number,
+  hstRate: number,
+  eligibleMaterials?: number
+): number {
   if (hstRate === 0) return 0
+  if (hstRate === 5) return Math.round(subtotal * 0.05 * 100) / 100
+  if (hstRate === 8) {
+    const hstBase = Math.round(subtotal * 0.13 * 100) / 100
+    const exemption =
+      Math.round(Math.max(0, eligibleMaterials ?? subtotal) * 0.08 * 100) / 100
+    return Math.max(0, Math.round((hstBase - exemption) * 100) / 100)
+  }
   return Math.round(subtotal * (hstRate / 100) * 100) / 100
-}
-
-export function computeTaxCents(subCents: number, hstRate: number): number {
-  if (hstRate === 13) return Math.round(subCents * 0.13)
-  if (hstRate === 8 || hstRate === 5) return Math.round(subCents * 0.05)
-  if (hstRate === 0) return 0
-  return Math.round((subCents * hstRate) / 100)
 }
 
 export function calculateCompareTotals(p: CalculateCompareOptionsParams) {
@@ -43,6 +46,7 @@ export function calculateCompareTotals(p: CalculateCompareOptionsParams) {
   const installHardware = p.installHardware ?? (p.installHardwareCents !== undefined ? p.installHardwareCents / 100 : 0)
   const labourAmount = p.labourAmount ?? (p.labourCents !== undefined ? p.labourCents / 100 : 0)
   const miscAmount = p.miscAmount ?? (p.miscCents !== undefined ? p.miscCents / 100 : 0)
+  const materialsAmount = p.materialsAmount ?? 0
   const attachedAmount = p.attachedAmount ?? 0
   const surchargeAmount = p.surchargeAmount ?? 0
   const discountAmount = p.discountAmount ?? 0
@@ -66,23 +70,30 @@ export function calculateCompareTotals(p: CalculateCompareOptionsParams) {
     supplySubtotal = Math.max(
       0,
       Math.round(
-        (p.baseAmount + opt1JC + attachedAmount + surchargeAmount + supplyHardware - discountAmount) * 100
+        (p.baseAmount + materialsAmount + opt1JC + attachedAmount + surchargeAmount + supplyHardware - discountAmount) * 100
       ) / 100
     )
     installSubtotal = Math.max(
       0,
       Math.round(
-        (p.baseAmount + opt2JC + attachedAmount + surchargeAmount + installHardware - discountAmount + labourAmount + miscAmount) * 100
+        (p.baseAmount + materialsAmount + opt2JC + attachedAmount + surchargeAmount + installHardware - discountAmount + labourAmount + miscAmount) * 100
       ) / 100
     )
   }
 
-  const supplyHst = computeTaxDollars(supplySubtotal, p.hstRate)
+  const baseEligibleMaterials = Math.max(
+    0,
+    p.baseAmount + materialsAmount + attachedAmount - discountAmount
+  )
+  const supplyEligibleMaterials = Math.max(0, baseEligibleMaterials + opt1JC + supplyHardware)
+  const installEligibleMaterials = Math.max(0, baseEligibleMaterials + opt2JC + installHardware)
+
+  const supplyHst = computeTaxDollars(supplySubtotal, p.hstRate, supplyEligibleMaterials)
   const supplyTotal = Math.round((supplySubtotal + supplyHst) * 100) / 100
   const supplyFirstPayment = Math.round(supplyTotal * 0.5 * 100) / 100
   const supplySecondPayment = Math.round((supplyTotal - supplyFirstPayment) * 100) / 100
 
-  const installHst = computeTaxDollars(installSubtotal, p.hstRate)
+  const installHst = computeTaxDollars(installSubtotal, p.hstRate, installEligibleMaterials)
   const installTotal = Math.round((installSubtotal + installHst) * 100) / 100
   const installFirstPayment = Math.round(installTotal * 0.5 * 100) / 100
   const installSecondPayment = Math.round((installTotal - installFirstPayment) * 100) / 100

@@ -12,14 +12,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Component, FileUp, Plus, Trash2, RotateCcw } from "lucide-react"
+import { Component, FileUp, Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { UIWindowItem } from "@/hooks/useCalculatorWindows"
 import { blockNegativeKey } from "@/lib/input-sanitizers"
 
 export interface WindowConfigurationsCardProps {
   windows: UIWindowItem[]
-  surchargeRate: number
   quoteNumber: string
   setQuoteNumber: (val: string) => void
   customerName: string
@@ -37,24 +36,10 @@ export interface WindowConfigurationsCardProps {
   handleRemoveWindow: (id: string) => void
   handleAddWindow: () => void
   windowEndRef: React.RefObject<HTMLDivElement | null>
-  isSupplyOnly?: boolean
-  setIsSupplyOnly?: (val: boolean) => void
-  onOpenCompareModal?: () => void
-  attachedUpgrade?: { title: string; amountPreTaxCents: number } | null
-  onRemoveAttachedUpgrade?: () => void
-  attachedSealedUnit?: any | null
-  attachedDoorQuote?: any | null
-  onOpenAttachSealedUnitModal?: () => void
-  onRemoveAttachedSealedUnit?: () => void
-  onRemoveAttachedDoorQuote?: () => void
-  onSaveDraft?: () => void
-  onOpenSavedQuotes?: () => void
-  savedDraftsCount?: number
 }
 
 export function WindowConfigurationsCard({
   windows,
-  surchargeRate: _surchargeRate,
   quoteNumber,
   setQuoteNumber,
   customerName,
@@ -68,19 +53,6 @@ export function WindowConfigurationsCard({
   handleRemoveWindow,
   handleAddWindow,
   windowEndRef,
-  isSupplyOnly: _isSupplyOnly,
-  setIsSupplyOnly: _setIsSupplyOnly,
-  onOpenCompareModal: _onOpenCompareModal,
-  attachedUpgrade: _attachedUpgrade,
-  onRemoveAttachedUpgrade: _onRemoveAttachedUpgrade,
-  attachedSealedUnit: _attachedSealedUnit,
-  attachedDoorQuote: _attachedDoorQuote,
-  onOpenAttachSealedUnitModal: _onOpenAttachSealedUnitModal,
-  onRemoveAttachedSealedUnit: _onRemoveAttachedSealedUnit,
-  onRemoveAttachedDoorQuote: _onRemoveAttachedDoorQuote,
-  onSaveDraft: _onSaveDraft,
-  onOpenSavedQuotes: _onOpenSavedQuotes,
-  savedDraftsCount: _savedDraftsCount,
 }: WindowConfigurationsCardProps) {
   return (
     <Card className="gap-0 border-border bg-card/50 py-0 shadow-2xl backdrop-blur-xl [--card-spacing:0px]">

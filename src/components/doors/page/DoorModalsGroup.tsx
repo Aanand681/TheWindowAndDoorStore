@@ -63,11 +63,12 @@ export function DoorModalsGroup({ page }: DoorModalsGroupProps) {
           regionName={regionName}
           globalUpcharges={page.globalUpcharges}
           hstRate={page.hstRate !== undefined ? page.hstRate : (page.isFirstNation ? 8 : 13)}
+          attachedUpgrade={page.attachedWindowQuote?.attachedUpgrade || null}
           attachedWindowQuote={page.attachedWindowQuote}
           attachedSealedUnit={page.attachedSealedUnit}
-          isDualOption={Boolean(readSessionAttachedInstallOption()?.enabled)}
-          attachedInstallOption={readSessionAttachedInstallOption()}
-          customOptions={readSessionCustomOptions()}
+          isDualOption={Boolean(readSessionAttachedInstallOption("door")?.enabled)}
+          attachedInstallOption={readSessionAttachedInstallOption("door")}
+          customOptions={readSessionCustomOptions("door")}
         />
       )}
 

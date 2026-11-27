@@ -117,7 +117,16 @@ export function buildWindowAttachPayload(draft: QuoteDraftItem) {
     0
 
   const resolvedWindowDiscount = customDiscountDollars > 0 ? customDiscountDollars : promoDiscountDollars
-  const promoName = rawData.taxTotals?.discountLabel || rawData.discountLabel || rawData.quoteResult?.discountLabel || rawData.quoteResult?.promoName || rawData.activePromoName || ""
+  const customDiscountLabel =
+    rawData.customDiscountLabel || (draft as any).customDiscountLabel || ""
+  const promoName =
+    (customDiscountDollars > 0 ? customDiscountLabel : "") ||
+    rawData.taxTotals?.discountLabel ||
+    rawData.discountLabel ||
+    rawData.quoteResult?.discountLabel ||
+    rawData.quoteResult?.promoName ||
+    rawData.activePromoName ||
+    ""
   const hasJamb = Boolean(rawData.taxTotals?.selectedJamb && (Number(rawData.taxTotals.selectedJamb.total) > 0 || Number(rawData.taxTotals.selectedJamb.rate) > 0))
   const hasCasing = Boolean(rawData.taxTotals?.selectedCasing && (Number(rawData.taxTotals.selectedCasing.total) > 0 || Number(rawData.taxTotals.selectedCasing.rate) > 0))
   const jcLabel = hasJamb && hasCasing ? "Jambs & Casing" : hasJamb ? "Jambs Only" : hasCasing ? "Casing Only" : "Jambs & Casing"

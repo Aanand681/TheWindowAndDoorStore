@@ -114,7 +114,7 @@ export function SummaryApprovedActions({
                 className="h-10 w-full cursor-pointer bg-primary text-xs font-bold text-primary-foreground shadow-sm hover:bg-primary/90"
                 onClick={() => setIsPreviewOpen(true)}
               >
-                <Printer className="mr-2 h-4 w-4" /> Preview &amp; Print Quote
+                <Printer className="mr-2 h-4 w-4" /> Preview Quote
               </Button>
             </>
           )}

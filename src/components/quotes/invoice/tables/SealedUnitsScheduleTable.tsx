@@ -5,11 +5,15 @@ import { SealedUnitScheduleRow } from "./SealedUnitScheduleRow"
 export interface SealedUnitsScheduleTableProps {
   theme: QuoteTemplateType
   calc: InvoiceCalculationsResult
+  universal?: boolean
+  compactSide?: boolean
 }
 
 export function SealedUnitsScheduleTable({
   theme,
   calc,
+  universal = false,
+  compactSide = false,
 }: SealedUnitsScheduleTableProps) {
   const {
     isAttachedSUService: isService,
@@ -75,9 +79,9 @@ export function SealedUnitsScheduleTable({
 
   if (!hasSealedUnits || effectiveSULineItems.length === 0) return null
 
-  const isModern = theme === "modern"
-  const isExecutive = theme === "executive"
-  const isCards = theme === "cards"
+  const isModern = !universal && theme === "modern"
+  const isExecutive = !universal && theme === "executive"
+  const isCards = universal || theme === "cards"
 
   const minL = effectiveSUTotals.labourMinPerUnit ?? 120.0
   const labourR =
@@ -92,44 +96,48 @@ export function SealedUnitsScheduleTable({
   return (
     <div
       className={
-        isCards
-          ? "mb-4 overflow-hidden rounded border border-[#cbd5e1] bg-white shadow-sm"
-          : "mb-4"
+        universal
+          ? "overflow-hidden rounded border border-[#cbd5e1] bg-white"
+          : isCards
+            ? "mb-4 overflow-hidden rounded border border-[#cbd5e1] bg-white shadow-sm"
+            : "mb-4"
       }
     >
-      <div
-        className={`flex items-center justify-between ${
-          isCards
-            ? "border-b border-[#cbd5e1] bg-[#f8fafc] p-2"
-            : "mb-1 border-b-[1.5px] border-[#0f172a] pb-1"
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span
-            style={{ fontSize: `${h2Fs}px` }}
-            className="font-bold tracking-wider text-[#0f172a] uppercase"
-          >
-            {isService
-              ? suSummarySentence
-              : "Sealed Unit Specifications"}
-          </span>
-          {!isSUHost && attachedSealedUnit?.quoteNumber && (
-            <span
-              style={{ fontSize: `${microFs}px` }}
-              className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-[#334155]"
-            >
-              #{attachedSealedUnit.quoteNumber}
-            </span>
-          )}
-        </div>
-        <span
-          style={{ fontSize: `${microFs}px` }}
-          className="font-medium text-[#64748b]"
+      {!universal && (
+        <div
+          className={`flex items-center justify-between ${
+            isCards
+              ? "border-b border-[#cbd5e1] bg-[#f8fafc] p-2"
+              : "mb-1 border-b-[1.5px] border-[#0f172a] pb-1"
+          }`}
         >
-          {effectiveSULineItems.length} item
-          {effectiveSULineItems.length > 1 ? "s" : ""}
-        </span>
-      </div>
+          <div className="flex items-center gap-2">
+            <span
+              style={{ fontSize: `${h2Fs}px` }}
+              className="font-bold tracking-wider text-[#0f172a] uppercase"
+            >
+              {isService
+                ? suSummarySentence
+                : "Sealed Unit Specifications"}
+            </span>
+            {!isSUHost && attachedSealedUnit?.quoteNumber && (
+              <span
+                style={{ fontSize: `${microFs}px` }}
+                className="rounded bg-muted px-1.5 py-0.5 font-mono font-medium text-[#334155]"
+              >
+                #{attachedSealedUnit.quoteNumber}
+              </span>
+            )}
+          </div>
+          <span
+            style={{ fontSize: `${microFs}px` }}
+            className="font-medium text-[#64748b]"
+          >
+            {effectiveSULineItems.length} item
+            {effectiveSULineItems.length > 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
 
       <table
         className="w-full border-collapse"
@@ -138,32 +146,66 @@ export function SealedUnitsScheduleTable({
         <thead>
           <tr
             className={
-              isModern
+              isModern || isExecutive
                 ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                : isExecutive
-                  ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                  : "border-b border-[#cbd5e1] bg-[#f1f5f9] text-[#0f172a]"
+                : "border-b border-[#cbd5e1] bg-[#f8fafc] font-semibold text-[#0f172a] uppercase"
             }
             style={{ fontSize: `${thFs}px` }}
           >
-            <th className="w-[4%] px-1.5 py-1 text-left font-bold">#</th>
-            <th className="w-[26%] px-1.5 py-1 text-left font-bold">
-              Glass Specs
-            </th>
-            <th className="w-[22%] px-1.5 py-1 text-left font-bold">
-              Dimension
-            </th>
-            <th className="w-[12%] px-1.5 py-1 text-left font-bold">Grills</th>
-            <th className="w-[6%] px-1.5 py-1 text-center font-bold">Qty</th>
-            <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
-              Base Price
-            </th>
-            <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
-              Labour
-            </th>
-            <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
-              Misc
-            </th>
+            <th className="w-[5%] px-1.5 py-1 text-left font-bold">#</th>
+            {compactSide ? (
+              <>
+                <th className="w-[62%] px-1.5 py-1 text-left font-bold">
+                  <span>{isService ? suSummarySentence : "Sealed Units"}</span>
+                  {universal && !isSUHost && attachedSealedUnit?.quoteNumber && (
+                    <span
+                      style={{ fontSize: `${microFs}px` }}
+                      className="ml-1.5 font-mono font-normal text-[#64748b]"
+                    >
+                      #{attachedSealedUnit.quoteNumber}
+                    </span>
+                  )}
+                </th>
+                <th className="w-[10%] px-1.5 py-1 text-center font-bold">
+                  Qty
+                </th>
+                <th className="w-[23%] px-1.5 py-1 text-right font-mono font-bold">
+                  Total
+                </th>
+              </>
+            ) : (
+              <>
+                <th className="w-[26%] px-1.5 py-1 text-left font-bold">
+                  <span>Glass Specs</span>
+                  {universal && !isSUHost && attachedSealedUnit?.quoteNumber && (
+                    <span
+                      style={{ fontSize: `${microFs}px` }}
+                      className="ml-1.5 font-mono font-normal text-[#64748b]"
+                    >
+                      #{attachedSealedUnit.quoteNumber}
+                    </span>
+                  )}
+                </th>
+                <th className="w-[22%] px-1.5 py-1 text-left font-bold">
+                  Dimension
+                </th>
+                <th className="w-[11%] px-1.5 py-1 text-left font-bold">
+                  Grills
+                </th>
+                <th className="w-[6%] px-1.5 py-1 text-center font-bold">
+                  Qty
+                </th>
+                <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
+                  Base Price
+                </th>
+                <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
+                  Labour
+                </th>
+                <th className="w-[10%] px-1.5 py-1 text-right font-mono font-bold">
+                  Misc
+                </th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody style={{ fontSize: `${bodyFs}px` }}>
@@ -179,6 +221,7 @@ export function SealedUnitsScheduleTable({
               miscR={miscR}
               rowPy={rowPy}
               microFs={microFs}
+              compactSide={compactSide}
             />
           ))}
         </tbody>

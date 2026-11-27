@@ -167,7 +167,7 @@ export function SummaryReviewActions({
         className="h-10 w-full cursor-pointer gap-2 bg-black text-xs font-bold text-white shadow-sm hover:bg-neutral-800 sm:text-sm dark:bg-white dark:text-black dark:hover:bg-neutral-200"
       >
         <Printer className="h-4 w-4" />
-        <span>Preview &amp; Print Quote</span>
+        <span>Preview Quote</span>
       </Button>
     </div>
   )

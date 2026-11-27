@@ -3,7 +3,7 @@
 import { useDoorReviewSubmit } from "./useDoorReviewSubmit"
 import { useDoorReviewLoader } from "./door-review-loader"
 import { useDoorReviewActions } from "./door-review-actions"
-import { useDoorAttachedSync } from "./useDoorAttachedSync"
+import { useUniversalAttachedSync } from "@/hooks/quotes/useUniversalAttachedSync"
 import { buildDoorReviewWorkflowProps } from "./door-workflow-props-builder"
 
 export interface UseDoorReviewIntegrationParams {
@@ -143,7 +143,8 @@ export function useDoorReviewIntegration(p: UseDoorReviewIntegrationParams) {
     originSubTab: p.originSubTab,
   })
 
-  useDoorAttachedSync({
+  useUniversalAttachedSync({
+    hostType: "door",
     attachedWindowQuote: p.attachedWindowQuote,
     setAttachedWindowQuote: p.setAttachedWindowQuote,
     attachedSealedUnit: p.attachedSealedUnit,

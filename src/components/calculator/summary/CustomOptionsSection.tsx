@@ -3,28 +3,32 @@
 import React, { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Plus, X, Sparkles, Pencil, Check } from "lucide-react"
-import { formatMoney } from "@/lib/promo-logic"
+import { Plus, X } from "lucide-react"
 import { toast } from "sonner"
 import { CustomOptionItemRow } from "./CustomOptionItemRow"
 import {
   readSessionCustomOptions,
   writeSessionCustomOptions,
+  resolveQuoteOptionScope,
   CUSTOM_OPTIONS_CHANGE_EVENT,
   type CustomQuoteOption,
+  type QuoteOptionScope,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 
 export interface CustomOptionsSectionProps {
   canModifyOptions: boolean
   reviewQuote?: any
   quoteNumber?: string
+  scope?: QuoteOptionScope
 }
 
 export function CustomOptionsSection({
   canModifyOptions,
   reviewQuote,
   quoteNumber,
+  scope,
 }: CustomOptionsSectionProps) {
+  const activeScope = resolveQuoteOptionScope(scope)
   const [showAddForm, setShowAddForm] = useState(false)
   const [optionTitle, setOptionTitle] = useState("")
   const [optionPrice, setOptionPrice] = useState("")
@@ -34,7 +38,7 @@ export function CustomOptionsSection({
 
   const [customOptions, setCustomOptions] = useState<CustomQuoteOption[]>(() => {
     if (typeof window !== "undefined") {
-      const fromSession = readSessionCustomOptions()
+      const fromSession = readSessionCustomOptions(activeScope)
       if (fromSession && fromSession.length > 0) return fromSession
       if (reviewQuote && Array.isArray(reviewQuote.customOptions)) {
         return reviewQuote.customOptions
@@ -43,22 +47,27 @@ export function CustomOptionsSection({
     return []
   })
 
+  const reviewQuoteId = reviewQuote?._id
+  const reviewCustomOptions = reviewQuote?.customOptions
+
   useEffect(() => {
     if (
-      reviewQuote &&
-      Array.isArray(reviewQuote.customOptions) &&
-      reviewQuote.customOptions.length > 0
+      Array.isArray(reviewCustomOptions) &&
+      reviewCustomOptions.length > 0
     ) {
-      const sessionOpts = readSessionCustomOptions()
+      const sessionOpts = readSessionCustomOptions(activeScope)
       if (sessionOpts.length === 0) {
-        writeSessionCustomOptions(reviewQuote.customOptions)
-        setCustomOptions(reviewQuote.customOptions)
+        writeSessionCustomOptions(reviewCustomOptions, activeScope)
+        setCustomOptions(reviewCustomOptions)
         return
       }
     }
 
-    const syncOptions = () => {
-      setCustomOptions(readSessionCustomOptions())
+    const syncOptions = (evt?: Event) => {
+      const detailScope = (evt as CustomEvent<{ scope?: QuoteOptionScope }> | undefined)
+        ?.detail?.scope
+      if (detailScope && detailScope !== activeScope) return
+      setCustomOptions(readSessionCustomOptions(activeScope))
     }
 
     syncOptions()
@@ -68,7 +77,7 @@ export function CustomOptionsSection({
       window.removeEventListener(CUSTOM_OPTIONS_CHANGE_EVENT, syncOptions)
       window.removeEventListener("storage", syncOptions)
     }
-  }, [quoteNumber, reviewQuote?._id])
+  }, [quoteNumber, reviewQuoteId, reviewCustomOptions, activeScope])
 
   const handleAddOption = () => {
     const trimmedTitle = optionTitle.trim()
@@ -91,7 +100,7 @@ export function CustomOptionsSection({
 
     const updated = [...customOptions, newOpt]
     setCustomOptions(updated)
-    writeSessionCustomOptions(updated)
+    writeSessionCustomOptions(updated, activeScope)
     setOptionTitle("")
     setOptionPrice("")
     setShowAddForm(false)
@@ -101,7 +110,7 @@ export function CustomOptionsSection({
   const handleRemoveOption = (id: string) => {
     const updated = customOptions.filter((o) => o.id !== id)
     setCustomOptions(updated)
-    writeSessionCustomOptions(updated)
+    writeSessionCustomOptions(updated, activeScope)
     if (editingOptionId === id) {
       setEditingOptionId(null)
       setEditTitle("")
@@ -143,7 +152,7 @@ export function CustomOptionsSection({
         : opt
     )
     setCustomOptions(updated)
-    writeSessionCustomOptions(updated)
+    writeSessionCustomOptions(updated, activeScope)
     setEditingOptionId(null)
     setEditTitle("")
     setEditPrice("")

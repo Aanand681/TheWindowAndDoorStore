@@ -62,8 +62,13 @@ export interface CombinedPricingResult {
   combinedMiscCents: number
   combinedLabourCents: number
   combinedSurchargeCents: number
+
+  winNorm?: NormalizedQuoteFinancials | null
+  doorNorm?: NormalizedQuoteFinancials | null
+  suNorm?: NormalizedQuoteFinancials | null
 }
 
+import type { NormalizedQuoteFinancials } from "@/lib/quotes/quote-financial-normalizer"
 import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
 
 /**
@@ -93,8 +98,14 @@ export function computeCombinedQuoteFinancials(
 
   const isSupply = Boolean(isSupplyOnly)
 
-  const qTaxTotals = taxTotals || (quoteResult as any)?.taxTotals || {}
+  const rawTaxTotals = taxTotals || (quoteResult as any)?.taxTotals
+  const qTaxTotals = rawTaxTotals || {}
+  const winHasExplicitTravel =
+    rawTaxTotals !== undefined &&
+    (rawTaxTotals.extras !== undefined ||
+      rawTaxTotals.totalTravelAndSetup !== undefined)
   const winTravel = Number(qTaxTotals?.extras ?? qTaxTotals?.totalTravelAndSetup ?? 0)
+  const allowAttachedMaxTravel = winTravel > 0 || winHasExplicitTravel
   const resolvedCustomDiscount =
     customDiscount !== undefined && String(customDiscount).trim() !== ""
       ? String(customDiscount).trim()
@@ -137,7 +148,7 @@ export function computeCombinedQuoteFinancials(
         isSupplyOnly: isSupply,
       },
     },
-    doorQuote: winTravel > 0
+    doorQuote: allowAttachedMaxTravel
       ? attachedDoorQuote
       : attachedDoorQuote
         ? {
@@ -146,7 +157,7 @@ export function computeCombinedQuoteFinancials(
             taxTotals: { ...(attachedDoorQuote.taxTotals || {}), travelAndSetupFee: 0, totalTravelAndSetup: 0 },
           }
         : undefined,
-    sealedUnitQuote: winTravel > 0
+    sealedUnitQuote: allowAttachedMaxTravel
       ? attachedSealedUnit
       : attachedSealedUnit
         ? {
@@ -201,5 +212,8 @@ export function computeCombinedQuoteFinancials(
     combinedMiscCents: universal.miscCents,
     combinedLabourCents: universal.labourCents,
     combinedSurchargeCents: universal.surchargesCents,
+    winNorm: universal.winNorm,
+    doorNorm: universal.doorNorm,
+    suNorm: universal.suNorm,
   }
 }

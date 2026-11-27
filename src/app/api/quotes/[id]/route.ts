@@ -6,7 +6,10 @@ import { authOptions } from "@/lib/auth"
 import { triggerPusherEvent } from "@/lib/pusher-server"
 import { cacheDelPattern } from "@/lib/redis"
 import { handleApiError } from "@/lib/api-error"
-import { checkQuoteUpdateSecurity } from "@/lib/server/quotes/quote-update-security"
+import {
+  checkQuoteUpdateSecurity,
+  canToggleQuoteStar,
+} from "@/lib/server/quotes/quote-update-security"
 import { buildQuoteUpdatePayload } from "@/lib/server/quotes/quote-update-payload"
 import { dispatchQuoteUpdateNotifications } from "@/lib/server/quotes/quote-update-notifications"
 
@@ -108,8 +111,16 @@ export async function PUT(
       )
     }
 
-    // Star toggle fast-path
+    // Star toggle fast-path (must pass reviewer isolation and ownership/role authorization)
     if (body.isStarred !== undefined && Object.keys(body).length === 1) {
+      const starPerm = canToggleQuoteStar(session, existingQuote)
+      if (!starPerm.allowed) {
+        return NextResponse.json(
+          { error: starPerm.error },
+          { status: 403, headers: NO_CACHE_HEADERS }
+        )
+      }
+
       const updated = await SavedQuote.findByIdAndUpdate(
         id,
         { $set: { isStarred: Boolean(body.isStarred) } },
@@ -223,12 +234,15 @@ export async function DELETE(
       )
     }
 
-    // Only Admin, SuperAdmin, or the preparer can delete
-    const currentUser = session.user.username || session.user.name || ""
+    // Only Admin, SuperAdmin, or the preparer can delete (case-insensitive username check)
+    const currentUser = (session.user.username || session.user.name || "")
+      .trim()
+      .toLowerCase()
+    const preparer = quote.preparedBy?.trim().toLowerCase() || ""
     if (
       role !== "SUPERADMIN" &&
       role !== "ADMIN" &&
-      quote.preparedBy !== currentUser
+      (!currentUser || preparer !== currentUser)
     ) {
       return NextResponse.json(
         { error: "Permission denied" },

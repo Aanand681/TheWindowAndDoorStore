@@ -5,6 +5,7 @@ import SavedQuote from "@/models/SavedQuote"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { handleApiError } from "@/lib/api-error"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 import {
   findSubmittedQuoteNumbers,
   purgeOrphanedDrafts,
@@ -49,14 +50,12 @@ export async function GET(request: Request) {
     await purgeOrphanedDrafts(username, submittedQuoteNumbers)
 
     const query: Record<string, unknown> = {
-      preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+      preparedBy: { $regex: exactCaseInsensitiveRegex(username) },
       status: "DRAFT",
     }
     if (submittedQuoteNumbers.length > 0) {
       query.quoteNumber = {
-        $nin: submittedQuoteNumbers.map(
-          (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-        ),
+        $nin: submittedQuoteNumbers.map((n) => exactCaseInsensitiveRegex(n)),
       }
     }
     if (type && ["window", "door", "sealed_unit"].includes(type)) {
@@ -122,7 +121,7 @@ export async function POST(request: Request) {
 
     const draft = await SavedQuote.findOneAndUpdate(
       {
-        preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+        preparedBy: { $regex: exactCaseInsensitiveRegex(username) },
         quoteNumber: quoteNumber.trim(),
         status: "DRAFT",
       },
@@ -163,7 +162,7 @@ export async function DELETE(request: Request) {
     await dbConnect()
 
     const baseFilter: Record<string, unknown> = {
-      preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+      preparedBy: { $regex: exactCaseInsensitiveRegex(username) },
       status: "DRAFT",
     }
 

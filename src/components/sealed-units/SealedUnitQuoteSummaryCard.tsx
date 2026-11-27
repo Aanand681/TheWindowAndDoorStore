@@ -8,13 +8,15 @@ import { writeSessionAttachedInstallOption } from "@/hooks/calculator/supply-mod
 import { formatDoorSummarySentence } from "@/lib/doors/calculations"
 import { formatWindowSummarySentence } from "@/hooks/useCalculatorWindows"
 import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
-import { SealedUnitSummaryHeader } from "./summary/SealedUnitSummaryHeader"
-import { SealedUnitSummaryAttachedBadges } from "./summary/SealedUnitSummaryAttachedBadges"
+import { UnifiedSummaryHeader } from "@/components/shared/summary/UnifiedSummaryHeader"
+import { UnifiedAttachedBadges } from "@/components/shared/summary/UnifiedAttachedBadges"
 import { SealedUnitSummaryLedger } from "./summary/SealedUnitSummaryLedger"
-import { SealedUnitSummaryActions } from "./summary/SealedUnitSummaryActions"
+import { UnifiedUpgradeCallouts } from "@/components/shared/summary/UnifiedUpgradeCallouts"
+import { UnifiedSummaryActions } from "@/components/shared/summary/UnifiedSummaryActions"
 import { CustomOptionsSection } from "@/components/calculator/summary/CustomOptionsSection"
 import { SupplyVsInstallCompareModal } from "@/components/shared/SupplyVsInstallCompareModal"
 import { useSealedUnitInstallOption } from "./summary/useSealedUnitInstallOption"
+import { computeDeduplicatedInstallCompareAmounts } from "@/lib/quotes/supply-install-delta"
 
 interface SealedUnitQuoteSummaryCardProps {
   lineItemsCount: number
@@ -62,7 +64,7 @@ export function SealedUnitQuoteSummaryCard({
   discountType = "none", setDiscountType, loyaltyPoints = 0, setLoyaltyPoints,
   loyaltyGrossAmount = 0, setLoyaltyGrossAmount,
   customerName = "Valued Customer", quoteNumber = "SU-DRAFT",
-  quoteNotes, setQuoteNotes, user, onOpenSubmitModal = () => {}, onPrint = () => {},
+  user, onOpenSubmitModal = () => {}, onPrint = () => {},
   attachedWindowQuote, attachedDoorQuote, onRemoveAttachedWindowQuote,
   onRemoveAttachedDoorQuote, isReadOnly = false, isReviewMode = false,
 }: SealedUnitQuoteSummaryCardProps) {
@@ -102,22 +104,26 @@ export function SealedUnitQuoteSummaryCard({
   const winCustomMaterials = universal.winNorm?.customMaterials || 0
   const doorCustomMaterials = universal.doorNorm?.customMaterials || 0
   const winDiscount = universal.winNorm?.discount || 0
+  const winLoyaltyDiscount = universal.winNorm?.loyaltyDiscount || 0
   const doorRawBase = universal.doorNorm?.rawBase || 0
   const doorDiscount = universal.doorNorm?.discount || 0
-  const winLabour = universal.winNorm?.pureLabour || 0
-  const doorLabour = universal.doorNorm?.pureLabour || 0
-  const winMisc = universal.winNorm?.misc || 0
-  const doorMisc = universal.doorNorm?.misc || 0
-  const winSurcharge = universal.winNorm?.surcharge || 0
-  const doorSurcharge = universal.doorNorm?.surcharge || 0
+  const doorLoyaltyDiscount = universal.doorNorm?.loyaltyDiscount || 0
 
-  const suMaterials = universal.suNorm?.materials || 0
   const combinedLabour = universal.combinedLabour
   const combinedMisc = universal.misc
-  const compareSULabour = totals.fullInstallLabour ?? totals.combinedLabourTotal
-  const compareLabour = compareSULabour + winLabour + doorLabour
-  const compareSUMisc = totals.fullInstallMisc ?? totals.miscTotal
-  const compareMisc = compareSUMisc + winMisc + doorMisc
+  const dedupCompare = computeDeduplicatedInstallCompareAmounts({
+    hasWindows: hasAttachedWindow,
+    isWinSupplyOnly: Boolean(attachedWindowQuote?.isSupplyOnly),
+    attachedWindowQuote,
+    hasDoors: hasAttachedDoor,
+    isDoorSupplyOnly: Boolean(attachedDoorQuote?.mode === "supply_only" || attachedDoorQuote?.isSupplyOnly),
+    attachedDoorQuote,
+    hasSealedUnits: true,
+    isSUSupplyOnly: !isInstallation && !isService,
+    suTotals: totals,
+  })
+  const compareLabour = dedupCompare.compareLabourAmount
+  const compareMisc = dedupCompare.compareMiscAmount
 
   const { attachedInstallOption, setAttachedInstallOption, dynamicInstallDeltaDollars } = useSealedUnitInstallOption({
     mode, quoteNumber, compareLabour, compareMisc,
@@ -146,16 +152,28 @@ export function SealedUnitQuoteSummaryCard({
     <>
       <Card className="relative flex flex-col gap-0 overflow-hidden border-border bg-card/80 py-0 shadow-xl backdrop-blur-xl [--card-spacing:0px]">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-primary/50" />
-        <SealedUnitSummaryHeader
-          quoteNumber={quoteNumber} customerName={customerName} mode={mode}
-          onModeChange={onModeChange} isService={isService} onOpenCompare={() => setIsCompareOpen(true)} isReadOnly={isReadOnly}
+        <UnifiedSummaryHeader
+          mode={mode}
+          showModeToggle={Boolean(onModeChange)}
+          showServiceOption={true}
+          isService={isService}
+          onModeChange={onModeChange}
+          onOpenCompare={!isService ? () => setIsCompareOpen(true) : undefined}
+          isReadOnly={isReadOnly}
         />
-        <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-3.5 pt-3">
-          <SealedUnitSummaryAttachedBadges
-            attachedWindowQuote={attachedWindowQuote} attachedDoorQuote={attachedDoorQuote}
-            attachedInstallOption={attachedInstallOption} mode={mode} isService={isService}
-            onRemoveAttachedWindowQuote={onRemoveAttachedWindowQuote} onRemoveAttachedDoorQuote={onRemoveAttachedDoorQuote}
-            onRemoveAttachedInstallOption={() => { setAttachedInstallOption(null); writeSessionAttachedInstallOption(null) }}
+        <CardContent className="space-y-4 px-5 pt-3.5 pb-5 sm:px-6">
+          <UnifiedAttachedBadges
+            hostType="sealed_unit"
+            attachedWindowQuote={attachedWindowQuote}
+            attachedDoorQuote={attachedDoorQuote}
+            attachedInstallOption={attachedInstallOption}
+            isSupply={mode === "supply_only"}
+            onRemoveAttachedWindowQuote={onRemoveAttachedWindowQuote}
+            onRemoveAttachedDoorQuote={onRemoveAttachedDoorQuote}
+            onRemoveAttachedInstallOption={() => {
+              setAttachedInstallOption(null)
+              writeSessionAttachedInstallOption(null, "sealed_unit")
+            }}
             dynamicInstallDeltaDollars={dynamicInstallDeltaDollars}
           />
           {!hasContent ? (
@@ -176,7 +194,7 @@ export function SealedUnitQuoteSummaryCard({
               attachedDoorQuote={attachedDoorQuote} attachedWinSentence={attachedWinSentence} attachedDoorSentence={attachedDoorSentence}
               winBase={winBase} winJC={winJC} winJCDescription={winJCDescription} winCustomMaterialsList={winCustomMaterialsList}
               doorCustomMaterialsList={doorCustomMaterialsList}
-              winDiscount={winDiscount} doorRawBase={doorRawBase} doorDiscount={doorDiscount} isInstallation={isInstallation}
+              winDiscount={winDiscount} winLoyaltyDiscount={winLoyaltyDiscount} doorRawBase={doorRawBase} doorDiscount={doorDiscount} doorLoyaltyDiscount={doorLoyaltyDiscount} winNorm={universal.winNorm} doorNorm={universal.doorNorm} isInstallation={isInstallation}
               winCustomMaterials={winCustomMaterials} doorCustomMaterials={doorCustomMaterials}
               loyaltyDiscount={loyaltyDiscount} setLoyaltyDiscount={setLoyaltyDiscount}
               loyaltyDiscountLabel={loyaltyDiscountLabel} setLoyaltyDiscountLabel={setLoyaltyDiscountLabel}
@@ -188,10 +206,19 @@ export function SealedUnitQuoteSummaryCard({
               combinedHstBase={universal.hstBase} combinedMaterialExemption={universal.materialExemption}
             />
           )}
-          <CustomOptionsSection canModifyOptions={!isReadOnly} quoteNumber={quoteNumber} />
-          <SealedUnitSummaryActions
-            quoteNotes={quoteNotes} setQuoteNotes={setQuoteNotes} hasContent={hasContent}
-            user={user} onOpenSubmitModal={onOpenSubmitModal} onPrint={onPrint} isReviewMode={isReviewMode}
+          <UnifiedUpgradeCallouts
+            attachedDoorQuote={attachedDoorQuote}
+            attachedWindowQuote={attachedWindowQuote}
+          />
+          <CustomOptionsSection scope="sealed_unit" canModifyOptions={!isReadOnly} quoteNumber={quoteNumber} />
+          <UnifiedSummaryActions
+            isAdmin={user?.role === "ADMIN" || user?.role === "SUPERADMIN"}
+            canSubmit={hasContent}
+            isReviewMode={isReviewMode}
+            onSubmitQuote={onOpenSubmitModal}
+            onPrintPreview={onPrint || (() => {})}
+            adminSubmitLabel="Approve & Assign / Submit Quote"
+            nonAdminClassName="bg-amber-600 hover:bg-amber-700"
           />
         </CardContent>
       </Card>
@@ -202,14 +229,14 @@ export function SealedUnitQuoteSummaryCard({
         baseAmount={totals.glassBefore8PercentTotal}
         materialsAmount={totals.customMaterialsTotal || 0} materialsLabel="Additional Materials"
         attachedLabel={[hasAttachedWindow ? attachedWinSentence : "", hasAttachedDoor ? attachedDoorSentence : ""].filter(Boolean).join(" + ") || undefined}
-        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount : 0) + (hasAttachedDoor ? doorRawBase + doorCustomMaterials - doorDiscount : 0)}
+        attachedAmount={(hasAttachedWindow ? winBase + winJC + winCustomMaterials - winDiscount - winLoyaltyDiscount : 0) + (hasAttachedDoor ? doorRawBase + doorCustomMaterials - doorDiscount - doorLoyaltyDiscount : 0)}
         labourAmount={compareLabour} miscAmount={compareMisc} surchargeAmount={combinedSurcharge} surchargeLabel="Surcharge"
         discountAmount={loyaltyDiscountNum} discountLabel={loyaltyDiscountLabel || "Additional Discount"}
         hstRate={hstRate} onApplyMode={(m) => onModeChange && onModeChange(m === "supply" ? "supply_only" : "installation")}
         onToggleAttachOption={(att, c, title, hasSupplyJC) => {
           const opt = att ? { enabled: true, amountPreTaxCents: c, title, hasSupplyJC } : null
           setAttachedInstallOption(opt)
-          writeSessionAttachedInstallOption(opt)
+          writeSessionAttachedInstallOption(opt, "sealed_unit")
         }}
       />
     </>

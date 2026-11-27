@@ -15,6 +15,11 @@ import {
   NotificationPrefsCard,
   PasswordChangeCard,
 } from "@/components/profile"
+import {
+  sanitizeSavedQuoteLayout,
+  writeLocalSavedQuoteLayout,
+  type SavedQuoteLayout,
+} from "@/lib/quotes/invoice-layout-engine"
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
@@ -33,7 +38,7 @@ export default function ProfilePage() {
   const [defaultQuotingMode, setDefaultQuotingMode] = useState<
     "installation" | "supply_only"
   >("installation")
-  const [favoriteTemplate, setFavoriteTemplate] = useState("cards")
+  const [savedQuoteLayout, setSavedQuoteLayout] = useState<SavedQuoteLayout | null>(null)
   const [landingPage, setLandingPage] = useState("calculator")
 
   // Notifications
@@ -59,7 +64,9 @@ export default function ProfilePage() {
           setDepartment(data.department || "")
           setLandingPage(data.landingPage || "calculator")
           setDefaultQuotingMode(data.defaultQuotingMode || "installation")
-          setFavoriteTemplate(data.favoriteTemplate || "cards")
+          const parsedLayout = sanitizeSavedQuoteLayout(data.savedQuoteLayout)
+          setSavedQuoteLayout(parsedLayout)
+          writeLocalSavedQuoteLayout(parsedLayout, data._id || data.id || null)
           setMuteNotifications(Boolean(data.muteNotifications))
           setReceiveQuoteEmails(data.receiveQuoteEmails !== false)
           setCreatedAt(data.createdAt)
@@ -96,7 +103,8 @@ export default function ProfilePage() {
           email,
           landingPage,
           defaultQuotingMode,
-          favoriteTemplate,
+          favoriteTemplate: "universal",
+          savedQuoteLayout,
           muteNotifications,
           receiveQuoteEmails,
           currentPassword: currentPassword || undefined,
@@ -108,6 +116,10 @@ export default function ProfilePage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to update profile")
       }
+
+      const persistedLayout = sanitizeSavedQuoteLayout(data.savedQuoteLayout)
+      setSavedQuoteLayout(persistedLayout)
+      writeLocalSavedQuoteLayout(persistedLayout)
 
       setMessage({ text: "Profile updated successfully!", type: "success" })
       toast.success("Profile preferences saved successfully")
@@ -195,8 +207,11 @@ export default function ProfilePage() {
               <QuotingDefaultsCard
                 defaultQuotingMode={defaultQuotingMode}
                 setDefaultQuotingMode={setDefaultQuotingMode}
-                favoriteTemplate={favoriteTemplate}
-                setFavoriteTemplate={setFavoriteTemplate}
+                savedQuoteLayout={savedQuoteLayout}
+                onResetSavedLayout={() => {
+                  setSavedQuoteLayout(null)
+                  writeLocalSavedQuoteLayout(null)
+                }}
                 landingPage={landingPage}
                 setLandingPage={setLandingPage}
                 role={role}

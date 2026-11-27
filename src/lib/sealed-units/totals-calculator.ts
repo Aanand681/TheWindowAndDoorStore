@@ -1,5 +1,6 @@
 import { CalculateSealedUnitTotalsParams } from "./types"
 import { DEFAULT_LABOUR_SETTINGS } from "./grill-data"
+import { calculateUniversalPricing } from "@/lib/quotes/universal-pricing-engine"
 
 export function calculateSealedUnitTotals({
   lineItems,
@@ -51,37 +52,41 @@ export function calculateSealedUnitTotals({
     0
   )
 
-  const unitLabourSum = isInstallation
+  const fullUnitLabourSum = !isServiceOnly
     ? lineItems.reduce((acc, item) => acc + (Number(item.totalLabour) || 0), 0)
     : 0
+  const unitLabourSum = isInstallation ? fullUnitLabourSum : 0
 
-  const miscTotal = isInstallation
+  const fullInstallMisc = !isServiceOnly
     ? lineItems.reduce((acc, item) => acc + (Number(item.totalMisc) || 0), 0)
     : 0
+  const miscTotal = isInstallation ? fullInstallMisc : 0
 
-  const baseSetupFee = isInstallation ? labour.setupFeeDefault || 140.0 : 0
+  const fullBaseSetupFee = !isServiceOnly ? labour.setupFeeDefault || 140.0 : 0
+  const baseSetupFee = isInstallation ? fullBaseSetupFee : 0
 
-  let additionalFarFee = 0
-  if (isInstallation) {
+  let fullAdditionalFarFee = 0
+  if (!isServiceOnly) {
     if (travelFeeType === "far_std") {
-      additionalFarFee = labour.setupFeeFarStandard || 727.5
+      fullAdditionalFarFee = labour.setupFeeFarStandard || 727.5
     } else if (travelFeeType === "far_small") {
-      additionalFarFee = labour.setupFeeFarSmall || 363.5
+      fullAdditionalFarFee = labour.setupFeeFarSmall || 363.5
     } else if (travelFeeType === "custom") {
-      additionalFarFee = Math.max(0, Number(customTravelFee) || 0)
+      fullAdditionalFarFee = Math.max(0, Number(customTravelFee) || 0)
     }
   }
+  const additionalFarFee = isInstallation ? fullAdditionalFarFee : 0
 
-  let vehicleTravelFee = 0
-  let crewTravelFee = 0
+  let fullVehicleTravelFee = 0
+  let fullCrewTravelFee = 0
   const isOutTownActive = Boolean(
     showOutTownTravel ||
       (Number(travelKm) > 0) ||
       (Number(crewHours) > 0)
   )
-  if (isInstallation && isOutTownActive) {
+  if (!isServiceOnly && isOutTownActive) {
     const km = Math.max(0, Number(travelKm) || 0)
-    vehicleTravelFee =
+    fullVehicleTravelFee =
       Math.round(km * (labour.vehicleRatePerKm || 0.98) * 100) / 100
 
     const hrs = Math.max(0, Number(crewHours) || 0)
@@ -89,8 +94,17 @@ export function calculateSealedUnitTotals({
       crewSize === "2"
         ? labour.crewHourly2Men || 150
         : labour.crewHourly3Men || 200
-    crewTravelFee = Math.round(hrs * hourlyRate * 100) / 100
+    fullCrewTravelFee = Math.round(hrs * hourlyRate * 100) / 100
   }
+  const vehicleTravelFee = isInstallation ? fullVehicleTravelFee : 0
+  const crewTravelFee = isInstallation ? fullCrewTravelFee : 0
+
+  const fullTravelAndSetup = !isServiceOnly
+    ? fullBaseSetupFee + fullAdditionalFarFee + fullVehicleTravelFee + fullCrewTravelFee
+    : 0
+  const fullInstallLabour = !isServiceOnly
+    ? fullUnitLabourSum + fullTravelAndSetup
+    : 0
 
   const totalAdditionalTravel =
     additionalFarFee + vehicleTravelFee + crewTravelFee
@@ -158,6 +172,10 @@ export function calculateSealedUnitTotals({
     totalTravelAndSetup,
     combinedLabourTotal,
     miscTotal,
+    fullUnitLabourSum,
+    fullInstallLabour,
+    fullInstallMisc,
+    fullTravelAndSetup,
     subtotalPreTax,
     hstAmount,
     hstBase,
@@ -165,5 +183,68 @@ export function calculateSealedUnitTotals({
     grandTotal,
     isInstallation: Boolean(isInstallation),
     isServiceOnly: Boolean(isServiceOnly),
+  }
+}
+
+/**
+ * Computes combined multi-quote ledger amounts including attached quotes
+ * (windows, doors) and loyalty discounts for Sealed Unit quotes.
+ */
+export function computeEffectiveSealedUnitGrandTotal(p: {
+  totals: any
+  sealedUnitMode?: "installation" | "supply_only" | "service_only"
+  isInstallation?: boolean
+  isServiceOnly?: boolean
+  loyaltyDiscount?: string
+  loyaltyDiscountLabel?: string
+  hstRate?: number
+  attachedWindowQuote?: any
+  attachedDoorQuote?: any
+}): { combinedSubtotal: number; combinedTax: number; grandTotal: number } {
+  const {
+    totals = {},
+    sealedUnitMode,
+    isInstallation = true,
+    isServiceOnly = false,
+    loyaltyDiscount = "",
+    loyaltyDiscountLabel = "",
+    hstRate = 13,
+    attachedWindowQuote,
+    attachedDoorQuote,
+  } = p
+
+  const resolvedMode =
+    sealedUnitMode ||
+    (isServiceOnly ? "service_only" : isInstallation ? "installation" : "supply_only")
+  const hasAnyAttached = Boolean(attachedWindowQuote || attachedDoorQuote)
+  const hasMissingLoyalty =
+    loyaltyDiscount.trim() !== "" && (totals.loyaltyDiscount || 0) <= 0
+
+  if (!hasAnyAttached && !hasMissingLoyalty) {
+    return {
+      combinedSubtotal: totals.subtotalPreTax || 0,
+      combinedTax: totals.hstAmount || 0,
+      grandTotal: totals.grandTotal || 0,
+    }
+  }
+
+  const universal = calculateUniversalPricing({
+    sealedUnitQuote: { data: { totals, sealedUnitMode: resolvedMode } },
+    windowQuote: attachedWindowQuote,
+    doorQuote: attachedDoorQuote,
+    hostType: "sealed_unit",
+    isSupplyOnly: resolvedMode === "supply_only",
+    hstRate,
+    isFirstNation: hstRate === 8,
+    overrides: {
+      loyaltyDiscount,
+      loyaltyDiscountLabel,
+    },
+  })
+
+  return {
+    combinedSubtotal: universal.subtotal,
+    combinedTax: universal.hstAmount,
+    grandTotal: universal.total,
   }
 }

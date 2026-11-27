@@ -1,12 +1,13 @@
 import SavedQuote from "@/models/SavedQuote"
 import { formatWindowSummarySentence } from "@/lib/calculator/format-window-summary"
 import { formatDoorSummarySentence } from "@/lib/doors/formatters"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export async function findSubmittedQuoteNumbers(
   username: string
 ): Promise<string[]> {
   const submittedQuoteDocs = await SavedQuote.find({
-    preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+    preparedBy: { $regex: exactCaseInsensitiveRegex(username) },
     status: { $ne: "DRAFT" },
   })
     .select(
@@ -44,12 +45,10 @@ export async function purgeOrphanedDrafts(
   if (submittedQuoteNumbers.length === 0) return
 
   await SavedQuote.deleteMany({
-    preparedBy: { $regex: new RegExp(`^${username}$`, "i") },
+    preparedBy: { $regex: exactCaseInsensitiveRegex(username) },
     status: "DRAFT",
     quoteNumber: {
-      $in: submittedQuoteNumbers.map(
-        (n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
-      ),
+      $in: submittedQuoteNumbers.map((n) => exactCaseInsensitiveRegex(n)),
     },
   })
 }
@@ -105,6 +104,14 @@ export function formatDraftDto(d: any): Record<string, any> {
       customJC: d.customJC,
       customMisc: d.customMisc,
       customLabour: d.customLabour,
+      customDiscount: d.customDiscount,
+      customDiscountLabel: d.customDiscountLabel,
+      loyaltyDiscount: d.loyaltyDiscount,
+      loyaltyDiscountLabel: d.loyaltyDiscountLabel,
+      discountType: d.discountType,
+      loyaltyPoints: d.loyaltyPoints,
+      loyaltyGrossAmount: d.loyaltyGrossAmount,
+      customMaterials: d.customMaterials,
       includeJCInPromo: d.includeJCInPromo,
       includeMiscInPromo: d.includeMiscInPromo,
       includeLabourInPromo: d.includeLabourInPromo,
@@ -194,6 +201,18 @@ export function buildDraftDocumentPayload(
     customJC: rawData.customJC,
     customMisc: rawData.customMisc,
     customLabour: rawData.customLabour,
+    customDiscount: rawData.customDiscount,
+    customDiscountLabel: rawData.customDiscountLabel,
+    loyaltyDiscount: rawData.loyaltyDiscount,
+    loyaltyDiscountLabel: rawData.loyaltyDiscountLabel,
+    discountType: rawData.discountType,
+    loyaltyPoints: rawData.loyaltyPoints,
+    loyaltyGrossAmount: rawData.loyaltyGrossAmount,
+    customMaterials: Array.isArray(rawData.customMaterials)
+      ? rawData.customMaterials
+      : Array.isArray(rawData.taxTotals?.customMaterials)
+        ? rawData.taxTotals.customMaterials
+        : undefined,
     includeJCInPromo: rawData.includeJCInPromo ?? true,
     includeMiscInPromo: rawData.includeMiscInPromo ?? true,
     includeLabourInPromo: rawData.includeLabourInPromo ?? true,

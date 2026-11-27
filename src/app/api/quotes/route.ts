@@ -6,6 +6,10 @@ import { authOptions } from "@/lib/auth"
 import { getQuotesBadgeCounts } from "@/lib/server/quotes/quotes-badge-counter"
 import { createQuoteService } from "@/lib/server/quotes/quote-create-service"
 import { handleApiError } from "@/lib/api-error"
+import {
+  containsCaseInsensitiveRegex,
+  exactCaseInsensitiveRegex,
+} from "@/lib/regex"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -48,21 +52,22 @@ export async function GET(request: Request) {
     }
 
     if (assignedTo) {
-      filter.assignedTo = { $regex: new RegExp(`^${assignedTo}$`, "i") }
+      filter.assignedTo = { $regex: exactCaseInsensitiveRegex(assignedTo) }
     }
 
     if (preparedBy) {
-      filter.preparedBy = { $regex: new RegExp(`^${preparedBy}$`, "i") }
+      filter.preparedBy = { $regex: exactCaseInsensitiveRegex(preparedBy) }
     }
 
     // 2. Strict Reviewer Isolation:
     // If a quote is PENDING_REVIEW and assigned to a specific admin,
     // it must ONLY be visible to that assigned reviewer or the preparer who submitted it.
+    const currentUserRegex = exactCaseInsensitiveRegex(currentUser)
     const reviewerPrivacyFilter = {
       $or: [
         { status: { $ne: "PENDING_REVIEW" } },
-        { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
-        { preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        { assignedTo: { $regex: currentUserRegex } },
+        { preparedBy: { $regex: currentUserRegex } },
         ...(currentUser?.toLowerCase() === "admin"
           ? [
               { assignedTo: "Admin" },
@@ -75,8 +80,8 @@ export async function GET(request: Request) {
 
     if (filter.status === "PENDING_REVIEW") {
       filter.$or = [
-        { assignedTo: { $regex: new RegExp(`^${currentUser}$`, "i") } },
-        { preparedBy: { $regex: new RegExp(`^${currentUser}$`, "i") } },
+        { assignedTo: { $regex: currentUserRegex } },
+        { preparedBy: { $regex: currentUserRegex } },
         ...(currentUser?.toLowerCase() === "admin"
           ? [
               { assignedTo: "Admin" },
@@ -92,7 +97,7 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      const sRegex = new RegExp(search.trim(), "i")
+      const sRegex = containsCaseInsensitiveRegex(search.trim())
       const searchFilter = {
         $or: [
           { customerName: sRegex },

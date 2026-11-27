@@ -8,6 +8,7 @@ import {
   readSessionCustomOptions,
 } from "@/hooks/calculator/supply-mode/supply-session-storage"
 import { useUniversalReviewSubmit } from "@/hooks/quotes/review/useUniversalReviewSubmit"
+import { computeEffectiveSealedUnitGrandTotal } from "@/lib/sealed-units/totals-calculator"
 
 interface UseSealedUnitsReviewSubmitProps {
   user: any
@@ -96,6 +97,17 @@ export function useSealedUnitsReviewSubmit({
               } as any,
             ]
 
+      const effectiveTotals = computeEffectiveSealedUnitGrandTotal({
+        totals,
+        isInstallation,
+        isServiceOnly,
+        loyaltyDiscount,
+        loyaltyDiscountLabel,
+        hstRate,
+        attachedWindowQuote,
+        attachedDoorQuote,
+      })
+
       return {
         quoteNumber,
         customerName,
@@ -106,8 +118,8 @@ export function useSealedUnitsReviewSubmit({
         quoteNotes,
         attachedWindowQuote,
         attachedDoorQuote,
-        attachedInstallOption: readSessionAttachedInstallOption(),
-        customOptions: readSessionCustomOptions(),
+        attachedInstallOption: readSessionAttachedInstallOption("sealed_unit"),
+        customOptions: readSessionCustomOptions("sealed_unit"),
         selectedRegionId,
         travelFeeType,
         customTravelFee,
@@ -127,7 +139,7 @@ export function useSealedUnitsReviewSubmit({
         windows: effectiveLineItems,
         taxTotals: {
           ...totals,
-          isSupplyOnly: !isInstallation,
+          isSupplyOnly: !isInstallation && !isServiceOnly,
           isServiceOnly,
           subtotalPreTax: totals.subtotalPreTax,
           grandTotal: totals.grandTotal,
@@ -153,7 +165,7 @@ export function useSealedUnitsReviewSubmit({
           total: totals.grandTotal,
           isSealedUnit: true,
         },
-        quoteSummaryTotal: Math.round(totals.grandTotal * 100),
+        quoteSummaryTotal: Math.round(effectiveTotals.grandTotal * 100),
       }
     },
     [

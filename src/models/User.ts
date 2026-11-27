@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose"
+import type { SavedQuoteLayout } from "@/lib/quotes/invoice-layout-engine"
 
 export type UserRole = "SUPERADMIN" | "ADMIN" | "EMPLOYEE"
 
@@ -32,7 +33,8 @@ export interface IUser extends Document {
   lastLoginAt?: Date | null
   muteNotifications?: boolean
   receiveQuoteEmails?: boolean
-  favoriteTemplate?: "modern" | "executive" | "cards" | "compact" | "breakdown"
+  favoriteTemplate?: "universal" | "modern" | "executive" | "cards" | "compact" | "breakdown"
+  savedQuoteLayout?: SavedQuoteLayout | null
   department?: string
   customPermissions?: IUserCustomPermissions
   createdAt: Date
@@ -115,8 +117,12 @@ const UserSchema = new Schema<IUser>(
     },
     favoriteTemplate: {
       type: String,
-      enum: ["modern", "executive", "cards", "compact", "breakdown"],
-      default: "modern",
+      enum: ["universal", "modern", "executive", "cards", "compact", "breakdown"],
+      default: "universal",
+    },
+    savedQuoteLayout: {
+      type: Schema.Types.Mixed,
+      default: null,
     },
     department: {
       default: "SALES",
@@ -144,6 +150,7 @@ if (
     !mongoose.models.User.schema.path("muteNotifications") ||
     !mongoose.models.User.schema.path("receiveQuoteEmails") ||
     !mongoose.models.User.schema.path("favoriteTemplate") ||
+    !mongoose.models.User.schema.path("savedQuoteLayout") ||
     !mongoose.models.User.schema.path("customPermissions"))
 ) {
   delete (mongoose.models as Record<string, unknown>).User

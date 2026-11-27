@@ -8,6 +8,7 @@ import {
   calculateUpgrade,
   ILabourUpgradeTier,
 } from "@/lib/promo-logic"
+import { useLoyaltyDiscountState } from "@/hooks/shared/useLoyaltyDiscountState"
 import { UIWindowItem } from "./useCalculatorWindows"
 
 export interface UseCalculatorPricingProps {
@@ -52,17 +53,25 @@ export function useCalculatorPricing({
   const [customLabour, setCustomLabour] = useState<string>("")
   const [customDiscount, setCustomDiscount] = useState<string>("")
   const [customDiscountLabel, setCustomDiscountLabel] = useState<string>("")
-  const [loyaltyDiscount, setLoyaltyDiscount] = useState<string>("")
-  const [loyaltyDiscountLabel, setLoyaltyDiscountLabel] = useState<string>("")
-  const [discountType, setDiscountType] = useState<"none" | "custom" | "loyalty">("none")
-  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
-  const [loyaltyGrossAmount, setLoyaltyGrossAmount] = useState<number>(0)
+  const [hstRate, setHstRate] = useState<number>(13)
+  const {
+    loyaltyDiscount,
+    setLoyaltyDiscount,
+    loyaltyDiscountLabel,
+    setLoyaltyDiscountLabel,
+    discountType,
+    setDiscountType,
+    loyaltyPoints,
+    setLoyaltyPoints,
+    loyaltyGrossAmount,
+    setLoyaltyGrossAmount,
+    resetLoyaltyDiscount,
+  } = useLoyaltyDiscountState({ hstRate, isFirstNation: hstRate === 8 })
   const [includeJCInPromo, setIncludeJCInPromo] = useState<boolean>(true)
   const [includeMiscInPromo, setIncludeMiscInPromo] = useState<boolean>(true)
   const [includeLabourInPromo, setIncludeLabourInPromo] =
     useState<boolean>(true)
   const [wantsUpgrade, setWantsUpgrade] = useState<boolean>(false)
-  const [hstRate, setHstRate] = useState<number>(13)
 
   const isSupplyOnly = Boolean(taxTotals?.isSupplyOnly)
   const hasSupplyJC = isSupplyOnly
@@ -175,12 +184,6 @@ export function useCalculatorPricing({
     [
       availablePromos,
       surchargeRate,
-      includeJCInPromo,
-      includeMiscInPromo,
-      includeLabourInPromo,
-      effectiveJC,
-      effectiveMisc,
-      effectiveLabour,
       lockedPromoId,
     ]
   )
@@ -192,12 +195,9 @@ export function useCalculatorPricing({
   const beforeTaxDiscount = quoteResult
     ? quoteResult.base +
       quoteResult.surcharge +
-      (includeJCInPromo ? effectiveJC : 0) +
-      (includeMiscInPromo ? effectiveMisc : 0) +
-      (includeLabourInPromo ? effectiveLabour : 0) +
-      (!includeJCInPromo ? effectiveJC : 0) +
-      (!includeMiscInPromo ? effectiveMisc : 0) +
-      (!includeLabourInPromo ? effectiveLabour : 0) +
+      effectiveJC +
+      effectiveMisc +
+      effectiveLabour +
       customMaterialsCents
     : customMaterialsCents > 0
       ? customMaterialsCents + effectiveJC + effectiveLabour + effectiveMisc
@@ -228,11 +228,6 @@ export function useCalculatorPricing({
           customMaterialsCents
       )
     : customMaterialsCents + effectiveJC
-
-  const serviceAfterDiscount = Math.max(
-    0,
-    afterDiscount - materialAfterDiscount
-  )
 
   let hst = 0
   let hstBase = 0
@@ -265,11 +260,7 @@ export function useCalculatorPricing({
     setCustomLabour("")
     setCustomDiscount("")
     setCustomDiscountLabel("")
-    setLoyaltyDiscount("")
-    setLoyaltyDiscountLabel("")
-    setDiscountType("none")
-    setLoyaltyPoints(0)
-    setLoyaltyGrossAmount(0)
+    resetLoyaltyDiscount()
     setIncludeJCInPromo(true)
     setIncludeMiscInPromo(true)
     setIncludeLabourInPromo(true)

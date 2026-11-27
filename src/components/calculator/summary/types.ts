@@ -94,7 +94,6 @@ export interface QuoteSummaryCardProps {
   attachedSealedUnit?: AttachedQuoteData | null
   attachedDoorQuote?: AttachedQuoteData | null
   attachedUpgrade?: AttachedUpgradeOption | null
-  onOpenAttachSealedUnitModal?: () => void
   onRemoveAttachedSealedUnit?: () => void
   onRemoveAttachedDoorQuote?: () => void
   onRemoveAttachedUpgrade?: () => void

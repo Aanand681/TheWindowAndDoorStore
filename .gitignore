@@ -1,7 +1,6 @@
 # dependencies
 /.graph-it
-/docs/*
-!/docs/DEVELOPER_MEMORY.md
+/docs/
 /node_modules
 /.pnp
 .pnp.*

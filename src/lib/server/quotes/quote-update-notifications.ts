@@ -8,6 +8,7 @@ import {
   getAppUrl,
 } from "@/lib/email"
 import { formatReviewerName } from "@/lib/format-reviewer"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export async function dispatchQuoteUpdateNotifications(p: {
   request: Request
@@ -36,7 +37,7 @@ export async function dispatchQuoteUpdateNotifications(p: {
   if (body.assignedTo && body.assignedTo !== existingQuote.assignedTo) {
     try {
       const newAssigneeUser = await User.findOne({
-        username: { $regex: new RegExp(`^${body.assignedTo}$`, "i") },
+        username: { $regex: exactCaseInsensitiveRegex(body.assignedTo) },
       })
       if (newAssigneeUser?.email) {
         await SavedQuote.findByIdAndUpdate(id, {
@@ -209,7 +210,7 @@ export async function dispatchQuoteUpdateNotifications(p: {
       const existingNotif = await Notification.findOne({
         quoteId: updatedQuote._id.toString(),
         recipientUsername: {
-          $regex: new RegExp(`^${body.odooAssignedTo}$`, "i"),
+          $regex: exactCaseInsensitiveRegex(body.odooAssignedTo),
         },
         type: "QUOTE_ODOO_ASSIGNED",
         isRead: false,

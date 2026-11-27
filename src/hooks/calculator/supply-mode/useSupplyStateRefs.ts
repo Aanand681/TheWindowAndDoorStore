@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useMemo } from "react"
 import {
   writeSessionSupplyState,
   writeSessionInstallState,
-  readSessionInstallState,
 } from "./supply-session-storage"
 
 export function useSupplyStateRefs() {

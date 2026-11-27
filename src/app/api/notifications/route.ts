@@ -4,6 +4,7 @@ import Notification from "@/models/Notification"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { handleApiError } from "@/lib/api-error"
+import { exactCaseInsensitiveRegex } from "@/lib/regex"
 
 export async function GET() {
   try {
@@ -23,14 +24,14 @@ export async function GET() {
     }).catch((err) => console.error("Failed to flush old notifications:", err))
 
     const notifications = await Notification.find({
-      recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      recipientUsername: { $regex: exactCaseInsensitiveRegex(currentUsername) },
       createdAt: { $gte: sevenDaysAgo },
     })
       .sort({ createdAt: -1 })
       .limit(50)
 
     const unreadCount = await Notification.countDocuments({
-      recipientUsername: { $regex: new RegExp(`^${currentUsername}$`, "i") },
+      recipientUsername: { $regex: exactCaseInsensitiveRegex(currentUsername) },
       isRead: false,
       createdAt: { $gte: sevenDaysAgo },
     })
@@ -59,7 +60,7 @@ export async function PUT(request: Request) {
           $or: [
             {
               recipientUsername: {
-                $regex: new RegExp(`^${currentUsername}$`, "i"),
+                $regex: exactCaseInsensitiveRegex(currentUsername),
               },
             },
             { recipientUsername: currentUsername },
@@ -89,7 +90,7 @@ export async function PUT(request: Request) {
         {
           _id: notificationId,
           recipientUsername: {
-            $regex: new RegExp(`^${currentUsername}$`, "i"),
+            $regex: exactCaseInsensitiveRegex(currentUsername),
           },
         },
         { $set: { isRead: true } }
